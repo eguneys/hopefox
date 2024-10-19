@@ -1,65 +1,65 @@
-import { Chess } from "./chess";
-import { makeFen, parseFen } from "./fen";
-import { get_king_squares } from "./squareSet";
-import { Color, Role, ROLES } from "./types";
-import { opposite } from "./util";
+export {
+  ByCastlingSide,
+  ByColor,
+  ByRole,
+  BySquare,
+  CASTLING_SIDES,
+  CastlingSide,
+  Color,
+  COLORS,
+  DropMove,
+  FILE_NAMES,
+  FileName,
+  isDrop,
+  isNormal,
+  Move,
+  NormalMove,
+  Outcome,
+  Piece,
+  RANK_NAMES,
+  RankName,
+  Role,
+  ROLES,
+  RULES,
+  Rules,
+  Square,
+  SquareName,
+} from './types';
 
-export default function hopefox(fen: string, pattern: string, turn: Color = 'white') {
+export {
+  charToRole,
+  defined,
+  kingCastlesTo,
+  makeSquare,
+  makeUci,
+  opposite,
+  parseSquare,
+  parseUci,
+  roleToChar,
+  squareFile,
+  squareRank,
+} from './util';
 
-    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+export { SquareSet } from './squareSet';
 
+export {
+  attacks,
+  between,
+  bishopAttacks,
+  kingAttacks,
+  knightAttacks,
+  pawnAttacks,
+  queenAttacks,
+  ray,
+  rookAttacks,
+} from './attacks';
 
-    let king = get_king_squares(pos.board.king.intersect(pos.board[turn]).singleSquare()!)
+export { Board } from './board';
 
-    let o = king[4]!
+export { defaultSetup, Material, MaterialSide, RemainingChecks, Setup } from './setup';
 
-    let res = king.every((sq, i) => {
-        let rule = pattern.slice(i * 2, i * 2 + 2)
+export { Castles, Chess, Context, IllegalSetup, Position, PositionError } from './chess';
 
-        if (rule === 'Oo') return sq === undefined
+export * as fen from './fen';
 
-        if (sq === undefined) {
-            return false
-        }
-
-        let color = rule[0].toLowerCase() === rule[0] ? opposite(turn) : turn
-
-        if (rule[1] === 'o') {
-            return pos.board.get(sq)?.color === color
-        }
-        
-        if (rule[1] === 'n') {
-            let roles: Role[] = []
-            if (rule[0].toLowerCase() === 'f') {
-                roles = ROLES.slice(0)
-            } else if (rule[0].toLowerCase() === 'r') {
-                roles = ['rook']
-            } else if (rule[0].toLowerCase() === 'q') {
-                roles = ['queen']
-            } else if (rule[0].toLowerCase() === 'n') {
-                roles = ['knight']
-            } else if (rule[0].toLowerCase() === 'b') {
-                roles = ['bishop']
-            } else if (rule[0].toLowerCase() === 'k') {
-                roles = ['king']
-            } else if (rule[0].toLowerCase() === 'p') {
-                roles = ['pawn']
-            }
-
-            let p2 = pos.clone()
-            p2.turn = color
-            p2.board.take(o)
-            let n = roles.find(role => {
-                for (let from of p2.board[role]) {
-                    return p2.dests(from).has(sq)
-                }
-            })
-
-            return n !== undefined
-        }
-
-        return true
-    })
-
-    return res
-}
+export * as san from './san';
