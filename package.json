@@ -2,9 +2,12 @@
   "name": "hopefox",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build": "rm -rf dist && tsc"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +15,8 @@
   "devDependencies": {
     "typescript": "^5.6.3",
     "vitest": "^2.1.3"
+  },
+  "dependencies": {
+    "@badrap/result": "^0.2.13"
   }
 }
