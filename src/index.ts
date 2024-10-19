@@ -63,3 +63,5 @@ export { Castles, Chess, Context, IllegalSetup, Position, PositionError } from '
 export * as fen from './fen';
 
 export * as san from './san';
+
+export * from './hopefox'

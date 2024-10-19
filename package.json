@@ -13,6 +13,9 @@
   "author": "",
   "license": "ISC",
   "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    },
     "./*": {
       "import": "./dist/*.js"
     }
