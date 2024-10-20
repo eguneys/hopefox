@@ -64,4 +64,6 @@ export * as fen from './fen';
 
 export * as san from './san';
 
+export * as debug from './debug'
+
 export * from './hopefox'
