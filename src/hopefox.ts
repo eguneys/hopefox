@@ -16,12 +16,9 @@ export function hopefox(fen: string, pattern: string, turn?: Color) {
     let king = get_king_squares(pos.board.king.intersect(pos.board[turn]).singleSquare()!)
 
     let o = king[4]!
-    console.log(king)
 
     let res = king.every((sq, i) => {
         let rule = pattern.slice(i * 2, i * 2 + 2)
-        console.log(rule)
-
         if (rule === 'Oo') return sq === undefined
 
         if (sq === undefined) {
