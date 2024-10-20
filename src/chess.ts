@@ -279,7 +279,7 @@ export abstract class Position {
 
     let pseudo, legal;
     if (piece.role === 'pawn') {
-      pseudo = pawnAttacks(this.turn, square).intersect(this.board[opposite(this.turn)]);
+      pseudo = pawnAttacks(this.turn, square) //.intersect(this.board[opposite(this.turn)]);
       const delta = this.turn === 'white' ? 8 : -8;
       const step = square + delta;
       if (0 <= step && step < 64 && !this.board.occupied.has(step)) {
@@ -299,13 +299,13 @@ export abstract class Position {
     else if (piece.role === 'queen') pseudo = queenAttacks(square, this.board.occupied);
     else pseudo = kingAttacks(square);
 
-    pseudo = pseudo.diff(this.board[this.turn]);
+    //pseudo = pseudo.diff(this.board[this.turn]);
 
     if (defined(ctx.king)) {
       if (piece.role === 'king') {
         const occ = this.board.occupied.without(square);
         for (const to of pseudo) {
-          if (this.kingAttackers(to, opposite(this.turn), occ).nonEmpty()) pseudo = pseudo.without(to);
+          //if (this.kingAttackers(to, opposite(this.turn), occ).nonEmpty()) pseudo = pseudo.without(to);
         }
         return pseudo.union(castlingDest(this, 'a', ctx)).union(castlingDest(this, 'h', ctx));
       }
