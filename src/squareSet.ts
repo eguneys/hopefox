@@ -269,8 +269,8 @@ export function get_king_squares(o: Square) {
   let b = go_black(o)
   let w = go_white(o)
   return [
-    q ? go_black(q) : undefined, b, k ? go_black(k) : undefined,
+    q !== undefined ? go_black(q) : undefined, b, k !== undefined ? go_black(k) : undefined,
     q, o, k,
-    q ? go_white(q) : undefined, w, k ? go_white(k) : undefined
+    q !== undefined ? go_white(q) : undefined, w, k !== undefined ? go_white(k) : undefined
   ]
 }
