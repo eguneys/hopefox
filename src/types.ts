@@ -60,14 +60,7 @@ export interface NormalMove {
   promotion?: Role;
 }
 
-export interface DropMove {
-  role: Role;
-  to: Square;
-}
-
-export type Move = NormalMove | DropMove;
-
-export const isDrop = (v: Move): v is DropMove => 'role' in v;
+export type Move = NormalMove
 
 export const isNormal = (v: Move): v is NormalMove => 'from' in v;
 

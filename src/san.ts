@@ -1,15 +1,12 @@
 import { attacks, bishopAttacks, kingAttacks, knightAttacks, queenAttacks, rookAttacks } from './attacks';
 import { Position } from './chess';
 import { SquareSet } from './squareSet';
-import { CastlingSide, FILE_NAMES, isDrop, Move, RANK_NAMES, SquareName } from './types';
+import { CastlingSide, FILE_NAMES, Move, RANK_NAMES, SquareName } from './types';
 import { charToRole, defined, makeSquare, opposite, parseSquare, roleToChar, squareFile, squareRank } from './util';
 
 const makeSanWithoutSuffix = (pos: Position, move: Move): string => {
   let san = '';
-  if (isDrop(move)) {
-    if (move.role !== 'pawn') san = roleToChar(move.role).toUpperCase();
-    san += '@' + makeSquare(move.to);
-  } else {
+  {
     const role = pos.board.getRole(move.from);
     if (!role) return '--';
     if (role === 'king' && (pos.board[pos.turn].has(move.to) || Math.abs(move.to - move.from) === 2)) {
@@ -107,16 +104,7 @@ export const parseSan = (pos: Position, san: string): Move | undefined => {
       };
     }
 
-    // Drop
-    const match = san.match(/^([pnbrqkPNBRQK])?@([a-h][1-8])[+#]?$/) as
-      | [string, 'p' | 'n' | 'b' | 'r' | 'q' | 'k' | 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' | undefined, SquareName]
-      | null;
-    if (!match) return;
-    const move = {
-      role: match[1] ? charToRole(match[1]) : 'pawn',
-      to: parseSquare(match[2]),
-    };
-    return pos.isLegal(move, ctx) ? move : undefined;
+    return
   }
   const role = match[1] ? charToRole(match[1]) : 'pawn';
   const to = parseSquare(match[4]);

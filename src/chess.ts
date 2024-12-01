@@ -20,7 +20,6 @@ import {
   CastlingSide,
   Color,
   COLORS,
-  isDrop,
   Move,
   NormalMove,
   Outcome,
@@ -271,7 +270,60 @@ export abstract class Position {
     return SquareSet.empty();
   }
 
+
   dests(square: Square, ctx?: Context): SquareSet {
+    ctx = ctx || this.ctx();
+    if (ctx.variantEnd) return SquareSet.empty();
+    const piece = this.board.get(square);
+    if (!piece || piece.color !== this.turn) return SquareSet.empty();
+
+    let pseudo, legal;
+    if (piece.role === 'pawn') {
+      pseudo = pawnAttacks(this.turn, square).intersect(this.board[opposite(this.turn)]);
+      const delta = this.turn === 'white' ? 8 : -8;
+      const step = square + delta;
+      if (0 <= step && step < 64 && !this.board.occupied.has(step)) {
+        pseudo = pseudo.with(step);
+        const canDoubleStep = this.turn === 'white' ? square < 16 : square >= 64 - 16;
+        const doubleStep = step + delta;
+        if (canDoubleStep && !this.board.occupied.has(doubleStep)) {
+          pseudo = pseudo.with(doubleStep);
+        }
+      }
+      if (defined(this.epSquare) && canCaptureEp(this, square, ctx)) {
+        legal = SquareSet.fromSquare(this.epSquare);
+      }
+    } else if (piece.role === 'bishop') pseudo = bishopAttacks(square, this.board.occupied);
+    else if (piece.role === 'knight') pseudo = knightAttacks(square);
+    else if (piece.role === 'rook') pseudo = rookAttacks(square, this.board.occupied);
+    else if (piece.role === 'queen') pseudo = queenAttacks(square, this.board.occupied);
+    else pseudo = kingAttacks(square);
+
+    pseudo = pseudo.diff(this.board[this.turn]);
+
+    if (defined(ctx.king)) {
+      if (piece.role === 'king') {
+        const occ = this.board.occupied.without(square);
+        for (const to of pseudo) {
+          if (this.kingAttackers(to, opposite(this.turn), occ).nonEmpty()) pseudo = pseudo.without(to);
+        }
+        return pseudo.union(castlingDest(this, 'a', ctx)).union(castlingDest(this, 'h', ctx));
+      }
+
+      if (ctx.checkers.nonEmpty()) {
+        const checker = ctx.checkers.singleSquare();
+        if (!defined(checker)) return SquareSet.empty();
+        pseudo = pseudo.intersect(between(checker, ctx.king).with(checker));
+      }
+
+      if (ctx.blockers.has(square)) pseudo = pseudo.intersect(ray(square, ctx.king));
+    }
+
+    if (legal) pseudo = pseudo.union(legal);
+    return pseudo;
+  }
+
+  pseudo_dests(square: Square, ctx?: Context): SquareSet {
     ctx = ctx || this.ctx();
     if (ctx.variantEnd) return SquareSet.empty();
     const piece = this.board.get(square);
@@ -375,11 +427,7 @@ export abstract class Position {
   }
 
   isLegal(move: Move, ctx?: Context): boolean {
-    if (isDrop(move)) {
-      if (!this.pockets || this.pockets[this.turn][move.role] <= 0) return false;
-      if (move.role === 'pawn' && SquareSet.backranks().has(move.to)) return false;
-      return this.dropDests(ctx).has(move.to);
-    } else {
+    {
       if (move.promotion === 'pawn') return false;
       if (move.promotion === 'king' && this.rules !== 'antichess') return false;
       if (!!move.promotion !== (this.board.pawn.has(move.from) && SquareSet.backranks().has(move.to))) return false;
@@ -437,11 +485,7 @@ export abstract class Position {
     if (turn === 'black') this.fullmoves += 1;
     this.turn = opposite(turn);
 
-    if (isDrop(move)) {
-      this.board.set(move.to, { role: move.role, color: turn });
-      if (this.pockets) this.pockets[turn][move.role]--;
-      if (move.role === 'pawn') this.halfmoves = 0;
-    } else {
+    {
       const piece = this.board.take(move.from);
       if (!piece) return;
 
@@ -604,7 +648,6 @@ export const equalsIgnoreMoves = (left: Position, right: Position): boolean =>
     || (!left.remainingChecks && !right.remainingChecks));
 
 export const castlingSide = (pos: Position, move: Move): CastlingSide | undefined => {
-  if (isDrop(move)) return;
   const delta = move.to - move.from;
   if (Math.abs(delta) !== 2 && !pos.board[pos.turn].has(move.to)) return;
   if (!pos.board.king.has(move.from)) return;

@@ -67,3 +67,6 @@ export * as san from './san';
 export * as debug from './debug'
 
 export * from './hopefox'
+
+
+export * from './kaggle'
