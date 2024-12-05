@@ -128,241 +128,6 @@ o+ k x[bpnq]
 
 */
 
-//parse_rule('x+ [^kx]=y =y')
-
-function parse_rule(rule: string) {
-
-    return (h: Hopefox) => {
-    let moves: any = []
-    let i = 0
-    let sign = true
-    let andor = 'and'
-    let flag = false
-
-    function parse() {
-        let m = []
-        for (; i < rule.length; i++) {
-            if (rule[i] === ' ') {
-                i++
-                moves.push([sign, m, flag])
-                flag = false
-                sign = true
-                andor = 'and'
-                m = []
-            }
-            if (rule[i] === '#') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Hopefox) => ha.is_checkmate])
-            }
-            if (rule[i] === 'o') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => !h.role(da.to)])
-            }
-            if (rule[i] === 'x') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => !!h.role(da.to)])
-            }
-            if (rule[i] === '+') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => ha.is_check])
-            }
-            if (rule[i] === 'k') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => h.role(da.from) === 'king'])
-            }
-            if (rule[i] === 'q') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => h.role(da.from) === 'queen'])
-            }
-            if (rule[i] === 'b') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => h.role(da.from) === 'bishop'])
-            }
-            if (rule[i] === 'n') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => h.role(da.from) === 'knight'])
-            }
-            if (rule[i] === 'r') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => h.role(da.from) === 'rook'])
-            }
-            if (rule[i] === 'p') {
-                m.push([andor, (h: Hopefox, ha: Hopefox, da: Move) => h.role(da.from) === 'pawn'])
-            }
-            if (rule[i] === '.') {
-
-            }
-
-            if (rule[i] === '{') {
-                flag = true
-            }
-            if (rule[i] === '[') {
-                andor = 'or'
-                if (rule[i + 1] === '^') {
-                    i++
-                    sign = false
-                }
-            }
-            if (rule[i] === ']') {
-                andor = 'and'
-            }
-            if (rule[i] === '=') {
-                i++
-                if (rule[i] === 'y') {
-                    m.push([andor, (h: Hopefox, ha: Hopefox, da: Move, ctx?: any) => {
-                        if (ctx.y) {
-                            return ctx.y === da.to
-                        }
-
-                        ctx.y = da.to
-                    }])
-                } else if (rule[i] === 'q') {
-                    m.push([andor, (h: Hopefox, ha: Hopefox, da: Move, ctx?: any) => {
-                        return h.role(da.to) === 'queen'
-                    }])
-                } else if (rule[i] === 'r') {
-                    m.push([andor, (h: Hopefox, ha: Hopefox, da: Move, ctx?: any) => {
-                        return h.role(da.to) === 'rook'
-                    }])
-                } else if (rule[i] === 'n') {
-                    m.push([andor, (h: Hopefox, ha: Hopefox, da: Move, ctx?: any) => {
-                        return h.role(da.to) === 'knight'
-                    }])
-                } else if (rule[i] === 'b') {
-                    m.push([andor, (h: Hopefox, ha: Hopefox, da: Move, ctx?: any) => {
-                        return h.role(da.to) === 'bishop'
-                    }])
-                } 
-            }
-        }
-        moves.push([sign, m, flag])
-    }
-    parse()
-
-        function deep(dd: any, im: number, _ctx: any) {
-            function log(...msg: any[]) {
-                let res = '|' + '-'.repeat(im)
-                //console.log(res, ...msg)
-            }
-            if (im >= moves.length) {
-                return ['x']
-            }
-            let [sign, ms, flag] = moves[im]
-            log('signmsflag', sign, ms, flag)
-
-            let res = dd.filter((_: any) => {
-
-                let ctx = { ..._ctx }
-                let res = true
-                for (let i = 0; i < ms.length; i++) {
-                    let r = ms[i][1](..._, ctx)
-
-                    if (i === 0) {
-                        res = r ?? true
-                    }
-
-                    /*
-                    if (move_to_san(_[0].pos, _[2]) === 'Qxd8+') {
-
-                        if (i === 2) {
-
-                            r = ms[i][1](..._, ctx)
-                        }
-                    }
-                        */
-                    if (r === undefined) {
-                        continue
-                    }
-                    if (ms[i][0] === 'and') {
-                        res = res && r
-                    } else {
-                        res = res || r
-                    }
-                    //console.log(ctx, res, r)
-                }
-
-                log(move_to_san2(_), im)
-                log(res, 'sign', sign)
-
-                if (!sign) {
-                    res = !res
-                }
-                if (!res) {
-                    return false
-                }
-
-                if (im >= moves.length) {
-                    return true
-                }
-                log('going deep', im)
-                if (deep(_[1].h_dests, im + 1, ctx).length === 0) {
-                    log('fail', im)
-                    return false
-                }
-                log('success', im)
-                return true
-            })
-
-            log(dd.length, res.length, flag)
-            if (flag) {
-                if (res.length === dd.length) {
-                    return res
-                }
-                return []
-            }
-            return res
-        }
-
-        return deep(h.h_dests, 0, {}).map((_: any) => _[2])
-    }
-}
-
-
-const rh: any = [
-    [-1, parse_rule('x=y {[^=y]')],
-    [0, parse_rule('x')],
-    [0, parse_rule('o')],
-    [-1, parse_rule('xq+ x k=y {[^=y]')],
-    [3, parse_rule('[bq]=y px=y')],
-    [2, parse_rule('o=y x=y {[^=y]')],
-    [2, parse_rule('x=y x=y {[^=y]')],
-    [1, parse_rule('o x=y {[^=y]')],
-    [1, parse_rule('x x=y {[^=y]')],
-]
-
-const rr: any = [
-    [0, parse_rule('x#')],
-    [0, parse_rule('o#')],
-    [0, parse_rule('o+ k #')],
-    [0, parse_rule('x+ k #')],
-    [0, parse_rule('x+=y =y #=y')],
-    [0, parse_rule('o+=y =y #=y')],
-    [0, parse_rule('o+ [^kx]=y #=y')],
-    [0, parse_rule('x+ [^kx]=y #=y')],
-    [0, parse_rule('o+=y p=y o#')],
-    [0, parse_rule('o+ k o#')],
-    [0, parse_rule('o+ k x#')],
-    [0, parse_rule('o+=y =y #')],
-    [0, parse_rule('k o #')],
-    [0, parse_rule('x=y =y o#')],
-    [1, parse_rule('o+=y =y {[^=y]')],
-    [1, parse_rule('x+=y xq=y {[^#]')],
-    [1, parse_rule('x+=y xq=y {[^#]')],
-    [1, parse_rule('x+=y k=y {[^#]')],
-    [1, parse_rule('o+ k {[^#]')],
-    [1, parse_rule('x =y {[^#]')],
-]
-
-const rrfork: any = [
-    [0, parse_rule('r+ k rx=q')],
-    [0, parse_rule('r+ k rx=b')],
-    [0, parse_rule('b+ k bx=r')],
-    [0, parse_rule('r+ k rx=n')],
-    [-1, parse_rule('n+ k nx=b')],
-    [-1, parse_rule('n+ k nx=r')],
-    [-2, parse_rule('n+ k nx=q')],
-    [-3, parse_rule('nx=q')],
-    [-2, parse_rule('nx=r')],
-    [-2, parse_rule('nx=b=y {[^x=y]')],
-    [-2, parse_rule('rx=n')],
-    [-2, parse_rule('rx=b')],
-    [-3, parse_rule('rx=q')],
-    [-2, parse_rule('bx=r')],
-    [-2, parse_rule('bx=q')],
-    [-2, parse_rule('qx=q')],
-]
-
 type RuleContext = any
 type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => boolean
 
@@ -385,9 +150,9 @@ function parse_rule2(str: string) {
         return h.h_dests.map(_ => {
             let nmax = rr.map(r => [r[0], r[1](..._, {})] as [number, boolean])
                 .filter(_ => _[1])
-                .sort((a, b) => a[0] - b[0])[0]?.[0] ?? 0
+                .sort((a, b) => a[0] - b[0])[0]?.[0] ?? 1
 
-                //console.log(nmax, move_to_san2(_))
+            //console.log(nmax, move_to_san2(_))
             return [nmax, _[2]] as [number, Move]
         }).sort((a, b) => a[0] - b[0])[0][1] ?? h.dests[0]
     }
@@ -405,6 +170,8 @@ function parse_rule2(str: string) {
             function deep(h: Hopefox, ha: Hopefox, da: Move, i_r: number, _ctx: RuleContext) {
                 let r = rr[i_r]
 
+                if (move_to_san2([h, ha, da]) === 'Nxd4') {
+                }
                 let c = r(h, ha, da, _ctx)
                 if (!c) {
                     return false
@@ -414,9 +181,9 @@ function parse_rule2(str: string) {
                 }
                 let dd = ha.h_dests.filter(_ => {
                     let ctx = { ..._ctx }
-                    let ll = move_to_san2([h, ha, da]) === 'Ne2+'
-                    if (ll) {
-                    //console.log(i_r, 'getting deep', move_to_san2([h, ha, da]), move_to_san2(_))
+                    let ll = move_to_san2([h, ha, da])
+                    if (ll === 'Ne2+' || ll.includes('K') || ll === 'Nxd4') {
+                        //console.log(i_r, 'getting deep', move_to_san2([h, ha, da]), move_to_san2(_))
                     }
                     let t = deep(..._, i_r + 1, ctx)
                     if (ll) {
@@ -448,12 +215,38 @@ function parse_rule2(str: string) {
             if (str.includes('=')) {
                 let [from, to] = str.split('=')
 
+                if (to.includes('b')) {
+                    if (to_role !== 'bishop') {
+                        return false
+                    }
+                }
+
+
+
+                if (to.includes('p')) {
+                    if (to_role !== 'pawn') {
+                        return false
+                    }
+                }
+
+                if (to.includes('r')) {
+                    if (to_role !== 'rook') {
+                        return false
+                    }
+                }
 
                 if (to.includes('q')) {
                     if (to_role !== 'queen') {
                         return false
                     }
                 }
+                if (to.includes('n')) {
+                    if (to_role !== 'knight') {
+                        return false
+                    }
+                }
+
+
                 if (to.includes('y')) {
                     if (ctx.y) {
                         if (da.to !== ctx.y) {
@@ -497,6 +290,18 @@ function parse_rule2(str: string) {
                     return false
                 }
             }
+            if (str.includes('b')) {
+                if (f_role !== 'bishop') {
+                    return false
+                }
+            }
+
+            if (str.includes('p')) {
+                if (f_role !== 'pawn') {
+                    return false
+                }
+            }
+
             if (str.includes('k')) {
                 if (f_role !== 'king') {
                     return false
@@ -514,16 +319,101 @@ function parse_rule2(str: string) {
 
 }
 
-
-const rules = parse_rule2(`
--1 "nfork"fork "ncheck "kflee "ntakesq
-0 "kflee"king k
+const rass = parse_rule2(`
+-10 "mate #
+2 "nundefendp"defend no "ktakesp
+-2 "nforkq"fork "ncheck "kflee "ntakesq
+-1 "nforkr"fork "ncheck "kflee "ntakesr
+3 "nforkrbad"badfork "ncheck "ptakesn
+3 "hangqueeno"hang o "qtakesq
+3 "hangqueenx"hang x "qtakesq
+1 "kflee"king k
 0 "ncheck"check n+
+-1 "btakesq"capture bx=q
 -3 "ntakesq"capture nx=q
+-2 "ntakesr"capture nx=r
+-1 "ntakesb"capture nx=b
+-1 "ntakesn"capture nx=n
+1 "ntakesp"capture nx=p
+0 "rtakesr"capture rx=r
+0 "qtakesb"capture qx=b
+0 "qtakesq"capture qx=q
+0 "qtakesn"capture qx=n
+0 "ktakesn"capture kx=n
+0 "ktakesp"capture kx=p
+0 "ptakesb"capture px=b
+0 "ptakesn"capture px=n
 `)
 
 const mates = parse_rule2(`
 -1 "mate #
+`)
+
+
+
+/*
+
+r + =x
+  k
+    r +
+      k =x
+        q +
+          r
+            q + =x
+             k
+               q +
+                 k
+                   q +
+                     k 
+          k
+            q +
+              k
+                q#
+                .
+
+b
+  n
+    b =x
+      n =x
+    q
+      q
+        q =x
+      n
+        b =x
+      p
+        b + =x
+          b
+  b =x
+    p =x
+      p
+        r =x
+          q =x
+            b =x
+    
+p
+  r =x
+    q =x
+      b =x
+    b =x
+      p =x
+        q =x
+          b =x
+
+
+
+
+n + =x
+  p =x
+  k
+    n =x
+
+*/
+
+function parse_rules3(str: string) {
+
+}
+
+const rules: any = parse_rules3(`
 `)
 
 function h_bestmove(h: Hopefox) {
