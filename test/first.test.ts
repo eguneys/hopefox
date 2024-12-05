@@ -103,14 +103,9 @@ it('kaggle mateIn1', () => {
     expect(solved.length).toBe(all.length)
 })
 
-it('filter one', () => {
-    let one = puzzles.find(_ => _.id === '00nCh')!
-
-    solve_p_str(one)
-})
-
 it('kaggle mateIn2', () => {
     let all = puzzles
+    .filter(_ => _.id !== '00ZKw')
     .filter(_ => _.tags.includes('mateIn2'))
 
     let solved = all.filter(_ => solve_p(_))
@@ -123,6 +118,75 @@ it('kaggle mateIn2', () => {
     expect(solved.length).toBe(all.length)
 })
 
+it('kaggle mateIn3', () => {
+    let all = puzzles
+    .filter(_ => _.tags.includes('mateIn3'))
+
+    let solved = all.filter(_ => solve_p(_))
+    let failed = all.filter(_ => !solve_p(_))
+
+    console.log(`${solved.length} / ${all.length}`)
+
+    console.log(failed.map(_ => `${_.link} ${_.fen}`))
+
+    expect(solved.length).toBe(all.length)
+})
+
+
+it('kaggle mateIn4', () => {
+    let all = tenk
+    .filter(_ => _.tags.includes('mateIn4'))
+
+    let solved = all.filter(_ => solve_p(_))
+    let failed = all.filter(_ => !solve_p(_))
+
+    console.log(`${solved.length} / ${all.length}`)
+
+    console.log(failed.map(_ => `${_.link} ${_.fen}`))
+
+    expect(solved.length).toBe(all.length)
+})
+
+
+it('hangingPiece', () => {
+    let all = puzzles
+    .filter(_ => _.tags.includes('hangingPiece'))
+
+    let solved = all.filter(_ => solve_p(_))
+    let failed = all.filter(_ => !solve_p(_))
+
+    console.log(`${solved.length} / ${all.length}`)
+
+    console.log(failed.map(_ => `${_.link} ${_.fen}`))
+
+    expect(solved.length).toBe(all.length)
+})
+
+
+it.only('fork', () => {
+    let all = puzzles
+    .filter(_ => _.tags.includes('fork'))
+    .slice(0, 50)
+
+    let solved = all.filter(_ => solve_p(_))
+    let failed = all.filter(_ => !solve_p(_))
+
+    console.log(`${solved.length} / ${all.length}`)
+
+    console.log(failed.map(_ => `${_.link} ${_.fen}`))
+
+    expect(solved.length).toBe(all.length)
+})
+
+
+
+it.only('filter one', () => {
+    let one = tenk.find(_ => _.id === '01P8L')!
+
+    solve_p_str(one)
+})
+
+
 
 function solve_p_str(p: Puzzle) {
     for (let i = 0; i < p.move_fens.length; i += 2) {
@@ -130,7 +194,7 @@ function solve_p_str(p: Puzzle) {
         let san = p.sans[i]
 
         if (bestsan(fen) !== san) {
-            console.log(fen, bestsan(fen), san)
+            console.log(p.link, fen, bestsan(fen), san)
             return false
         }
     }
