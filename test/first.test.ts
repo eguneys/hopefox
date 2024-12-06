@@ -181,17 +181,80 @@ it('fork', () => {
 
 
 it('filter one', () => {
-    //let one = tenk.find(_ => _.id === '01TeF')!
+    let one = tenk.find(_ => _.id === '01TeF')!
     //let one = tenk.find(_ => _.id === '00Er4')!
     //let one = tenk.find(_ => _.id === '00B5A')!
     //let one = tenk.find(_ => _.id === '01Upi')!
     //let one = tenk.find(_ => _.id === '01Vbe')!
-    let one = tenk.find(_ => _.id === '01P8L')!
-    solve_p_str(one, rules)
+    //let one = tenk.find(_ => _.id === '01P8L')!
+
+    solve_p_str(one, `
+k =x
+n
+ k =x
+ o
+`)
+    /*
+    solve_p_str(one, `
+max(5, -5)
+k =q 5
+n =q 5 min(0, -5)=-5
+ k =p -3 + max(3, 1)=3
+  n =b 3
+  n =p 1
+ k =q -5 + 0
+`)
+*/
 })
 
 
-it.only('minmax', () => {
+it.only('long puzzle 006XF', () => {
+
+    let one = tenk.find(_ => _.id === '006XF')!
+    solve_p_str(one, `
+b =x
+
+q +
+ k =x
+ p =x
+ n
+  q =x
+
+q +
+ k =x
+ q =x
+ r =x
+ k
+  r
+   b =x
+    q =x
+
+r
+ b =x
+  #
+  q =x
+   q =x
+   k =x
+   b
+
+q =x
+`)
+})
+
+it('minmax simple', () => {
+
+    let one = tenk.find(_ => _.id === '00008')!
+    solve_p_str(one, `
+p =x
+r =x
+
+p =x
+ q
+  p =x
+`)
+})
+
+it('minmax', () => {
     let one = tenk.find(_ => _.id === '00IUT')!
     solve_p_str(one, `
 b =x

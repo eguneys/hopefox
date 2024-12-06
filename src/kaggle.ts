@@ -199,16 +199,16 @@ class Node {
 
     get max(): number {
         if (this.children.length === 0) {
-            return this.score!.score
+            return -this.score!.score
         }
-        return this.score!.score + Math.min(...this.children.map(_ => _.min))
+        return -this.score!.score + Math.max(...this.children.map(_ => _.min))
     }
 
     get min(): number {
         if (this.children.length === 0) {
-            return -this.score!.score
+            return this.score!.score
         }
-        return -this.score!.score + Math.max(...this.children.map(_ => _.max))
+        return this.score!.score + Math.min(...this.children.map(_ => _.max))
     }
 }
 
@@ -359,13 +359,19 @@ function parse_rules3(str: string) {
             return move_to_san2(h.h_dests[0])
         }
 
-        //console.log(ns.find(_ => _.score!.san === 'c5')!.children.map(_ => [_.score, _.min, _.max]))
-        //console.log(ns.map(_ => [_.score, _.min]))
+        //console.log('root min', ns.map(_ => [_.rule,_.score, _.min, _.max]))
+
+        //console.log('Rf6 max', ns.find(_ => _.score!.san === 'Rf6')!.children.map(_ => [_.rule, _.score, _.min, _.max]))
+        //console.log('Rf6 Bxg2 min', ns.find(_ => _.score!.san === 'Rf6')!.children[0].children.map(_ => [_.rule, _.score, _.min, _.max]))
+        //console.log('Rf6 Bxg2 Qxe7 max', ns.find(_ => _.score!.san === 'Rf6')!.children[0].children[1]?.children.map(_ => [_.rule, _.score, _.min, _.max]))
+
+        //console.log('Nb2', ns.find(_ => _.score?.san === 'Nb2')?.children.map(_ => [_.rule,_.score, _.min, _.max]))
+        //console.log('Kxd4', ns.find(_ => _.score?.san === 'Kxd4')?.children.map(_ => [_.rule,_.score, _.min, _.max]))
 
         //console.log(ns.find(_ => _.score!.san === 'c5')?.min)
         //console.log(ns.find(_ => _.score!.san === 'a5')?.min)
         //console.log(ns.find(_ => _.score!.san === 'a5')?.children.map(_ => [_.score?.san, _.max]))
-        return ns.sort((a, b) => a.min - b.min)[0].score!.san
+        return ns.sort((a, b) => b.min - a.min)[0].score!.san
 
     }
 }
