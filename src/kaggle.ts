@@ -403,20 +403,267 @@ p
 
 
 n + =x
-  p =x
-  k
-    n =x
+ p =x
+ k
+  n =x
 
 */
 
-function parse_rules3(str: string) {
-
+type SanScore = {
+    san: string,
+    score: number
 }
 
-const rules: any = parse_rules3(`
-`)
+class Node {
+
+    static get Root() { return new Node(0, 'root', [], undefined, undefined) }
+
+    constructor(
+        public depth: number,
+        public rule: string,
+        public children: Node[],
+        public parent: Node | undefined,
+        public score: SanScore | undefined,
+    ) {}
+
+
+    add_children(children: Node[]) {
+        children.forEach(_ => _.parent = this)
+        this.children.push(...children)
+    }
+
+
+    get max(): number {
+        if (this.children.length === 0) {
+            return this.score!.score
+        }
+        return this.score!.score + Math.min(...this.children.map(_ => _.min))
+    }
+
+    get min(): number {
+        if (this.children.length === 0) {
+            return -this.score!.score
+        }
+        return -this.score!.score + Math.max(...this.children.map(_ => _.max))
+    }
+}
+
+
+function parse_rule1(str: string) {
+    let ss = str.split(' ')
+    return (h: Hopefox, ha: Hopefox, da: Move) => {
+        let from_role = h.role(da.from)
+
+        if (ss.includes('n')) {
+            if (from_role !== 'knight') {
+                return undefined
+            }
+        }
+        if (ss.includes('b')) {
+            if (from_role !== 'bishop') {
+                return undefined
+            }
+        }
+        if (ss.includes('q')) {
+            if (from_role !== 'queen') {
+                return undefined
+            }
+        }
+        if (ss.includes('r')) {
+            if (from_role !== 'rook') {
+                return undefined
+            }
+        }
+        if (ss.includes('k')) {
+            if (from_role !== 'king') {
+                return undefined
+            }
+        }
+        if (ss.includes('p')) {
+            if (from_role !== 'pawn') {
+                return undefined
+            }
+        }
+        if (ss.includes('+')) {
+            if (!ha.is_check) {
+                return undefined
+            }
+        }
+        if (ss.includes('#')) {
+            if (!ha.is_checkmate) {
+                return undefined
+            }
+        }
+
+        if (ss.includes('=x')) {
+            let to_role = h.role(da.to)
+
+            if (to_role === 'pawn') {
+                return 1
+            }
+
+            if (to_role === 'bishop') {
+                return 4
+            }
+            if (to_role === 'knight') {
+                return 3
+            }
+            if (to_role === 'rook') {
+                return 5
+            }
+            if (to_role === 'queen') {
+                return 9
+            }
+            return undefined
+        }
+        return 0
+    }
+}
+
+
+
+function parse_rules3(str: string) {
+
+    let ss = str.trim().split('\n')
+
+    let root = Node.Root
+    const stack = [root]
+
+    ss.forEach(line => {
+        const rule = line.trim()
+        if (!rule) return
+
+        const depth = line.search(/\S/)
+
+        const node = new Node(depth, rule, [], undefined, undefined)
+
+        while (stack.length > depth + 1) {
+            stack.pop()
+        }
+
+        stack[stack.length - 1].add_children([node])
+        stack.push(node)
+    })
+    root.children.forEach(_ => _.parent = undefined)
+    let nodes = root.children
+
+
+    return (h: Hopefox) => {
+        function deep(ns: Node[], h: Hopefox) {
+            let res: Node[] = []
+            h.h_dests.map(haa => {
+                ns.forEach(_ => {
+                    let score = parse_rule1(_.rule)(...haa)
+                    if (score !== undefined) {
+
+                        let children: Node[] = []
+                        let san = move_to_san2(haa)
+                    if (_.children.length > 0) {
+                        let cc = deep(_.children, haa[1])
+                        if (cc === undefined) {
+                            return
+                        } else {
+                            children = cc
+                        }
+                    } else {
+
+                    }
+
+                        let nm = new Node(_.depth, _.rule, [], undefined, { san, score })
+                        nm.add_children(children)
+                        res.push(nm)
+                    }
+                })
+            })
+            if (res.length === 0) {
+                return undefined
+            }
+            return res
+        }
+
+        let ns = deep(nodes, h)
+
+        if (!ns || ns.length === 0) {
+            return move_to_san2(h.h_dests[0])
+        }
+
+        //console.log(ns.map(_ => [_.score, _.max]))
+
+        return ns.sort((a, b) => b.max - a.max)[0].score!.san
+
+    }
+}
+
+let rules = ``
+
+rules += `
+q =x
+n + =x
+ p =x
+ k
+  n =x
+
+k =x
+ k
+  n
+   k =x
+   .
+n
+ k =x
+ .
+
+
+
+k =x
+  q =x
+    b =x
+
+q =x
+  b =x
+
+b =x
+k =x
+
+q =x
+ n =x
+  q =x
+`
+
+rules += `
+p =x
+
+q =x
+  b =x
+    p =x
+
+q =x
+ r =x
+ n =x
+  q =x
+`
+
+
+rules += `
+r +
+ r
+  r + =x
+   q =x
+    b =x
+
+r + =x
+ q =x
+  b =x
+`
+
+rules += `
+n +
+ k
+  n =x
+n =x
+
+`
 
 function h_bestmove(h: Hopefox) {
 
-    return move_to_san(h.pos, rules(h))
+    return parse_rules3(rules)(h)
 }

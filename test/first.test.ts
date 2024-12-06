@@ -163,7 +163,7 @@ it('hangingPiece', () => {
 })
 
 
-it('fork', () => {
+it.only('fork', () => {
     let all = puzzles
     .filter(_ => _.tags.includes('fork'))
     .slice(0, 50)
@@ -184,7 +184,9 @@ it.only('filter one', () => {
     //let one = tenk.find(_ => _.id === '01TeF')!
     //let one = tenk.find(_ => _.id === '00Er4')!
     //let one = tenk.find(_ => _.id === '00B5A')!
-    let one = tenk.find(_ => _.id === '01Upi')!
+    //let one = tenk.find(_ => _.id === '01Upi')!
+    //let one = tenk.find(_ => _.id === '01Vbe')!
+    let one = tenk.find(_ => _.id === '01P8L')!
 
     solve_p_str(one)
 })
