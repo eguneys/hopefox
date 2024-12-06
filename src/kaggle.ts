@@ -183,16 +183,65 @@ export type SanScore = {
 
 export class Node {
 
-    static get Root() { return new Node(0, 'root', [], undefined, undefined) }
+    static get Root() { return new Node(-1, -1, 'root', [], undefined, undefined) }
 
     constructor(
         public depth: number,
+        public line: number,
         public rule: string,
         public children: Node[],
         public parent: Node | undefined,
         public score: SanScore | undefined,
     ) {}
 
+    best_match(line: number) {
+        let lines = this.find_line(line)
+
+        lines = lines.filter(_ => _.is_parent_best_node)
+
+        let res = lines.sort((a, b) => a.depth % 2 === 0 ? (b.min - a.min) : (a.max - b.max))
+
+        if (res.length === 0) {
+            return undefined
+        }
+
+        return {
+          san: res[0].score!.san,
+          score: res[0].depth % 2 === 0 ? res[0].min : res[0].max
+        }
+    }
+
+    get is_parent_best_node() {
+        if (!this.parent) {
+            return true
+        } else {
+            return this.parent.is_best_node
+        }
+    }
+
+    get is_best_node() {
+        if (this.parent) {
+            return this.parent.best_child === this
+        } else {
+            return true
+        }
+    }
+
+    get best_child() {
+        if (this.depth % 2 === 0) {
+            return this.children.sort((a, b) => b.min - a.min)[0]
+        } else {
+            return this.children.sort((a, b) => a.max - b.max)[0]
+        }
+    }
+
+    find_line(line: number): Node[] {
+        if (this.line === line) {
+            return [this]
+        } else {
+            return this.children.flatMap(_ => _.find_line(line))
+        }
+    }
 
     add_children(children: Node[]) {
         children.forEach(_ => _.parent = this)
@@ -304,13 +353,13 @@ function parse_rules3(str: string) {
     let root = Node.Root
     const stack = [root]
 
-    ss.forEach(line => {
+    ss.forEach((line, i) => {
         const rule = line.trim()
         if (!rule) return
 
         const depth = line.search(/\S/)
 
-        const node = new Node(depth, rule, [], undefined, undefined)
+        const node = new Node(depth, i, rule, [], undefined, undefined)
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -319,7 +368,6 @@ function parse_rules3(str: string) {
         stack[stack.length - 1].add_children([node])
         stack.push(node)
     })
-    root.children.forEach(_ => _.parent = undefined)
     let nodes = root.children
 
 
@@ -344,7 +392,7 @@ function parse_rules3(str: string) {
 
                     }
 
-                        let nm = new Node(_.depth, _.rule, [], undefined, { san, score })
+                        let nm = new Node(_.depth, _.line, _.rule, [], undefined, { san, score })
                         nm.add_children(children)
                         res.push(nm)
                     }
@@ -358,8 +406,10 @@ function parse_rules3(str: string) {
 
         let ns = deep(nodes, h)
 
-        if (!ns || ns.length === 0) {
-            return undefined
+        let res = Node.Root
+
+        if (ns) {
+          res.add_children(ns)
         }
 
         //console.log('root min', ns.map(_ => [_.rule,_.score, _.min, _.max]))
@@ -375,8 +425,11 @@ function parse_rules3(str: string) {
         //console.log(ns.find(_ => _.score!.san === 'a5')?.min)
         //console.log(ns.find(_ => _.score!.san === 'a5')?.children.map(_ => [_.score?.san, _.max]))
         //return ns.sort((a, b) => b.min - a.min)[0].score!.san
-        return ns
 
+
+        //return ns
+
+        return res
     }
 }
 
@@ -451,6 +504,6 @@ n =x
 
 function h_bestmove(h: Hopefox, rules: string) {
 
-    let ns = parse_rules3(rules)(h)
-    return ns?.sort((a, b) => b.min - a.min)[0].score!.san ?? move_to_san2(h.h_dests[0])
+    let root = parse_rules3(rules)(h)
+    return root.best_child?.score!.san ?? move_to_san2(h.h_dests[0])
 }
