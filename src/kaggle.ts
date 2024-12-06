@@ -10,13 +10,16 @@ import { makeUci, opposite } from "./util"
 
 
 
+export function pnode(fen: string, rules: string) {
 
+    let h = Hopefox.from_fen(fen)
+    return parse_rules3(rules)(h)
+}
 
 
 export function bestsan(fen: string, rules: string) {
 
     let h = Hopefox.from_fen(fen)
-
     return h_bestmove(h, rules)
 }
 
@@ -173,12 +176,12 @@ n + =x
 
 */
 
-type SanScore = {
+export type SanScore = {
     san: string,
     score: number
 }
 
-class Node {
+export class Node {
 
     static get Root() { return new Node(0, 'root', [], undefined, undefined) }
 
@@ -356,7 +359,7 @@ function parse_rules3(str: string) {
         let ns = deep(nodes, h)
 
         if (!ns || ns.length === 0) {
-            return move_to_san2(h.h_dests[0])
+            return undefined
         }
 
         //console.log('root min', ns.map(_ => [_.rule,_.score, _.min, _.max]))
@@ -371,7 +374,8 @@ function parse_rules3(str: string) {
         //console.log(ns.find(_ => _.score!.san === 'c5')?.min)
         //console.log(ns.find(_ => _.score!.san === 'a5')?.min)
         //console.log(ns.find(_ => _.score!.san === 'a5')?.children.map(_ => [_.score?.san, _.max]))
-        return ns.sort((a, b) => b.min - a.min)[0].score!.san
+        //return ns.sort((a, b) => b.min - a.min)[0].score!.san
+        return ns
 
     }
 }
@@ -447,5 +451,6 @@ n =x
 
 function h_bestmove(h: Hopefox, rules: string) {
 
-    return parse_rules3(rules)(h)
+    let ns = parse_rules3(rules)(h)
+    return ns?.sort((a, b) => b.min - a.min)[0].score!.san ?? move_to_san2(h.h_dests[0])
 }
