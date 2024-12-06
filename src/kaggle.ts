@@ -194,14 +194,27 @@ export class Node {
         public score: SanScore | undefined,
     ) {}
 
+
+    get root_node(): Node {
+        if (!this.parent) {
+            return this
+        }
+
+        return this.parent.root_node
+    }
+
     best_match(line: number) {
         if (line === -1) {
             return undefined
         }
         let lines = this.find_line(line)
 
-        let parent_san = lines[0]?.parent?.parent?.best_match(lines[0]!.parent.line)?.san
-        lines = lines.filter(_ => _.parent?.score?.san === parent_san)
+        if (line === 160) {
+            //debugger
+        }
+        let parent_san = lines[0]?.root_node.best_match(lines[0]!.parent!.line)?.node ?? this.root_node
+        console.log(line, lines, parent_san)
+        lines = lines.filter(_ => _.parent === parent_san)
 
         let res = lines.sort((a, b) => a.depth % 2 === 0 ? (b.min - a.min) : (a.max - b.max))
 
@@ -211,7 +224,8 @@ export class Node {
 
         return {
           san: res[0].score!.san,
-          score: res[0].depth % 2 === 0 ? res[0].min : res[0].max
+          score: res[0].depth % 2 === 0 ? res[0].min : res[0].max,
+          node: res[0]
         }
     }
 
@@ -378,23 +392,38 @@ function parse_rules3(str: string) {
     return (h: Hopefox) => {
         function deep(ns: Node[], h: Hopefox) {
             let res: Node[] = []
+            let rest_haa = h.h_dests
             h.h_dests.map(haa => {
                 ns.forEach(_ => {
+                    if (_.rule === '.') {
+                        rest_haa.forEach(haa => {
+                            let san = move_to_san2(haa)
+                            let nm = new Node(_.depth, _.line, _.rule, [], undefined, { san, score: 0 })
+                            res.push(nm)
+                        })
+                        rest_haa = []
+                        return
+                    }
                     let score = parse_rule1(_.rule)(...haa)
                     if (score !== undefined) {
 
+                        let ir = rest_haa.indexOf(haa)
+                        if (ir !== -1) {
+                            rest_haa.splice(ir, 1)
+                        }
+
                         let children: Node[] = []
                         let san = move_to_san2(haa)
-                    if (_.children.length > 0) {
-                        let cc = deep(_.children, haa[1])
-                        if (cc === undefined) {
-                            return
+                        if (_.children.length > 0) {
+                            let cc = deep(_.children, haa[1])
+                            if (cc === undefined) {
+                                return
+                            } else {
+                                children = cc
+                            }
                         } else {
-                            children = cc
-                        }
-                    } else {
 
-                    }
+                        }
 
                         let nm = new Node(_.depth, _.line, _.rule, [], undefined, { san, score })
                         nm.add_children(children)
