@@ -195,9 +195,13 @@ export class Node {
     ) {}
 
     best_match(line: number) {
+        if (line === -1) {
+            return undefined
+        }
         let lines = this.find_line(line)
 
-        lines = lines.filter(_ => _.is_parent_best_node)
+        let parent_san = lines[0]?.parent?.parent?.best_match(lines[0]!.parent.line)?.san
+        lines = lines.filter(_ => _.parent?.score?.san === parent_san)
 
         let res = lines.sort((a, b) => a.depth % 2 === 0 ? (b.min - a.min) : (a.max - b.max))
 
