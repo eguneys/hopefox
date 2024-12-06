@@ -13,11 +13,11 @@ import { makeUci, opposite } from "./util"
 
 
 
-export function bestsan(fen: string) {
+export function bestsan(fen: string, rules: string) {
 
     let h = Hopefox.from_fen(fen)
 
-    return h_bestmove(h)
+    return h_bestmove(h, rules)
 }
 
 
@@ -111,244 +111,8 @@ class Hopefox {
     }
 }
 
-
-/*
-
-o#
-x#
-o+ [^kx]=y =y
-o+=y k=y +
-xq
-xn
-xb
-xr
-. x=y [^=y]
-
-o+ k x[bpnq]
-
-*/
-
 type RuleContext = any
 type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => boolean
-
-function parse_rule2(str: string) {
-
-    let rules: Record<string, [number, Rule]> = {}
-
-    str.trim().split('\n').map(line => {
-        let [score, name, ...rest] = line.split(' ')
-
-        let rr = [parseInt(score), parse_rules(rest)] as [number, Rule]
-        name.split('"').filter(_ => _ !== "").forEach(name => {
-            rules[name] = rr
-        })
-
-    })
-
-    return (h: Hopefox) => {
-        let rr = Object.values(rules)
-        return h.h_dests.map(_ => {
-            let nmax = rr.map(r => [r[0], r[1](..._, {})] as [number, boolean])
-                .filter(_ => _[1])
-                .sort((a, b) => a[0] - b[0])[0]?.[0] ?? 1
-
-            //console.log(nmax, move_to_san2(_))
-            return [nmax, _[2]] as [number, Move]
-        }).sort((a, b) => a[0] - b[0])[0][1] ?? h.dests[0]
-    }
-
-    function parse_rules(rest: string[]): Rule {
-
-        let rr = rest.map(_ => parse_rule1(_))
-
-        return (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => {
-            if (move_to_san2([h, ha, da]) === 'Ne2+') {
-
-                //console.log(h.fen, move_to_san2([h, ha, da]))
-                //console.log("begin", rest.length, move_to_san2([h, ha, da]))
-            }
-            function deep(h: Hopefox, ha: Hopefox, da: Move, i_r: number, _ctx: RuleContext) {
-                let r = rr[i_r]
-
-                if (move_to_san2([h, ha, da]) === 'Nxd4') {
-                }
-                let c = r(h, ha, da, _ctx)
-                if (!c) {
-                    return false
-                }
-                if ((i_r + 1) >= rr.length) {
-                    return true
-                }
-                let dd = ha.h_dests.filter(_ => {
-                    let ctx = { ..._ctx }
-                    let ll = move_to_san2([h, ha, da])
-                    if (ll === 'Ne2+' || ll.includes('K') || ll === 'Nxd4') {
-                        //console.log(i_r, 'getting deep', move_to_san2([h, ha, da]), move_to_san2(_))
-                    }
-                    let t = deep(..._, i_r + 1, ctx)
-                    if (ll) {
-                    //console.log(i_r, 'out of deep', t)
-                    }
-                    if (t) {
-                        return true
-                    }
-                })
-                return dd.length > 0
-            }
-
-            return deep(h, ha, da, 0, ctx)
-        }
-    }
-
-    function parse_rule1(str: string) {
-        return (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext): boolean => {
-            //if (str.includes("ncheck") && str.includes(""))
-            //console.log(str, move_to_san2([h, ha, da]))
-            let f_role = h.role(da.from)
-            let to_role = h.role(da.to)
-
-            if (str[0] === "\"") {
-                return rules[str.slice(1)][1](h, ha, da, ctx)
-            }
-
-
-            if (str.includes('=')) {
-                let [from, to] = str.split('=')
-
-                if (to.includes('b')) {
-                    if (to_role !== 'bishop') {
-                        return false
-                    }
-                }
-
-
-
-                if (to.includes('p')) {
-                    if (to_role !== 'pawn') {
-                        return false
-                    }
-                }
-
-                if (to.includes('r')) {
-                    if (to_role !== 'rook') {
-                        return false
-                    }
-                }
-
-                if (to.includes('q')) {
-                    if (to_role !== 'queen') {
-                        return false
-                    }
-                }
-                if (to.includes('n')) {
-                    if (to_role !== 'knight') {
-                        return false
-                    }
-                }
-
-
-                if (to.includes('y')) {
-                    if (ctx.y) {
-                        if (da.to !== ctx.y) {
-                            return false
-                        }
-                    } else {
-                        ctx.y = da.to
-                    }
-                }
-
-                return parse_rule1(from)(h, ha, da, ctx)
-            } else {
-            if (str.includes('#')) {
-                if (!ha.is_checkmate) {
-                    return false
-                }
-            }
-            if (str.includes('+')) {
-                if (!ha.is_check) {
-                    return false
-                }
-            }
-            if (str.includes('x')) {
-                if (to_role === undefined) {
-                    return false
-                }
-            }
-            if (str.includes('o')) {
-                if (to_role !== undefined) {
-                    return false
-                }
-            }
-
-            if (str.includes('q')) {
-                if (f_role !== 'queen') {
-                    return false
-                }
-            }
-            if (str.includes('n')) {
-                if (f_role !== 'knight') {
-                    return false
-                }
-            }
-            if (str.includes('b')) {
-                if (f_role !== 'bishop') {
-                    return false
-                }
-            }
-
-            if (str.includes('p')) {
-                if (f_role !== 'pawn') {
-                    return false
-                }
-            }
-
-            if (str.includes('k')) {
-                if (f_role !== 'king') {
-                    return false
-                }
-            }
-
-
-
-            }
-            return true
-        }
-    }
-
-
-
-}
-
-const rass = parse_rule2(`
--10 "mate #
-2 "nundefendp"defend no "ktakesp
--2 "nforkq"fork "ncheck "kflee "ntakesq
--1 "nforkr"fork "ncheck "kflee "ntakesr
-3 "nforkrbad"badfork "ncheck "ptakesn
-3 "hangqueeno"hang o "qtakesq
-3 "hangqueenx"hang x "qtakesq
-1 "kflee"king k
-0 "ncheck"check n+
--1 "btakesq"capture bx=q
--3 "ntakesq"capture nx=q
--2 "ntakesr"capture nx=r
--1 "ntakesb"capture nx=b
--1 "ntakesn"capture nx=n
-1 "ntakesp"capture nx=p
-0 "rtakesr"capture rx=r
-0 "qtakesb"capture qx=b
-0 "qtakesq"capture qx=q
-0 "qtakesn"capture qx=n
-0 "ktakesn"capture kx=n
-0 "ktakesp"capture kx=p
-0 "ptakesb"capture px=b
-0 "ptakesn"capture px=n
-`)
-
-const mates = parse_rule2(`
--1 "mate #
-`)
-
 
 
 /*
@@ -492,6 +256,14 @@ function parse_rule1(str: string) {
         if (ss.includes('#')) {
             if (!ha.is_checkmate) {
                 return undefined
+            } else {
+                return 999
+            }
+        }
+
+        if (ss.includes('o')) {
+            if (h.role(da.to) !== undefined) {
+                return undefined
             }
         }
 
@@ -587,9 +359,13 @@ function parse_rules3(str: string) {
             return move_to_san2(h.h_dests[0])
         }
 
-        //console.log(ns.map(_ => [_.score, _.max]))
+        //console.log(ns.find(_ => _.score!.san === 'c5')!.children.map(_ => [_.score, _.min, _.max]))
+        //console.log(ns.map(_ => [_.score, _.min]))
 
-        return ns.sort((a, b) => b.max - a.max)[0].score!.san
+        //console.log(ns.find(_ => _.score!.san === 'c5')?.min)
+        //console.log(ns.find(_ => _.score!.san === 'a5')?.min)
+        //console.log(ns.find(_ => _.score!.san === 'a5')?.children.map(_ => [_.score?.san, _.max]))
+        return ns.sort((a, b) => a.min - b.min)[0].score!.san
 
     }
 }
@@ -663,7 +439,7 @@ n =x
 
 `
 
-function h_bestmove(h: Hopefox) {
+function h_bestmove(h: Hopefox, rules: string) {
 
     return parse_rules3(rules)(h)
 }

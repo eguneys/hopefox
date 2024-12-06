@@ -2,7 +2,6 @@ import {
   CastlingSide,
   Color,
   FILE_NAMES,
-  isDrop,
   isNormal,
   Move,
   RANK_NAMES,
@@ -72,9 +71,6 @@ export const makeSquare = (square: Square): SquareName =>
 
 export const parseUci = (str: string): Move | undefined => {
   if (str[1] === '@' && str.length === 4) {
-    const role = charToRole(str[0]);
-    const to = parseSquare(str.slice(2));
-    if (role && defined(to)) return { role, to };
   } else if (str.length === 4 || str.length === 5) {
     const from = parseSquare(str.slice(0, 2));
     const to = parseSquare(str.slice(2, 4));
@@ -90,7 +86,6 @@ export const parseUci = (str: string): Move | undefined => {
 
 export const moveEquals = (left: Move, right: Move): boolean => {
   if (left.to !== right.to) return false;
-  if (isDrop(left)) return isDrop(right) && left.role === right.role;
   else return isNormal(right) && left.from === right.from && left.promotion === right.promotion;
 };
 
@@ -99,9 +94,7 @@ export const moveEquals = (left: Move, right: Move): boolean => {
  * `a7a8q` for promotion to a queen, and `Q@f7` for a Crazyhouse drop.
  */
 export const makeUci = (move: Move): string =>
-  isDrop(move)
-    ? `${roleToChar(move.role).toUpperCase()}@${makeSquare(move.to)}`
-    : makeSquare(move.from) + makeSquare(move.to) + (move.promotion ? roleToChar(move.promotion) : '');
+  makeSquare(move.from) + makeSquare(move.to) + (move.promotion ? roleToChar(move.promotion) : '');
 
 export const kingCastlesTo = (color: Color, side: CastlingSide): Square =>
   color === 'white' ? (side === 'a' ? 2 : 6) : side === 'a' ? 58 : 62;

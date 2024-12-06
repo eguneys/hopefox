@@ -163,7 +163,7 @@ it('hangingPiece', () => {
 })
 
 
-it.only('fork', () => {
+it('fork', () => {
     let all = puzzles
     .filter(_ => _.tags.includes('fork'))
     .slice(0, 50)
@@ -180,38 +180,55 @@ it.only('fork', () => {
 
 
 
-it.only('filter one', () => {
+it('filter one', () => {
     //let one = tenk.find(_ => _.id === '01TeF')!
     //let one = tenk.find(_ => _.id === '00Er4')!
     //let one = tenk.find(_ => _.id === '00B5A')!
     //let one = tenk.find(_ => _.id === '01Upi')!
     //let one = tenk.find(_ => _.id === '01Vbe')!
     let one = tenk.find(_ => _.id === '01P8L')!
+    solve_p_str(one, rules)
+})
 
-    solve_p_str(one)
+
+it.only('minmax', () => {
+    let one = tenk.find(_ => _.id === '00IUT')!
+    solve_p_str(one, `
+b =x
+p
+ q =x
+  q =x
+ q o
+  p =x
+  p
+p =x
+r =x
+`)
 })
 
 
 
-function solve_p_str(p: Puzzle) {
+function solve_p_str(p: Puzzle, rules: string) {
     for (let i = 0; i < p.move_fens.length; i += 2) {
         let fen = p.move_fens[i]
         let san = p.sans[i]
 
-        if (bestsan(fen) !== san) {
-            console.log(p.link, fen, bestsan(fen), san)
+        if (bestsan(fen, rules) !== san) {
+            console.log(p.link, fen, bestsan(fen, rules), san)
             return false
         }
     }
     return true
 }
+const rules = `
+`
 
-function solve_p(p: Puzzle) {
+function solve_p(p: Puzzle, _rules: string = rules) {
     for (let i = 0; i < p.move_fens.length; i += 2) {
         let fen = p.move_fens[i]
         let san = p.sans[i]
 
-        if (bestsan(fen) !== san) {
+        if (bestsan(fen, _rules) !== san) {
             return false
         }
     }
