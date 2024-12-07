@@ -20,7 +20,9 @@ export function pnode(fen: string, rules: string) {
 export function bestsan(fen: string, rules: string) {
 
     let h = Hopefox.from_fen(fen)
-    return h_bestmove(h, rules)
+    //return h_bestmove(h, rules)
+
+    return alpha_beta_search(h, rules)
 }
 
 
@@ -115,7 +117,7 @@ class Hopefox {
 }
 
 type RuleContext = any
-type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => boolean
+type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => number | undefined
 
 
 /*
@@ -318,15 +320,6 @@ function parse_rule1(str: string) {
                 return undefined
             }
         }
-        if (ss.includes('+')) {
-            if (!ha.is_check) {
-                return undefined
-            }
-        } else {
-            if (ha.is_check) {
-                return undefined
-            }
-        }
 
         if (ss.includes('#')) {
             if (!ha.is_checkmate) {
@@ -336,6 +329,18 @@ function parse_rule1(str: string) {
             }
         } else {
             if (ha.is_checkmate) {
+                return undefined
+            }
+        }
+
+
+
+        if (ss.includes('+')) {
+            if (!ha.is_check) {
+                return undefined
+            }
+        } else {
+            if (ha.is_check) {
                 return undefined
             }
         }
@@ -537,4 +542,204 @@ function h_bestmove(h: Hopefox, rules: string) {
 
     let root = parse_rules3(rules)(h)
     return root.best_child?.score!.san ?? move_to_san2(h.h_dests[0])
+}
+
+class AlphaBetaRuleNode {
+
+    static get Root() { return new AlphaBetaRuleNode(0, -1, '', [], undefined) }
+
+    static parse_rules(str: string) {
+        let ss = str.trim().split('\n')
+
+        let root = AlphaBetaRuleNode.Root
+        const stack = [root]
+
+        ss.forEach((line, i) => {
+            const rule = line.trim()
+            if (!rule) return
+
+            const depth = line.search(/\S/)
+
+            const node = new AlphaBetaRuleNode(depth, i, rule, [], undefined)
+
+            while (stack.length > depth + 1) {
+                stack.pop()
+            }
+
+            stack[stack.length - 1].add_children([node])
+            stack.push(node)
+        })
+        return root
+    }
+
+    constructor(readonly depth: number, readonly line: number, readonly rule: string, readonly children: AlphaBetaRuleNode[], public parent?: AlphaBetaRuleNode) {
+        this._rr = parse_rule1(this.rule)
+    }
+
+    _rr: Rule
+
+    san_score: SanScore[] = []
+
+    get best_san_score() {
+        return this.san_score.sort((a, b) => b.score - a.score)[0]
+    }
+
+    get best_child(): AlphaBetaRuleNode | undefined {
+        return this.children.sort((a, b) => {
+            if (a.best_san_score === undefined) {
+                return 1
+            } else if (b.best_san_score === undefined) {
+                return -1
+            } else {
+                return b.best_san_score.score - a.best_san_score.score
+            }
+        })[0]
+    }
+
+    get full_rule(): string {
+        return this.rule + '\n' + this.children.map(_ => _.full_rule.split('\n').map(_ => ' ' + _).join('\n')).join('\n')
+    }
+
+    get parent_at_depth0(): AlphaBetaRuleNode {
+        if (!this.parent) {
+            return this
+        }
+
+        if (this.parent.depth === 0) {
+            return this.parent
+        }
+        return this.parent.parent_at_depth0
+    }
+
+    run(haa: [Hopefox, Hopefox, Move], ctx: RuleContext) {
+        return this._rr(...haa, ctx)
+    }
+
+    save_score(haa: [Hopefox, Hopefox, Move], score: number) {
+        let san = move_to_san2(haa)
+        //console.log('save score', san, score, this.rule, this.depth)
+        this.san_score.push({ san, score })
+    }
+
+    add_children(nodes: AlphaBetaRuleNode[]) {
+        nodes.forEach(_ => _.parent = this)
+        this.children.push(...nodes)
+    }
+}
+
+function alpha_beta_search(h: Hopefox, rules: string) {
+    let res = AlphaBetaNode.search(h, rules)
+
+    //console.log(res.children.map(_ => _.san_score))
+    return res.best_child?.best_san_score?.san ?? move_to_san2(h.h_dests[0])
+}
+
+class AlphaBetaNode {
+
+    static search(h: Hopefox, rules: string) {
+
+        let res = AlphaBetaRuleNode.parse_rules(rules)
+        let ctx = {}
+
+        alphabeta(new AlphaBetaNode(h, ctx, res), 0)
+
+        return res
+    }
+
+    constructor(readonly h: Hopefox, readonly ctx: RuleContext, readonly rule: AlphaBetaRuleNode) {}
+
+    get is_terminal() {
+        return !!this.rule
+    }
+
+    score(h: Hopefox, da: Move) {
+        if (this.rule) {
+            return this.rule.run([h, this.h, da], this.ctx)
+        }
+    }
+
+    get children() {
+        let ctx = { ... this.ctx }
+        return this.rule.children.flatMap(rule => this.h.h_dests.map(_ => [new AlphaBetaNode(_[1], ctx, rule), _[2]] as [AlphaBetaNode, Move]))
+    }
+
+    save_score(h: Hopefox, da: Move, value: number) {
+        this.rule.save_score([h, this.h, da], value)
+    }
+}
+
+
+function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true) {
+
+    let children = node.children
+
+    if (children.length === 0) {
+        return 0
+    }
+
+    if (maximizingPlayer) {
+
+        let max_child = undefined
+        let value = -Infinity
+
+        for (let [child, da] of children) {
+            let a = move_to_san2([node.h, child.h, da])
+            if (a === 'Rxh6#') {
+                //console.log('in Rxh6#', depth, a, child.score(node.h, da))
+            }
+            let score = child.score(node.h, da)
+            if (score === undefined) {
+                continue
+            }
+
+            if (a === 'Rf6') {
+               //console.log('in Rf6', depth)
+            }
+            let v = score + alphabeta(child, depth - 1, alpha, beta, false)
+            if (a === 'Rf6') {
+              //console.log(depth, 'out Rf6', score, v, value)
+            }
+
+            //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
+            if (v > value) {
+                //console.log('|' + '-'.repeat(- depth), 'max', a, v, value)
+                max_child = [child, da] as [AlphaBetaNode, Move]
+            }
+            value = Math.max(value, v)
+            if (value > beta) {
+                break
+            }
+            alpha = Math.max(alpha, value)
+        }
+        if (max_child) {
+            max_child[0].save_score(node.h, max_child[1], value)
+        }
+        return value
+    } else {
+        let min_child = undefined
+        let value = +Infinity
+
+        for (let [child, da] of children) {
+            let score = child.score(node.h, da)
+            if (score === undefined) {
+                continue
+            }
+            let a = move_to_san2([node.h, child.h, da])
+
+            let v = -score + alphabeta(child, depth - 1, alpha, beta, true)
+            if (v < value) {
+                //console.log('|' + '-'.repeat(3 - depth), 'min', a, v, value)
+                min_child = [child, da] as [AlphaBetaNode, Move]
+            }
+            value = Math.min(value, v)
+            if (value < alpha) {
+                break
+            }
+            beta = Math.min(beta, value)
+        }
+        if (min_child) {
+            min_child[0].save_score(node.h, min_child[1], value)
+        }
+        return value
+    }
 }
