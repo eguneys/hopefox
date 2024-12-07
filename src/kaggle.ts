@@ -322,12 +322,21 @@ function parse_rule1(str: string) {
             if (!ha.is_check) {
                 return undefined
             }
+        } else {
+            if (ha.is_check) {
+                return undefined
+            }
         }
+
         if (ss.includes('#')) {
             if (!ha.is_checkmate) {
                 return undefined
             } else {
                 return 999
+            }
+        } else {
+            if (ha.is_checkmate) {
+                return undefined
             }
         }
 
@@ -357,6 +366,10 @@ function parse_rule1(str: string) {
                 return 9
             }
             return undefined
+        } else {
+            if (h.role(da.to) !== undefined) {
+                return undefined
+            }
         }
         return 0
     }
@@ -392,25 +405,10 @@ function parse_rules3(str: string) {
     return (h: Hopefox) => {
         function deep(ns: Node[], h: Hopefox) {
             let res: Node[] = []
-            let rest_haa = h.h_dests
             h.h_dests.map(haa => {
                 ns.forEach(_ => {
-                    if (_.rule === '.') {
-                        rest_haa.forEach(haa => {
-                            let san = move_to_san2(haa)
-                            let nm = new Node(_.depth, _.line, _.rule, [], undefined, { san, score: 0 })
-                            res.push(nm)
-                        })
-                        rest_haa = []
-                        return
-                    }
                     let score = parse_rule1(_.rule)(...haa)
                     if (score !== undefined) {
-
-                        let ir = rest_haa.indexOf(haa)
-                        if (ir !== -1) {
-                            rest_haa.splice(ir, 1)
-                        }
 
                         let children: Node[] = []
                         let san = move_to_san2(haa)
