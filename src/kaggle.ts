@@ -599,13 +599,13 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
             let [score, is_break] = ss
 
-            if (a === 'Rc1' && depth === 0) {
-                console.log('in rc1')
+            if (a === 'Qa6' && depth === 0) {
+                //console.log('in Qa6')
             }
             let vv = alphabeta(child, depth - 1, alpha, beta, false)
 
-            if (a === 'Rc1' && depth === 0) {
-                console.log('out rc1', vv)
+            if (a === 'Qa6' && depth === 0) {
+                //console.log('out Qa6', vv)
             }
             if (vv === undefined) {
                 continue
@@ -618,7 +618,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
             if (v > value) {
                 if (depth === -2) {
-                    console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
+                    //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
                 }
                 //max_child = [child, da] as [AlphaBetaNode, Move]
                 mm_child.push([node.h, child, da, v])
@@ -666,14 +666,14 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
             v = -score + v
 
-           if (depth === -1) {
-                console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
+           if (depth === -3) {
+                //console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
             }
 
             if (v < value) {
 
-                if (depth === -1) {
-                    console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
+                if (depth === -3) {
+                    //console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
                 }
                 //min_child = [child, da] as [AlphaBetaNode, Move]
                 mm_child.push([node.h, child, da, v])
@@ -681,6 +681,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
             value = Math.min(value, v)
             if (value < alpha) {
+                //console.log('break')
                 break
             }
             beta = Math.min(beta, value)

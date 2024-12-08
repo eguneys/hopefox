@@ -256,7 +256,7 @@ r
 `)
 })
 
-it.only('0018S Rc1', () => {
+it('0018S Rc1', () => {
 
     let fen = '2kr3r/5p2/1p2p2p/pN1p2p1/8/1P1P4/2q2PPP/Q4RK1 w - - 0 22'
 
@@ -271,6 +271,16 @@ r
 
 })
 
+
+it.only('000aY', () => {
+  let one = tenk.find(_ => _.id === '000aY')!
+  solve_p_str(one, `
+q
+ q =x
+  n =x
+   q =x
+`)
+})
 
 
 it('0000D', () => {
