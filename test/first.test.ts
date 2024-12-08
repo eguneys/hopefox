@@ -244,13 +244,12 @@ r =x
 `)
 })
 
-it('0000D', () => {
+it.only('0000D', () => {
   let one = tenk.find(_ => _.id === '0000D')!
   solve_p_str(one, `
 r
- q =x
- q + =x
-  b =x
+ q
+  q =x
 `)
 })
 
@@ -283,7 +282,7 @@ q =x
 `)
 })
 
-it.only('rule break 0018S', () => {
+it('rule break 0018S', () => {
   let one = tenk.find(_ => _.id === '0018S')!
   solve_p_str(one, `
 q
@@ -295,6 +294,15 @@ q
 })
 
 
+it('pruning 000tp', () => {
+  let one = tenk.find(_ => _.id === '000tp')!
+  solve_p_str(one, `
+n
+ q
+  n =x
+  . 1
+`)
+})
 
 
 

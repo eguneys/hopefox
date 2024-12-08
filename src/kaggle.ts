@@ -584,27 +584,22 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             let a = move_to_san2([node.h, child.h, da])
 
             let ss = child.score(node.h, da)
+            console.log(a, ss)
             if (ss === undefined) {
                 continue
             }
             let [score, is_break] = ss
 
-            if (a === 'g6') {
-               //console.log('in g6', depth)
-            }
             let v = alphabeta(child, depth - 1, alpha, beta, false)
             if (v === undefined) {
                 continue
             }
             v += score
-            if (a === 'Qxc3') {
-              //console.log(depth, 'out Qxc3', score, v, value)
-            }
 
             //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
             if (v > value) {
                 if (depth === -2) {
-                    console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value)
+                    //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
                 }
                 max_child = [child, da] as [AlphaBetaNode, Move]
             }
@@ -646,23 +641,19 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
             v = -score + v
 
-            if (a === 'gxf6') {
-                //console.log('in gxf6', depth, score, v, value, node.h.fen)
-            }
-            if (depth === -3) {
+           if (depth === -1) {
                 //console.log('|' + '-'.repeat(3 - depth), 'amin', a, v, value, child.h.fen)
             }
 
             if (v < value) {
 
                 if (depth === -1) {
-                    console.log('|' + '-'.repeat(3 - depth), 'min', a, v, value, child.h.fen)
+                    //console.log('|' + '-'.repeat(3 - depth), 'min', a, v, value, child.h.fen)
                 }
                 min_child = [child, da] as [AlphaBetaNode, Move]
             }
             value = Math.min(value, v)
             if (value < alpha) {
-                //console.log("break", value, alpha, a)
                 break
             }
             beta = Math.min(beta, value)
@@ -672,7 +663,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
         }
         if (min_child) {
             if (depth === -1) {
-                console.log('save min', value)
+                //console.log('save min', value)
             }
             min_child[0].save_score(node.h, min_child[1], value)
             return value
