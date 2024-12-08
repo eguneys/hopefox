@@ -244,7 +244,36 @@ r =x
 `)
 })
 
-it.only('0000D', () => {
+
+it('0018S', () => {
+  let one = tenk.find(_ => _.id === '0018S')!
+  solve_p_str(one, `
+r
+ q
+  r =x
+  q =x
+   r =x
+`)
+})
+
+it.only('0018S Rc1', () => {
+
+    let fen = '2kr3r/5p2/1p2p2p/pN1p2p1/8/1P1P4/2q2PPP/Q4RK1 w - - 0 22'
+
+    bestsan(fen, `
+q
+
+r
+ q
+ . 1
+  r =x
+`)
+
+})
+
+
+
+it('0000D', () => {
   let one = tenk.find(_ => _.id === '0000D')!
   solve_p_str(one, `
 r

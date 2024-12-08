@@ -539,7 +539,16 @@ export class AlphaBetaNode {
         let res = AlphaBetaRuleNode.parse_rules(rules)
         let ctx = {}
 
-        alphabeta(new AlphaBetaNode(h, ctx, res), 0)
+        let vv = alphabeta(new AlphaBetaNode(h, ctx, res), 0)
+
+        if (vv) {
+            let [v, max_child] = vv
+
+            //console.log(max_child)
+            max_child.forEach(([h, child, da, value]) => {
+                child.save_score(h, da, value)
+            })
+        }
 
         return res
     }
@@ -567,12 +576,12 @@ export class AlphaBetaNode {
 }
 
 
-function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true) {
+function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true): [number, [Hopefox, AlphaBetaNode, Move, number][]] | undefined {
 
     let children = node.children
 
     if (children.length === 0) {
-        return 0
+        return [0, []]
     }
 
     if (maximizingPlayer) {
@@ -584,24 +593,36 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             let a = move_to_san2([node.h, child.h, da])
 
             let ss = child.score(node.h, da)
-            console.log(a, ss)
+            //console.log(a, ss)
             if (ss === undefined) {
                 continue
             }
             let [score, is_break] = ss
 
-            let v = alphabeta(child, depth - 1, alpha, beta, false)
-            if (v === undefined) {
+            if (a === 'Rc1' && depth === 0) {
+                console.log('in rc1')
+            }
+            let vv = alphabeta(child, depth - 1, alpha, beta, false)
+
+            if (a === 'Rc1' && depth === 0) {
+                console.log('out rc1', vv)
+            }
+            if (vv === undefined) {
                 continue
             }
+
+            let [v, mm_child] = vv
+
             v += score
 
             //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
             if (v > value) {
                 if (depth === -2) {
-                    //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
+                    console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
                 }
-                max_child = [child, da] as [AlphaBetaNode, Move]
+                //max_child = [child, da] as [AlphaBetaNode, Move]
+                mm_child.push([node.h, child, da, v])
+                max_child = mm_child
             }
             value = Math.max(value, v)
             if (value > beta) {
@@ -617,8 +638,8 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             if (depth === -2) {
                 //console.log('save max', value)
             }
-            max_child[0].save_score(node.h, max_child[1], value)
-            return value
+            //max_child[0].save_score(node.h, max_child[1], value)
+            return [value, max_child]
         }
         return undefined
     } else {
@@ -635,22 +656,28 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
             let [score, is_break] = ss
 
-            let v = alphabeta(child, depth - 1, alpha, beta, true)
-            if (v === undefined) {
+            let vv = alphabeta(child, depth - 1, alpha, beta, true)
+
+            if (vv === undefined) {
                 continue
             }
+
+            let [v, mm_child] = vv
+
             v = -score + v
 
            if (depth === -1) {
-                //console.log('|' + '-'.repeat(3 - depth), 'amin', a, v, value, child.h.fen)
+                console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
             }
 
             if (v < value) {
 
                 if (depth === -1) {
-                    //console.log('|' + '-'.repeat(3 - depth), 'min', a, v, value, child.h.fen)
+                    console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
                 }
-                min_child = [child, da] as [AlphaBetaNode, Move]
+                //min_child = [child, da] as [AlphaBetaNode, Move]
+                mm_child.push([node.h, child, da, v])
+                min_child = mm_child
             }
             value = Math.min(value, v)
             if (value < alpha) {
@@ -665,8 +692,9 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             if (depth === -1) {
                 //console.log('save min', value)
             }
-            min_child[0].save_score(node.h, min_child[1], value)
-            return value
+            //min_child[0].save_score(node.h, min_child[1], value)
+            //console.log(value, min_child)
+            return [value, min_child]
         }
         return undefined
     }
