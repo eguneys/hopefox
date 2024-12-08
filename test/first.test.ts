@@ -197,25 +197,17 @@ n
 })
 
 
-it.only('long puzzle 006XF', () => {
+it('long puzzle 006XF', () => {
 
     let one = tenk.find(_ => _.id === '006XF')!
 
 
     solve_p_str(one, `
-q +
- r =x
- k
-  r
-   b =x
-    q =x
-
-r
- b =x
-  #
+q
+ p
   q =x
-
-q =x
+   p =x
+   .
 `)
 })
 
@@ -252,6 +244,45 @@ r =x
 `)
 })
 
+it('0000D', () => {
+  let one = tenk.find(_ => _.id === '0000D')!
+  solve_p_str(one, `
+r
+ q =x
+ q + =x
+  b =x
+`)
+})
+
+it.only('00143', () => {
+  let one = tenk.find(_ => _.id === '00143')!
+  solve_p_str(one, `
+q
+ q =x
+  b =x
+  .
+ b
+  #
+ b =x
+  #
+  .
+ r =x
+ p
+  #
+  q =x
+   p =x
+   .
+`)
+})
+
+it('000aY', () => {
+  let one = tenk.find(_ => _.id === '000aY')!
+  solve_p_str(one, `
+q =x
+ p =x
+`)
+})
+
 
 
 function solve_p_str(p: Puzzle, rules: string) {
@@ -264,6 +295,7 @@ function solve_p_str(p: Puzzle, rules: string) {
             console.log(p.link, fen, bestsan(fen, rules), san)
             return false
         }
+        return true
     }
     return true
 }

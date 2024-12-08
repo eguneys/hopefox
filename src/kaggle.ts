@@ -18,11 +18,7 @@ export function pnode(fen: string, rules: string) {
 
 
 export function bestsan(fen: string, rules: string) {
-
-    let h = Hopefox.from_fen(fen)
-    //return h_bestmove(h, rules)
-
-    return alpha_beta_search(h, rules)
+    return alpha_beta_search(fen, rules)
 }
 
 
@@ -215,7 +211,7 @@ export class Node {
             //debugger
         }
         let parent_san = lines[0]?.root_node.best_match(lines[0]!.parent!.line)?.node ?? this.root_node
-        console.log(line, lines, parent_san)
+        //console.log(line, lines, parent_san)
         lines = lines.filter(_ => _.parent === parent_san)
 
         let res = lines.sort((a, b) => a.depth % 2 === 0 ? (b.min - a.min) : (a.max - b.max))
@@ -544,7 +540,7 @@ function h_bestmove(h: Hopefox, rules: string) {
     return root.best_child?.score!.san ?? move_to_san2(h.h_dests[0])
 }
 
-class AlphaBetaRuleNode {
+export class AlphaBetaRuleNode {
 
     static get Root() { return new AlphaBetaRuleNode(0, -1, '', [], undefined) }
 
@@ -627,17 +623,19 @@ class AlphaBetaRuleNode {
     }
 }
 
-function alpha_beta_search(h: Hopefox, rules: string) {
-    let res = AlphaBetaNode.search(h, rules)
+function alpha_beta_search(fen: string, rules: string) {
+    console.log(fen, rules)
+    let res = AlphaBetaNode.search(fen, rules)
 
-    //console.log(res.children.map(_ => _.san_score))
-    return res.best_child?.best_san_score?.san ?? move_to_san2(h.h_dests[0])
+    console.log('Qh5', res.children.map(_ => _.san_score))
+    return res.best_child?.best_san_score?.san
 }
 
-class AlphaBetaNode {
+export class AlphaBetaNode {
 
-    static search(h: Hopefox, rules: string) {
+    static search(fen: string, rules: string) {
 
+        let h = Hopefox.from_fen(fen)
         let res = AlphaBetaRuleNode.parse_rules(rules)
         let ctx = {}
 
@@ -684,25 +682,29 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
         for (let [child, da] of children) {
             let a = move_to_san2([node.h, child.h, da])
-            if (a === 'Rxh6#') {
-                //console.log('in Rxh6#', depth, a, child.score(node.h, da))
-            }
+
             let score = child.score(node.h, da)
             if (score === undefined) {
                 continue
             }
 
-            if (a === 'Rf6') {
-               //console.log('in Rf6', depth)
+            if (a === 'g6') {
+               //console.log('in g6', depth)
             }
-            let v = score + alphabeta(child, depth - 1, alpha, beta, false)
-            if (a === 'Rf6') {
-              //console.log(depth, 'out Rf6', score, v, value)
+            let v = alphabeta(child, depth - 1, alpha, beta, false)
+            if (v === undefined) {
+                continue
+            }
+            v += score
+            if (a === 'Qxc3') {
+              //console.log(depth, 'out Qxc3', score, v, value)
             }
 
             //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
             if (v > value) {
-                //console.log('|' + '-'.repeat(- depth), 'max', a, v, value)
+                if (depth === -2) {
+                    console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value)
+                }
                 max_child = [child, da] as [AlphaBetaNode, Move]
             }
             value = Math.max(value, v)
@@ -712,34 +714,58 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             alpha = Math.max(alpha, value)
         }
         if (max_child) {
+            if (depth === -2) {
+                //console.log('save max', value)
+            }
             max_child[0].save_score(node.h, max_child[1], value)
+            return value
         }
-        return value
+        return undefined
     } else {
         let min_child = undefined
         let value = +Infinity
 
         for (let [child, da] of children) {
+
+            let a = move_to_san2([node.h, child.h, da])
             let score = child.score(node.h, da)
             if (score === undefined) {
                 continue
             }
-            let a = move_to_san2([node.h, child.h, da])
+            let v = alphabeta(child, depth - 1, alpha, beta, true)
+            if (v === undefined) {
+                continue
+            }
+            v = -score + v
 
-            let v = -score + alphabeta(child, depth - 1, alpha, beta, true)
+            if (a === 'gxf6') {
+                //console.log('in gxf6', depth, score, v, value, node.h.fen)
+            }
+            if (depth === -3) {
+                //console.log('|' + '-'.repeat(3 - depth), 'amin', a, v, value, child.h.fen)
+            }
+
             if (v < value) {
-                //console.log('|' + '-'.repeat(3 - depth), 'min', a, v, value)
+
+                if (depth === -1) {
+                    console.log('|' + '-'.repeat(3 - depth), 'min', a, v, value, child.h.fen)
+                }
                 min_child = [child, da] as [AlphaBetaNode, Move]
             }
             value = Math.min(value, v)
             if (value < alpha) {
+                //console.log("break", value, alpha, a)
                 break
             }
             beta = Math.min(beta, value)
         }
         if (min_child) {
+            if (depth === -1) {
+                console.log('save min', value)
+            }
             min_child[0].save_score(node.h, min_child[1], value)
+            return value
         }
-        return value
+        return undefined
     }
 }
