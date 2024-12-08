@@ -254,7 +254,7 @@ r
 `)
 })
 
-it.only('00143', () => {
+it('00143', () => {
   let one = tenk.find(_ => _.id === '00143')!
   solve_p_str(one, `
 q
@@ -282,6 +282,19 @@ q =x
  p =x
 `)
 })
+
+it.only('rule break 0018S', () => {
+  let one = tenk.find(_ => _.id === '0018S')!
+  solve_p_str(one, `
+q
+ p1
+  r
+   .1
+    r =x
+`)
+})
+
+
 
 
 

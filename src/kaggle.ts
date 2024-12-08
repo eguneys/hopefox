@@ -5,18 +5,6 @@ import { makeSan } from "./san"
 import { Move, Square } from "./types"
 import { makeUci, opposite } from "./util"
 
-
-
-
-
-
-export function pnode(fen: string, rules: string) {
-
-    let h = Hopefox.from_fen(fen)
-    return parse_rules3(rules)(h)
-}
-
-
 export function bestsan(fen: string, rules: string) {
     return alpha_beta_search(fen, rules)
 }
@@ -113,7 +101,7 @@ class Hopefox {
 }
 
 type RuleContext = any
-type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => number | undefined
+type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => [number, boolean] | undefined
 
 
 /*
@@ -281,9 +269,15 @@ export class Node {
 }
 
 
-function parse_rule1(str: string) {
+function parse_rule1(str: string): Rule {
     let ss = str.split(' ')
     return (h: Hopefox, ha: Hopefox, da: Move) => {
+
+        let is_break = false
+        if (ss.includes('1')) {
+            is_break = true
+        }
+
         let from_role = h.role(da.from)
 
         if (ss.includes('n')) {
@@ -321,7 +315,7 @@ function parse_rule1(str: string) {
             if (!ha.is_checkmate) {
                 return undefined
             } else {
-                return 999
+                return [999, false]
             }
         } else {
             if (ha.is_checkmate) {
@@ -351,20 +345,20 @@ function parse_rule1(str: string) {
             let to_role = h.role(da.to)
 
             if (to_role === 'pawn') {
-                return 1
+                return [1, is_break]
             }
 
             if (to_role === 'bishop') {
-                return 4
+                return [4, is_break]
             }
             if (to_role === 'knight') {
-                return 3
+                return [3, is_break]
             }
             if (to_role === 'rook') {
-                return 5
+                return [5, is_break]
             }
             if (to_role === 'queen') {
-                return 9
+                return [9, is_break]
             }
             return undefined
         } else {
@@ -372,98 +366,10 @@ function parse_rule1(str: string) {
                 return undefined
             }
         }
-        return 0
+        return [0, is_break]
     }
 }
 
-
-
-function parse_rules3(str: string) {
-
-    let ss = str.trim().split('\n')
-
-    let root = Node.Root
-    const stack = [root]
-
-    ss.forEach((line, i) => {
-        const rule = line.trim()
-        if (!rule) return
-
-        const depth = line.search(/\S/)
-
-        const node = new Node(depth, i, rule, [], undefined, undefined)
-
-        while (stack.length > depth + 1) {
-            stack.pop()
-        }
-
-        stack[stack.length - 1].add_children([node])
-        stack.push(node)
-    })
-    let nodes = root.children
-
-
-    return (h: Hopefox) => {
-        function deep(ns: Node[], h: Hopefox) {
-            let res: Node[] = []
-            h.h_dests.map(haa => {
-                ns.forEach(_ => {
-                    let score = parse_rule1(_.rule)(...haa)
-                    if (score !== undefined) {
-
-                        let children: Node[] = []
-                        let san = move_to_san2(haa)
-                        if (_.children.length > 0) {
-                            let cc = deep(_.children, haa[1])
-                            if (cc === undefined) {
-                                return
-                            } else {
-                                children = cc
-                            }
-                        } else {
-
-                        }
-
-                        let nm = new Node(_.depth, _.line, _.rule, [], undefined, { san, score })
-                        nm.add_children(children)
-                        res.push(nm)
-                    }
-                })
-            })
-            if (res.length === 0) {
-                return undefined
-            }
-            return res
-        }
-
-        let ns = deep(nodes, h)
-
-        let res = Node.Root
-
-        if (ns) {
-          res.add_children(ns)
-        }
-
-        //console.log('root min', ns.map(_ => [_.rule,_.score, _.min, _.max]))
-
-        //console.log('Rf6 max', ns.find(_ => _.score!.san === 'Rf6')!.children.map(_ => [_.rule, _.score, _.min, _.max]))
-        //console.log('Rf6 Bxg2 min', ns.find(_ => _.score!.san === 'Rf6')!.children[0].children.map(_ => [_.rule, _.score, _.min, _.max]))
-        //console.log('Rf6 Bxg2 Qxe7 max', ns.find(_ => _.score!.san === 'Rf6')!.children[0].children[1]?.children.map(_ => [_.rule, _.score, _.min, _.max]))
-
-        //console.log('Nb2', ns.find(_ => _.score?.san === 'Nb2')?.children.map(_ => [_.rule,_.score, _.min, _.max]))
-        //console.log('Kxd4', ns.find(_ => _.score?.san === 'Kxd4')?.children.map(_ => [_.rule,_.score, _.min, _.max]))
-
-        //console.log(ns.find(_ => _.score!.san === 'c5')?.min)
-        //console.log(ns.find(_ => _.score!.san === 'a5')?.min)
-        //console.log(ns.find(_ => _.score!.san === 'a5')?.children.map(_ => [_.score?.san, _.max]))
-        //return ns.sort((a, b) => b.min - a.min)[0].score!.san
-
-
-        //return ns
-
-        return res
-    }
-}
 
 let rules = ``
 
@@ -533,12 +439,6 @@ n +
 n =x
 
 `
-
-function h_bestmove(h: Hopefox, rules: string) {
-
-    let root = parse_rules3(rules)(h)
-    return root.best_child?.score!.san ?? move_to_san2(h.h_dests[0])
-}
 
 export class AlphaBetaRuleNode {
 
@@ -624,7 +524,7 @@ export class AlphaBetaRuleNode {
 }
 
 function alpha_beta_search(fen: string, rules: string) {
-    console.log(fen, rules)
+    //console.log(fen, rules)
     let res = AlphaBetaNode.search(fen, rules)
 
     console.log('Qh5', res.children.map(_ => _.san_score))
@@ -683,10 +583,11 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
         for (let [child, da] of children) {
             let a = move_to_san2([node.h, child.h, da])
 
-            let score = child.score(node.h, da)
-            if (score === undefined) {
+            let ss = child.score(node.h, da)
+            if (ss === undefined) {
                 continue
             }
+            let [score, is_break] = ss
 
             if (a === 'g6') {
                //console.log('in g6', depth)
@@ -712,6 +613,10 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 break
             }
             alpha = Math.max(alpha, value)
+
+            if (is_break) {
+                break
+            }
         }
         if (max_child) {
             if (depth === -2) {
@@ -728,10 +633,13 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
         for (let [child, da] of children) {
 
             let a = move_to_san2([node.h, child.h, da])
-            let score = child.score(node.h, da)
-            if (score === undefined) {
+            let ss = child.score(node.h, da)
+            if (ss === undefined) {
                 continue
             }
+
+            let [score, is_break] = ss
+
             let v = alphabeta(child, depth - 1, alpha, beta, true)
             if (v === undefined) {
                 continue
@@ -758,6 +666,9 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 break
             }
             beta = Math.min(beta, value)
+            if (is_break) {
+                break
+            }
         }
         if (min_child) {
             if (depth === -1) {
