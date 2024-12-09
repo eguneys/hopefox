@@ -527,7 +527,7 @@ function alpha_beta_search(fen: string, rules: string) {
     //console.log(fen, rules)
     let res = AlphaBetaNode.search(fen, rules)
 
-    console.log('Qh5', res.children.map(_ => _.san_score))
+    //console.log('Qh5', res.children.map(_ => _.san_score))
     return res.best_child?.best_san_score?.san
 }
 
@@ -615,7 +615,9 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
             v += score
 
-            //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
+            if (depth === -2) {
+                //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
+            }
             if (v > value) {
                 if (depth === -2) {
                     //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
@@ -624,6 +626,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 mm_child.push([node.h, child, da, v])
                 max_child = mm_child
             }
+
             value = Math.max(value, v)
             if (value > beta) {
                 break
@@ -636,7 +639,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
         }
         if (max_child) {
             if (depth === -2) {
-                //console.log('save max', value)
+                //console.log('save max', value, max_child[max_child.length - 1][1].h.fen)
             }
             //max_child[0].save_score(node.h, max_child[1], value)
             return [value, max_child]
@@ -695,6 +698,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
             //min_child[0].save_score(node.h, min_child[1], value)
             //console.log(value, min_child)
+            //console.log(depth, children.length)
             return [value, min_child]
         }
         return undefined
