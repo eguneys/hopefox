@@ -565,9 +565,9 @@ export class AlphaBetaNode {
         }
     }
 
-    get children() {
+    children(rule: AlphaBetaRuleNode) {
         let ctx = { ... this.ctx }
-        return this.rule.children.flatMap(rule => this.h.h_dests.map(_ => [new AlphaBetaNode(_[1], ctx, rule), _[2]] as [AlphaBetaNode, Move]))
+        return this.h.h_dests.map(_ => [new AlphaBetaNode(_[1], ctx, rule), _[2]] as [AlphaBetaNode, Move])
     }
 
     save_score(h: Hopefox, da: Move, value: number) {
@@ -577,130 +577,140 @@ export class AlphaBetaNode {
 
 
 function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true): [number, [Hopefox, AlphaBetaNode, Move, number][]] | undefined {
-
-    let children = node.children
-
-    if (children.length === 0) {
+    if (node.rule.children.length === 0) {
         return [0, []]
     }
 
     if (maximizingPlayer) {
 
-        let max_child = undefined
-        let value = -Infinity
+        for (let rule of node.rule.children) {
+            let max_child = undefined
+            let value = -Infinity
 
-        for (let [child, da] of children) {
-            let a = move_to_san2([node.h, child.h, da])
 
-            let ss = child.score(node.h, da)
-            //console.log(a, ss)
-            if (ss === undefined) {
-                continue
-            }
-            let [score, is_break] = ss
+            for (let [child, da] of node.children(rule)) {
+                let a = move_to_san2([node.h, child.h, da])
 
-            if (a === 'Qa6' && depth === 0) {
-                //console.log('in Qa6')
-            }
-            let vv = alphabeta(child, depth - 1, alpha, beta, false)
-
-            if (a === 'Qa6' && depth === 0) {
-                //console.log('out Qa6', vv)
-            }
-            if (vv === undefined) {
-                continue
-            }
-
-            let [v, mm_child] = vv
-
-            v += score
-
-            if (depth === -2) {
-                //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
-            }
-            if (v > value) {
-                if (depth === -2) {
-                    //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
+                let ss = child.score(node.h, da)
+                //console.log(a, ss)
+                if (ss === undefined) {
+                    continue
                 }
-                //max_child = [child, da] as [AlphaBetaNode, Move]
-                mm_child.push([node.h, child, da, v])
-                max_child = mm_child
-            }
+                let [score, is_break] = ss
 
-            value = Math.max(value, v)
-            if (value > beta) {
-                break
-            }
-            alpha = Math.max(alpha, value)
+                if (a === 'Qa6' && depth === 0) {
+                    //console.log('in Qa6')
+                }
+                let vv = alphabeta(child, depth - 1, alpha, beta, false)
 
-            if (is_break) {
+                if (a === 'Qa6' && depth === 0) {
+                    //console.log('out Qa6', vv)
+                }
+                if (vv === undefined) {
+                    continue
+                }
+
+                let [v, mm_child] = vv
+
+                v += score
+
+                if (depth === -2) {
+                    //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
+                }
+                if (v > value) {
+                    if (depth === -2) {
+                        //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
+                    }
+                    //max_child = [child, da] as [AlphaBetaNode, Move]
+                    mm_child.push([node.h, child, da, v])
+                    max_child = mm_child
+                }
+
+                value = Math.max(value, v)
+                if (value > beta) {
+                    break
+                }
+                alpha = Math.max(alpha, value)
+
+                if (is_break) {
+                    break
+                }
+            }
+            if (max_child) {
+                if (depth === -2) {
+                    //console.log('save max', value, max_child[max_child.length - 1][1].h.fen)
+                }
+                //max_child[0].save_score(node.h, max_child[1], value)
+                return [value, max_child]
+            }
+            if (rule.rule.includes('0')) {
                 break
             }
         }
-        if (max_child) {
-            if (depth === -2) {
-                //console.log('save max', value, max_child[max_child.length - 1][1].h.fen)
-            }
-            //max_child[0].save_score(node.h, max_child[1], value)
-            return [value, max_child]
-        }
-        return undefined
+            return undefined
     } else {
-        let min_child = undefined
-        let value = +Infinity
 
-        for (let [child, da] of children) {
+        for (let rule of node.rule.children) {
+            let min_child = undefined
+            let value = +Infinity
 
-            let a = move_to_san2([node.h, child.h, da])
-            let ss = child.score(node.h, da)
-            if (ss === undefined) {
-                continue
-            }
+            for (let [child, da] of node.children(rule)) {
 
-            let [score, is_break] = ss
+                let a = move_to_san2([node.h, child.h, da])
+                let ss = child.score(node.h, da)
+                if (ss === undefined) {
+                    continue
+                }
 
-            let vv = alphabeta(child, depth - 1, alpha, beta, true)
+                let [score, is_break] = ss
 
-            if (vv === undefined) {
-                continue
-            }
+                let vv = alphabeta(child, depth - 1, alpha, beta, true)
 
-            let [v, mm_child] = vv
+                if (vv === undefined) {
+                    continue
+                }
 
-            v = -score + v
+                let [v, mm_child] = vv
 
-           if (depth === -3) {
-                //console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
-            }
-
-            if (v < value) {
+                v = -score + v
 
                 if (depth === -3) {
-                    //console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
+                    //console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
                 }
-                //min_child = [child, da] as [AlphaBetaNode, Move]
-                mm_child.push([node.h, child, da, v])
-                min_child = mm_child
+
+                if (v < value) {
+
+                    if (depth === -3) {
+                        //console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
+                    }
+                    //min_child = [child, da] as [AlphaBetaNode, Move]
+                    mm_child.push([node.h, child, da, v])
+                    min_child = mm_child
+                }
+                value = Math.min(value, v)
+                if (value < alpha) {
+                    //console.log('break')
+                    break
+                }
+                beta = Math.min(beta, value)
+                if (is_break) {
+                    break
+                }
             }
-            value = Math.min(value, v)
-            if (value < alpha) {
-                //console.log('break')
+            if (min_child) {
+                if (depth === -1) {
+                    //console.log('save min', value)
+                }
+                //min_child[0].save_score(node.h, min_child[1], value)
+                //console.log(value, min_child)
+                //console.log(depth, children.length)
+                return [value, min_child]
+            }
+            if (rule.rule.includes('0')) {
                 break
             }
-            beta = Math.min(beta, value)
-            if (is_break) {
-                break
-            }
-        }
-        if (min_child) {
-            if (depth === -1) {
-                //console.log('save min', value)
-            }
-            //min_child[0].save_score(node.h, min_child[1], value)
-            //console.log(value, min_child)
-            //console.log(depth, children.length)
-            return [value, min_child]
         }
         return undefined
     }
+
 }

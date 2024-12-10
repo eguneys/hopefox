@@ -91,7 +91,7 @@ describe.skip('patterns', () => {
 
 })
 
-describe.skip('kaggle', () => {
+describe('kaggle', () => {
     it('kaggle mateIn1', () => {
         let all = puzzles
             .filter(_ => _.id !== '013ze')
@@ -333,6 +333,18 @@ n
  q
   n =x
   . 1
+`)
+    })
+
+
+    it.only('slow', () => {
+        let one = tenk.find(_ => _.id === '00008')!
+        solve_p_str(one, `
+q
+ r =x
+ r
+  . 1
+   r =x
 `)
     })
 })
