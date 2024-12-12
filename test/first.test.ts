@@ -265,15 +265,22 @@ r
         let fen = '2kr3r/5p2/1p2p2p/pN1p2p1/8/1P1P4/2q2PPP/Q4RK1 w - - 0 22'
 
         bestsan(fen, `
-q
-
 r
- q
- . 1
+ . 0
   r =x
+  . 1
 `)
 
     })
+
+    it('00008', () => {
+        let one = tenk.find(_ => _.id === '00008')!
+        solve_p_str(one, `
+r
+ #
+`)
+    })
+
 
 
     it('000aY', () => {
@@ -290,8 +297,10 @@ q
     it('0000D', () => {
         let one = tenk.find(_ => _.id === '0000D')!
         solve_p_str(one, `
+q =x
+ r =x
 r
- q
+ k
   q =x
 `)
     })
@@ -303,6 +312,7 @@ q
  . 1
   q =x
    p =x
+   . 1
 `)
     })
 
@@ -332,12 +342,58 @@ q
 n
  q
   n =x
+  n + =x
+`)
+    })
+
+    it.only('hopefox c match', () => {
+        let fen = '8/2p4r/1p3k2/p2PR1p1/P1P2pP1/1P3P2/4R2r/5K2 b - - 2 47'
+        console.log(bestsan(fen, `
+r +
+ k =x
+ k
+  r =x
+
+r +
+ k
+  #
+`))
+    })
+
+    it('00JZk', () => {
+        let one = tenk.find(_ => _.id === '00JZk')!
+        solve_p_str(one, `
+r
+ q 0
+  #
+ q + =x
+  k =x
+ .
+  #
+  r + =x
+  r +
+   k
+    q +
+     q
+      #
+   q
+    b +
+     b + =x
+      # 
+  q +
+   b + =x
+    b + =x
+     q
+      #
+  q =x
+  r =x
+   p =x
+   . 1
   . 1
 `)
     })
 
-
-    it.only('slow', () => {
+    it('slow', () => {
         let one = tenk.find(_ => _.id === '00008')!
         solve_p_str(one, `
 q

@@ -272,10 +272,19 @@ export class Node {
 function parse_rule1(str: string): Rule {
     let ss = str.split(' ')
     return (h: Hopefox, ha: Hopefox, da: Move) => {
+        let a = move_to_san2([h, ha, da])
 
         let is_break = false
         if (ss.includes('1')) {
             is_break = true
+        }
+
+        let mm = ss.find(_ => _.includes('%'))
+
+        if (mm) {
+            if (mm !== '%' + a) {
+                return undefined
+            }
         }
 
         let from_role = h.role(da.from)
@@ -343,7 +352,13 @@ function parse_rule1(str: string): Rule {
 
         if (ss.includes('=x')) {
             let to_role = h.role(da.to)
+            let to_color = h.color(da.to)
+            let f_color = h.color(da.from)
 
+            // castles
+            if (to_color === f_color) {
+                return undefined
+            }
             if (to_role === 'pawn') {
                 return [1, is_break]
             }
@@ -582,11 +597,10 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
     }
 
     if (maximizingPlayer) {
+        let max_child = undefined
+        let value = -Infinity
 
         for (let rule of node.rule.children) {
-            let max_child = undefined
-            let value = -Infinity
-
 
             for (let [child, da] of node.children(rule)) {
                 let a = move_to_san2([node.h, child.h, da])
@@ -598,8 +612,11 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 }
                 let [score, is_break] = ss
 
-                if (a === 'Qa6' && depth === 0) {
-                    //console.log('in Qa6')
+                if (depth === 0) {
+                    //console.log('depth 0', a)
+                }
+                if (depth === -2) {
+                    //console.log("going in ", alpha)
                 }
                 let vv = alphabeta(child, depth - 1, alpha, beta, false)
 
@@ -628,6 +645,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
                 value = Math.max(value, v)
                 if (value > beta) {
+                    //console.log('beta break', value, beta)
                     break
                 }
                 alpha = Math.max(alpha, value)
@@ -637,22 +655,26 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 }
             }
             if (max_child) {
-                if (depth === -2) {
-                    //console.log('save max', value, max_child[max_child.length - 1][1].h.fen)
-                }
-                //max_child[0].save_score(node.h, max_child[1], value)
-                return [value, max_child]
+                continue
             }
             if (rule.rule.includes('0')) {
                 break
             }
         }
-            return undefined
+        if (max_child) {
+            if (depth === -2) {
+                //console.log('save max', value, max_child[max_child.length - 1][1].h.fen)
+            }
+            //max_child[0].save_score(node.h, max_child[1], value)
+
+            return [value, max_child]
+        }
+        return undefined
     } else {
 
-        for (let rule of node.rule.children) {
             let min_child = undefined
             let value = +Infinity
+        for (let rule of node.rule.children) {
 
             for (let [child, da] of node.children(rule)) {
 
@@ -674,13 +696,13 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
                 v = -score + v
 
-                if (depth === -3) {
+                if (depth === -1) {
                     //console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
                 }
 
                 if (v < value) {
 
-                    if (depth === -3) {
+                    if (depth === -1) {
                         //console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
                     }
                     //min_child = [child, da] as [AlphaBetaNode, Move]
@@ -689,7 +711,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 }
                 value = Math.min(value, v)
                 if (value < alpha) {
-                    //console.log('break')
+                    //console.log('break', value, alpha)
                     break
                 }
                 beta = Math.min(beta, value)
@@ -697,6 +719,14 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                     break
                 }
             }
+
+            if (min_child) {
+                continue
+            }
+            if (rule.rule.includes('0')) {
+                break
+            }
+        }
             if (min_child) {
                 if (depth === -1) {
                     //console.log('save min', value)
@@ -706,10 +736,6 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 //console.log(depth, children.length)
                 return [value, min_child]
             }
-            if (rule.rule.includes('0')) {
-                break
-            }
-        }
         return undefined
     }
 
