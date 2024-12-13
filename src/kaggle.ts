@@ -272,7 +272,6 @@ export class Node {
 function parse_rule1(str: string): Rule {
     let ss = str.split(' ')
     return (h: Hopefox, ha: Hopefox, da: Move) => {
-        let a = move_to_san2([h, ha, da])
 
         let is_break = false
         if (ss.includes('1')) {
@@ -282,7 +281,17 @@ function parse_rule1(str: string): Rule {
         let mm = ss.find(_ => _.includes('%'))
 
         if (mm) {
+            let a = move_to_san2([h, ha, da])
             if (mm !== '%' + a) {
+                return undefined
+            }
+        }
+
+        let mn = ss.find(_ => _.includes('!'))
+
+        if (mn) {
+            let a = move_to_san2([h, ha, da])
+            if (mn === '!' + a) {
                 return undefined
             }
         }
@@ -465,13 +474,30 @@ export class AlphaBetaRuleNode {
         let root = AlphaBetaRuleNode.Root
         const stack = [root]
 
+        let skip_depth = false
+        let is_only = false
         ss.forEach((line, i) => {
             const rule = line.trim()
             if (!rule) return
 
+            if (rule === 'O') {
+                is_only = true
+                return
+            }
+
+            if (rule === '!') {
+                skip_depth = true
+                return
+            }
+
             const depth = line.search(/\S/)
 
             const node = new AlphaBetaRuleNode(depth, i, rule, [], undefined)
+            node.is_only = is_only
+            is_only = false
+
+            node.skip_depth = skip_depth
+            skip_depth = false
 
             while (stack.length > depth + 1) {
                 stack.pop()
@@ -486,6 +512,19 @@ export class AlphaBetaRuleNode {
     constructor(readonly depth: number, readonly line: number, readonly rule: string, readonly children: AlphaBetaRuleNode[], public parent?: AlphaBetaRuleNode) {
         this._rr = parse_rule1(this.rule)
     }
+
+    skip_depth: boolean = false
+    is_only: boolean = false
+
+    get is_only_children() {
+        let cc = this.children.filter(_ => _.is_only)
+        if (cc.length > 0) {
+            return cc.filter(_ => !_.skip_depth)
+        }
+        return this.children.filter(_ => !_.skip_depth)
+    }
+
+    nb_visits: number = 0
 
     _rr: Rule
 
@@ -557,7 +596,7 @@ export class AlphaBetaNode {
         let vv = alphabeta(new AlphaBetaNode(h, ctx, res), 0)
 
         if (vv) {
-            let [v, max_child] = vv
+            let [v, nb_visits, max_child] = vv
 
             //console.log(max_child)
             max_child.forEach(([h, child, da, value]) => {
@@ -591,19 +630,22 @@ export class AlphaBetaNode {
 }
 
 
-function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true): [number, [Hopefox, AlphaBetaNode, Move, number][]] | undefined {
-    if (node.rule.children.length === 0) {
-        return [0, []]
+function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true): [number, number, [Hopefox, AlphaBetaNode, Move, number][]] | undefined {
+    if (node.rule.is_only_children.length === 0) {
+        return [0, 0, []]
     }
 
     if (maximizingPlayer) {
+
+        let nb_visits = 0
+
         let max_child = undefined
         let value = -Infinity
 
-        for (let rule of node.rule.children) {
+        for (let rule of node.rule.is_only_children) {
 
             for (let [child, da] of node.children(rule)) {
-                let a = move_to_san2([node.h, child.h, da])
+                //let a = move_to_san2([node.h, child.h, da])
 
                 let ss = child.score(node.h, da)
                 //console.log(a, ss)
@@ -620,14 +662,13 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 }
                 let vv = alphabeta(child, depth - 1, alpha, beta, false)
 
-                if (a === 'Qa6' && depth === 0) {
-                    //console.log('out Qa6', vv)
-                }
                 if (vv === undefined) {
                     continue
                 }
 
-                let [v, mm_child] = vv
+                let [v, _nb_visits, mm_child] = vv
+
+                nb_visits += _nb_visits + 1
 
                 v += score
 
@@ -667,14 +708,16 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
             //max_child[0].save_score(node.h, max_child[1], value)
 
-            return [value, max_child]
+            node.rule.nb_visits = nb_visits
+            return [value, nb_visits, max_child]
         }
         return undefined
     } else {
 
+        let nb_visits = 0
             let min_child = undefined
             let value = +Infinity
-        for (let rule of node.rule.children) {
+        for (let rule of node.rule.is_only_children) {
 
             for (let [child, da] of node.children(rule)) {
 
@@ -692,8 +735,9 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                     continue
                 }
 
-                let [v, mm_child] = vv
+                let [v, _nb_visits, mm_child] = vv
 
+                nb_visits += _nb_visits + 1
                 v = -score + v
 
                 if (depth === -1) {
@@ -734,7 +778,8 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 //min_child[0].save_score(node.h, min_child[1], value)
                 //console.log(value, min_child)
                 //console.log(depth, children.length)
-                return [value, min_child]
+                node.rule.nb_visits = nb_visits
+                return [value, nb_visits, min_child]
             }
         return undefined
     }
