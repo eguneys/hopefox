@@ -68,3 +68,4 @@ export * from './hopefox'
 
 
 export * from './kaggle'
+export * from './kaggle2'

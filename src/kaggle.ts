@@ -5,12 +5,27 @@ import { makeSan } from "./san"
 import { Move, Square } from "./types"
 import { makeUci, opposite } from "./util"
 
+export function bestsan2(fen: string) {
+
+    let h = Hopefox.from_fen(fen)
+
+
+    let mates = h.h_dests.filter(_ => _[1].is_checkmate)
+
+    let m = mates[0]
+    if (m) {
+        return move_to_san2(m)
+    }
+
+}
+
+
 export function bestsan(fen: string, rules: string) {
     return alpha_beta_search(fen, rules)
 }
 
 
-function move_to_san2(_: any) {
+export function move_to_san2(_: any) {
     return move_to_san(_[0].pos, _[2])
 }
 
@@ -23,7 +38,7 @@ function move_to_uci(move: Move) {
 }
 
 
-class Hopefox {
+export class Hopefox {
 
     static from_fen = (fen: string) => {
         return new Hopefox(Chess.fromSetup(parseFen(fen).unwrap()).unwrap())
@@ -69,14 +84,46 @@ class Hopefox {
         return res
     }
 
+    dests_from(from: Square) {
+        let res = []
+
+        for (let to of this.pos.dests(from)) {
+            if (to < 8 || to >= 56) {
+                if (this.pos.board.get(from)?.role === 'pawn') {
+                    res.push({ from, to, promotion: 'queen' })
+                    res.push({ from, to, promotion: 'knight' })
+                    continue
+                }
+            }
+            let move = { from, to }
+            res.push(move)
+        }
+
+        return res
+    }
+
+    get turn() {
+        return this.pos.turn
+    }
+
     get captures() {
         return this.dests.filter(_ => !!this.pos.board.get(_.to))
+    }
+
+    get skip_turn() {
+        let p2 = this.pos.clone()
+        p2.turn = opposite(p2.turn)
+        return new Hopefox(p2)
     }
 
     apply_move(move: Move) {
         let pos = this.pos.clone()
         pos.play(move)
         return new Hopefox(pos)
+    }
+
+    piece(sq: Square) {
+        return this.pos.board.get(sq)
     }
 
     color(sq: Square) {
@@ -287,11 +334,11 @@ function parse_rule1(str: string): Rule {
             }
         }
 
-        let mn = ss.find(_ => _.includes('!'))
+        let mn = ss.filter(_ => _.includes('!'))
 
-        if (mn) {
+        if (mn.length > 0) {
             let a = move_to_san2([h, ha, da])
-            if (mn === '!' + a) {
+            if (mn.find(_ => _ === '!' + a)) {
                 return undefined
             }
         }
@@ -386,9 +433,11 @@ function parse_rule1(str: string): Rule {
             }
             return undefined
         } else {
+            /*
             if (h.role(da.to) !== undefined) {
                 return undefined
             }
+                */
         }
         return [0, is_break]
     }
@@ -632,7 +681,7 @@ export class AlphaBetaNode {
 
 function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta = +Infinity, maximizingPlayer = true): [number, number, [Hopefox, AlphaBetaNode, Move, number][]] | undefined {
     if (node.rule.is_only_children.length === 0) {
-        return [0, 0, []]
+        return [0, 1, []]
     }
 
     if (maximizingPlayer) {
@@ -645,7 +694,7 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
         for (let rule of node.rule.is_only_children) {
 
             for (let [child, da] of node.children(rule)) {
-                //let a = move_to_san2([node.h, child.h, da])
+                let a = move_to_san2([node.h, child.h, da])
 
                 let ss = child.score(node.h, da)
                 //console.log(a, ss)
@@ -654,13 +703,11 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
                 }
                 let [score, is_break] = ss
 
-                if (depth === 0) {
-                    //console.log('depth 0', a)
-                }
-                if (depth === -2) {
-                    //console.log("going in ", alpha)
-                }
                 let vv = alphabeta(child, depth - 1, alpha, beta, false)
+
+                if (depth === 0 && a === 'Rb1') {
+                    //console.log("out Rb1")
+                }
 
                 if (vv === undefined) {
                     continue
@@ -668,15 +715,16 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
                 let [v, _nb_visits, mm_child] = vv
 
-                nb_visits += _nb_visits + 1
+                rule.nb_visits += _nb_visits
+                nb_visits += _nb_visits
 
                 v += score
 
-                if (depth === -2) {
-                    //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value)
+                if (depth === -8) {
+                    //console.log('|' + '-'.repeat(- depth), 'amax', a, v, value, nb_visits)
                 }
                 if (v > value) {
-                    if (depth === -2) {
+                    if (depth === -8) {
                         //console.log('|' + '-'.repeat(- depth), 'max', a, v, score, value, child.h.fen, is_break)
                     }
                     //max_child = [child, da] as [AlphaBetaNode, Move]
@@ -703,20 +751,19 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
         }
         if (max_child) {
-            if (depth === -2) {
+            if (depth === -8) {
                 //console.log('save max', value, max_child[max_child.length - 1][1].h.fen)
             }
             //max_child[0].save_score(node.h, max_child[1], value)
 
-            node.rule.nb_visits = nb_visits
             return [value, nb_visits, max_child]
         }
         return undefined
     } else {
 
         let nb_visits = 0
-            let min_child = undefined
-            let value = +Infinity
+        let min_child = undefined
+        let value = +Infinity
         for (let rule of node.rule.is_only_children) {
 
             for (let [child, da] of node.children(rule)) {
@@ -729,7 +776,12 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
                 let [score, is_break] = ss
 
+                if (depth === -7 && a === 'Qd1+') {
+                    //console.log("going in Qd1+")
+                }
+
                 let vv = alphabeta(child, depth - 1, alpha, beta, true)
+
 
                 if (vv === undefined) {
                     continue
@@ -737,19 +789,26 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
 
                 let [v, _nb_visits, mm_child] = vv
 
-                nb_visits += _nb_visits + 1
+                rule.nb_visits += _nb_visits
+                nb_visits += _nb_visits
+
                 v = -score + v
 
-                if (depth === -1) {
-                    //console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen)
+                if (depth === -7 && a === 'Qd1+') {
+                    //console.log("out Qd1+", v, value)
+                }
+
+
+
+                if (depth === -7) {
+                    //console.log('|' + '-'.repeat(-depth), 'amin', a, v, value, child.h.fen, nb_visits)
                 }
 
                 if (v < value) {
 
-                    if (depth === -1) {
+                    if (depth === -7) {
                         //console.log('|' + '-'.repeat(-depth), 'min', a, v, value, child.h.fen)
                     }
-                    //min_child = [child, da] as [AlphaBetaNode, Move]
                     mm_child.push([node.h, child, da, v])
                     min_child = mm_child
                 }
@@ -772,13 +831,10 @@ function alphabeta(node: AlphaBetaNode, depth: number, alpha = -Infinity, beta =
             }
         }
             if (min_child) {
-                if (depth === -1) {
+                if (depth === -7) {
                     //console.log('save min', value)
+                    //console.log(min_child.map(_ => move_to_san(_[0].pos, _[2])))
                 }
-                //min_child[0].save_score(node.h, min_child[1], value)
-                //console.log(value, min_child)
-                //console.log(depth, children.length)
-                node.rule.nb_visits = nb_visits
                 return [value, nb_visits, min_child]
             }
         return undefined
