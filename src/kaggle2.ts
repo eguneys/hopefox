@@ -8,10 +8,22 @@ import { SquareSet } from './squareSet'
 type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => RuleContext[] | undefined
 type RuleContext = Record<string, Square[]>
 
+const copy_ctx = (ctx: RuleContext) => {
+    let res: RuleContext = {}
+    for (let key of Object.keys(ctx)) {
+        res[key] = [...ctx[key]]
+    }
+    return res
+}
+
 function parse_rule3(str: string) {
     let ss = str.split(' ')
 
     let [from, to1, to2] = ss
+
+    if (to1 === undefined) {
+        return undefined
+    }
 
     let bg5 = to1.match(/\/([a-h1-8]{2})/)
     let bQ = to1.match(/\/(.{1})/)
@@ -24,6 +36,7 @@ function parse_rule3(str: string) {
     let mate = to1.includes('#')
 
     return (h: Hopefox, ha: Hopefox, da: Move, is_lowers_turn: boolean, ctx: RuleContext) => {
+
         let from_role = h.role(da.from)!
 
         if (mate) {
@@ -36,19 +49,63 @@ function parse_rule3(str: string) {
             if (from_role[0] !== from) {
                 return undefined
             }
-            return check_tos(ctx, h, ha, da)
+
+
+            if (ctx[from]) {
+                if (!ctx[from].includes(da.from)) {
+                    return undefined
+                }
+            }
+            ctx[from] = [da.to]
+            let res = check_tos(ctx, h, ha, da, h.turn)
+            return res
         }
 
         if (from.toLowerCase() !== from) {
             if (from.toLowerCase() !== from_role[0]) {
                 return undefined
             }
-            return check_tos(ctx, h, ha, da)
+
+            if (ctx[from]) {
+                if (!ctx[from].includes(da.from)) {
+                    return undefined
+                }
+            }
+
+            ctx[from] = [da.to]
+
+            let res = check_tos(ctx, h, ha, da, ha.turn)
+            return res
+        }
+
+        for (let key of Object.keys(ctx)) {
+            let i = ctx[key].findIndex(_ => _ === da.from)
+            if (i !== -1) {
+                ctx[key].splice(i, 1, da.to)
+            }
         }
 
         return ha.h_dests.flatMap(([h, ha, da]) => {
-            let base_ctx = { ...ctx }
-            let res = check_tos(base_ctx, h, ha, da)
+            let base_ctx = copy_ctx(ctx)
+
+            if (move_to_san2([h, ha, da]) === 'Rxf2') {
+
+                console.log('here')
+            }
+
+            let from_role = h.role(da.from)!
+
+            if (from_role[0] !== from) {
+                return []
+            }
+
+            if (base_ctx[from]) {
+                if (!base_ctx[from].includes(da.from)) {
+                    return []
+                }
+            }
+
+            let res = check_tos(copy_ctx(base_ctx), h, ha, da, h.turn)
             
             if (!res) {
                 return []
@@ -58,7 +115,7 @@ function parse_rule3(str: string) {
     }
 
 
-    function check_tos(base_ctx: RuleContext, h: Hopefox, ha: Hopefox, da: Move) {
+    function check_tos(base_ctx: RuleContext, h: Hopefox, ha: Hopefox, da: Move, lowers_turn: Color) {
 
         let from_piece = h.piece(da.from)!
 
@@ -90,10 +147,10 @@ function parse_rule3(str: string) {
             bQs = SquareSet.empty()
             let [_, Q] = bQ
 
-            let q_color = Q.toLowerCase() === Q ? opposite(ha.turn) : ha.turn
+            let q_color = Q.toLowerCase() === Q ? lowers_turn : opposite(lowers_turn)
 
             for (let toQ of attacks(from_piece, da.to, ha.pos.board.occupied)) {
-                let ctx = { ...base_ctx }
+                let ctx = copy_ctx(base_ctx)
 
                 let toQPiece = ha.piece(toQ)
 
@@ -104,6 +161,12 @@ function parse_rule3(str: string) {
                 if (toQPiece.role[0] !== Q.toLowerCase() || toQPiece.color !== q_color) {
                     continue
                 }
+
+                if (ctx[Q] && !ctx[Q].includes(toQ)) {
+                    continue
+                }
+
+                ctx[Q] = [toQ]
 
                 bQs = bQs.set(toQ, true)
             }
@@ -126,7 +189,14 @@ function parse_rule3(str: string) {
             }
 
             for (let toh5 of attacks(from_piece, da.to, occupied)) {
-                let ctx = { ...base_ctx }
+                let ctx = copy_ctx(base_ctx)
+
+                if (bQs !== undefined) {
+                    if (between(da.to, toh5).intersect(bQs).isEmpty()) {
+                        continue
+                    }
+                }
+
 
                 if (ctx[h5]) {
                     if (!ctx[h5].includes(toh5)) {
@@ -147,7 +217,7 @@ function parse_rule3(str: string) {
 
         if (cK !== null) {
             let [_, K] = cK
-            let k_color = K.toLowerCase() === K ? opposite(ha.turn) : ha.turn
+            let k_color = K.toLowerCase() === K ? lowers_turn : opposite(lowers_turn)
 
             let res: RuleContext[] = []
             let occupied = ha.pos.board.occupied
@@ -159,7 +229,7 @@ function parse_rule3(str: string) {
 
 
             for (let toK of attacks(from_piece, da.to, occupied)) {
-                let ctx = { ...base_ctx }
+                let ctx = copy_ctx(base_ctx)
 
                 let toKPiece = ha.piece(toK)
 
@@ -170,6 +240,18 @@ function parse_rule3(str: string) {
                 if (toKPiece.role[0] !== K.toLowerCase() || toKPiece.color !== k_color) {
                     continue
                 }
+
+                if (ctx[K] && !ctx[K].includes(toK)) {
+                    continue
+                }
+
+                if (bQs !== undefined) {
+                    if (between(da.to, toK).intersect(bQs).isEmpty()) {
+                        continue
+                    }
+                }
+
+                ctx[K] = [toK]
 
                 if (fill_blocks(ctx, toK)) {
                     res.push(ctx)
@@ -184,7 +266,7 @@ function parse_rule3(str: string) {
 
             let res: RuleContext[] = []
             let tog5 = da.to
-            let ctx = { ...base_ctx }
+            let ctx = copy_ctx(base_ctx)
 
             if (ctx[g5]) {
                 if (!ctx[g5].includes(tog5)) {
@@ -209,9 +291,9 @@ function parse_rule3(str: string) {
 
             let res: RuleContext[] = []
             let toK = da.to
-            let ctx = { ...base_ctx }
+            let ctx = copy_ctx(base_ctx)
 
-            let k_color = K.toLowerCase() === K ? opposite(ha.turn) : ha.turn
+            let k_color = K.toLowerCase() === K ? lowers_turn : opposite(lowers_turn)
 
             let toKPiece = h.piece(toK)
 
@@ -222,6 +304,12 @@ function parse_rule3(str: string) {
             if (toKPiece.role[0] !== K.toLowerCase() || toKPiece.color !== k_color) {
                 return undefined
             }
+
+            if (ctx[K] && !ctx[K].includes(toK)) {
+                return undefined
+            }
+
+            ctx[K] = [toK]
 
             if (fill_blocks(ctx, toK)) {
                 res.push(ctx)
@@ -282,7 +370,7 @@ export class RuleNode {
             return
         }
         let xx = parse_rule3(this.rule)
-        this._rr = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => xx(h, ha, da, depth % 2 === 0, ctx)
+        this._rr = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => xx?.(h, ha, da, depth % 2 === 0, ctx)
     }
 
     skip_depth: boolean = false
@@ -355,15 +443,17 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext) {
     if (rules.length === 0) {
         return undefined
     }
+    let rest: string[] = []
     h.h_dests.forEach(haa => {
+        let ctx2 = copy_ctx(base_ctx)
 
         let a = move_to_san2(haa)
 
-        if (a === 'Rxf5') {
-            //console.log('here')
+        if (a === 'Qf8+') {
+            console.log('here')
         }
         let rule = rules.find(rule => {
-            let ctx = { ... base_ctx }
+            let ctx = copy_ctx(ctx2)
             let res = rule.run(haa, ctx)
             if (res === undefined) {
                 return false
@@ -377,6 +467,7 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext) {
         
 
         if (!rule) {
+            rest.push(a)
             return
         }
 
@@ -384,6 +475,12 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext) {
         //console.log(h.fen, a, rule.rule)
         res.push(a)
     })
+
+    let rr = rules.find(_ => _.rule === '.')
+    if (rr) {
+        rr.san = rest[0]
+        return undefined
+    }
 
     return res
 }

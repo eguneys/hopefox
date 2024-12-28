@@ -22,14 +22,25 @@ q =Q
 })
 
 
-it.only('00KO5', () => {
+it('00KO5', () => {
     let one = tenk.find(_ => _.id === '00KO5')!
 
 
     solve_p_str(one, `
 r /Q+h7
- r +h7
-  q =h7#
+ Q +k
+  q =Q
+`)
+
+})
+
+
+it.only('00JZk', () => {
+    let one = tenk.find(_ => _.id === '00JZk')!
+
+
+    solve_p_str(one, `
+q /Q+K
 `)
 
 })
