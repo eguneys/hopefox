@@ -466,7 +466,7 @@ export function rule_search_tree(fen: string, rules: string) {
 
 function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext): any {
 
-    let res: string[] = []
+    let res: [string, RuleNode][] = []
 
     let rules = node.is_only_children
     if (rules.length === 0) {
@@ -482,7 +482,7 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext): any {
         let a = move_to_san2(haa)
 
         if (a === 'Qe1+') {
-            console.log('here')
+            //console.log('here')
         }
 
         let neg_found = neg_rules.some(rule => {
@@ -543,7 +543,14 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext): any {
         }
 
         found_pos_rule.san.push(a)
-        res.push(a)
+        res.push([a, found_pos_rule])
+    }
+
+    let r_neg = rules.find(_ => _.rule === '0 .')
+    if (r_neg) {
+        if (rest.length !== 0) {
+            return []
+        }
     }
 
     let rr = rules.find(_ => _.rule === '.')
@@ -554,5 +561,5 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext): any {
         }
     }
 
-    return res
+    return res.sort((a, b) => a[1].line - b[1].line).map(_ => _[0])
 }
