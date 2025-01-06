@@ -22,25 +22,76 @@ q =Q
 })
 
 
+
+it('00J1t', () => {
+    let one = tenk.find(_ => _.id === '00J1t')!
+
+
+    solve_p_str(one, `
+q +B
+ N
+  q #
+`)
+
+})
+
+
+
+it.only('00LRv neg rules', () => {
+    let one = tenk.find(_ => _.id === '00LRv')!
+
+
+    solve_p_str(one, `
+q +K
+ 0 R =q
+ q =B
+  q =B
+`)
+
+})
+
+
+
+
 it('00KO5', () => {
     let one = tenk.find(_ => _.id === '00KO5')!
 
 
     solve_p_str(one, `
 r /Q+h7
- Q +k
-  q =Q
+ r =h7
+  q =h7#
+ Q =r
+ .
 `)
 
 })
 
 
-it.only('00JZk', () => {
+it('00JZk', () => {
     let one = tenk.find(_ => _.id === '00JZk')!
 
 
     solve_p_str(one, `
-q /Q+K
+r /Q+h7
+ r =h7
+  q =h7#
+ Q =r
+ q =Q
+  q =Q
+ r =Q
+  r =Q
+ k =R
+  k =R
+ r /B+Q
+  r =B
+ R /r+k
+ r =R
+  r =R
+ q +K
+  q +K
+   q /Q+K
+ .
 `)
 
 })

@@ -1,12 +1,15 @@
 import { checkServerIdentity } from 'tls'
 import { Hopefox, move_to_san2 } from './kaggle'
-import { Color, Move, Square } from './types'
+import { Color, Move, Role, Square } from './types'
 import { opposite } from './util'
 import { attacks, between, rookAttacks } from './attacks'
 import { SquareSet } from './squareSet'
 
 type Rule = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => RuleContext[] | undefined
 type RuleContext = Record<string, Square[]>
+
+
+const role_to_char = (role: Role) => role === 'knight' ? 'n' : role[0]
 
 const copy_ctx = (ctx: RuleContext) => {
     let res: RuleContext = {}
@@ -21,21 +24,41 @@ function parse_rule3(str: string) {
 
     let [from, to1, to2] = ss
 
+
     if (to1 === undefined) {
-        return undefined
+        to1 = ''
     }
 
-    let bg5 = to1.match(/\/([a-h1-8]{2})/)
-    let bQ = to1.match(/\/(.{1})/)
+    let
+    bg5 = to1.match(/\/([a-h1-8]{2})/),
+    bQ = to1.match(/\/(.{1})/),
 
-    let ch5 = to1.match(/\+([a-h1-8]{2})/)
-    let cK = to1.match(/\+(.{1})/)
-    let eg5 = to1.match(/\=([a-h1-8]{2})/)
-    let eK = to1.match(/\=(.{1})/)
+    ch5 = to1.match(/\+([a-h1-8]{2})/),
+    cK = to1.match(/\+(.{1})/),
+    eg5 = to1.match(/\=([a-h1-8]{2})/),
+    eK = to1.match(/\=(.{1})/),
 
-    let mate = to1.includes('#')
+    mate = str.includes('#')
+
+
+    let noM = ss.flatMap(_ => _.match(/\!(\w*\+?\#?)/)?.[1] ?? [])
+    let yesM = ss.flatMap(_ => _.match(/\%(\w*\+?\#?)/)?.[1] ?? [])
 
     return (h: Hopefox, ha: Hopefox, da: Move, is_lowers_turn: boolean, ctx: RuleContext) => {
+
+        let a = move_to_san2([h, ha, da])
+
+        if (noM.length > 0) {
+            if (noM.find(_ => _ === a)) {
+                return undefined
+            }
+        }
+
+        if (yesM.length > 0) {
+            if (a !== yesM[0]) {
+                return undefined
+            }
+        }
 
         let from_role = h.role(da.from)!
 
@@ -46,7 +69,7 @@ function parse_rule3(str: string) {
         }
 
         if (is_lowers_turn) {
-            if (from_role[0] !== from) {
+            if (role_to_char(from_role) !== from) {
                 return undefined
             }
 
@@ -62,7 +85,7 @@ function parse_rule3(str: string) {
         }
 
         if (from.toLowerCase() !== from) {
-            if (from.toLowerCase() !== from_role[0]) {
+            if (from.toLowerCase() !== role_to_char(from_role)) {
                 return undefined
             }
 
@@ -88,14 +111,9 @@ function parse_rule3(str: string) {
         return ha.h_dests.flatMap(([h, ha, da]) => {
             let base_ctx = copy_ctx(ctx)
 
-            if (move_to_san2([h, ha, da]) === 'Rxf2') {
-
-                console.log('here')
-            }
-
             let from_role = h.role(da.from)!
 
-            if (from_role[0] !== from) {
+            if (role_to_char(from_role) !== from) {
                 return []
             }
 
@@ -158,7 +176,7 @@ function parse_rule3(str: string) {
                     continue
                 }
 
-                if (toQPiece.role[0] !== Q.toLowerCase() || toQPiece.color !== q_color) {
+                if (role_to_char(toQPiece.role) !== Q.toLowerCase() || toQPiece.color !== q_color) {
                     continue
                 }
 
@@ -237,7 +255,7 @@ function parse_rule3(str: string) {
                     continue
                 }
 
-                if (toKPiece.role[0] !== K.toLowerCase() || toKPiece.color !== k_color) {
+                if (role_to_char(toKPiece.role) !== K.toLowerCase() || toKPiece.color !== k_color) {
                     continue
                 }
 
@@ -301,7 +319,7 @@ function parse_rule3(str: string) {
                 return undefined
             } 
             
-            if (toKPiece.role[0] !== K.toLowerCase() || toKPiece.color !== k_color) {
+            if (role_to_char(toKPiece.role) !== K.toLowerCase() || toKPiece.color !== k_color) {
                 return undefined
             }
 
@@ -317,6 +335,8 @@ function parse_rule3(str: string) {
 
             return res
         }
+
+        return [base_ctx]
     }
 }
 
@@ -369,7 +389,15 @@ export class RuleNode {
         if (depth === -1) {
             return
         }
-        let xx = parse_rule3(this.rule)
+
+        let rsplit = this.rule.split(' ')
+        let rr = this.rule
+        if (rsplit[0] === '0') {
+            this._is_neg_rule = true
+            rr = rsplit.slice(1).join(' ')
+        }
+
+        let xx = parse_rule3(rr)
         this._rr = (h: Hopefox, ha: Hopefox, da: Move, ctx: RuleContext) => xx?.(h, ha, da, depth % 2 === 0, ctx)
     }
 
@@ -384,10 +412,11 @@ export class RuleNode {
         return this.children.filter(_ => !_.skip_depth)
     }
 
-    san?: string
+    san: string[] = []
 
     nb_visits: number = 0
 
+    _is_neg_rule = false
     _rr: Rule
 
     get full_rule(): string {
@@ -435,7 +464,7 @@ export function rule_search_tree(fen: string, rules: string) {
     return node
 }
 
-function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext) {
+function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext): any {
 
     let res: string[] = []
 
@@ -443,43 +472,86 @@ function rule_search(h: Hopefox, node: RuleNode, base_ctx: RuleContext) {
     if (rules.length === 0) {
         return undefined
     }
+    let neg_rules = rules.filter(_ => _._is_neg_rule)
+    let pos_rules = rules.filter(_ => !_._is_neg_rule)
     let rest: string[] = []
-    h.h_dests.forEach(haa => {
+
+    for (let haa of h.h_dests) {
         let ctx2 = copy_ctx(base_ctx)
 
         let a = move_to_san2(haa)
 
-        if (a === 'Qf8+') {
+        if (a === 'Qe1+') {
             console.log('here')
         }
-        let rule = rules.find(rule => {
+
+        let neg_found = neg_rules.some(rule => {
             let ctx = copy_ctx(ctx2)
             let res = rule.run(haa, ctx)
             if (res === undefined) {
                 return false
             }
-            return res.find(ctx => {
-                let res = rule_search(haa[1], rule, ctx)
-                return res === undefined || res.length > 0
+            let aa = res.find(ctx => {
+                let xx = rule_search(haa[1], rule, ctx)
+                return xx === undefined || xx.length > 0
             })
+
+            return aa
         })
 
-        
-
-        if (!rule) {
-            rest.push(a)
-            return
+        if (neg_found) {
+            return 'neg_found'
         }
 
-        rule.san = a
-        //console.log(h.fen, a, rule.rule)
+        let found_pos_rule
+
+        for (let rule of pos_rules) {
+            let ctx = copy_ctx(ctx2)
+            let res = rule.run(haa, ctx)
+            if (res === undefined) {
+                continue
+            }
+
+            let neg_found = false
+            let found = false
+            for (let ctx of res) {
+                let xx = rule_search(haa[1], rule, ctx)
+                if (xx === 'neg_found') {
+                    neg_found = true
+                    break
+                }
+                if (xx === undefined || xx.length > 0) {
+                    found = true
+                    break
+                }
+
+            }
+            if (found) {
+                found_pos_rule = rule
+                break
+            }
+        }
+
+
+        if (neg_found) {
+            continue
+        }
+
+        if (!found_pos_rule) {
+            rest.push(a)
+            continue
+        }
+
+        found_pos_rule.san.push(a)
         res.push(a)
-    })
+    }
 
     let rr = rules.find(_ => _.rule === '.')
     if (rr) {
-        rr.san = rest[0]
-        return undefined
+        rr.san.push(...rest)
+        if (rest.length > 0) {
+            return rest
+        }
     }
 
     return res
