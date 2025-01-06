@@ -31,18 +31,21 @@ function parse_rule3(str: string) {
 
     let
     bg5 = to1.match(/\/([a-h1-8]{2})/),
-    bQ = to1.match(/\/(.{1})/),
+    bQ = to1.match(/\/(.{1}2?)/),
 
     ch5 = to1.match(/\+([a-h1-8]{2})/),
     cK = to1.match(/\+(.{1})/),
     eg5 = to1.match(/\=([a-h1-8]{2})/),
-    eK = to1.match(/\=(.{1})/),
+    eK = to1.match(/\=(.{1}2?)/),
 
     mate = str.includes('#')
 
 
     let noM = ss.flatMap(_ => _.match(/\!(\w*\+?\#?)/)?.[1] ?? [])
     let yesM = ss.flatMap(_ => _.match(/\%(\w*\+?\#?)/)?.[1] ?? [])
+
+
+
 
     return (h: Hopefox, ha: Hopefox, da: Move, is_lowers_turn: boolean, ctx: RuleContext) => {
 
@@ -69,7 +72,7 @@ function parse_rule3(str: string) {
         }
 
         if (is_lowers_turn) {
-            if (role_to_char(from_role) !== from) {
+            if (role_to_char(from_role) !== from[0]) {
                 return undefined
             }
 
@@ -85,7 +88,7 @@ function parse_rule3(str: string) {
         }
 
         if (from.toLowerCase() !== from) {
-            if (from.toLowerCase() !== role_to_char(from_role)) {
+            if (from[0].toLowerCase() !== role_to_char(from_role)) {
                 return undefined
             }
 
@@ -113,7 +116,7 @@ function parse_rule3(str: string) {
 
             let from_role = h.role(da.from)!
 
-            if (role_to_char(from_role) !== from) {
+            if (role_to_char(from_role) !== from[0]) {
                 return []
             }
 
@@ -176,7 +179,7 @@ function parse_rule3(str: string) {
                     continue
                 }
 
-                if (role_to_char(toQPiece.role) !== Q.toLowerCase() || toQPiece.color !== q_color) {
+                if (role_to_char(toQPiece.role) !== Q[0].toLowerCase() || toQPiece.color !== q_color) {
                     continue
                 }
 
@@ -319,7 +322,7 @@ function parse_rule3(str: string) {
                 return undefined
             } 
             
-            if (role_to_char(toKPiece.role) !== K.toLowerCase() || toKPiece.color !== k_color) {
+            if (role_to_char(toKPiece.role) !== K[0].toLowerCase() || toKPiece.color !== k_color) {
                 return undefined
             }
 

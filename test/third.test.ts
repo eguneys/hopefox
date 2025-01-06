@@ -36,8 +36,22 @@ q +B
 })
 
 
+it.only('00X5w n2 rules', () => {
+    let fen = "r2q1r1k/1ppbb1pn/p1n4p/3QNp2/B3P3/2P4P/PP3PP1/R1B1RNK1 b - - 0 14"
 
-it.only('00LRv neg rules', () => {
+
+    console.log(bestsan3(fen, `
+n +Q
+ Q =n2
+`))
+
+})
+
+
+
+
+
+it('00LRv neg rules', () => {
     let one = tenk.find(_ => _.id === '00LRv')!
 
 
