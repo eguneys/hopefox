@@ -1,11 +1,11 @@
 import { BlockList } from "net";
 import { attacks } from "./attacks";
 import { SquareSet } from "./squareSet";
-import { Move, Piece, Square } from "./types";
+import { Color, Move, Piece, Square } from "./types";
 import { board, squareSet } from "./debug";
 import { Hopefox, move_to_san2 } from "./kaggle";
 import { copy_ctx, role_to_char } from "./kaggle2";
-import { makeSquare } from "./util";
+import { makeSquare, opposite } from "./util";
 
 export function blocks(piece: Piece, square: Square, occupied: SquareSet) {
 
@@ -51,12 +51,13 @@ export function parse_rule(rule: string) {
     let [from, to] = rule.trim().split(' ')
 
 
-    let eQ = to.match(/^=([pqrnbkPQRNBK]2?)/)?.[1]
-    let cK = to.match(/^\+([pqrnbkPQRNBK]2?)/)?.[1]
-    let ec1cQcK = to.match(/^=([a-h][1|3-8])\+([pqrnbkPQRNBK]2?)\.([pqrnbkPQRNBK]2?)/)
+    let eQ = to.match(/^=([pqrnbkPQRNBK]'?)$/)?.[1]
+    let cK = to.match(/^\+([pqrnbkPQRNBK]'?)$/)?.[1]
+    let ec1cQcK = to.match(/^=([a-h][1-8])\+([pqrnbkPQRNBK]'?)\.([pqrnbkPQRNBK]'?)$/)
 
-    let ec1 = to.match(/^=([a-h][1|3-8])/)?.[1]
-    let cc1 = to.match(/^\+([a-h][1|3-8])/)?.[1]
+    let ec1 = to.match(/^=([a-h][1-8])$/)?.[1]
+    let cc1 = to.match(/^\+([a-h][1-8])$/)?.[1]
+    let eb2cK = to.match(/^=([a-h][1-8])\+([pqrnbkPQRNBK]'?)$/)
 
     return (h: Hopefox, res: Context[] = []): Context[] => {
 
@@ -68,7 +69,7 @@ export function parse_rule(rule: string) {
 
             let from_piece = h.piece(da.from)!
 
-            if (role_to_char(from_piece.role) === from[0]) {
+            if (role_to_char(from_piece.role) === from[0].toLowerCase()) {
                 let ctx: Context = {}
 
                 let collect = []
@@ -94,12 +95,12 @@ export function parse_rule(rule: string) {
                     res.push(ctx)
                 }
 
-                if (move_to_san2([h, ha, da]) === 'Rc1') {
-                    //console.log('here')
+                if (move_to_san2([h, ha, da]) === 'Qa1') {
+                    console.log('here')
                 }
-                let to_contexts = find_to_context(h, ha, da, res)
+                let lower_color = h.turn
+                let to_contexts = find_to_context(h, ha, da, res, lower_color)
 
-                //console.log(mark, to_contexts, move_to_san2([h, ha, da]))
                 if (to_contexts.length === 0) {
                     continue
                 }
@@ -118,15 +119,20 @@ export function parse_rule(rule: string) {
         return mark
     }
 
-    function find_to_context(h: Hopefox, ha: Hopefox, da: Move, res: Context[]): Context[] {
+    function find_to_context(h: Hopefox, ha: Hopefox, da: Move, res: Context[], lower_color: Color): Context[] {
 
         if (eQ) {
             let Q = h.piece(da.to)
+
+            let q_color = eQ.toLowerCase() === eQ ? lower_color : opposite(lower_color)
 
             if (!Q) {
                 return []
             }
             if (role_to_char(Q.role) !== eQ[0].toLowerCase()) {
+                return []
+            }
+            if (Q.color !== q_color) {
                 return []
             }
 
@@ -153,11 +159,17 @@ export function parse_rule(rule: string) {
 
                 let K = h.piece(toK)
 
+                let k_color = cK.toLowerCase() === cK ? lower_color : opposite(lower_color)
+
                 if (!K) {
                     continue
                 }
 
                 if (role_to_char(K.role) !== cK[0].toLowerCase()) {
+                    continue
+                }
+
+                if (K.color !== k_color) {
                     continue
                 }
 
@@ -220,7 +232,13 @@ export function parse_rule(rule: string) {
             for (let toq of bQ) {
                 let q = h.piece(toq)!
 
+                let q_color = cQ.toLowerCase() === cQ ? lower_color : opposite(lower_color)
+
                 if (role_to_char(q.role) !== cQ[0].toLowerCase()) {
+                    continue
+                }
+
+                if (q.color !== q_color) {
                     continue
                 }
 
@@ -248,7 +266,13 @@ export function parse_rule(rule: string) {
             for (let tok of bK) {
                 let k = h.piece(tok)!
 
+                let k_color = cK.toLowerCase() === cK ? lower_color : opposite(lower_color)
+
                 if (role_to_char(k.role) !== cK[0].toLowerCase()) {
+                    continue
+                }
+
+                if (k.color !== k_color) {
                     continue
                 }
 
@@ -292,7 +316,9 @@ export function parse_rule(rule: string) {
                         if (c[cc1] !== toc1) {
                             continue
                         }
-                        collect.push(c)
+                        let ctx = copy_ctx(c)
+                        ctx[`+${cc1}`] = da.to
+                        collect.push(ctx)
                     } else {
                         let ctx = copy_ctx(c)
                         ctx[cc1] = toc1
@@ -304,6 +330,76 @@ export function parse_rule(rule: string) {
                 mark.push(...collect)
             }
             return mark
+        }
+
+        if (eb2cK) {
+            let [_, eb2, cK] = eb2cK
+
+            let b2 = h.piece(da.to)
+
+            if (b2) {
+                return []
+            }
+
+
+            let collect = []
+            for (let c of res) {
+                if (c[eb2] !== undefined) {
+                    if (c[eb2] !== da.to) {
+                        continue
+                    }
+                    collect.push(c)
+                } else {
+                    let ctx = copy_ctx(c)
+                    ctx[eb2] = da.to
+                    collect.push(ctx)
+                }
+            }
+            res = collect
+
+            let bbb = blocks(h.piece(da.from)!, da.to, ha.pos.board.occupied)
+
+            let bK = bbb[0]
+
+            if (!bK) {
+                return []
+            }
+
+            let good = false
+            for (let tok of bK) {
+                let k = h.piece(tok)!
+
+                let k_color = cK.toLowerCase() === cK ? lower_color : opposite(lower_color)
+
+                if (role_to_char(k.role) !== cK[0].toLowerCase()) {
+                    continue
+                }
+
+                if (k.color !== k_color) {
+                    continue
+                }
+
+
+                let collect = []
+                for (let c of res) {
+                    if (c[cK] !== undefined) {
+                        if (c[cK] !== tok) {
+                            continue
+                        }
+                        collect.push(c)
+                    } else {
+                        let ctx = copy_ctx(c)
+                        ctx[cK] = tok
+                        collect.push(ctx)
+                    }
+                }
+                res = collect
+                good = true
+            }
+            if (!good) {
+                return []
+            }
+            return res
         }
 
 
@@ -320,4 +416,22 @@ export function context2uci(uci: string, ctx: Context) {
     if (from !== undefined && to !== undefined) {
         return `${makeSquare(from)}${makeSquare(to)}`
     }
+}
+
+export function find_san(fen: string, rules: string) {
+    let [rule, path] = rules.split("\"").map(_ => _.trim())
+
+    if (!rule || !path) {
+        return undefined
+    }
+
+    let h = Hopefox.from_fen(fen)
+
+    let a = parse_rule_plus(rule)(h)
+
+    if (!a[0]) {
+        return undefined
+    }
+
+    return context2uci(path, a[0])
 }

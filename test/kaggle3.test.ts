@@ -1,10 +1,11 @@
 import { it, expect } from "vitest";
-import { blocks, context2uci, Hopefox, parse_rule, parse_rule_plus, parseSquare, SquareSet } from '../src'
+import { blocks, context2uci, find_san, Hopefox, parse_rule, parse_rule_plus, parseSquare, SquareSet } from '../src'
 import { piece } from "../src/debug";
-import { hasUncaughtExceptionCaptureCallback } from "process";
+import { tenk } from './fixture'
 
 
-it.only('parse rule', () => {
+
+it('parse rule', () => {
 
     let q_on_a1_find_rc1 = Hopefox.from_fen('2k4r/p2r1p2/1p2p2p/1N1p2p1/8/1P1P4/2q2PPP/Q4RK1 w - - 2 22')
 
@@ -16,13 +17,20 @@ it.only('parse rule', () => {
 
 })
 
-it.only('& rule', () => {
+it('& rule', () => {
 
     let find_q_ca1_rc1 = Hopefox.from_fen('2kr3r/p4p2/1p2p2p/1N1p2p1/3Q4/1P1P4/2q2PPP/5RK1 w - - 4 23')
 
     expect(context2uci('q +c1', parse_rule_plus('r =c1+Q.K & q +c1')(find_q_ca1_rc1)[0])).toEqual('d4a1')
 })
 
+it.only('solve 019cy q =b2+K & q =b2+R "q b2', () => {
+    let fen = tenk.find(_ => _.id === '019cy')!.move_fens[0]
+
+
+    expect(find_san(fen, 'q =b2+K"q b2')).toEqual('d4d1')
+
+})
 
 it('blocks', () => {
 
