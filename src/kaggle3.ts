@@ -31,17 +31,26 @@ export function blocks(piece: Piece, square: Square, occupied: SquareSet) {
 export type Context = Record<string, Square>
 
 export function parse_rule_plus(rule: string) {
-    let [a, b] = rule.split('&')
+    let [a, b, c] = rule.split('&')
 
     if (!b) {
         return parse_rule(a)
     }
 
+
     let aa = parse_rule(a)
     let bb = parse_rule(b)
 
+    if (!c) {
+        return (h: Hopefox) => {
+            return bb(h, aa(h))
+        }
+    }
+
+    let cc = parse_rule(c)
+
     return (h: Hopefox) => {
-        return bb(h, aa(h))
+        return cc(h, bb(h, aa(h)))
     }
 }
 
@@ -58,6 +67,11 @@ export function parse_rule(rule: string) {
     let ec1 = to.match(/^=([a-h][1-8])$/)?.[1]
     let cc1 = to.match(/^\+([a-h][1-8])$/)?.[1]
     let eb2cK = to.match(/^=([a-h][1-8])\+([pqrnbkPQRNBK]'?)$/)
+    let eb2cc1 = to.match(/^=([a-h][1-8])\+([a-h][1-8])$/)
+
+    let ec1cc1cK = to.match(/^=([a-h][1-8])\+([a-h][1-8])\+([pqrnbkPQRNBK]'?)$/)
+
+    let eQdN = to.match(/^=([pqrnbkPQRNBK]'?)\.([pqrnbkPQRNBK]'?)$/)
 
     return (h: Hopefox, res: Context[] = []): Context[] => {
 
@@ -96,7 +110,7 @@ export function parse_rule(rule: string) {
                 }
 
                 if (move_to_san2([h, ha, da]) === 'Qa1') {
-                    console.log('here')
+                    //console.log('here')
                 }
                 let lower_color = h.turn
                 let to_contexts = find_to_context(h, ha, da, res, lower_color)
@@ -298,6 +312,33 @@ export function parse_rule(rule: string) {
             return res
         }
 
+        if (ec1) {
+
+            let c1 = h.piece(da.to)
+
+            if (c1) {
+                //return []
+            }
+
+
+            let collect = []
+            for (let c of res) {
+                if (c[ec1] !== undefined) {
+                    if (c[ec1] !== da.to) {
+                        continue
+                    }
+                    collect.push(c)
+                } else {
+                    let ctx = copy_ctx(c)
+                    ctx[ec1] = da.to
+                    collect.push(ctx)
+                }
+            }
+            res = collect
+
+            return res
+        }
+
 
         if (cc1) {
 
@@ -401,7 +442,157 @@ export function parse_rule(rule: string) {
             }
             return res
         }
+        
+        if (eb2cc1) {
+            let [_, eb2, cc1] = eb2cc1
 
+            let b2 = h.piece(da.to)
+
+            if (b2) {
+                return []
+            }
+
+
+            let collect = []
+            for (let c of res) {
+                if (c[eb2] !== undefined) {
+                    if (c[eb2] !== da.to) {
+                        continue
+                    }
+                    collect.push(c)
+                } else {
+                    let ctx = copy_ctx(c)
+                    ctx[eb2] = da.to
+                    collect.push(ctx)
+                }
+            }
+            res = collect
+
+
+            let mark: Context[] = []
+            for (let toc1 of attacks(h.piece(da.from)!, da.to, h.pos.board.occupied)) {
+
+                let c1 = h.piece(toc1)
+
+                if (c1) {
+                    continue
+                }
+
+                let collect = []
+                for (let c of res) {
+                    if (c[cc1] !== undefined) {
+                        if (c[cc1] !== toc1) {
+                            continue
+                        }
+                        let ctx = copy_ctx(c)
+                        ctx[`+${cc1}`] = da.to
+                        collect.push(ctx)
+                    } else {
+                        let ctx = copy_ctx(c)
+                        ctx[cc1] = toc1
+                        ctx[`+${cc1}`] = da.to
+                        collect.push(ctx)
+                    }
+                }
+
+                mark.push(...collect)
+            }
+            return mark
+        }
+
+        if (eQdN) {
+            let [_, eQ, dN] = eQdN
+
+            let bbb = blocks(h.piece(da.from)!, da.from, h.pos.board.occupied)
+
+            let bQ = bbb[0]
+            let bN = bbb[1]
+
+
+            if (!bQ) {
+                return []
+            }
+
+            let good = false
+            for (let toq of bQ) {
+                let q = h.piece(toq)!
+
+                let q_color = eQ.toLowerCase() === eQ ? lower_color : opposite(lower_color)
+
+                if (role_to_char(q.role) !== eQ[0].toLowerCase()) {
+                    continue
+                }
+
+                if (q.color !== q_color) {
+                    continue
+                }
+
+
+                let collect = []
+                for (let c of res) {
+                    if (c[eQ] !== undefined) {
+                        if (c[eQ] !== toq) {
+                            continue
+                        }
+                        collect.push(c)
+                    } else {
+                        let ctx = copy_ctx(c)
+                        ctx[eQ] = toq
+                        collect.push(ctx)
+                    }
+                }
+                res = collect
+                good = true
+            }
+            if (!good) {
+                return []
+            }
+
+ 
+            if (!bN) {
+                return []
+            }
+
+            good = false
+            for (let ton of bN) {
+                let n = h.piece(ton)!
+
+                let n_color = dN.toLowerCase() === dN ? lower_color : opposite(lower_color)
+
+                if (role_to_char(n.role) !== dN[0].toLowerCase()) {
+                    continue
+                }
+
+                if (n.color !== n_color) {
+                    continue
+                }
+
+
+                let collect = []
+                for (let c of res) {
+                    if (c[dN] !== undefined) {
+                        if (c[dN] !== ton) {
+                            continue
+                        }
+                        collect.push(c)
+                    } else {
+                        let ctx = copy_ctx(c)
+                        ctx[dN] = ton
+                        collect.push(ctx)
+                    }
+                }
+                res = collect
+                good = true
+            }
+            if (!good) {
+                return []
+            }
+
+            return res
+        }
+
+        if (ec1cc1cK) {
+        }
 
         return []
     }
