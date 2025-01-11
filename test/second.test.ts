@@ -3,6 +3,7 @@ import { it, expect } from 'vitest'
 import { Puzzle, puzzles } from './fixture'
 import { bestsan2 } from '../src'
 
+it('pass', () => {})
 describe.skip("second", () => {
     it('mate in 1', () => {
         let all = puzzles

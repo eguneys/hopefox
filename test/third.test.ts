@@ -4,6 +4,7 @@ import { Puzzle, puzzles, tenk } from './fixture'
 import { bestsan3 } from '../src'
 
 
+it('pass', () => {})
 describe.skip("third", () => {
 
     it('| operator 0018S', () => {

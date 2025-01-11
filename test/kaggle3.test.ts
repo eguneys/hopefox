@@ -25,11 +25,17 @@ it.skip('ec1cc1cK', () => {
 })
 
 
-it.only('q =Q.N 006RM', () => {
+it('q =Q.N 006RM', () => {
     let fen = tenk.find(_ => _.id === '006RM')!.move_fens[0]
 
 
     expect(find_san(fen, 'q =Q.N " q Q')).toEqual('b4c5')
+})
+
+it.only('r =f6+h6+K 006XF', () => {
+    let find_rf6 = 'r6r/pp1qbQpk/2p4p/3pP3/3Pb3/2P1B3/PP4PP/R4RK1 w - - 8 21'
+
+    expect(find_san(find_rf6, 'r =f6+h6=+K " r f6')).toEqual('f1f6')
 })
 
 it('& rule', () => {

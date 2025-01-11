@@ -4,6 +4,8 @@ import { Puzzle, puzzles, tenk } from './fixture'
 import { bestsan } from '../src'
 import { describe } from 'node:test'
 
+it('pass', () => {})
+
 describe.skip('old tests', () => {
     let backrank70 = "FoFoFofnfnfnOoOoOo"
     describe.skip('patterns', () => {

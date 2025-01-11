@@ -59,7 +59,6 @@ export function parse_rule(rule: string) {
 
     let [from, to] = rule.trim().split(' ')
 
-
     let eQ = to.match(/^=([pqrnbkPQRNBK]'?)$/)?.[1]
     let cK = to.match(/^\+([pqrnbkPQRNBK]'?)$/)?.[1]
     let ec1cQcK = to.match(/^=([a-h][1-8])\+([pqrnbkPQRNBK]'?)\.([pqrnbkPQRNBK]'?)$/)
@@ -69,7 +68,7 @@ export function parse_rule(rule: string) {
     let eb2cK = to.match(/^=([a-h][1-8])\+([pqrnbkPQRNBK]'?)$/)
     let eb2cc1 = to.match(/^=([a-h][1-8])\+([a-h][1-8])$/)
 
-    let ec1cc1cK = to.match(/^=([a-h][1-8])\+([a-h][1-8])\+([pqrnbkPQRNBK]'?)$/)
+    let ec1cc1cK = to.match(/^=([a-h][1-8])\+([a-h][1-8])=\+([pqrnbkPQRNBK]'?)$/)
 
     let eQdN = to.match(/^=([pqrnbkPQRNBK]'?)\.([pqrnbkPQRNBK]'?)$/)
 
@@ -84,6 +83,14 @@ export function parse_rule(rule: string) {
             let from_piece = h.piece(da.from)!
 
             if (role_to_char(from_piece.role) === from[0].toLowerCase()) {
+
+                let f_color = from.toLowerCase() === from ? h.turn : ha.turn
+
+                if (f_color !== from_piece.color) {
+                    continue
+                }
+
+
                 let ctx: Context = {}
 
                 let collect = []
@@ -592,6 +599,111 @@ export function parse_rule(rule: string) {
         }
 
         if (ec1cc1cK) {
+
+            let [_, ec1, cc1, cK] = ec1cc1cK
+
+            let c1 = h.piece(da.to)
+
+            if (c1) {
+                return []
+            }
+
+
+            let collect = []
+            for (let c of res) {
+                if (c[ec1] !== undefined) {
+                    if (c[ec1] !== da.to) {
+                        continue
+                    }
+                    collect.push(c)
+                } else {
+                    let ctx = copy_ctx(c)
+                    ctx[ec1] = da.to
+                    collect.push(ctx)
+                }
+            }
+            res = collect
+
+            let mark: Context[] = []
+            for (let toc1 of attacks(h.piece(da.from)!, da.to, h.pos.board.occupied)) {
+
+                let c1 = h.piece(toc1)
+
+                if (c1) {
+                    //continue
+                }
+
+                let collect = []
+                for (let c of res) {
+                    if (c[cc1] !== undefined) {
+                        if (c[cc1] !== toc1) {
+                            continue
+                        }
+                        let ctx = copy_ctx(c)
+                        ctx[`+${cc1}`] = da.to
+                        collect.push(ctx)
+                    } else {
+                        let ctx = copy_ctx(c)
+                        ctx[cc1] = toc1
+                        ctx[`+${cc1}`] = da.to
+                        collect.push(ctx)
+                    }
+                }
+
+                mark.push(...collect)
+            }
+            res = mark
+
+            let c1froms = res.map(_ => _[`${cc1}`])
+            mark = []
+            for (let c1from of c1froms) {
+
+                let bbb = blocks(h.piece(da.from)!, c1from, h.pos.board.occupied)
+
+                let bK = bbb[0]
+
+                if (!bK) {
+                    continue
+                }
+
+                let good = false
+                for (let tok of bK) {
+                    let k = h.piece(tok)!
+
+                    let k_color = cK.toLowerCase() === cK ? lower_color : opposite(lower_color)
+
+                    if (role_to_char(k.role) !== cK[0].toLowerCase()) {
+                        continue
+                    }
+
+                    if (k.color !== k_color) {
+                        continue
+                    }
+
+
+                    let collect = []
+                    for (let c of res) {
+                        if (c[cK] !== undefined) {
+                            if (c[cK] !== tok) {
+                                continue
+                            }
+                            collect.push(c)
+                        } else {
+                            let ctx = copy_ctx(c)
+                            ctx[cK] = tok
+                            collect.push(ctx)
+                        }
+                    }
+                    res = collect
+                    good = true
+                }
+                if (!good) {
+                    continue
+                }
+                mark.push(...res)
+            }
+
+            return mark
         }
 
         return []
