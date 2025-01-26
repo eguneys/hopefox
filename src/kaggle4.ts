@@ -113,7 +113,7 @@ export function find_san4(fen: string, rules: string) {
         return sans[0]
     }
 
-    let r2 = find_contexts2(rr2[0])
+    let r2s = rr2.map(_ => find_contexts2(_))
 
     let res = []
     for (let _ of h.h_dests) {
@@ -128,9 +128,10 @@ export function find_san4(fen: string, rules: string) {
 
         let ha = _[1]
 
-        let ures2 = r2(ha)
+        let covered = r2s.flatMap(_ => _(ha))
 
-        if (!ures2) {
+        
+        if (covered.length < ha.dests.length) {
             continue
         }
 
@@ -156,8 +157,10 @@ function find_contexts2(rule: string) {
     return (h: Hopefox) => {
         let h_dests = h.h_dests
 
+        let res: string[] = []
         for (let [h, ha, da] of h_dests) {
 
+            let a = move_to_san2([h, ha, da])
             let found = false
             for (let [h2, ha2, da2] of ha.h_dests) {
 
@@ -203,12 +206,12 @@ function find_contexts2(rule: string) {
                     break
                 }
             }
-            if (!found) {
-                return false
+            if (found) {
+                res.push(a)
             }
         }
 
-        return true
+        return res
     }
 
     function match_tos(h: Hopefox, ha: Hopefox, da: Move) {

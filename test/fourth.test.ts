@@ -2,6 +2,27 @@ import { tenk } from "./fixture";
 import { expect, it } from "vitest";
 import { find_san4 } from "../src";
 
+
+it.only('04Pe7 find_san4', () => {
+
+    let fen = tenk.find(_ => _.id === '04Pe7')!.move_fens[0]
+
+    expect(find_san4(fen, `
+q =e5
+
+q =e5 +M
+
+q =e5 +M'
+
+ q =M
+
+ q =M'
+`)).toEqual('Qa4')
+})
+
+
+
+
 it('01DBx find_san4', () => {
 
     let fen = tenk.find(_ => _.id === '01DBx')!.move_fens[0]
