@@ -59,6 +59,18 @@ export class Hopefox {
         return this.h_dests.flatMap(([h, h2, d]) => h2.dests.map(d2 => [h2, h2.apply_move(d2), d2] as [Hopefox, Hopefox, Move]))
     }
 
+    get h_and_h2_dests(): [[Hopefox, Hopefox, Move], [Hopefox, Hopefox, Move][]][] {
+        return this.h_dests.map(([h, h2, d]) =>
+            [[h, h2, d],
+            h2.dests.map(d2 =>
+                [h2, h2.apply_move(d2), d2] as [Hopefox, Hopefox, Move]
+            )
+            ]
+        )
+    }
+
+
+
     get h_dests() {
         return this.dests.map(_ => [this, this.apply_move(_), _] as [Hopefox, Hopefox, Move])
     }

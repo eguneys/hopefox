@@ -127,8 +127,9 @@ export function find_san4(fen: string, rules: string) {
         }
 
         let ha = _[1]
+        let ha_dests = ha.h_and_h2_dests
 
-        let covered = r2s.flatMap(_ => _(ha))
+        let covered = r2s.flatMap(_ => _(ha_dests))
 
         
         if (covered.length < ha.dests.length) {
@@ -154,20 +155,21 @@ function find_contexts2(rule: string) {
     let cK = fi?.match(/^\+([pqrnbkmPQRNBKM]'?)$/)?.[1]
     let cc1cK = fi?.match(/^\+([a-h][1-8])\.([pqrnbkmPQRNBKM]'?)$/)
 
-    return (h: Hopefox) => {
-        let h_dests = h.h_dests
+    return (h_and_h2_dests: [[Hopefox, Hopefox, Move], [Hopefox, Hopefox, Move][]][]) => {
+
 
         let res: string[] = []
-        for (let [h, ha, da] of h_dests) {
-
+        for (let [[h, ha, da], h2s] of h_and_h2_dests) {
             let a = move_to_san2([h, ha, da])
             let found = false
-            for (let [h2, ha2, da2] of ha.h_dests) {
+            for (let [h2, ha2, da2] of h2s) {
 
-                let x2 = move_to_san2([h2, ha2, da2])
+                if (false) {
+                    let x2 = move_to_san2([h2, ha2, da2])
 
-                if (x2.includes('x')) {
-                    //console.log(x2)
+                    if (x2.includes('x')) {
+                        console.log(x2)
+                    }
                 }
 
                 let from_piece = h.piece(da2.from)!
@@ -374,10 +376,10 @@ function find_contexts(rule: string) {
 
         for (let [h, ha, da] of h_dests) {
             
-            let a = move_to_san2([h, ha, da])
-            if (a === 'Qd1') {
-                console.log(a)
-            }
+            //let a = move_to_san2([h, ha, da])
+            //if (a === 'Qd1') {
+             //   console.log(a)
+           // }
             let from_piece = h.piece(da.from)!
             
             if (!role_to_char(from_piece.role).includes(from[0].toLowerCase())) {
