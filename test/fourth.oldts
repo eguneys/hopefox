@@ -3,7 +3,21 @@ import { expect, it } from "vitest";
 import { find_san4 } from "../src";
 
 
-it.only('04Pe7 find_san4', () => {
+it.only('02pbX find_san4', () => {
+
+    let fen = tenk.find(_ => _.id === '02pbX')!.move_fens[0]
+
+    expect(find_san4(fen, `
+q =b3
+
+q =b3+K
+`)).toEqual('Qb3+')
+
+})
+
+
+
+it('04Pe7 find_san4', () => {
 
     let fen = tenk.find(_ => _.id === '04Pe7')!.move_fens[0]
 
@@ -15,8 +29,9 @@ q =e5 +M
 q =e5 +M'
 
  q =M
-
  q =M'
+ m =Q
+
 `)).toEqual('Qa4')
 })
 
