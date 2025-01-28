@@ -268,8 +268,10 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                         }
 
                         if (checks.length === 2) {
-                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]!], [cR]: [checks[1][1]!] }]]))
-                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][1]!], [cR]: [checks[1][0]!] }]]))
+                            if (checks[0][0] && checks[1][1])
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[1][1]] }]]))
+                            if (checks[0][1] && checks[1][0])
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
                         }
                         continue
                     }

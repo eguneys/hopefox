@@ -2,8 +2,22 @@ import { tenk } from "./fixture";
 import { expect, it } from "vitest";
 import { find_san7, make_root, print_rules } from "../src";
 
+it('0598v  find_san7 star rule', () => {
 
-it.only('05siy  find_san7 star rule', () => {
+    let fen = tenk.find(_ => _.id === '0598v')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =d4 +R +Q
+ *b =Q
+ *b =R
+ *a =Q
+`))
+    console.log(res)
+})
+
+
+
+it('05siy  find_san7 star rule', () => {
 
     let fen = tenk.find(_ => _.id === '05siy')!.move_fens[0]
 
@@ -60,13 +74,13 @@ b =d4 +K +R
 
 
 
-it('04hzb find_san7 shallow', () => {
+it.only('04hzb find_san7 shallow', () => {
 
     let fen = tenk.find(_ => _.id === '04hzb')!.move_fens[0]
 
     let res = print_rules(make_root(fen, `
-b =d4 +K +R
- *b =R
+b =d4 +K +J
+ *b =J
 `))
     console.log(res)
 })
