@@ -1,5 +1,5 @@
 import { listeners } from "process"
-import { Hopefox } from "./hopefox_helper"
+import { Hopefox, move_to_san2 } from "./hopefox_helper"
 import { Color, Move, Role, RULES, Square } from "./types"
 import { opposite } from "./util"
 import { attacks } from "./attacks"
@@ -43,17 +43,19 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
     let res: Context = {}
 
     for (let ai of Object.keys(a)) {
-        if (b[ai]) {
+        if (b[ai] !== undefined) {
             let ar = append_if_valid(a[ai], b[ai])
             if (!ar) {
                 return undefined
             }
             res[ai] = ar
+        } else {
+            res[ai] = a[ai]
         }
     }
 
     for (let bi of Object.keys(b)) {
-        if (!a[bi]) {
+        if (a[bi] === undefined) {
             res[bi] = b[bi]
         }
     }
@@ -197,8 +199,8 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
         })
     }
     
-    let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)/)
-    let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])/)
+    let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
+    let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])$/)
 
     let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
 
@@ -268,9 +270,9 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                         }
 
                         if (checks.length === 2) {
-                            if (checks[0][0] && checks[1][1])
+                            if (checks[0][0] !== undefined && checks[1][1] !== undefined)
                                 collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[1][1]] }]]))
-                            if (checks[0][1] && checks[1][0])
+                            if (checks[0][1] !== undefined && checks[1][0] !== undefined)
                             collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
                         }
                         continue
@@ -403,6 +405,9 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                 }
             }
 
+            if (move_to_san2([h, ha, da]) === 'Nxd4') {
+                //debugger
+            }
 
             let h_moves = find_hmoves(node.rule.slice(1), ha, a_ctx, lowers_turn)
 

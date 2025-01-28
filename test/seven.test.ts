@@ -60,6 +60,35 @@ b =d4 +J' +J
 })
 
 
+it('05zkW find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '05zkW')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =d4 +K +J
+ *b =J
+ *a =J
+ *q =b
+`))
+    console.log(res)
+})
+
+
+
+it.only('02vYV find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '02vYV')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =B
+ *b =a1
+ *k =Q
+`))
+    console.log(res)
+})
+
+
+
 
 it('059T6 find_san7 star rule', () => {
 
@@ -74,7 +103,7 @@ b =d4 +K +R
 
 
 
-it.only('04hzb find_san7 shallow', () => {
+it('04hzb find_san7 shallow', () => {
 
     let fen = tenk.find(_ => _.id === '04hzb')!.move_fens[0]
 
