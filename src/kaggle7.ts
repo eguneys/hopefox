@@ -19,6 +19,12 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
 
     function append_if_valid(a: Square[], b: Square[]) {
 
+        if (a.length === 1 && b.length === 1) {
+            if (a[0] !== b[0]) {
+                return undefined
+            }
+            return a
+        }
         if (a.length === 2 && b.length === 1) {
             if (a[a.length - 1] !== b[0]) {
                 return undefined
@@ -31,7 +37,7 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
             }
             return [a[0], a[1], b[1]]
         }
-        throw `Append Invalid ${a} | ${b}`
+        throw `Append Invalid ${a.length} | ${b.length}`
     }
 
     let res: Context = {}
@@ -51,6 +57,20 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
             res[bi] = b[bi]
         }
     }
+
+    let R_piece = /([pqrnbkPQRNBKmjuarMJUAR]'?)/
+    for (let a of Object.keys(res)) {
+        for (let b of Object.keys(res)) {
+
+            if (a !== b) {
+                if (a.match(R_piece) && b.match(R_piece))
+                if (res[a][res[a].length - 1] === res[b][res[b].length - 1]) {
+                    //return undefined
+                }
+            }
+        }
+    }
+
 
     return res
 }
@@ -140,7 +160,7 @@ export function print_rules(l: Line): string {
         }
 
         if (_.missing.length > 0) {
-            res += ' {' + _.missing.map(m => makeSan(_.h.pos, m)).join(' ') + "}"
+            res += ' {' + _.missing.slice(0, 3).map(m => makeSan(_.h.pos, m)).join(' ') + (_.missing.length > 3 ? '..' + (_.missing.length - 3) : '') + "}"
         }
 
         return res
@@ -213,7 +233,7 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                         let cK_color = q_is_lower(cK) ? lowers_turn : opposite(lowers_turn)
                         let cR_color = q_is_lower(cR) ? lowers_turn : opposite(lowers_turn)
 
-                        let k_check = false, r_check = false
+                        let checks = []
                         for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
 
                             let c_piece = h.pos.board.get(c_sq)
@@ -230,19 +250,26 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                                 continue
                             }
 
+                            let k_check, r_check
                             if (cK_roles.includes(c_piece.role)) {
                                 k_check = true
                             }
-
                             if (cR_roles.includes(c_piece.role)) {
                                 r_check = true
                             }
 
-
+                            if (k_check && r_check) {
+                                checks.push([c_sq, c_sq])
+                            } else if (k_check) {
+                                checks.push([c_sq, undefined])
+                            } else if (r_check) {
+                                checks.push([undefined, c_sq])
+                            }
                         }
 
-                        if (k_check && r_check) {
-                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq] }]]))
+                        if (checks.length === 2) {
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]!], [cR]: [checks[1][1]!] }]]))
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][1]!], [cR]: [checks[1][0]!] }]]))
                         }
                         continue
                     }
@@ -365,7 +392,17 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                 moves: [da],
                 missing: []
             }
-            let h_moves = find_hmoves(node.rule.slice(1), ha, ctx, lowers_turn)
+
+            let a_ctx = {...ctx}
+
+            for (let key of Object.keys(ctx)) {
+                if (a_ctx[key][a_ctx[key].length - 1] === da.from) {
+                    a_ctx[key] = [...a_ctx[key], da.to]
+                }
+            }
+
+
+            let h_moves = find_hmoves(node.rule.slice(1), ha, a_ctx, lowers_turn)
 
             if (h_moves === undefined) {
                 continue
@@ -435,7 +472,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                 }
                 let moves = node.children.flatMap(child => child.m?.flatMap(_ => _.moves) ?? [])
 
-                if (ha.turn !== lowers_turn && moves.length < ha.dests.length) {
+                if (ha.turn !== lowers_turn) {
 
                     let missing = ha.dests.filter(_ => !moves.find(m => _.from === m.from && _.to === m.to))
 
