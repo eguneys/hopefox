@@ -43,6 +43,13 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
             }
             return [...a, b[1]]
         }
+        if (a.length > 2 && b.length === 1) {
+
+            if (a[a.length - 1] !== b[0]) {
+                return undefined
+            }
+            return a
+        }
         throw `Append Invalid ${a.length} | ${b.length}`
     }
 
@@ -157,7 +164,7 @@ export function print_rules(l: Line): string {
     let res = ''
     let ind = " ".repeat(l.depth + 1)
 
-    res += " " + l.rule + " <" + (l.m?.slice(0, 3).map(_ => {
+    let ms = l.m?.slice(0, 3).map(_ => {
         let res =  ''
         
         //res += _.h.fen + ' '
@@ -168,11 +175,20 @@ export function print_rules(l: Line): string {
         }
 
         if (_.missing.length > 0) {
-            res += ' {' + _.missing.slice(0, 3).map(m => makeSan(_.h.pos, m)).join(' ') + (_.missing.length > 3 ? '..' + (_.missing.length - 3) : '') + "}"
+            res += ' {' + _.missing.slice(0, 3).map(m => m).join(' ') + (_.missing.length > 3 ? '..' + (_.missing.length - 3) : '') + "}"
         }
 
         return res
-    }).join(',') ?? "?") + "> " + "\n"
+    }).join(',')
+
+    if (ms) {
+
+        if (l.m!.length > 3) {
+            ms += '.. ' + (l.m!.length - 3)
+        }
+    }
+
+    res += " " + l.rule + " <" + (ms ?? "?") + "> " + "\n"
 
     let children = l.children.map((c, i) => {
         if (i === l.children.length - 1) {
@@ -211,6 +227,14 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color,
 
     let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
     let cK = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
+
+    let mate = rule.includes('#')
+
+    if (mate) {
+        if (!h.is_checkmate) {
+            return undefined
+        }
+    }
 
     if (qec1) {
         let [_, q, c1] = qec1
@@ -439,13 +463,26 @@ type HMoves = {
     h: Hopefox,
     p_san: SAN,
     moves: Move[],
-    missing: Move[]
+    missing: SAN[]
 }
 
 type Context = Record<string, Square[]>
 
 
 function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Color, p_san: SAN) {
+
+    if (node.rule[0] === '^') {
+
+        let h_moves = find_hmoves(node.rule.slice(1), h, ctx, lowers_turn, p_san)
+
+        if (h_moves && h_moves.length > 0) {
+            node.m = h_moves
+            return false
+        }
+
+
+        return true
+    }
 
     if (node.rule[0] === '*') {
         
@@ -474,13 +511,17 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                 //debugger
             }
 
-            let h_moves = find_hmoves(node.rule.slice(1), ha, a_ctx, lowers_turn, '')
+            let h_moves = find_hmoves(node.rule.slice(1).replace('#', ''), ha, a_ctx, lowers_turn, '')
 
             if (h_moves === undefined) {
                 continue
             }
             //console.log(node.rule, a, h_moves.length)
 
+            if (node.rule === '*p =g6') {
+                //console.log(a)
+            }
+            let can_add = false
             for (let h_move of h_moves) {
                 let ctx = h_move.c
 
@@ -514,10 +555,16 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
 
                             let missing = ha.dests.filter(_ => !moves.find(m => _.from === m.from && _.to === m.to))
 
-                            push_hmove.missing = missing
+                            push_hmove.missing = missing.map(_ => makeSan(ha.pos, _))
                         }
                     }
+                    can_add = true
+                    break
                 }
+            }
+
+            if (!can_add) {
+                continue
             }
             res.push(push_hmove)
         }
@@ -557,16 +604,23 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
 
                 }
 
-                let moves = node.children.flatMap(child => child.m
-                    ?.filter(_ => _.p_san === san)
-                    .filter(_ => _.missing.length === 0)
-                    .flatMap(_ => _.moves) ?? [])
 
                 if (ha.turn !== lowers_turn) {
+                    let moves = node.children.flatMap(child => child.m
+                        ?.filter(_ => _.p_san === san)
+                        .filter(_ => _.missing.length === 0)
+                        .flatMap(_ => _.moves) ?? [])
+
 
                     let missing = ha.dests.filter(_ => !moves.find(m => _.from === m.from && _.to === m.to))
+                    h_move.missing = missing.map(_ => makeSan(ha.pos, _))
+                } else {
 
-                    h_move.missing = missing
+                    let missing = node.children.flatMap(_ => _.m?.flatMap(_ => _.missing))
+
+                    if (missing.length > 0) {
+                        h_move.missing = h_move.moves.map(_ => makeSan(h_move.h.pos, _))
+                    }
                 }
 
             }

@@ -54,7 +54,11 @@ export class Hopefox {
         return this.dests.map(_ => [this, this.apply_move(_), _] as [Hopefox, Hopefox, Move])
     }
 
+    _d_cache: Move[]
     get dests() {
+        if (this._d_cache) {
+            return this._d_cache
+        }
         let res = []
         let froms = this.pos.board[this.pos.turn]
 
@@ -72,6 +76,7 @@ export class Hopefox {
                 res.push(move)
             }
         }
+        this._d_cache = res
         return res
     }
 
