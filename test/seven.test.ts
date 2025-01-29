@@ -146,9 +146,7 @@ b =N
     console.log(res)
 })
 
-
-
-it.only('0CL0K  find_san7 shallow', () => {
+it('0CL0K  find_san7 shallow', () => {
 
     let fen = tenk.find(_ => _.id === '0CL0K')!.move_fens[0]
 
@@ -156,6 +154,23 @@ it.only('0CL0K  find_san7 shallow', () => {
 b =d4 +J +M
  *b =M
  *b =J
+`))
+    console.log(res)
+})
+
+
+
+it.only('0DXRX  find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '0DXRX')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =d5 +Q +N
+ *b =Q
+ *b =N
+  *b =a1
+ *q =N
+ *q =Q
 `))
     console.log(res)
 })

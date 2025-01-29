@@ -37,6 +37,12 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
             }
             return [a[0], a[1], b[1]]
         }
+        if (a.length > 2 && b.length === 2) {
+            if (a[a.length - 1] !== b[b.length - 2]) {
+                return undefined
+            }
+            return [...a, b[1]]
+        }
         throw `Append Invalid ${a.length} | ${b.length}`
     }
 
@@ -445,7 +451,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
         
         let res: HMoves[] = []
 
-        for (let [_, ha, da] of h.h_dests) {
+        h_dests: for (let [_, ha, da] of h.h_dests) {
 
             let push_hmove: HMoves = {
                 c: ctx,
@@ -463,7 +469,8 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                 }
             }
 
-            if (move_to_san2([h, ha, da]) === 'Nxd4') {
+            let a = move_to_san2([h, ha, da])
+            if (a === 'Nxd4') {
                 //debugger
             }
 
@@ -472,12 +479,14 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
             if (h_moves === undefined) {
                 continue
             }
+            console.log(node.rule, a, h_moves.length)
 
-            hmoves: for (let h_move of h_moves) {
+            for (let h_move of h_moves) {
                 let ctx = h_move.c
 
                 if (h_move.moves.length === 1) {
                     let move = h_move.moves[0]
+                    let san = makeSan(h_move.h.pos, move)
                     let ha = h_move.h.apply_move(move)
 
                     if (node.rule.includes('#')) {
@@ -490,16 +499,24 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                     if (node.children.length === 0) {
                     } else {
                         for (let child of node.children) {
-                            let matched = h_moves_recurse(child, ha, ctx, lowers_turn, '')
+                            let matched = h_moves_recurse(child, ha, ctx, lowers_turn, san)
                             if (!matched) {
-                                continue hmoves
+                                continue h_dests
                             }
+                        }
+
+                        let moves = node.children.flatMap(child => child.m?.filter(_ => _.p_san === san).flatMap(_ => _.moves) ?? [])
+
+                        if (ha.turn !== lowers_turn) {
+
+                            let missing = ha.dests.filter(_ => !moves.find(m => _.from === m.from && _.to === m.to))
+
+                            push_hmove.missing = missing
                         }
                     }
                 }
-                res.push(push_hmove)
             }
-
+            res.push(push_hmove)
         }
 
         if (!node.m) {
