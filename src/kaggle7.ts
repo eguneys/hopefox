@@ -479,7 +479,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
             if (h_moves === undefined) {
                 continue
             }
-            console.log(node.rule, a, h_moves.length)
+            //console.log(node.rule, a, h_moves.length)
 
             for (let h_move of h_moves) {
                 let ctx = h_move.c
@@ -505,7 +505,10 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                             }
                         }
 
-                        let moves = node.children.flatMap(child => child.m?.filter(_ => _.p_san === san).flatMap(_ => _.moves) ?? [])
+                        let moves = node.children.flatMap(child => child.m
+                            ?.filter(_ => _.p_san === san)
+                            .filter(_ => _.missing.length === 0)
+                            .flatMap(_ => _.moves) ?? [])
 
                         if (ha.turn !== lowers_turn) {
 
@@ -554,7 +557,10 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
 
                 }
 
-                let moves = node.children.flatMap(child => child.m?.filter(_ => _.p_san === san).flatMap(_ => _.moves) ?? [])
+                let moves = node.children.flatMap(child => child.m
+                    ?.filter(_ => _.p_san === san)
+                    .filter(_ => _.missing.length === 0)
+                    .flatMap(_ => _.moves) ?? [])
 
                 if (ha.turn !== lowers_turn) {
 
