@@ -9,7 +9,6 @@ export class LRUCache<T> {
 
     get(key: string) {
         if (!this.cache.has(key)) return undefined;
-
         const value = this.cache.get(key)!;
         this.cache.delete(key); // Move to the end (most recently used)
         this.cache.set(key, value);

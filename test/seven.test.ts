@@ -73,9 +73,7 @@ b =d4 +K +J
     console.log(res)
 })
 
-
-
-it.only('02vYV find_san7 shallow', () => {
+it('02vYV find_san7 shallow', () => {
 
     let fen = tenk.find(_ => _.id === '02vYV')!.move_fens[0]
 
@@ -83,6 +81,96 @@ it.only('02vYV find_san7 shallow', () => {
 b =B
  *b =a1
  *k =Q
+`))
+    console.log(res)
+})
+
+
+it('0009B find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '0009B')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =d4 +K +M
+ *b =M
+`))
+    console.log(res)
+})
+
+
+it('00bWA find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '00bWA')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =g5 +Q
+ *b =Q
+ *j =Q
+ *p =Q
+ *q =N
+`))
+    console.log(res)
+})
+
+it('0Adqg find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '0Adqg')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =g5 +J +J'
+`))
+    console.log(res)
+})
+
+
+
+it('0ESw3 find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '0ESw3')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =g5 +K +R
+`))
+    console.log(res)
+})
+
+it('00Ahb  find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '00Ahb')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+n =f3 +K +N
+B =N
+b =N
+`))
+    console.log(res)
+})
+
+
+
+it.only('0CL0K  find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '0CL0K')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =d4 +J +M
+ *b =M
+ *b =J
+`))
+    console.log(res)
+})
+
+
+
+it('03rxc find_san7 shallow', () => {
+
+    let fen = tenk.find(_ => _.id === '03rxc')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+p =Q
+N =b
+b =a4 +K
+ *p =Q
 `))
     console.log(res)
 })

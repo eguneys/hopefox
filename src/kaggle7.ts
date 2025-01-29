@@ -183,7 +183,7 @@ export function print_rules(l: Line): string {
 
 }
 
-function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color) {
+function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color, p_san: SAN) {
 
     let mm: HMoves[] = []
 
@@ -194,15 +194,17 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
         mm.push({
             c: ctx,
             h,
+            p_san,
             moves: h.dests,
             missing: []
         })
     }
     
     let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
-    let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])$/)
+    let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])/)
 
     let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
+    let cK = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
 
     if (qec1) {
         let [_, q, c1] = qec1
@@ -224,7 +226,6 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                     if (to_piece) {
                         //continue
                     }
-
 
                     if (cKcR) {
                         let [_, cK, cR] = cKcR
@@ -269,6 +270,23 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                             }
                         }
 
+
+                        if (checks.length === 3) {
+                            if (checks[0][0] !== undefined && checks[1][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[1][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[1][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+                            if (checks[0][0] !== undefined && checks[2][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[2][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[2][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+                            if (checks[1][0] !== undefined && checks[2][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]], [cR]: [checks[2][1]] }]]))
+                            if (checks[1][1] !== undefined && checks[2][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+
+
+                        }
                         if (checks.length === 2) {
                             if (checks[0][0] !== undefined && checks[1][1] !== undefined)
                                 collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[1][1]] }]]))
@@ -276,6 +294,40 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
                             collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
                         }
                         continue
+                    } else {
+
+                        if (cK) {
+                            let [_, K] = cK
+
+                            let cK_roles = q_to_roles(K)
+
+                            let cK_color = q_is_lower(K) ? lowers_turn : opposite(lowers_turn)
+
+                            let checks = []
+                            for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                                let c_piece = h.pos.board.get(c_sq)
+
+                                if (!c_piece) {
+                                    continue
+                                }
+
+                                if (cK_color !== c_piece.color) {
+                                    continue
+                                }
+
+                                if (cK_roles.includes(c_piece.role)) {
+                                    checks.push(c_sq)
+                                }
+                            }
+
+                            for (let c_sq of checks) {
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [K]: [c_sq] }]]))
+                            }
+                            continue
+                        }
+
+
                     }
 
                     collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq] }]]))
@@ -300,6 +352,7 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
             mm.push({
                 c: ctx,
                 h,
+                p_san,
                 moves,
                 missing: []
             })
@@ -356,6 +409,7 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
             mm.push({
                 c: ctx,
                 h,
+                p_san,
                 moves,
                 missing: []
             })
@@ -364,6 +418,8 @@ function find_hmoves(rule: string, h: Hopefox, ctx: Context, lowers_turn: Color)
 
     return mm
 }
+
+type SAN = string
 
 type Line = {
     depth: number,
@@ -375,6 +431,7 @@ type Line = {
 type HMoves = {
     c: Context,
     h: Hopefox,
+    p_san: SAN,
     moves: Move[],
     missing: Move[]
 }
@@ -382,7 +439,7 @@ type HMoves = {
 type Context = Record<string, Square[]>
 
 
-function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Color) {
+function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Color, p_san: SAN) {
 
     if (node.rule[0] === '*') {
         
@@ -393,6 +450,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
             let push_hmove: HMoves = {
                 c: ctx,
                 h,
+                p_san,
                 moves: [da],
                 missing: []
             }
@@ -409,7 +467,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                 //debugger
             }
 
-            let h_moves = find_hmoves(node.rule.slice(1), ha, a_ctx, lowers_turn)
+            let h_moves = find_hmoves(node.rule.slice(1), ha, a_ctx, lowers_turn, '')
 
             if (h_moves === undefined) {
                 continue
@@ -432,7 +490,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                     if (node.children.length === 0) {
                     } else {
                         for (let child of node.children) {
-                            let matched = h_moves_recurse(child, ha, ctx, lowers_turn)
+                            let matched = h_moves_recurse(child, ha, ctx, lowers_turn, '')
                             if (!matched) {
                                 continue hmoves
                             }
@@ -453,7 +511,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
 
     }
 
-    let h_moves = find_hmoves(node.rule, h, ctx, lowers_turn)
+    let h_moves = find_hmoves(node.rule, h, ctx, lowers_turn, p_san)
 
     if (!h_moves) {
         return false
@@ -466,18 +524,20 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
 
         if (h_move.moves.length === 1) {
             let move = h_move.moves[0]
+            let san = makeSan(h_move.h.pos, move)
             let ha = h_move.h.apply_move(move)
 
             if (node.children.length === 0) {
             } else {
                 for (let child of node.children) {
-                    let matched = h_moves_recurse(child, ha, ctx, lowers_turn)
+                    let matched = h_moves_recurse(child, ha, ctx, lowers_turn, san)
                     if (!matched) {
                         continue hmoves
                     }
 
                 }
-                let moves = node.children.flatMap(child => child.m?.flatMap(_ => _.moves) ?? [])
+
+                let moves = node.children.flatMap(child => child.m?.filter(_ => _.p_san === san).flatMap(_ => _.moves) ?? [])
 
                 if (ha.turn !== lowers_turn) {
 
@@ -541,7 +601,10 @@ export function make_root(fen: string, rules: string) {
 
 
     for (let child of root.children) {
-        h_moves_recurse(child, h, {}, h.turn)
+        let matched = h_moves_recurse(child, h, {}, h.turn, '')
+        if (!matched) {
+            break
+        }
     }
 
     return root
