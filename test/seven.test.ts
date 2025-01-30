@@ -11,8 +11,8 @@ it.only('004Ys find_san7 checkmate', () => {
 b =e3 +Q
  *p =g6
   *q =h7 #
-  *q =Q
-  *q =B
+  *p =f7 +K
+  *a =Q
 `))
     console.log(res)
 })

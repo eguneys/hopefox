@@ -164,6 +164,7 @@ export function print_rules(l: Line): string {
     let res = ''
     let ind = " ".repeat(l.depth + 1)
 
+    l.m?.sort((a, b) => b.missing.length - a.missing.length)
     let ms = l.m?.slice(0, 3).map(_ => {
         let res =  ''
         
@@ -519,7 +520,9 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
             //console.log(node.rule, a, h_moves.length)
 
             if (node.rule === '*p =g6') {
-                //console.log(a)
+                if (a === 'Qf6') {
+                    console.log(a)
+                }
             }
             let can_add = false
             for (let h_move of h_moves) {
@@ -559,14 +562,22 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                         }
                     }
                     can_add = true
-                    break
+                    //break
                 }
             }
 
             if (!can_add) {
                 continue
             }
+
+            if (node.rule === '*p =g6') {
+                console.log(a)
+            }
             res.push(push_hmove)
+
+            if (res.length > 2 && push_hmove.missing.length > 0) {
+                break;
+            }
         }
 
         if (!node.m) {
