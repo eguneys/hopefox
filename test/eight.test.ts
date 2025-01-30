@@ -2,7 +2,19 @@ import { expect, it } from "vitest"
 import { tenk } from "./fixture"
 import { make_root, print_rules } from "../src"
 
-it.only('00WnZ find_san7 = rule', () => {
+it.only('00Htd find_san7 = rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00Htd')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =N +K
+ *q =Q
+`))
+
+console.log(res)
+    })
+
+it('00WnZ find_san7 = rule', () => {
 
     let fen = tenk.find(_ => _.id === '00WnZ')!.move_fens[0]
 

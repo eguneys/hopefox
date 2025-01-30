@@ -480,7 +480,7 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
     let h = h_dests[0][0]
 
         
-    let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
+    let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)/)
     let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])/)
 
     let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
@@ -647,9 +647,7 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
 
             mm.push(...moves.map(da => ({ c: ctx, da: da[2] })))
         }
-    }
-
-    if (qeR) {
+    } else if (qeR) {
 
         let [_, q, R] = qeR
 
@@ -677,6 +675,109 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
                         continue
                     }
 
+
+
+                    if (cKcR) {
+                        let [_, cK, cR] = cKcR
+
+                        let cK_roles = q_to_roles(cK)
+                        let cR_roles = q_to_roles(cR)
+
+                        let cK_color = q_is_lower(cK) ? lowers_turn : opposite(lowers_turn)
+                        let cR_color = q_is_lower(cR) ? lowers_turn : opposite(lowers_turn)
+
+                        let checks = []
+                        for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                            let c_piece = h.pos.board.get(c_sq)
+
+                            if (!c_piece) {
+                                continue
+                            }
+
+                            if (cK_color !== c_piece.color) {
+                                continue
+                            }
+
+                            if (cR_color !== c_piece.color) {
+                                continue
+                            }
+
+                            let k_check, r_check
+                            if (cK_roles.includes(c_piece.role)) {
+                                k_check = true
+                            }
+                            if (cR_roles.includes(c_piece.role)) {
+                                r_check = true
+                            }
+
+                            if (k_check && r_check) {
+                                checks.push([c_sq, c_sq])
+                            } else if (k_check) {
+                                checks.push([c_sq, undefined])
+                            } else if (r_check) {
+                                checks.push([undefined, c_sq])
+                            }
+                        }
+
+
+                        if (checks.length === 3) {
+                            if (checks[0][0] !== undefined && checks[1][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[1][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[1][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+                            if (checks[0][0] !== undefined && checks[2][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[2][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[2][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+                            if (checks[1][0] !== undefined && checks[2][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[1][0]], [cR]: [checks[2][1]] }]]))
+                            if (checks[1][1] !== undefined && checks[2][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+
+
+                        }
+                        if (checks.length === 2) {
+                            if (checks[0][0] !== undefined && checks[1][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[0][0]], [cR]: [checks[1][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[1][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [cK]: [checks[1][0]!], [cR]: [checks[0][1]!] }]]))
+                        }
+                        continue
+                    } else {
+
+                        if (cK) {
+                            let [_, K] = cK
+
+                            let cK_roles = q_to_roles(K)
+
+                            let cK_color = q_is_lower(K) ? lowers_turn : opposite(lowers_turn)
+
+                            let checks = []
+                            for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                                let c_piece = h.pos.board.get(c_sq)
+
+                                if (!c_piece) {
+                                    continue
+                                }
+
+                                if (cK_color !== c_piece.color) {
+                                    continue
+                                }
+
+                                if (cK_roles.includes(c_piece.role)) {
+                                    checks.push(c_sq)
+                                }
+                            }
+
+                            for (let c_sq of checks) {
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq], [K]: [c_sq] }]]))
+                            }
+                            continue
+                        }
+                    }
+
                     collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [R]: [to_sq] }]]))
                 }
             }
@@ -699,6 +800,8 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
 
             mm.push(...moves.map(da => ({ c: ctx, da: da[2] })))
         }
+
+
     }
 
     if (qe) {
