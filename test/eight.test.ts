@@ -2,7 +2,111 @@ import { expect, it } from "vitest"
 import { tenk } from "./fixture"
 import { make_root, print_rules } from "../src"
 
-it.only('00DTg find_san7 neg rule', () => {
+it.only('00WnZ find_san7 = rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00WnZ')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =b4 +N
+ *b =R
+ *k =R
+ *r =R
+ *p =R
+ *b =N
+  =b
+`))
+
+console.log(res)
+    })
+
+
+
+it('00BSo find_san7 = rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00BSo')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =b4 +N
+ *b =R
+ *k =R
+ *r =R
+ *p =R
+ *b =N
+  =b
+`))
+
+console.log(res)
+    })
+
+
+
+it('00KUa find_san7 = rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00KUa')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =f4 +Q
+ *b =Q
+ *n =Q
+ *p =Q
+ *a =N
+ B =b4 +K
+ .
+`))
+
+console.log(res)
+    })
+
+
+
+it('00VNr find_san7 = rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00VNr')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =b4 +N
+ *b =R
+ *k =R
+ *r =R
+ *b =N
+  =b
+`))
+
+console.log(res)
+    })
+
+
+
+it('00206 find_san7 neg rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00206')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =g4 +Q
+ *b =Q
+ *q =Q
+`))
+
+console.log(res)
+    })
+
+
+
+it('00UV8 find_san7 neg rule', () => {
+
+    let fen = tenk.find(_ => _.id === '00UV8')!.move_fens[0]
+
+    let res = print_rules(make_root(fen, `
+b =N
+ *b =a1
+`))
+
+console.log(res)
+    })
+
+
+
+it('00DTg find_san7 neg rule', () => {
 
     let fen = tenk.find(_ => _.id === '00DTg')!.move_fens[0]
 

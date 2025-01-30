@@ -304,7 +304,17 @@ function match_stars(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color
             //console.log('here')
         }
 
-        let h_moves = bare_hmoves(ha.h_dests, l.rule.slice(1), ctx, lowers_turn)
+        let a_ctx = { ...ctx }
+
+        for (let key of Object.keys(ctx)) {
+            if (a_ctx[key][a_ctx[key].length - 1] === da.from) {
+                a_ctx[key] = [...a_ctx[key], da.to]
+            }
+        }
+
+
+
+        let h_moves = bare_hmoves(ha.h_dests, l.rule.slice(1), a_ctx, lowers_turn)
 
         if (h_moves === undefined || h_moves.length === 0) {
             h_res.push([h, ha, da])
@@ -353,6 +363,31 @@ function match_stars(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color
 }
 
 
+function match_eq(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color): HDest[] {
+
+    let res: HDest[] = []
+
+    h_dests: for (let [h, ha, da] of h_dests) {
+
+        let q = l.rule[1]
+
+        let f_roles = q_to_roles(q)
+        let turn = q_is_lower(q) ? lowers_turn : opposite(lowers_turn)
+
+        let collect = []
+        for (let sq_set_fs of f_roles.map(role => ha.pos.board[role].intersect(ha.pos.board[turn]))) {
+            for (let from_sq of sq_set_fs) {
+                if (ctx[q][ctx[q].length - 1] === from_sq) {
+                    continue h_dests
+                }
+            }
+        }
+
+        res.push([h, ha, da])
+    }
+    return res
+}
+
 function match_neg(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color): HDest[] {
 
     let h_moves = bare_hmoves(h_dests, l.rule.slice(1), ctx, lowers_turn)
@@ -367,6 +402,10 @@ function match_neg(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color):
 function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color): HDest[] {
 
     let rule = l.rule
+
+    if (rule[0] === '=') {
+        return match_eq(h_dests, l, ctx, lowers_turn)
+    }
 
     if (rule[0] === '^') {
         return match_neg(h_dests, l, ctx, lowers_turn)
@@ -403,7 +442,7 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
         let a = makeSan(h.pos, h_move.da)
 
         for (let child of l.children) {
-            ha_dests = match_hmoves(ha_dests, child, ctx, h.turn)
+            ha_dests = match_hmoves(ha_dests, child, h_move.c, h.turn)
 
             if (ha_dests.length === 0) {
                 break
@@ -446,6 +485,9 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
 
     let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
     let cK = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
+
+
+    let qe = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?)=$/)
 
     let mate = rule.includes('#')
 
@@ -657,6 +699,24 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
 
             mm.push(...moves.map(da => ({ c: ctx, da: da[2] })))
         }
+    }
+
+    if (qe) {
+        let [_, q] = qe
+
+        let f_roles = q_to_roles(q)
+        let turn = q_is_lower(q) ? lowers_turn : opposite(lowers_turn)
+
+        let collect = []
+        for (let sq_set_fs of f_roles.map(role => h.pos.board[role].intersect(h.pos.board[turn]))) {
+            for (let from_sq of sq_set_fs) {
+
+                let f_piece = h.pos.board.get(from_sq)!
+
+                collect.push(...merge_cc([res, [{ [q]: [from_sq] }]]))
+            }
+        }
+
     }
 
     return mm
