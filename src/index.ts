@@ -67,7 +67,6 @@ export * as debug from './debug'
 export * from './hopefox'
 
 
-export * from './kaggle6'
-export * from './kaggle7'
+export * from './kaggle8'
 
 export * from './cache'

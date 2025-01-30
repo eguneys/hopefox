@@ -463,12 +463,126 @@ type HMoves = {
     c: Context,
     h: Hopefox,
     p_san: SAN,
-    moves: Move[],
+    move: Move,
     missing: SAN[]
 }
 
 type Context = Record<string, Square[]>
 
+function h_moves_star(node: Line, h: Hopefox, ctx: Context, lowers_turn: Color, p_san: SAN, h_dests: Move[]) {
+    let res: HMoves[] = []
+
+    h_dests: for (let da of h_dests) {
+
+        let push_a: HMoves = {
+            c: ctx,
+            h,
+            p_san,
+            move: da,
+            missing: []
+        }
+
+        let a_ctx = { ...ctx }
+
+        for (let key of Object.keys(ctx)) {
+            if (a_ctx[key][a_ctx[key].length - 1] === da.from) {
+                a_ctx[key] = [...a_ctx[key], da.to]
+            }
+        }
+
+        let a = makeSan(h.pos, da)
+        let ha = h.apply_move(da)
+
+        if (a === 'Nxd4') {
+            //debugger
+        }
+
+        let h_moves = find_hmoves(node.rule.slice(1).replace('#', ''), ha, a_ctx, lowers_turn, '')
+
+        if (h_moves === undefined) {
+            continue
+        }
+        //console.log(node.rule, a, h_moves.length)
+
+        if (node.rule === '*p =g6') {
+            if (a === 'Qf6') {
+                console.log(a)
+            }
+        }
+
+        /*
+          b =e3 h_move Be3
+          *p =Q a Qc3 h_move bxc3 , Qxd3 cxd3
+          *p =g6 ab Qxd3  h_move w hxg6 cxb3
+           *q =h7 #
+
+                        yes h_move
+                        no  h_move skip
+
+                a1 h_move h_move
+                a2 h_move
+            
+            m = h_move []
+        */
+
+
+        let can_add = false
+        for (let h_move of h_moves) {
+            let ctx = h_move.c
+
+            let move = h_move.move
+            let san = makeSan(h_move.h.pos, move)
+            let ha = h_move.h.apply_move(move)
+
+            if (node.rule.includes('#')) {
+                if (ha.is_checkmate) {
+                    res.push(push_a)
+                }
+                continue
+            }
+
+            if (node.children.length === 0) {
+            } else {
+                for (let child of node.children) {
+                    h_moves_recurse(child, ha, ctx, lowers_turn, san)
+                }
+
+                let moves = node.children.flatMap(child => child.m
+                    ?.filter(_ => _.p_san === san)
+                    .filter(_ => _.missing.length === 0)
+                    .flatMap(_ => _.move) ?? [])
+
+                if (ha.turn !== lowers_turn) {
+
+                    let missing = ha.dests.filter(_ => !moves.find(m => _.from === m.from && _.to === m.to))
+
+                    push_a.missing = missing.map(_ => makeSan(ha.pos, _))
+                }
+            }
+            can_add = true
+            break
+        }
+
+        if (!can_add) {
+            continue
+        }
+
+        if (node.rule === '*p =g6') {
+            console.log(a)
+        }
+        res.push(push_a)
+
+        if (res.length > 2 && push_a.missing.length > 0) {
+            //break;
+        }
+    }
+
+    if (!node.m) {
+        node.m = res
+    } else {
+        node.m.push(...res)
+    }
+}
 
 function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Color, p_san: SAN) {
 
@@ -562,7 +676,7 @@ function h_moves_recurse(node: Line, h: Hopefox, ctx: Context, lowers_turn: Colo
                         }
                     }
                     can_add = true
-                    //break
+                    break
                 }
             }
 
