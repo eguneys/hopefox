@@ -6,8 +6,8 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "vitest",
-    "log": "vitest --silent",
+    
+    "test": "vitest --hideSkippedTests",
     "bench": "vitest bench",
     "build": "rm -rf dist && tsc"
   },

@@ -161,7 +161,7 @@ export function print_rules(l: Line): string {
     let res = ''
     let ind = " ".repeat(l.depth + 1)
 
-    let ms = l.m.slice(0, 2).map(_ => {
+    let ms = l.m.slice(0, 3).map(_ => {
         let res =  ''
 
         let moves = _.h_to_ha.slice(0, 3)
@@ -172,7 +172,7 @@ export function print_rules(l: Line): string {
         res += moves
 
         if (_.h_to_ha.length > 3) {
-            res += " .." + (_.h_to_ha.length - 3)
+            res += " .." + (_.h_to_ha.length - 2)
         }
 
         return res
@@ -180,7 +180,7 @@ export function print_rules(l: Line): string {
 
 
     if (l.m.length > 3) {
-        ms += '..' + (l.m.length - 3)
+        ms += '..' + l.m.length
     }
 
 
@@ -298,10 +298,11 @@ function match_stars(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color
 
     for (let [h, ha, da] of h_dests) {
 
+        // Qxa1
         let a = makeSan(h.pos, da)
 
-        if (a === 'gxh5') {
-            //console.log('here')
+        if (a === 'Qb1') {
+            console.log(h.fen)
         }
 
         let a_ctx = { ...ctx }
@@ -325,7 +326,7 @@ function match_stars(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color
         for (let h_move of h_moves) {
             let ctx = h_move.c
             
-            // axb3
+            // hxg6
             let san = makeSan(ha.pos, h_move.da) 
             let ha2 = ha.apply_move(h_move.da)
             let h_dests = ha2.h_dests
@@ -377,7 +378,7 @@ function match_eq(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color): 
         let collect = []
         for (let sq_set_fs of f_roles.map(role => ha.pos.board[role].intersect(ha.pos.board[turn]))) {
             for (let from_sq of sq_set_fs) {
-                if (ctx[q][ctx[q].length - 1] === from_sq) {
+                if (!ctx[q] || ctx[q][ctx[q].length - 1] === from_sq) {
                     continue h_dests
                 }
             }
