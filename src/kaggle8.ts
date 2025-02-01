@@ -168,6 +168,7 @@ export function print_rules(l: Line): string {
         .reduce<[Hopefox, string]>(([h, acc], da) => 
             [h.apply_move(da), acc + ' ' + makeSan(h.pos, da)], [_.h, ''])[1].trim()
         
+        //res += _.h.fen
         res += moves
 
         if (_.h_to_ha.length > 3) {
@@ -429,7 +430,7 @@ function match_neg(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color):
         let a = makeSan(h.pos, h_move.da)
 
         for (let child of l.children) {
-            ha_dests = match_hmoves(ha_dests, child, h_move.c, h.turn)
+            ha_dests = match_hmoves(ha_dests, child, h_move.c, lowers_turn)
 
             if (ha_dests.length === 0) {
                 break
@@ -473,6 +474,11 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
     }
 
     let h = h_dests[0][0]
+    if (ctx['h7']?.[0] === 55 && l.rule === 'q =h7') {
+        console.log('here')
+    }
+
+
 
     let h_moves = bare_hmoves(h_dests, l.rule, ctx, lowers_turn)
 
@@ -480,7 +486,6 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
     if (h_moves === undefined) {
         return h_dests
     }
-
 
     if (l.children.length === 0) {
         h_moves.forEach(_ => {
@@ -501,7 +506,7 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
         let a = makeSan(h.pos, h_move.da)
 
         for (let child of l.children) {
-            ha_dests = match_hmoves(ha_dests, child, h_move.c, h.turn)
+            ha_dests = match_hmoves(ha_dests, child, h_move.c, lowers_turn)
 
             if (ha_dests.length === 0) {
                 break

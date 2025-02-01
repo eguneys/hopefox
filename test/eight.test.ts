@@ -164,6 +164,7 @@ it.only('004Ys find_san7 checkmate', () => {
 b =e3 +Q
  *r =Q
  *b =Q
+ *q =Q
  *p =h6 +h7, q +h7
   *r =Q
   *k =Q
@@ -171,6 +172,13 @@ b =e3 +Q
   ^Q =_ +h7
    q =h7 #
   ^Q =_ +h7
+   q =h7
+    *q =h7 #
+  ^Q =_ +h7
+   q =h5 +h7
+    *q =h7 #
+   .
+  Q =_ +h7
   .
 `))
 
