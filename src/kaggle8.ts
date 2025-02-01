@@ -161,14 +161,13 @@ export function print_rules(l: Line): string {
     let res = ''
     let ind = " ".repeat(l.depth + 1)
 
-    let ms = l.m.slice(0, 3).map(_ => {
+    let ms = l.m.slice(0, 2).map(_ => {
         let res =  ''
 
         let moves = _.h_to_ha.slice(0, 3)
         .reduce<[Hopefox, string]>(([h, acc], da) => 
             [h.apply_move(da), acc + ' ' + makeSan(h.pos, da)], [_.h, ''])[1].trim()
         
-        //res += _.h.fen + ' '
         res += moves
 
         if (_.h_to_ha.length > 3) {
@@ -302,7 +301,7 @@ function match_stars(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color
         let a = makeSan(h.pos, da)
 
         if (a === 'Qb1') {
-            console.log(h.fen)
+            //console.log(h.fen)
         }
 
         let a_ctx = { ...ctx }
@@ -312,8 +311,6 @@ function match_stars(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color
                 a_ctx[key] = [...a_ctx[key], da.to]
             }
         }
-
-
 
         let h_moves = bare_hmoves(ha.h_dests, l.rule.slice(1), a_ctx, lowers_turn)
 
@@ -393,11 +390,66 @@ function match_neg(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color):
 
     let h_moves = bare_hmoves(h_dests, l.rule.slice(1), ctx, lowers_turn)
 
-    if (h_moves && h_moves.length > 0) {
+    let h = h_dests[0][0]
+
+    let unmatched_dests: HDest[] = []
+
+    h_moves?.forEach(_ => unmatched_dests.push([h, h.apply_move(_.da), _.da]))
+
+    h_moves = h_dests
+    .filter(_ => !h_moves?.find(h_move => h_move.da.from === _[2].from && h_move.da.to === _[2].to))
+    .map(_ => ({
+        c: ctx,
+        da: _[2]
+    }))
+
+
+    if (h_moves === undefined) {
         return h_dests
     }
 
-    return []
+
+    if (l.children.length === 0) {
+        h_moves.forEach(_ => {
+            l.m.push({
+                c: _.c,
+                h,
+                ha: h.apply_move(_.da),
+                h_to_ha: [_.da]
+            })
+        })
+        return h_dests.filter(([_h, _ha, da]) => !h_moves.find(_ => _.da.from === da.from && _.da.to === da.to))
+    }
+
+    let or = h.turn !== lowers_turn
+
+    for (let h_move of h_moves) {
+        let ha = h.apply_move(h_move.da)
+        let ha_dests = ha.h_dests
+        let a = makeSan(h.pos, h_move.da)
+
+        for (let child of l.children) {
+            ha_dests = match_hmoves(ha_dests, child, h_move.c, h.turn)
+
+            if (ha_dests.length === 0) {
+                break
+            }
+        }
+        if ((or && ha_dests.length < ha.h_dests.length) || ha_dests.length === 0) {
+            l.m.push({
+                c: h_move.c,
+                h,
+                ha,
+                h_to_ha: [h_move.da]
+            })
+        } else {
+            unmatched_dests.push([h, ha, h_move.da])
+        }
+    }
+
+    return unmatched_dests
+
+
 }
 
 function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Color): HDest[] {
@@ -416,14 +468,19 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
         return match_stars(h_dests, l, ctx, lowers_turn)
     }
 
+    if (rule[0] === 'R' && h_dests.length > 2) {
+        console.log(h_dests.length)
+    }
+
+    let h = h_dests[0][0]
 
     let h_moves = bare_hmoves(h_dests, l.rule, ctx, lowers_turn)
+
 
     if (h_moves === undefined) {
         return h_dests
     }
 
-    let h = h_dests[0][0]
 
     if (l.children.length === 0) {
         h_moves.forEach(_ => {
@@ -437,6 +494,7 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
         return h_dests.filter(([_h, _ha, da]) => !h_moves.find(_ => _.da.from === da.from && _.da.to === da.to))
     }
 
+    let unmatched_dests: HDest[] = []
     for (let h_move of h_moves) {
         let ha = h.apply_move(h_move.da)
         let ha_dests = ha.h_dests
@@ -457,10 +515,11 @@ function match_hmoves(h_dests: HDest[], l: Line, ctx: Context, lowers_turn: Colo
                 h_to_ha: [h_move.da]
             })
         } else {
+            unmatched_dests.push([h, ha, h_move.da])
         }
     }
 
-    return h_dests
+    return unmatched_dests
 }
 
 type Rule = string
@@ -478,14 +537,21 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
         return res
     }
 
+    if (h_dests.length === 0) {
+        return undefined
+    }
+
     let h = h_dests[0][0]
 
         
     let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)/)
     let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])/)
+    let qe_ = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =_/)
 
     let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
     let cK = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
+
+    let cc1 = rule.match(/\+([a-h][1-8])$/)
 
 
     let qe = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?)=$/)
@@ -504,6 +570,7 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
     let mm: BareHMove[] = []
     let res = [ctx]
     if (qec1) {
+
         let [_, q, c1] = qec1
 
         let f_roles = q_to_roles(q)
@@ -522,6 +589,28 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
 
                     if (to_piece) {
                         //continue
+                    }
+
+                    if (cc1) {
+                        let [_, ce1] = cc1
+
+                        let checks = []
+                        for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                            let c_piece = h.pos.board.get(c_sq)
+
+                            if (!c_piece) {
+                               // continue
+                            }
+
+                            checks.push(c_sq)
+                        }
+
+
+                            for (let c_sq of checks) {
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [ce1]: [c_sq] }]]))
+                            }
+                        continue
                     }
 
                     if (cKcR) {
@@ -821,6 +910,177 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
             }
         }
 
+    }
+
+    if (qe_) {
+        let [_, q] = qe_
+
+        let f_roles = q_to_roles(q)
+        let turn = q_is_lower(q) ? lowers_turn : opposite(lowers_turn)
+
+        let collect = []
+        for (let sq_set_fs of f_roles.map(role => h.pos.board[role].intersect(h.pos.board[turn]))) {
+            for (let from_sq of sq_set_fs) {
+
+                let f_piece = h.pos.board.get(from_sq)!
+
+
+                loop_to_sq: for (let to_sq of attacks(f_piece, from_sq, h.pos.board.occupied)) {
+
+                    let to_piece = h.pos.board.get(to_sq)
+
+                    if (to_piece) {
+                        //continue
+                    }
+
+                    if (cc1) {
+                        let [_, ce1] = cc1
+
+                        let checks = []
+                        for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                            let c_piece = h.pos.board.get(c_sq)
+
+                            if (!c_piece) {
+                               // continue
+                            }
+
+                            checks.push(c_sq)
+                        }
+
+
+                            for (let c_sq of checks) {
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [ce1]: [c_sq] }]]))
+                            }
+                        continue
+                    }
+
+
+                    if (cKcR) {
+                        let [_, cK, cR] = cKcR
+
+                        let cK_roles = q_to_roles(cK)
+                        let cR_roles = q_to_roles(cR)
+
+                        let cK_color = q_is_lower(cK) ? lowers_turn : opposite(lowers_turn)
+                        let cR_color = q_is_lower(cR) ? lowers_turn : opposite(lowers_turn)
+
+                        let checks = []
+                        for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                            let c_piece = h.pos.board.get(c_sq)
+
+                            if (!c_piece) {
+                                continue
+                            }
+
+                            if (cK_color !== c_piece.color) {
+                                continue
+                            }
+
+                            if (cR_color !== c_piece.color) {
+                                continue
+                            }
+
+                            let k_check, r_check
+                            if (cK_roles.includes(c_piece.role)) {
+                                k_check = true
+                            }
+                            if (cR_roles.includes(c_piece.role)) {
+                                r_check = true
+                            }
+
+                            if (k_check && r_check) {
+                                checks.push([c_sq, c_sq])
+                            } else if (k_check) {
+                                checks.push([c_sq, undefined])
+                            } else if (r_check) {
+                                checks.push([undefined, c_sq])
+                            }
+                        }
+
+
+                        if (checks.length === 3) {
+                            if (checks[0][0] !== undefined && checks[1][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[1][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[1][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[0][1]!] }]]))
+                            if (checks[0][0] !== undefined && checks[2][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[2][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[2][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[0][1]!] }]]))
+                            if (checks[1][0] !== undefined && checks[2][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[2][1]] }]]))
+                            if (checks[1][1] !== undefined && checks[2][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[0][1]!] }]]))
+
+
+                        }
+                        if (checks.length === 2) {
+                            if (checks[0][0] !== undefined && checks[1][1] !== undefined)
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[1][1]] }]]))
+                            if (checks[0][1] !== undefined && checks[1][0] !== undefined)
+                            collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [cR]: [checks[0][1]!] }]]))
+                        }
+                        continue
+                    } else {
+
+                        if (cK) {
+                            let [_, K] = cK
+
+                            let cK_roles = q_to_roles(K)
+
+                            let cK_color = q_is_lower(K) ? lowers_turn : opposite(lowers_turn)
+
+                            let checks = []
+                            for (let c_sq of attacks(f_piece, to_sq, h.pos.board.occupied.without(from_sq).with(to_sq))) {
+
+                                let c_piece = h.pos.board.get(c_sq)
+
+                                if (!c_piece) {
+                                    continue
+                                }
+
+                                if (cK_color !== c_piece.color) {
+                                    continue
+                                }
+
+                                if (cK_roles.includes(c_piece.role)) {
+                                    checks.push(c_sq)
+                                }
+                            }
+
+                            for (let c_sq of checks) {
+                                collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [K]: [c_sq] }]]))
+                            }
+                            continue
+                        }
+
+
+                    }
+
+                    collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq] }]]))
+                }
+            }
+        }
+
+        if (collect.length === 0) {
+            return undefined
+        }
+
+        for (let ctx of collect) {
+
+            let moves = h_dests.filter(([h,ha, _]) =>
+                ctx[q][ctx[q].length - 2] === _.from && 
+                ctx[q][ctx[q].length - 1] === _.to
+            )
+
+            if (moves.length === 0) {
+                continue
+            }
+
+            mm.push(...moves.map(da => ({ c: ctx, da: da[2] })))
+        }
     }
 
     return mm
