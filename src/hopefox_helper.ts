@@ -1,7 +1,9 @@
+import { attacks } from "./attacks"
 import { Chess, Position } from "./chess"
 import { makeFen, parseFen } from "./fen"
 import { makeSan } from "./san"
-import { Move, Square } from "./types"
+import { SquareSet } from "./squareSet"
+import { Move, Piece, Square } from "./types"
 import { makeUci, opposite } from "./util"
 
 export function move_to_san2(_: any) {
@@ -143,3 +145,25 @@ export class Hopefox {
     }
 }
 
+
+
+export function blocks(piece: Piece, square: Square, occupied: SquareSet) {
+
+    let res: SquareSet[] = []
+
+    while (true) {
+        let aa = attacks(piece, square, occupied)
+
+        let blocks = occupied.intersect(aa)
+
+        if (blocks.isEmpty()) {
+            break
+        }
+
+        occupied = occupied.diff(blocks)
+
+        res.push(blocks)
+    }
+
+    return res
+}

@@ -1,6 +1,6 @@
 import { hasSubscribers } from "diagnostics_channel";
 import { attacks } from "./attacks";
-import { Hopefox, move_to_san2 } from "./hopefox_helper";
+import { blocks, Hopefox, move_to_san2 } from "./hopefox_helper";
 import { makeSan } from "./san";
 import { Color, Move, Role, Square } from "./types";
 import { opposite } from "./util";
@@ -49,6 +49,12 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
             }
             return a
         }
+        if (a.length === 1 && b.length === 2) {
+            if (a[0] !== b[0]) {
+                return undefined
+            }
+            return b
+        }
         throw `Append Invalid ${a.length} | ${b.length}`
     }
 
@@ -72,7 +78,7 @@ function merge_contexts(a: Context, b: Context): Context | undefined {
         }
     }
 
-    let R_piece = /([pqrnbkPQRNBKmjuarMJUAR]'?)/
+    let R_piece = /([pqrnbkPQRNBKmjuagMJUAG]'?)/
     for (let a of Object.keys(res)) {
         for (let b of Object.keys(res)) {
 
@@ -120,7 +126,7 @@ function q_to_roles(q: string): Role[] {
         case 'M': case 'm': return ['knight', 'bishop']
         case 'J': case 'j': return ['rook', 'queen']
         case 'U': case 'u': return ['knight', 'bishop', 'rook', 'queen']
-        case 'R': case 'r': return ['king', 'queen', 'rook', 'bishop', 'knight']
+        case 'G': case 'g': return ['king', 'queen', 'rook', 'bishop', 'knight']
         case 'A': case 'a': return ['pawn', 'king', 'queen', 'rook', 'bishop', 'knight']
         default: return []
     }
@@ -549,17 +555,20 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
     let h = h_dests[0][0]
 
         
-    let qeR = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([pqrnbkPQRNBKmjuarMJUAR]'?)/)
-    let qec1 = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =([a-h][1-8])/)
-    let qe_ = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?) =_/)
+    let qeR = rule.match(/^([pqrnbkPQRNBKmjuagMJUAG]'?) =([pqrnbkPQRNBKmjuagMJUAG]'?)/)
+    let qec1 = rule.match(/^([pqrnbkPQRNBKmjuagMJUAG]'?) =([a-h][1-8])/)
+    let qe_ = rule.match(/^([pqrnbkPQRNBKmjuagMJUAG]'?) =_/)
 
-    let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?) \+([pqrnbkPQRNBKmjuarMJUAR]'?)/)
-    let cK = rule.match(/\+([pqrnbkPQRNBKmjuarMJUAR]'?)$/)
+    let cKcR = rule.match(/\+([pqrnbkPQRNBKmjuagMJUAG]'?) \+([pqrnbkPQRNBKmjuagMJUAG]'?)/)
+    let cK = rule.match(/\+([pqrnbkPQRNBKmjuagMJUAG]'?)$/)
 
     let cc1 = rule.match(/\+([a-h][1-8])$/)
 
 
-    let qe = rule.match(/^([pqrnbkPQRNBKmjuarMJUAR]'?)=$/)
+    let qe = rule.match(/^([pqrnbkPQRNBKmjuagMJUAG]'?)=$/)
+
+
+    let dqh7 = rule.match(/, ([pqrnbkPQRNBKmjuagMJUAG]'?) \+([a-h][1-8])/)
 
     let mate = rule.includes('#')
 
@@ -595,6 +604,31 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
                     if (to_piece) {
                         //continue
                     }
+
+                    if (dqh7) {
+                        let [_, dq, h7] = dqh7
+
+                        let f_roles = q_to_roles(dq)
+                        let turn = q_is_lower(dq) ? lowers_turn : opposite(lowers_turn)
+
+                        for (let sq_set_fs of f_roles.map(role => h.pos.board[role].intersect(h.pos.board[turn]))) {
+                            for (let bfrom_sq of sq_set_fs) {
+
+                                let f_piece = h.pos.board.get(bfrom_sq)!
+
+                                for (let dsq of attacks(f_piece, bfrom_sq, h.pos.board.occupied.without(from_sq)).diff(
+                                    attacks(f_piece, bfrom_sq, h.pos.board.occupied)
+                                )) {
+                                    collect.push(...merge_cc([res, [{ [q]: [from_sq, to_sq], [c1]: [to_sq], [dq]: [bfrom_sq], [h7]: [dsq] }]]))
+                                }
+                                
+                            }
+                        }
+                        continue
+                    }
+
+
+
 
                     if (cc1) {
                         let [_, ce1] = cc1
@@ -729,6 +763,9 @@ function bare_hmoves(h_dests: HDest[], rule: Rule, ctx: Context, lowers_turn: Co
         if (collect.length === 0) {
             return undefined
         }
+
+
+
 
         for (let ctx of collect) {
 
