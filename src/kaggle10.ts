@@ -9,20 +9,22 @@ import { Color, Move, Role, Square } from "./types"
 import { opposite } from "./util"
 
 
-export function find_san9(fen: string, rules: string) {
+export function find_san10(fen: string, rules: string) {
 
     let root = make_root(fen, rules)
 
-    let m = root.children[root.children.length - 1].m[0]
-
-    if (!m || !m.parent) {
-        return undefined
+    let i = root
+    while (true) {
+        if (i.children.length === 0) {
+            break
+        }
+        i = i.children[i.children.length - 1]
     }
 
-    let pos = m.parent[0].pos
-    let move = m.parent[1]
-    return makeSan(pos, move)
 
+    let m = i.m[i.m.length - 1]
+
+    return print_m(m)
 }
 
 
@@ -32,7 +34,11 @@ function match_root(l: Line, g: PositionGroup, lowers_turn: Color) {
     let igg: PositionGroup
     let rgg: PositionGroup
 
-    if (l.rule === '*') {
+    if (l.rule === '**') {
+        gg = g.flatMap(play_out_pos).flatMap(play_out_pos)
+        igg = gg
+        rgg = gg
+    } else if (l.rule === '*') {
         gg = g.flatMap(play_out_pos)
         igg = gg
         rgg = gg
@@ -69,12 +75,25 @@ export function make_root(fen: string, rules: string) {
     return root
 }
 
+function ctx_play_move(a: Context, move: Move) {
+    let res: Context = {}
+
+    for (let key of Object.keys(a)) {
+        if (a[key] === move.to) {
+        } else {
+            res[key] = a[key]
+        }
+    }
+
+    return res
+}
+
 function play_out_pos(g: PositionWithContext): PositionGroup {
     return dests_pp(g.pos)
     .map(([move, pos]) => ({
         parent: [g, move],
         pos,
-        ctx: g.ctx
+        ctx: ctx_play_move(g.ctx, move)
     }))
 }
 
@@ -368,7 +387,7 @@ function match_str_pc_from(str: string, pc: PositionWithContext, lowers_turn: Co
     for (let from of froms) {
         let ctx = merge_ctx(pc.ctx, { [q]: from })
         if (!ctx) {
-            return undefined
+            continue
         }
         res.push([q, { pos: pc.pos, ctx, parent: pc.parent }])
     }
@@ -377,10 +396,11 @@ function match_str_pc_from(str: string, pc: PositionWithContext, lowers_turn: Co
 }
 
 function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers_turn: Color): PositionWithContext[] | undefined {
-    let eh7 = str.match(/\=([a-h][1-8])/)
-    let eb = str.match(/\=([pqrnbkPQRNBKmjuaglMJUAGL]'?)/)
-    let oc1 = str.match(/\+([a-h][1-8])/)
-    let ocR = str.match(/\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)/)
+    let eh7 = str.match(/\=([a-h][1-8])$/)
+    let eb = str.match(/\=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
+    let oc1 = str.match(/\+([a-h][1-8])$/)
+    let ocR = str.match(/\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
+    let _ = str.match(/_/)?.[0];
 
     if (str.match(/#/)) {
         if (!pc.pos.isCheckmate()) {
@@ -390,6 +410,35 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
 
     let res = []
 
+    if (_) {
+        let q = from
+        let turn = q_is_lower(q) ? lowers_turn : opposite(lowers_turn)
+        let roles = q_to_roles(q)
+
+        let pos = pc.pos
+
+        if (pc.parent![1].from === pc.ctx[q]) {
+            pos = pc.parent![0].pos
+        }
+
+        let froms = match_roles_for_turn(pos, turn, roles)
+
+        for (let f_sq of froms) {
+            let f_piece = pos.board.get(f_sq)
+
+            if (!f_piece) {
+                continue
+            }
+
+            let ctx = merge_ctx(pc.ctx, { [from]: f_sq })
+
+            if (!ctx) {
+                continue
+            }
+            res.push({ pos: pc.pos, ctx, parent: pc.parent })
+        }
+
+    }
 
     if (eb) {
 
@@ -417,9 +466,10 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
 
 
     if (eh7) {
-
         let [_, h7] = eh7
-        let ctx = merge_ctx(pc.ctx, { [from]: pc.parent![1].from, [h7]: pc.parent![1].to })
+
+        let to = pc.parent![1].to 
+        let ctx = merge_ctx(pc.ctx, { [from]: pc.parent![1].from, [h7]: to })
 
         if (!ctx) {
             return undefined

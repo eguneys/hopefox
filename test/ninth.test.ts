@@ -5,12 +5,30 @@ import { make_root, print_rules } from "../src"
 
 
 
-it.only('01epa find_san7 checkmate', () => {
+it.only('00Y5Q find_san7 checkmate', () => {
+
+  let fen = tenk.find(_ => _.id === '00Y5Q')!.move_fens[0]
+
+  let res = print_rules(make_root(fen, `
+b =h7
+ b _
+`))
+
+
+  console.log(res)
+
+})
+
+
+
+
+it('01epa find_san7 checkmate', () => {
 
   let fen = tenk.find(_ => _.id === '01epa')!.move_fens[0]
 
   let res = print_rules(make_root(fen, `
-b =h7
+b =h6 +K
+ b _
 `))
 
 
