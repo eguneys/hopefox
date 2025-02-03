@@ -15,7 +15,7 @@ export function find_san10(fen: string, rules: string) {
 
     let i = root
     while (true) {
-        if (i.children.length === 0) {
+        if (i.children[i.children.length -1].children.length === 0) {
             break
         }
         i = i.children[i.children.length - 1]
@@ -79,7 +79,8 @@ function ctx_play_move(a: Context, move: Move) {
     let res: Context = {}
 
     for (let key of Object.keys(a)) {
-        if (a[key] === move.to) {
+        if (q_to_roles(key).length > 0 && a[key] === move.from) {
+            res[key] = move.to
         } else {
             res[key] = a[key]
         }
@@ -101,7 +102,8 @@ type Line = {
     depth: number,
     rule: string,
     children: Line[],
-    m: M[]
+    m: M[],
+    long: boolean
 }
 
 type M = PositionWithContext
@@ -109,17 +111,23 @@ type M = PositionWithContext
 function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
 
-    let root = { depth: -1, rule: '*', children: [], m: [], n: [] }
+    let root = { depth: -1, rule: '*', children: [], m: [], n: [], long: false }
     const stack: Line[] = [root]
 
     for (let i = 0; i < ss.length; i++) {
         let line = ss[i]
-        const rule = line.trim()
+        let rule = line.trim()
         if (!rule) continue
 
         const depth = line.search(/\S/)
 
-        let node: Line  = { depth, rule, children: [], m: [] }
+        let long = false
+        if (rule[rule.length - 1] === '5') {
+            long = true
+            rule = rule.slice(0, -1).trim()
+        }
+
+        let node: Line  = { depth, rule, children: [], m: [], long }
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -156,7 +164,8 @@ export function print_rules(l: Line): string {
     let res = ''
     let ind = " ".repeat(l.depth + 1)
 
-    let ms = l.m.slice(0, 1).map(print_m).join(', ')
+    let long = l.long ? 50 : 1
+    let ms = l.m.slice(0, long).map(print_m).join(', ')
 
     if (l.m.length > 1) {
         ms += '..' + l.m.length
@@ -341,10 +350,27 @@ function match_rule(rule: string, g: PositionGroup, lowers_turn: Color): [Positi
         return [b, a]
     }
 
-    let [from, ...tos] = rule.split(' ')
-
     let aa: PositionGroup = [],
      bb: PositionGroup = []
+
+    if (rule[0] === '=') {
+        let q = rule.slice(1).match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)/)?.[0]!
+
+
+        for (let pc of g) {
+            if (pc.ctx[q]) {
+                if (pc.parent![1].to === pc.ctx[q]) {
+                    aa.push(pc)
+                    continue
+                }
+            }
+            bb.push(pc)
+        }
+        return [aa, bb]
+    }
+
+    let [from, ...tos] = rule.split(' ')
+
     for (let pc of g) {
 
         let rr = match_str_pc_from(from, pc, lowers_turn)
@@ -356,6 +382,7 @@ function match_rule(rule: string, g: PositionGroup, lowers_turn: Color): [Positi
 
         let pushed = false
         for (let [from, r] of rr) {
+
             let a = tos.reduce((acc, to) =>
                 acc.flatMap(_ => match_str_pc_to(to, _, from, lowers_turn) ?? []), [r])
             if (!a || a.length === 0) {
@@ -386,7 +413,7 @@ function match_str_pc_from(str: string, pc: PositionWithContext, lowers_turn: Co
     froms = froms.union(match_role_on_context(q, lowers_turn, pc.parent![0]))
 
     for (let from of froms) {
-        let ctx = merge_ctx(pc.ctx, {})
+        let ctx = merge_ctx(pc.ctx, { [q]: from })
         if (!ctx) {
             continue
         }
@@ -455,7 +482,7 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
             return undefined
         }
 
-        let ctx = merge_ctx(pc.ctx, { [from]: pc.parent![1].from, [b]: to })
+        let ctx = merge_ctx(pc.ctx, { [from]: to, [b]: to })
 
         if (!ctx) {
             return undefined
