@@ -1,7 +1,7 @@
 import { attacks } from "./attacks"
 import { boardEquals } from "./board"
 import { Chess, Position } from "./chess"
-import { parseFen } from "./fen"
+import { makeFen, parseFen } from "./fen"
 import { dests_pp } from "./kaggle9"
 import { makeSan } from "./san"
 import { SquareSet } from "./squareSet"
@@ -382,10 +382,11 @@ function match_str_pc_from(str: string, pc: PositionWithContext, lowers_turn: Co
 
     let res: [Var, PositionWithContext][] = []
 
-    let froms = match_role_on_context(q, lowers_turn, pc.parent![0])
+    let froms = match_role_on_context(q, lowers_turn, pc)
+    froms = froms.union(match_role_on_context(q, lowers_turn, pc.parent![0]))
 
     for (let from of froms) {
-        let ctx = merge_ctx(pc.ctx, { [q]: from })
+        let ctx = merge_ctx(pc.ctx, {})
         if (!ctx) {
             continue
         }
@@ -417,11 +418,10 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
 
         let pos = pc.pos
 
-        if (pc.parent![1].from === pc.ctx[q]) {
-            pos = pc.parent![0].pos
-        }
-
         let froms = match_roles_for_turn(pos, turn, roles)
+        if (pc.parent![1].to === 16) {
+            console.log('here')
+        }
 
         for (let f_sq of froms) {
             let f_piece = pos.board.get(f_sq)
@@ -460,6 +460,7 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
         if (!ctx) {
             return undefined
         }
+        ctx[from] = pc.parent![1].to
 
         res.push({ pos: pc.pos, ctx, parent: pc.parent })
     }
@@ -474,6 +475,7 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
         if (!ctx) {
             return undefined
         }
+        ctx[from] = pc.parent![1].to
 
         res.push({ pos: pc.pos, ctx, parent: pc.parent })
     }

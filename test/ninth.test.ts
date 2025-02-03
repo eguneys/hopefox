@@ -10,8 +10,9 @@ it.only('00Y5Q find_san7 checkmate', () => {
   let fen = tenk.find(_ => _.id === '00Y5Q')!.move_fens[0]
 
   let res = print_rules(make_root(fen, `
-b =h7
- b _
+b =P
+ *
+ !b _
 `))
 
 
