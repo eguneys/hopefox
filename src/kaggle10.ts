@@ -154,7 +154,7 @@ function match_dests(p: Position, square: Square) {
 
 
 
-function play_out_pos(g: PositionWithContext): PositionGroup {
+export function play_out_pos(g: PositionWithContext): PositionGroup {
     return dests_pp(g.pos)
     .map(([move, pos]) => ({
         parent: [g, move],
@@ -173,7 +173,7 @@ export type Line = {
 
 export type M = PositionWithContext
 
-function parse_rules(str: string): Line {
+export function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
 
     let root = { depth: -1, rule: '*', children: [], m: [], n: [], long: false }
@@ -204,7 +204,7 @@ function parse_rules(str: string): Line {
     return root
 }
 
-function print_m(m: M) {
+export function print_m(m: M) {
     let sans = []
 
     let i: M = m
@@ -398,7 +398,7 @@ function match_attacks(p: Position, square: Square) {
 
 
 
-function match_rule_comma(rule: string, p: PositionGroup, lowers_turn: Color): [PositionGroup, PositionGroup] {
+export function match_rule_comma(rule: string, p: PositionGroup, lowers_turn: Color): [PositionGroup, PositionGroup] {
     return rule.split(',')
     .reduce<[PositionGroup, PositionGroup]>((acc, rule) => 
         match_rule(rule.trim(), acc[0], lowers_turn), [p, []])
