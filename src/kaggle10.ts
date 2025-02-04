@@ -168,7 +168,9 @@ export type Line = {
     rule: string,
     children: Line[],
     m: M[],
-    long: boolean
+    p_m: M[],
+    long: boolean,
+    no_c: boolean
 }
 
 export type M = PositionWithContext
@@ -176,7 +178,7 @@ export type M = PositionWithContext
 export function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
 
-    let root = { depth: -1, rule: '*', children: [], m: [], n: [], long: false }
+    let root = { depth: -1, rule: '*', children: [], p_m: [], m: [], n: [], long: false, no_c: false }
     const stack: Line[] = [root]
 
     for (let i = 0; i < ss.length; i++) {
@@ -186,13 +188,21 @@ export function parse_rules(str: string): Line {
 
         const depth = line.search(/\S/)
 
+        let no_c = false
         let long = false
         if (rule[rule.length - 1] === '5') {
             long = true
             rule = rule.slice(0, -1).trim()
         }
 
-        let node: Line  = { depth, rule, children: [], m: [], long }
+        if (rule[rule.length - 1] === 'P') {
+            no_c = true
+            rule = rule.slice(0, -1).trim()
+        }
+
+
+
+        let node: Line  = { depth, rule, children: [], p_m: [], m: [], long, no_c }
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -230,10 +240,13 @@ export function print_rules(l: Line): string {
     let ind = " ".repeat(l.depth + 1)
 
     let long = l.long ? 50 : 1
-    let ms = l.m.slice(0, long).map(print_m).join(', ')
 
-    if (l.m.length > 1) {
-        ms += '..' + l.m.length
+    let m = l.no_c ? l.p_m : l.m
+
+    let ms = m.slice(0, long).map(print_m).join(', ')
+
+    if (m.length > 1) {
+        ms += '..' + m.length
     }
 
     res += " " + l.rule + " <" + (ms ?? "?") + ">" + "\n"
@@ -477,7 +490,16 @@ function match_str_pc_from(str: string, pc: PositionWithContext, lowers_turn: Co
     let res: [Var, PositionWithContext][] = []
 
     let froms = match_role_on_context(q, lowers_turn, pc)
-    froms = froms.union(match_role_on_context(q, lowers_turn, pc.parent![0]))
+    let p_froms = match_role_on_context(q, lowers_turn, pc.parent![0])
+
+    if (froms.has(pc.parent![1].to)) {
+
+        if (p_froms.has(pc.parent![1].from)) {
+            froms = froms.set(pc.parent![1].from, true)
+        } else {
+            froms = froms.set(pc.parent![1].to, false)
+        }
+    }
 
     for (let from of froms) {
         let ctx = merge_ctx(pc.ctx, { [q]: from })
@@ -539,13 +561,10 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
         let [_, b] = eb
         
         let to = pc.parent![1].to
-        let to_piece = pc.parent![0].pos.board.get(to)
 
-        if (!to_piece) {
-            return undefined
-        }
-
-        if (!q_to_roles(b).includes(to_piece.role)) {
+        let turn = q_is_lower(b) ? lowers_turn : opposite(lowers_turn)
+        let roles = q_to_roles(b)
+        if (!match_roles_for_turn(pc.parent![0].pos, turn, roles).has(to)) {
             return undefined
         }
 

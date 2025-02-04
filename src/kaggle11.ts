@@ -30,11 +30,107 @@ type MatchGroupReturn = {
 export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): MatchGroupReturn {
 
 
-    if (l.rule[0] === 'A') {
+    let saa: PositionGroup = [],
+    sbb: PositionGroup = []
 
-    }
+    let iaa: PositionGroup = [],
+    ibb: PositionGroup = []
 
-    if (l.rule[0] === 'E') {
+    if (l.rule[0] === 'C') {
+        let aa: PositionGroup = [],
+            bb: PositionGroup = []
+
+        let ggg = group_g_by_parent_parent(g)
+
+        for (let gg of ggg) {
+            let is_matched = false
+            for (let g of gg) {
+                let eg = play_out_pos(g)
+                let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
+
+                if (sbb.length === 0) {
+                    aa.push(g)
+                } else {
+                    bb.push(g)
+                }
+            }
+        }
+
+        l.p_m = bb
+        l.m = aa
+
+
+        iaa = []
+        ibb = aa
+
+        iaa = []
+        sbb = bb
+
+        saa = aa
+
+    } else if (l.rule[0] === 'O') {
+        let aa: PositionGroup = [],
+            bb: PositionGroup = []
+
+        let ggg = group_g_by_parent_parent(g)
+
+        for (let gg of ggg) {
+            let is_matched = false
+            for (let g of gg) {
+                let eg = play_out_pos(g)
+                let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
+
+                if (saa.length > 0) {
+                    aa.push(g)
+                } else {
+                    bb.push(g)
+                }
+            }
+        }
+
+        l.p_m = bb
+        l.m = aa
+
+
+        iaa = []
+        ibb = aa
+
+        iaa = []
+        sbb = bb
+
+        saa = aa
+
+    } else if (l.rule[0] === 'A') {
+        let aa: PositionGroup = [],
+            bb: PositionGroup = []
+
+        let ggg = group_g_by_parent_parent(g)
+
+        for (let gg of ggg) {
+            let is_matched = false
+            for (let g of gg) {
+                let eg = play_out_pos(g)
+                let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
+
+                if (sbb.length === 0) {
+                    is_matched = true
+                    break
+                }
+            }
+            if (is_matched) {
+                aa.push(...gg)
+            } else {
+                bb.push(...gg)
+            }
+        }
+
+        l.p_m = bb
+        l.m = aa
+        return {
+            saa: aa, 
+            sbb: bb,
+        }
+    } else if (l.rule[0] === 'E') {
 
         let aa: PositionGroup = [],
             bb: PositionGroup = []
@@ -51,50 +147,45 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
                     is_matched = false
                     break
                 }
-                aa.push(g)
             }
-            if (!is_matched) {
+            if (is_matched) {
+                aa.push(...gg)
+            } else {
                 bb.push(...gg)
             }
         }
 
+        l.p_m = bb
         l.m = aa
         return {
             saa: aa, 
             sbb: bb,
         }
-    }
-
-    if (l.rule === '*') {
+    } else if (l.rule === '*') {
         let paa = g.flatMap(play_out_pos)
         let pbb: PositionGroup = []
 
-        let ibb = paa
-        let iaa = []
-        for (let i = 0; i < l.children.length; i++) {
-            let child = l.children[i]
-            let gm = match_group(child, ibb, lowers_turn)
-            ibb = gm.sbb
-            if (ibb.length === 0) {
-                break
-            }
-        }
+        iaa = []
+        ibb = paa
 
-        l.m = paa
-        return {
-            saa: [],
-            sbb: paa
-        }
+        l.p_m = paa
+        l.m = iaa
+
+        iaa = []
+        sbb = paa
+
+        saa = paa
+    } else {
+        ;[saa, sbb] = match_rule_comma(l.rule, g, lowers_turn)
+        l.p_m = saa
+
+        iaa = []
+        ibb = saa
     }
 
-    let [saa, sbb] = match_rule_comma(l.rule, g, lowers_turn)
-
-    l.m = saa
-
-    let iaa: PositionGroup = []
-    let ibb: PositionGroup = saa
 
     if (l.children.length === 0) {
+        l.m = saa
         return {
             saa,
             sbb
@@ -105,15 +196,18 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         let child = l.children[i]
         let gm = match_group(child, ibb, lowers_turn)
         ibb = gm.sbb
+        iaa.push(...gm.saa)
         if (ibb.length === 0) {
             break
         }
     }
 
-    if (ibb.length === 0) {
+    l.m = iaa
+
+    if (ibb.length !== 0) {
         return {
-            saa,
-            sbb
+            saa: iaa,
+            sbb: [...ibb, ...sbb]
         }
     }
 
@@ -146,6 +240,11 @@ export function find_san11(fen: string, rules: string) {
     let root = make_root(fen, rules)
 
     let m = root.children[0].m[0]
+
+    let cl = root.children[0].children
+    if (cl[cl.length - 1].m.length !== 0) {
+        return undefined
+    }
 
     return print_m(m)
 }
