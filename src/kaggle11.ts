@@ -19,7 +19,7 @@ function groupBy<T>(list: T[], keyGetter: (t: T) => string) {
 }
 
 function group_g_by_parent_parent(g: PositionGroup): PositionGroup[] {
-    return [...groupBy<PositionWithContext>(g, p => `${p.parent![0].parent![1].from}${p.parent![0].parent![1].to}`).values()]
+    return [...groupBy<PositionWithContext>(g, p => `${p.parent![0].parent?.[1].from}${p.parent![0].parent?.[1].to}`).values()]
 }
 
 type MatchGroupReturn = {
@@ -126,10 +126,15 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
 
         l.p_m = bb
         l.m = aa
-        return {
-            saa: aa, 
-            sbb: bb,
-        }
+
+
+        iaa = []
+        ibb = aa
+
+        iaa = []
+        sbb = bb
+
+        saa = aa
     } else if (l.rule[0] === 'E') {
 
         let aa: PositionGroup = [],
@@ -157,10 +162,16 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
 
         l.p_m = bb
         l.m = aa
-        return {
-            saa: aa, 
-            sbb: bb,
-        }
+
+        iaa = []
+        ibb = aa
+
+        iaa = []
+        sbb = bb
+
+        saa = aa
+
+
     } else if (l.rule === '*') {
         let paa = g.flatMap(play_out_pos)
         let pbb: PositionGroup = []
