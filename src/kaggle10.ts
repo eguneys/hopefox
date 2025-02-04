@@ -2,7 +2,6 @@ import { attacks } from "./attacks"
 import { boardEquals } from "./board"
 import { Chess, Position } from "./chess"
 import { makeFen, parseFen } from "./fen"
-import { dests_pp } from "./kaggle9"
 import { makeSan } from "./san"
 import { SquareSet } from "./squareSet"
 import { Color, Move, Role, Square } from "./types"
@@ -15,14 +14,22 @@ export function find_san10(fen: string, rules: string) {
 
     let i = root
     while (true) {
-        if (i.children[i.children.length -1].children.length === 0) {
+        if (i.children.length === 0) {
             break
         }
-        i = i.children[i.children.length - 1]
+        let a = i.children.filter(_ => _.m.length > 0)
+        if (a.length === 0) {
+            break
+        }
+        i = a[a.length - 1]
     }
 
 
     let m = i.m[i.m.length - 1]
+
+    if (i === root || !m) {
+        return undefined
+    }
 
     return print_m(m)
 }
@@ -46,14 +53,41 @@ function match_root(l: Line, g: PositionGroup, lowers_turn: Color) {
         [igg, rgg] = match_rule_comma(l.rule, gg, lowers_turn)
     }
 
+    let agg = igg
     l.m = igg
 
+    let matched_one = false
     for (let child of l.children) {
-        igg = match_root(child, igg, lowers_turn)
+        let _igg = match_root(child, igg, lowers_turn)
+
+        if (child.rule !== '*') {
+            if (igg.length > _igg.length) {
+                matched_one = true
+            }
+        }
+        igg = _igg
+
         if (igg.length === 0) {
             break
         }
     }
+
+    if (igg.length > 0) {
+        if (igg[0].pos.turn === lowers_turn) {
+            if (l.children.length > 0) {
+                l.m = []
+                return g
+            }
+        } else {
+            if (!matched_one) {
+                if (l.children.length > 0) {
+                    l.m = []
+                    return g
+                }
+            }
+        }
+    } 
+
 
     return rgg
 }
@@ -89,6 +123,37 @@ function ctx_play_move(a: Context, move: Move) {
     return res
 }
 
+export function dests_pp(pos: Position) {
+    return [...SquareSet.full()]
+        .flatMap(from => [...match_dests(pos, from)]
+            .flatMap(to => {
+                let res = []
+
+                if (to < 8 || to >= 56) {
+                    if (pos.board.get(from)?.role === 'pawn') {
+                        res.push({ from, to, promotion: 'queen' })
+                        res.push({ from, to, promotion: 'knight' })
+                        return res
+                    }
+                }
+                let move = { from, to }
+                res.push(move)
+                return res
+            })
+    ).map(move => {
+        let p2 = pos.clone()
+        p2.play(move)
+        return [move, p2] as [Move, Position]
+    })
+}
+
+function match_dests(p: Position, square: Square) {
+    return p.dests(square)
+}
+
+
+
+
 function play_out_pos(g: PositionWithContext): PositionGroup {
     return dests_pp(g.pos)
     .map(([move, pos]) => ({
@@ -98,7 +163,7 @@ function play_out_pos(g: PositionWithContext): PositionGroup {
     }))
 }
 
-type Line = {
+export type Line = {
     depth: number,
     rule: string,
     children: Line[],
@@ -106,7 +171,7 @@ type Line = {
     long: boolean
 }
 
-type M = PositionWithContext
+export type M = PositionWithContext
 
 function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
@@ -190,17 +255,19 @@ export function print_rules(l: Line): string {
 
 
 
-type Var = string
+export type Var = string
 
-type Context = Record<Var, Square>
+export type Context = Record<Var, Square>
 
-type PositionWithContext = {
+export type PositionWithContext = {
     parent?: [PositionWithContext, Move]
     pos: Position,
     ctx: Context
 }
 
-type PositionGroup = PositionWithContext[]
+export type PositionGroup = PositionWithContext[]
+
+
 
 function ctx_equals_one_way(a: Context, b: Context) {
     for (let key of Object.keys(a)) {
