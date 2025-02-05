@@ -107,27 +107,17 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         let aa: PositionGroup = [],
             bb: PositionGroup = []
 
-        //let ggg = group_g_by_parent_parent(g)
-        let ggg = group_g_by_parent(g)
+        for (let ig of g) {
+            let eg = play_out_pos(ig)
+            let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
 
-        for (let gg of ggg) {
-            let is_matched = false
-            for (let g of gg) {
-                let eg = play_out_pos(g)
-                let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
-
-                if (sbb.length === 0) {
-                    is_matched = true
-                    break
-                }
-            }
-            if (is_matched) {
-                aa.push(...gg)
+            if (sbb.length === 0) {
+                aa.push(ig)
             } else {
-                bb.push(...gg)
+                bb.push(ig)
             }
         }
-
+        
         l.p_m = bb
         l.m = aa
 
