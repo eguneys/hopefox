@@ -311,39 +311,48 @@ function ctx_move(a: Context, b: Move) {
 
 
 function merge_ctx(a: Context, b: Context) {
-    let res: Context = {}
-    for (let key of Object.keys(a)) {
-        if (!b[key]) {
-            res[key] = a[key]
-        } else {
+        const res: Context = {};
+
+    // Optimization 1: Iterate through the keys of the smaller object
+    const keysToCheck = Object.keys(a).length < Object.keys(b).length ? a : b;
+    const other = keysToCheck === a ? b : a;
+
+    for (const key of Object.keys(keysToCheck)) {
+        if (other.hasOwnProperty(key)) { // Optimization 2: Use hasOwnProperty
             if (a[key] !== b[key]) {
-                return undefined
+                return undefined;
             }
-            res[key] = a[key]
-        }
-    }
-    for (let key of Object.keys(b)) {
-        if (!a[key]) {
-            res[key] = b[key]
+            res[key] = a[key]; // No need to check b[key] again
         } else {
-            if (a[key] !== b[key]) {
-                return undefined
-            }
-            res[key] = b[key]
+            res[key] = keysToCheck[key];
         }
     }
-    
-    for (let key of Object.keys(res)) {
-        for (let key2 of Object.keys(res)) {
-            if (key !== key2) {
-                if (key[0] === key2[0]) {
-                    if (res[key] === res[key2]) {
-                        //return undefined
-                    }
-                }
-            }
-        }
+
+    // Add remaining keys from the larger object
+    for (const key of Object.keys(other)) {
+      if (!res.hasOwnProperty(key)) { //Optimization 3: Check if key exists in res
+        res[key] = other[key];
+      }
     }
+
+    /*
+        // Optimization 4:  Avoid nested loops.  Use a Set to track values.
+    const valueSet = new Set<any>();
+
+    for (const key in res) { //for...in is slightly faster in some cases.
+      const value = res[key];
+      if (typeof value === 'object' && value !== null) { //Handle object values to avoid issues with toString()
+        continue; //Skip object values for this check, or implement deep comparison if needed.
+      }
+      if (valueSet.has(value)) {
+        return undefined;
+      }
+      valueSet.add(value);
+
+    }
+      */
+
+
 
     return res
 }

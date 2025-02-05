@@ -199,11 +199,11 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         }
     }
 
-    let expanded = false
+    let expanded = 0
     for (let i = 0; i < l.children.length; i++) {
         let child = l.children[i]
         if (child.rule === '*') {
-            expanded = true
+            expanded++
         }
         let gm = match_group(child, ibb, lowers_turn)
         ibb = gm.sbb
@@ -213,19 +213,40 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         }
     }
 
+    if (l.rule === '*') {
+        if (l.children.length === 1) {
+            let c = l.children[0]
+
+            if (ibb[0]?.parent![0]?.parent && c.m[0]?.parent![0]?.parent) {
+
+                l.m = c.m
+
+                ibb = ibb.filter(_ => !l.m.find(i => move_eq(_.parent![0].parent![1], i.parent![0].parent![1])))
+
+                return {
+                    saa: l.m,
+                    sbb: ibb
+                }
+            }
+
+        }
+    }
+
     l.m = iaa
 
     if (ibb.length !== 0) {
 
-        if (ibb[0].pos.turn === lowers_turn) {
+        if (saa[0].pos.turn !== lowers_turn) {
 
-        if (expanded)
-            ibb = ibb.map(_ => _.parent![0])
+            while (expanded--)
+                ibb = ibb.map(_ => _.parent![0])
 
-            l.m = saa.filter(_ => !ibb.find(i => move_eq(_.parent![1], i.parent![1])))
+            iaa = saa.filter(_ => !ibb.find(i => move_eq(_.parent![1], i.parent![1])))
+
+            l.m = iaa
         } else {
 
-            if (expanded)
+            while (expanded--)
                 ibb = ibb.map(_ => _.parent![0])
 
         }
