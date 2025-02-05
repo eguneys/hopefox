@@ -111,7 +111,7 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
             let eg = play_out_pos(ig)
             let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
 
-            if (sbb.length === 0) {
+            if (saa.length === eg.length) {
                 aa.push(ig)
             } else {
                 bb.push(ig)
