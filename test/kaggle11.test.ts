@@ -94,8 +94,7 @@ b +K, q +Q
 
 })
 
-
-it.only('04h4k find_san7 checkmate', () => {
+it('04h4k find_san7 checkmate', () => {
 
   let fen = tenk.find(_ => _.id === '04h4k')!.move_fens[0]
 
@@ -110,6 +109,23 @@ b +K, q +Q
  O b =B
  O b =Q
  .
+`))
+
+
+  console.log(res)
+
+})
+
+
+
+it.only('idd', () => {
+
+  let fen = tenk.find(_ => _.id === '00Uwn')!.move_fens[0]
+  let res = print_rules(make_root(fen, `
+b =g5 +Q
+ *
+ E a =Q 5
+ N +k
 `))
 
 

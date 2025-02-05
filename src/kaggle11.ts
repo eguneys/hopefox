@@ -1,7 +1,7 @@
 import { getMaxListeners } from "events";
 import { Chess } from "./chess";
 import { parseFen } from "./fen";
-import { Line, match_rule_comma, parse_rules, play_out_pos, PositionGroup, PositionWithContext, print_m } from "./kaggle10";
+import { Line, match_rule_comma, move_eq, parse_rules, play_out_pos, PositionGroup, PositionWithContext, print_m } from "./kaggle10";
 import { Color } from "./types";
 
 function groupBy<T>(list: T[], keyGetter: (t: T) => string) {
@@ -20,6 +20,9 @@ function groupBy<T>(list: T[], keyGetter: (t: T) => string) {
 
 function group_g_by_parent_parent(g: PositionGroup): PositionGroup[] {
     return [...groupBy<PositionWithContext>(g, p => `${p.parent![0].parent?.[1].from}${p.parent![0].parent?.[1].to}`).values()]
+}
+function group_g_by_parent(g: PositionGroup): PositionGroup[] {
+    return [...groupBy<PositionWithContext>(g, p => `${p.parent![1].from}${p.parent![1].to}`).values()]
 }
 
 type MatchGroupReturn = {
@@ -104,7 +107,8 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         let aa: PositionGroup = [],
             bb: PositionGroup = []
 
-        let ggg = group_g_by_parent_parent(g)
+        //let ggg = group_g_by_parent_parent(g)
+        let ggg = group_g_by_parent(g)
 
         for (let gg of ggg) {
             let is_matched = false
@@ -140,23 +144,15 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         let aa: PositionGroup = [],
             bb: PositionGroup = []
 
-        let ggg = group_g_by_parent_parent(g)
 
-        for (let gg of ggg) {
-            let is_matched = true
-            for (let g of gg) {
-                let eg = play_out_pos(g)
-                let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
+        for (let ig of g) {
+            let eg = play_out_pos(ig)
+            let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
 
-                if (saa.length === 0) {
-                    is_matched = false
-                    break
-                }
-            }
-            if (is_matched) {
-                aa.push(...gg)
+            if (saa.length > 0) {
+                aa.push(ig)
             } else {
-                bb.push(...gg)
+                bb.push(ig)
             }
         }
 
@@ -220,8 +216,20 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
     l.m = iaa
 
     if (ibb.length !== 0) {
+
+        if (ibb[0].pos.turn === lowers_turn) {
+
         if (expanded)
             ibb = ibb.map(_ => _.parent![0])
+
+            l.m = saa.filter(_ => !ibb.find(i => move_eq(_.parent![1], i.parent![1])))
+        } else {
+
+            if (expanded)
+                ibb = ibb.map(_ => _.parent![0])
+
+        }
+
         return {
             saa: iaa,
             sbb: [...ibb, ...sbb]
@@ -258,8 +266,7 @@ export function find_san11(fen: string, rules: string) {
 
     let m = root.children[0].m[0]
 
-    let cl = root.children[0].children
-    if (cl[cl.length - 1].m.length !== 0) {
+    if (!m) {
         return undefined
     }
 

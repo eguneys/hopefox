@@ -109,6 +109,10 @@ export function make_root(fen: string, rules: string) {
     return root
 }
 
+export function move_eq(a: Move, b: Move) {
+    return a.from === b.from && a.to === b.to
+}
+
 function ctx_play_move(a: Context, move: Move) {
     let res: Context = {}
 
@@ -334,7 +338,7 @@ function merge_ctx(a: Context, b: Context) {
             if (key !== key2) {
                 if (key[0] === key2[0]) {
                     if (res[key] === res[key2]) {
-                        return undefined
+                        //return undefined
                     }
                 }
             }
