@@ -439,9 +439,14 @@ function match_rule(rule: string, g: PositionGroup, lowers_turn: Color): [Positi
 
         for (let pc of g) {
             if (pc.ctx[q]) {
-                if (pc.parent![1].to === pc.ctx[q]) {
-                    aa.push(pc)
-                    continue
+                if (!match_role_on_context(q, 
+                    lowers_turn, 
+                    pc.parent![0]).has(pc.parent![1].from)) {
+
+                    if (pc.parent![1].to === pc.ctx[q]) {
+                        aa.push(pc)
+                        continue
+                    }
                 }
             }
             bb.push(pc)

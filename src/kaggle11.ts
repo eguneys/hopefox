@@ -203,8 +203,12 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
         }
     }
 
+    let expanded = false
     for (let i = 0; i < l.children.length; i++) {
         let child = l.children[i]
+        if (child.rule === '*') {
+            expanded = true
+        }
         let gm = match_group(child, ibb, lowers_turn)
         ibb = gm.sbb
         iaa.push(...gm.saa)
@@ -216,6 +220,8 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
     l.m = iaa
 
     if (ibb.length !== 0) {
+        if (expanded)
+            ibb = ibb.map(_ => _.parent![0])
         return {
             saa: iaa,
             sbb: [...ibb, ...sbb]
