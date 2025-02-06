@@ -108,6 +108,9 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
             bb: PositionGroup = []
 
         for (let ig of g) {
+            if (ig.parent![1].to === 47) {
+                debugger
+            }
             let eg = play_out_pos(ig)
             let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
 
@@ -136,6 +139,7 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
 
 
         for (let ig of g) {
+            
             let eg = play_out_pos(ig)
             let [saa, sbb] = match_rule_comma(l.rule.slice(2), eg, lowers_turn)
 

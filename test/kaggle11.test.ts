@@ -120,12 +120,10 @@ b +K, q +Q
 
 it.only('idd', () => {
 
-  let id = '063RU'
+  let id = '00Ahb'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
   let res = print_rules(make_root(fen, `
-b =g5 +Q
- *
- Q =a1
+A !=b
 `))
 
 

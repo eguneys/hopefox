@@ -470,7 +470,6 @@ function match_rule(rule: string, g: PositionGroup, lowers_turn: Color): [Positi
     let [from, ...tos] = rule.split(' ')
 
     for (let pc of g) {
-
         let rr = match_str_pc_from(from, pc, lowers_turn)
 
         if (!rr) {
@@ -517,6 +516,8 @@ function match_str_pc_from(str: string, pc: PositionWithContext, lowers_turn: Co
         } else {
             froms = froms.set(pc.parent![1].to, false)
         }
+    } else if (p_froms.has(pc.parent![1].to)) {
+        froms = froms.set(pc.parent![1].from, false)
     }
 
     for (let from of froms) {
