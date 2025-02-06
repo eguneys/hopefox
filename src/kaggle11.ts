@@ -224,22 +224,24 @@ export function match_group(l: Line, g: PositionGroup, lowers_turn: Color): Matc
 
     l.m = iaa
 
+    if (saa[0] && saa[0].pos.turn !== lowers_turn) {
+
+        while (expanded--)
+            ibb = ibb.map(_ => _.parent![0])
+
+        iaa = saa.filter(_ => !ibb.find(i => move_eq(_.parent![1], i.parent![1])))
+
+        l.m = iaa
+    } else {
+
+        while (expanded--)
+            ibb = ibb.map(_ => _.parent![0])
+
+    }
+
+
+
     if (ibb.length !== 0) {
-
-        if (saa[0].pos.turn !== lowers_turn) {
-
-            while (expanded--)
-                ibb = ibb.map(_ => _.parent![0])
-
-            iaa = saa.filter(_ => !ibb.find(i => move_eq(_.parent![1], i.parent![1])))
-
-            l.m = iaa
-        } else {
-
-            while (expanded--)
-                ibb = ibb.map(_ => _.parent![0])
-
-        }
 
         return {
             saa: iaa,
