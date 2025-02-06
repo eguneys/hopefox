@@ -243,7 +243,7 @@ export function print_rules(l: Line): string {
     let res = ''
     let ind = " ".repeat(l.depth + 1)
 
-    let long = l.long ? 50 : 1
+    let long = l.long ? 150 : 1
 
     let m = l.no_c ? l.p_m : l.m
 
@@ -600,8 +600,9 @@ function match_str_pc_to(str: string, pc: PositionWithContext, from: Var, lowers
     if (eh7) {
         let [_, h7] = eh7
 
-        let to = pc.parent![1].to 
-        let ctx = merge_ctx(pc.ctx, { [from]: pc.parent![1].from, [h7]: to })
+        let to = pc.parent![1].to
+
+        let ctx = merge_ctx(pc.ctx, { [from]: to, [h7]: to })
 
         if (!ctx) {
             return undefined
