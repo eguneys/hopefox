@@ -3,24 +3,28 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "module": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
     
     "test": "vitest --hideSkippedTests",
     "bench": "vitest bench",
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc && cp wasm/hopefox.wasm dist/wasm"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "exports": {
     ".": {
-      "import": "./dist/index.js"
+      "import": "./dist/src/index.js"
+    },
+    "./wasm/hopefox.wasm": {
+      "import": "./dist/wasm/hopefox.wasm"
     },
     "./*": {
-      "import": "./dist/*.js"
+      "import": "./dist/src/*.js"
     }
+    
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

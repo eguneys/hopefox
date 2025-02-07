@@ -108,8 +108,8 @@ export function move_c_to_Move(c: MoveC): Move {
 
 export class PositionManager {
 
-    static async make() {
-        let m = await HM()
+    static async make(locateFile: (file: string) => string) {
+        let m = await HM({locateFile})
         m._init()
         return new PositionManager(m)
     }
