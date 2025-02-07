@@ -310,7 +310,7 @@ function ctx_move(a: Context, b: Move) {
 }
 
 
-function merge_ctx(a: Context, b: Context) {
+export function merge_ctx(a: Context, b: Context) {
         const res: Context = {};
 
     // Optimization 1: Iterate through the keys of the smaller object
@@ -359,7 +359,7 @@ function merge_ctx(a: Context, b: Context) {
 
 
 
-function q_to_roles(q: string): Role[] {
+export function q_to_roles(q: string): Role[] {
     switch (q[0]) {
         case 'Q': case 'q': return ['queen']
         case 'R': case 'r': return ['rook']
@@ -377,7 +377,7 @@ function q_to_roles(q: string): Role[] {
     }
 }
 
-function q_is_lower(q: string) {
+export function q_is_lower(q: string) {
    return q.toLowerCase() === q
 }
 

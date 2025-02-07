@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_create_position","_delete_position","_make_move","_unmake_move","_get_legal_moves","_free_legal_moves","_attacks","_init","_malloc","_free","getValue","stringToUTF8","_memory","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
+["_get_fen","_get_pieces_bb","_get_turn","_is_checkmate","_pos_attacks","_get_at","_create_position","_delete_position","_make_move","_unmake_move","_get_legal_moves","_free_legal_moves","_attacks","_init","_malloc","_free","setValue","getValue","stringToUTF8","UTF8ToString","_memory","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -979,6 +979,7 @@ function dbg(...args) {
       default: abort(`invalid type for setValue: ${type}`);
     }
   }
+  Module['setValue'] = setValue;
 
   var stackRestore = (val) => __emscripten_stack_restore(val);
 
@@ -1066,6 +1067,7 @@ function dbg(...args) {
       assert(typeof ptr == 'number', `UTF8ToString expects a number (got ${typeof ptr})`);
       return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : '';
     };
+  Module['UTF8ToString'] = UTF8ToString;
   var ___assert_fail = (condition, filename, line, func) =>
       abort(`Assertion failed: ${UTF8ToString(condition)}, at: ` + [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']);
 
@@ -4114,6 +4116,8 @@ function dbg(...args) {
 
 
 
+
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.staticInit();
   // Set module methods based on EXPORTED_RUNTIME_METHODS
@@ -4158,6 +4162,12 @@ var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
 var _free_legal_moves = Module['_free_legal_moves'] = createExportWrapper('free_legal_moves', 1);
 var _free = Module['_free'] = createExportWrapper('free', 1);
 var _attacks = Module['_attacks'] = createExportWrapper('attacks', 5);
+var _pos_attacks = Module['_pos_attacks'] = createExportWrapper('pos_attacks', 3);
+var _get_pieces_bb = Module['_get_pieces_bb'] = createExportWrapper('get_pieces_bb', 4);
+var _get_turn = Module['_get_turn'] = createExportWrapper('get_turn', 1);
+var _get_at = Module['_get_at'] = createExportWrapper('get_at', 2);
+var _get_fen = Module['_get_fen'] = createExportWrapper('get_fen', 1);
+var _is_checkmate = Module['_is_checkmate'] = createExportWrapper('is_checkmate', 1);
 var _init = Module['_init'] = createExportWrapper('init', 0);
 var _main = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);

@@ -1,7 +1,9 @@
 import HM from '../wasm/hopefox.js'
-import { parseCastlingFen } from './fen.js'
+import { Chess, Position } from './chess.js'
+import { parseCastlingFen, parseFen } from './fen.js'
+import { makeSan } from './san.js'
 import { SquareSet } from './squareSet.js'
-import { Move, Role, Square } from './types.js'
+import { Color, Move, Piece, Role, Square } from './types.js'
 
 
 export type PositionC = number
@@ -10,19 +12,45 @@ export type MoveC = number
 export type PieceTypeC = number
 export type SquareC = number
 
-const PAWN = 1
-const KNIGHT = 2
-const BISHOP = 3
-const ROOK = 4
-const QUEEN = 5
-const KING = 6
+export type ColorC = number
+export type PieceC = number
+
+export const WHITE = 0
+export const BLACK = 1
+
+
+export const PAWN = 1
+export const KNIGHT = 2
+export const BISHOP = 3
+export const ROOK = 4
+export const QUEEN = 5
+export const KING = 6
+
+export const NO_PIECE = 0
+export const W_PAWN = PAWN
+export const W_KNIGHT = KNIGHT
+export const W_BISHOP = BISHOP
+export const W_ROOK = ROOK
+export const W_QUEEN = QUEEN
+export const W_KING = KING
+
+
+export const B_PAWN = PAWN + 8
+export const B_KNIGHT = KNIGHT + 8
+export const B_BISHOP = BISHOP + 8
+export const B_ROOK = ROOK + 8
+export const B_QUEEN = QUEEN + 8
+export const B_KING = KING + 8
+
+
+
 
 const NORMAL_MOVE = 0
 const PROMOTION = 1 << 14
 const EN_PASSANT = 2 << 14
 const CASTLING = 3 << 14
 
-function make_piece_type(r: Role) {
+export function role_to_c(r: Role) {
     switch (r) {
         case 'pawn': return PAWN
         case 'knight': return KNIGHT
@@ -33,7 +61,7 @@ function make_piece_type(r: Role) {
     }
 }
 
-function piece_c_to_role(p: PieceTypeC): Role {
+function c_to_role(p: PieceTypeC): Role {
     switch (p) {
         case PAWN: return 'pawn'
         case KNIGHT: return 'knight'
@@ -49,7 +77,7 @@ function make_move(move: Move, castling?: boolean, en_passant?: boolean): MoveC 
     let pt = KNIGHT
     let type = NORMAL_MOVE
     if (move.promotion) {
-        pt = make_piece_type(move.promotion)
+        pt = role_to_c(move.promotion)
         type = PROMOTION
     }
     if (en_passant) {
@@ -68,7 +96,7 @@ export function move_c_to_Move(c: MoveC): Move {
     let type = c & (3 << 14)
 
 
-    let promotion = type === PROMOTION ? piece_c_to_role(((c >> 12) &  3) + KNIGHT): undefined
+    let promotion = type === PROMOTION ? c_to_role(((c >> 12) &  3) + KNIGHT): undefined
 
     return {
         from,
@@ -106,6 +134,13 @@ export class PositionManager {
         this.m._make_move(id, move)
     }
 
+    pos_turn(pos: number): Color {
+        if (this.m._get_turn(pos) === WHITE) {
+            return 'white'
+        }
+        return 'black'
+    }
+
     get_legal_moves(id: PositionC): MoveC[] {
         const sizePtr = this.m._malloc(4)
 
@@ -139,6 +174,62 @@ export class PositionManager {
         return new SquareSet(lo, hi)
     }
 
+    pos_attacks(pos: PositionC, sq: SquareC) {
+        const bbPtr = this.m._malloc(4 * 2)
+
+        this.m._pos_attacks(pos, sq, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+
+        return new SquareSet(lo, hi)
+    }
+
+    get_pieces_bb(pos: PositionC, pieces: PieceC[]) {
+        const bbPtr = this.m._malloc(4 * 2)
+        const pPtr = this.m._malloc(4 * pieces.length)
+
+        for (let i = 0; i < pieces.length; i++) {
+            this.m.setValue(pPtr + i * 4, pieces[i], 'i32')
+        }
+
+        this.m._get_pieces_bb(pos, pPtr, pieces.length, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+        this.m._free(pPtr)
+
+        return new SquareSet(lo, hi)
+    }
+
+    get_at(pos: PositionC, sq: SquareC): PieceC | undefined {
+        let res = this.m._get_at(pos, sq)
+        if (res === NO_PIECE) {
+            return undefined
+        }
+        return res
+    }
+
+    is_checkmate(pos: number) {
+        return this.m._is_checkmate(pos)
+    }
+
+    get_pos_read_fen(pos: PositionC): Position {
+        let fen = this.wasmToStringAndFree(this.m._get_fen(pos))
+
+        return Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+    }
+
+    make_san(id: PositionC, move: MoveC) {
+        let pos = this.get_pos_read_fen(id)
+
+        return makeSan(pos, move_c_to_Move(move))
+    }
+
     stringToWasm(str: string) {
         let Module = this.m
         // Allocate space in WebAssembly memory (add 1 for null terminator)
@@ -150,6 +241,12 @@ export class PositionManager {
 
         // Return the pointer to the string in WebAssembly memory
         return ptr;
+    }
+
+    wasmToStringAndFree(ptr: number) {
+        let Module = this.m
+        return Module.UTF8ToString(ptr)
+        Module._free(ptr)
     }
 
 }
