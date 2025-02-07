@@ -403,7 +403,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
         let roles = q_to_roles_c(b, lowers_turn)
 
         // TODO bb set
-        if (!roles.find(r => (r & x_piece) === 0 || (r & x_piece) === 8)) {
+        if (!roles.find(r => r === x_piece)) {
             return undefined
         }
 
