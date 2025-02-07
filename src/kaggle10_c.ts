@@ -10,7 +10,7 @@ import { makeSan } from "./san"
 import { san } from "."
 import { parseFen } from "./fen"
 
-let DEBUG = true
+let DEBUG = false
 
 export function find_san10_c(fen: string, rules: string, m: PositionManager) {
 
