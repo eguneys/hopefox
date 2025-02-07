@@ -96,10 +96,10 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
 
         for (let move of m.get_legal_moves(pos)) {
 
-            let a = m.make_san(pos, move)
-            if (a === 'Nxb5') {
-                console.log(a)
-            }
+            //let a = m.make_san(pos, move)
+            //if (a === 'Nxb5') {
+            //    console.log(a)
+            //}
 
             let iaa: CGroup = []
             let ibb  = g
