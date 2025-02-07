@@ -44,8 +44,8 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
             let ibb: CGroup = []
 
             let a = m.make_san(pos, move)
-            if (a === 'Bg4') {
-                //console.log(a)
+            if (a === 'Bf4') {
+                console.log(a)
             }
 
             if (rule) {
@@ -625,7 +625,7 @@ export function q_to_roles_c(q: string, lowers_turn: Color): PieceTypeC[] {
         qq = qq.toLowerCase()
     }
     
-    switch (q[0]) {
+    switch (qq[0]) {
         case 'Q': return [W_QUEEN]
         case 'R': return [W_ROOK]
         case 'B': return [W_BISHOP]

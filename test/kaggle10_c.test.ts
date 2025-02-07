@@ -7,16 +7,13 @@ let m = await PositionManager.make()
 
 it.only('find_san10_c E A', () => {
 
-  let id = '03WsH'
+  let id = '00KUa'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
 
   let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
   let res = print_rules(make_root(fen, `
-E b= =h7 =B
- A
-  !'A= =h7 5
-  .
+E b= +Q
 `, m), pos)
 
   console.log(res)
