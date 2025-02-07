@@ -5,15 +5,18 @@ import { parseFen } from "../src/fen"
 
 let m = await PositionManager.make()
 
-it.only('00206 find_san10_c E A', () => {
+it.only('find_san10_c E A', () => {
 
-  let id = '00WzS'
+  let id = '03WsH'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
 
   let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
   let res = print_rules(make_root(fen, `
-E b= =B
+E b= =h7 =B
+ A
+  !'A= =h7 5
+  .
 `, m), pos)
 
   console.log(res)

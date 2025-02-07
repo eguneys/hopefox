@@ -9,7 +9,7 @@
     
     "test": "vitest --hideSkippedTests",
     "bench": "vitest bench",
-    "build": "rm -rf dist && tsc && cp wasm/hopefox.wasm dist/wasm"
+    "build": "rm -rf dist && tsc"
   },
   "keywords": [],
   "author": "",
@@ -17,9 +17,6 @@
   "exports": {
     ".": {
       "import": "./dist/src/index.js"
-    },
-    "./wasm/hopefox.wasm": {
-      "import": "./dist/wasm/hopefox.wasm"
     },
     "./*": {
       "import": "./dist/src/*.js"

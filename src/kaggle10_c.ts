@@ -97,8 +97,8 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
         for (let move of m.get_legal_moves(pos)) {
 
             let a = m.make_san(pos, move)
-            if (a === 'Qh3') {
-                //console.log(a)
+            if (a === 'Nxb5') {
+                console.log(a)
             }
 
             let iaa: CGroup = []
@@ -146,11 +146,10 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
         return [aa, bb]
     }
 
-
     let iaa: CGroup = []
     let ibb: CGroup = []
 
-    let rule = l.rule
+    let rule = l.rule[0] === '\\' ? l.rule.slice(1) : l.rule
     let move = moves[moves.length - 1]
 
     let [saa, sbb] = match_rule_comma(rule, g, pos, move, lowers_turn, m)
@@ -494,6 +493,7 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
     let eq = str.match(/^=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)?.[1]
     let qe = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)=$/)?.[1]
     let qq = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)?.[1]
+    let ec1 = str.match(/^=([a-h][1-8])$/)?.[1]
 
     let res: Context[] = []
 
@@ -505,6 +505,32 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
         }
         return [li, [ctx]]
     }
+
+    if (ec1) {
+
+        let q = ec1
+        if (from === 18) {
+            console.log('here')
+        }
+
+        if (ctx[q] !== undefined) {
+            if (ctx[q] === from) {
+                return undefined
+            }
+            if (ctx[q] !== to) {
+                return undefined
+            }
+            let c = { ...ctx }
+            delete c[q]
+            return [q, [c]]
+        }
+
+        let c = { ...ctx }
+        res.push(c)
+
+        return [q, res]
+    }
+
 
     if (eq) {
 
