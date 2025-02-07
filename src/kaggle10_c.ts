@@ -10,6 +10,7 @@ import { makeSan } from "./san"
 import { san } from "."
 import { parseFen } from "./fen"
 
+let DEBUG = true
 
 export function find_san10_c(fen: string, rules: string, m: PositionManager) {
 
@@ -43,10 +44,12 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
             let iaa = g
             let ibb: CGroup = []
 
-            //let a = m.make_san(pos, move)
-            //if (a === 'Bf4') {
-            //    console.log(a)
-            //}
+            if (DEBUG) {
+                let a = m.make_san(pos, move)
+                if (a === 'Bf4') {
+                    //console.log(a)
+                }
+            }
 
             if (rule) {
                 let [saa, sbb] = match_rule_comma(rule, iaa, pos, move, lowers_turn, m)
@@ -96,10 +99,13 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
 
         for (let move of m.get_legal_moves(pos)) {
 
-            //let a = m.make_san(pos, move)
-            //if (a === 'Nxb5') {
-            //    console.log(a)
-            //}
+            let a
+            if (DEBUG) {
+                a = m.make_san(pos, move)
+                if (a.includes('Qxd4')) {
+                    console.log(a)
+                }
+            }
 
             let iaa: CGroup = []
             let ibb  = g
@@ -153,11 +159,8 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
     let move = moves[moves.length - 1]
 
     let [saa, sbb] = match_rule_comma(rule, g, pos, move, lowers_turn, m)
-    if (rule === 'Q=') {
-
-        if (saa.length > 0) {
-            //console.log('here')
-        }
+    if (rule === '.') {
+        console.log('here')
     }
     iaa = saa
     ibb.push(...sbb)
@@ -443,11 +446,13 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
                 m.unmake_move(pos, last_move)
                 return undefined
             }
-        }
-
-        for (let c_sq of attacks) {
-            let c = {...ctx, [c1]: c_sq}
+            let c = {...ctx}
             res.push(c)
+        } else {
+            for (let c_sq of attacks) {
+                let c = { ...ctx, [c1]: c_sq }
+                res.push(c)
+            }
         }
 
         m.unmake_move(pos, last_move)
@@ -509,10 +514,6 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
     if (ec1) {
 
         let q = ec1
-        if (from === 18) {
-            console.log('here')
-        }
-
         if (ctx[q] !== undefined) {
             if (ctx[q] === from) {
                 return undefined
@@ -562,12 +563,13 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
 
     if (qe) {
         let q = qe
-
         if (ctx[q] !== undefined) {
             if (ctx[q] !== from) {
                 return undefined
             }
-            return [q, [ctx]]
+            // todo fix
+            let c = { ...ctx, [q]: to}
+            return [q, [c]]
         }
 
         let froms = m.get_pieces_bb(pos, q_to_roles_c(q, lowers_turn))
