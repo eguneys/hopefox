@@ -5,9 +5,27 @@ import { B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_PAWN, B_KING } from './hopefox_c
 import { WHITE, BLACK } from './hopefox_c'
 import { opposite } from "./util"
 import { SquareSet } from "./squareSet"
-import { Position } from "./chess"
+import { Chess, Position } from "./chess"
 import { makeSan } from "./san"
 import { san } from "."
+import { parseFen } from "./fen"
+
+
+export function find_san10_c(fen: string, rules: string, m: PositionManager) {
+
+    let root = make_root(fen, rules, m)
+
+    let c = root.children[0].m[0]
+
+    if (!c) {
+        return undefined
+    }
+
+    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+    return print_m(c, pos)
+}
+
 
 export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, lowers_turn: Color, m: PositionManager): [CGroup, CGroup] {
 
@@ -20,10 +38,9 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
 
         let rule = l.rule.slice(1).trim()
 
+        let covered_push = false
         for (let move of m.get_legal_moves(pos)) {
-            let gm = g.map(ctx => ctx_make_move(ctx, move))
-
-            let iaa = gm
+            let iaa = g
             let ibb: CGroup = []
 
             let a = m.make_san(pos, move)
@@ -49,13 +66,15 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
             }
 
             if (iaa.length > 0) {
-                aa.push(...iaa)
-                l.m.push({
-                    ms: [...moves, move],
-                    ctx: {}
-                })
+                l.m.push(({ ms: [...moves, move], ctx: iaa[0] }))
+                covered_push = true
             }
-            bb.push(...ibb)
+        }
+
+        if (covered_push) {
+            aa.push(...g)
+        } else {
+            bb.push(...g)
         }
 
         if (moves.length > 0) {
@@ -73,17 +92,17 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
 
         let rule = l.rule.slice(1).trim()
 
+        let covered_push = true
+
         for (let move of m.get_legal_moves(pos)) {
 
-            let gm = g.map(ctx => ctx_make_move(ctx, move))
-
             let a = m.make_san(pos, move)
-            if (a === 'Qxg4') {
+            if (a === 'Qh3') {
                 //console.log(a)
             }
 
             let iaa: CGroup = []
-            let ibb  = gm
+            let ibb  = g
 
             /*
             if (rule) {
@@ -97,10 +116,28 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
                 let [saa, sbb] = match_rules(child, pos, [...moves, move], ibb, lowers_turn, m)
                 ibb = sbb
                 iaa.push(...saa)
+                if (ibb.length === 0) {
+                    break
+                }
             }
 
-            aa.push(...iaa)
-            bb.push(...ibb)
+            if (ibb.length > 0) {
+                covered_push = false
+                break
+            }
+            /*
+            if (ibb.length === 0) {
+                l.m.push(...iaa.map(ctx => ({ ms: [...moves, move], ctx })))
+                aa.push(...iaa)
+            }
+                */
+        }
+
+        if (covered_push) {
+            aa.push(...g)
+            l.m.push(...g.map(ctx => ({ ms: moves, ctx })))
+        } else {
+            bb.push(...g)
         }
 
         if (moves.length > 0) {
@@ -117,6 +154,12 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
     let move = moves[moves.length - 1]
 
     let [saa, sbb] = match_rule_comma(rule, g, pos, move, lowers_turn, m)
+    if (rule === 'Q=') {
+
+        if (saa.length > 0) {
+            //console.log('here')
+        }
+    }
     iaa = saa
     ibb.push(...sbb)
 
@@ -136,7 +179,10 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
         }
     }
 
-    return [iaa, ibb]
+    if (l.children.length > 0) {
+        ibb.push(...iaa)
+    }
+    return [imm, ibb]
 }
 
 export function make_root(fen: string, rules: string, m: PositionManager) {
@@ -444,6 +490,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
 
 function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): [Var, Context[]] | undefined {
 
+    let li = str.match(/^"(\w*)$/)?.[1]
     let eq = str.match(/^=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)?.[1]
     let qe = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)=$/)?.[1]
     let qq = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)?.[1]
@@ -451,6 +498,13 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
     let res: Context[] = []
 
     let { from, to } = move_c_to_Move(last_move)
+
+    if (li) {
+        if (li !== m.make_san(pos, last_move)) {
+            return undefined
+        }
+        return [li, [ctx]]
+    }
 
     if (eq) {
 
@@ -572,20 +626,4 @@ export function q_to_roles_c(q: string, lowers_turn: Color): PieceTypeC[] {
         case 'a': return [B_PAWN, B_KING, B_QUEEN, B_ROOK, B_BISHOP, B_KNIGHT]
         default: return []
     }
-}
-
-function ctx_make_move(ctx: Context, move: MoveC) {
-    let { from, to } = move_c_to_Move(move)
-
-    return ctx
-
-    let res: Context = {}
-    for (let key of Object.keys(ctx)) {
-        if (ctx[key] === from && q_to_roles_c(key, 'white').length > 0) {
-            res[key] = to
-        } else {
-            res[key] = from
-        }
-    }
-    return res
 }

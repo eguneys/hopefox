@@ -11,10 +11,25 @@ it('00206 find_san10_c E A', () => {
 
   let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
+  /*
   let res = print_rules(make_root(fen, `
-E b= +Q
+E b= =h7 +Q
  A
   Q=
+   Q= =h1
+    E p= =h1
+    .
+  !Q=
+`, m), pos)
+*/
+
+
+  let res = print_rules(make_root(fen, `
+ E b= =h7 +Q
+ A
+  Q=
+   Q= =h1
+    E a= =h1
   !Q=
 `, m), pos)
 
