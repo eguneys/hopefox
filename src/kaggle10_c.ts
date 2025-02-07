@@ -43,10 +43,10 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
             let iaa = g
             let ibb: CGroup = []
 
-            let a = m.make_san(pos, move)
-            if (a === 'Bf4') {
-                console.log(a)
-            }
+            //let a = m.make_san(pos, move)
+            //if (a === 'Bf4') {
+            //    console.log(a)
+            //}
 
             if (rule) {
                 let [saa, sbb] = match_rule_comma(rule, iaa, pos, move, lowers_turn, m)
