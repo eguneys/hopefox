@@ -1,8 +1,9 @@
 import { expect, it } from "vitest"
 import { tenk } from "./fixture"
-import { Chess, make_root, PositionManager, print_rules } from "../src"
+import { Chess, make_root, PositionManager, print_rules, set_debug } from "../src"
 import { parseFen } from "../src/fen"
 
+set_debug()
 let m = await PositionManager.make()
 
 it.only('find_san10_c E A', () => {
@@ -19,12 +20,9 @@ E b= +Q
    E =h7
    E n= +h7
     A
-     Q=
-     .
-  !Q=
-   N +k
-   B +k
-   E =Q
+     E =Q
+  Q=
+  .
 `, m), pos)
 
   console.log(res)

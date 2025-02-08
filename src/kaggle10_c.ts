@@ -10,6 +10,10 @@ import { makeSan } from "./san"
 import { san } from "."
 import { parseFen } from "./fen"
 
+export function set_debug() {
+    DEBUG = true
+}
+
 let DEBUG = false
 
 export function find_san10_c(fen: string, rules: string, m: PositionManager) {
@@ -102,7 +106,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
             let a
             if (DEBUG) {
                 a = m.make_san(pos, move)
-                if (a.includes('Qxd4')) {
+                if (a.includes('Qxg5')) {
                     console.log(a)
                 }
             }
@@ -160,7 +164,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
 
     let [saa, sbb] = match_rule_comma(rule, g, pos, move, lowers_turn, m)
     if (rule === '.') {
-        console.log('here')
+        //console.log('here')
     }
     iaa = saa
     ibb.push(...sbb)
