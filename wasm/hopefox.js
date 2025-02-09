@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_get_fen","_get_pieces_bb","_get_turn","_is_checkmate","_pos_attacks","_get_at","_create_position","_delete_position","_make_move","_unmake_move","_get_legal_moves","_free_legal_moves","_attacks","_init","_malloc","_free","setValue","getValue","stringToUTF8","UTF8ToString","_memory","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
+["_get_fen","_get_pieces_bb","_get_turn","_is_checkmate","_pos_attacks","_get_at","_create_position","_delete_position","_make_move","_unmake_move","_get_legal_moves","_free_legal_moves","_init","_malloc","_free","setValue","getValue","stringToUTF8","UTF8ToString","_memory","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -4161,7 +4161,6 @@ var _get_legal_moves = Module['_get_legal_moves'] = createExportWrapper('get_leg
 var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
 var _free_legal_moves = Module['_free_legal_moves'] = createExportWrapper('free_legal_moves', 1);
 var _free = Module['_free'] = createExportWrapper('free', 1);
-var _attacks = Module['_attacks'] = createExportWrapper('attacks', 5);
 var _pos_attacks = Module['_pos_attacks'] = createExportWrapper('pos_attacks', 3);
 var _get_pieces_bb = Module['_get_pieces_bb'] = createExportWrapper('get_pieces_bb', 4);
 var _get_turn = Module['_get_turn'] = createExportWrapper('get_turn', 1);

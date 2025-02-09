@@ -8,7 +8,7 @@ import { SquareSet } from "./squareSet"
 import { Chess, Position } from "./chess"
 import { makeSan } from "./san"
 import { san } from "."
-import { parseFen } from "./fen"
+import { makeFen, parseFen } from "./fen"
 
 export function set_debug() {
     DEBUG = true
@@ -20,7 +20,7 @@ export function find_san10_c(fen: string, rules: string, m: PositionManager) {
 
     let root = make_root(fen, rules, m)
 
-    let c = root.children[0].m[0]
+    let c = root.children[0]?.m[0]
 
     if (!c) {
         return undefined
@@ -50,8 +50,8 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, 
 
             if (DEBUG) {
                 let a = m.make_san(pos, move)
-                if (a === 'Bf4') {
-                    //console.log(a)
+                if (a === 'Bxc3#') {
+                    console.log(a)
                 }
             }
 
@@ -368,14 +368,31 @@ export function match_rule_comma(rule: string, p: CGroup, pos: PositionC, last_m
 }
 
 function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): Context[] | undefined {
+    let li = str.match(/^"(\w*)$/)?.[1]
     let eh7 = str.match(/\=([a-h][1-8])$/)
     let eb = str.match(/\=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let oc1 = str.match(/\+([a-h][1-8])$/)
     let ocR = str.match(/\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
 
-    if (str.match(/#/)) {
-        if (!m.is_checkmate(pos)) {
+    if (li) {
+        if (li !== m.make_san(pos, last_move)) {
             return undefined
+        }
+        return [ctx]
+    }
+
+
+
+    if (str.match(/#/)) {
+
+        let s = m.make_move(pos, last_move)
+        let mated = m.is_checkmate(pos)
+        m.unmake_move(pos, last_move)
+
+        if (!mated) {
+            return undefined
+        } else {
+            return [ctx]
         }
     }
 
@@ -568,7 +585,8 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
     if (qe) {
         let q = qe
         if (ctx[q] !== undefined) {
-            if (ctx[q] !== from) {
+            // todo fix fix
+            if (!(ctx[q] === from || ctx[q] === to)) {
                 return undefined
             }
             // todo fix

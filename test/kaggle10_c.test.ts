@@ -6,7 +6,28 @@ import { parseFen } from "../src/fen"
 set_debug()
 let m = await PositionManager.make()
 
+
 it.only('find_san10_c E A', () => {
+
+  let id = '001gi'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E b= #
+`, m), pos)
+
+  console.log(res)
+
+
+
+})
+
+
+
+
+it('find_san10_c E A', () => {
 
   let id = '01lh4'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
