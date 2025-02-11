@@ -68,7 +68,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Contex
             let a
             if (DEBUG) {
                 a = m.make_san(pos, move)
-                if (a === 'Bxc3#') {
+                if (a === 'Qxd4') {
                     console.log(a)
                 }
             }
@@ -195,9 +195,10 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Contex
         if (moves.length > 0) {
             l.m.push(({ ms: moves, ctx }))
         }
+        return [ctx]
     }
 
-    return [ctx]
+    return undefined
 }
 
 export function make_root(fen: string, rules: string, m: PositionManager) {
@@ -378,6 +379,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     let oc1 = str.match(/\+([a-h][1-8])$/)
     let ocR = str.match(/\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let bbK = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\/([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
+    let uqQ = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
 
     if (li) {
         if (li !== m.make_san(pos, last_move)) {
@@ -403,12 +405,41 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
 
     let res = []
 
+    if (ctx[from_q] === undefined || ctx[from_q] < 0) {
+        return undefined
+    }
+
     let q_piece = m.get_at(pos, ctx[from_q])!
 
     let { from, to } = move_c_to_Move(last_move)
 
     let m_piece =  m.get_at(pos, from)!
     let x_piece = m.get_at(pos, to)
+
+
+    if (uqQ) {
+        let [_, q, Q] = uqQ
+
+        let bb = ctx[q] ? SquareSet.fromSquare(ctx[q]) : m.get_pieces_bb(pos, q_to_roles_c(q, lowers_turn))
+        let KK = ctx[Q] ? SquareSet.fromSquare(ctx[Q]) : m.get_pieces_bb(pos, q_to_roles_c(Q, lowers_turn))
+
+        for (let ibb of bb) {
+            let ikk = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
+
+            m.make_move(pos, last_move)
+
+            let ikk2 = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
+
+            if (ikk === undefined && ikk2 !== undefined) {
+                res.push({...ctx, [q]: ibb, [Q]: ikk2})
+            }
+            m.unmake_move(pos, last_move)
+        }
+
+        return res
+    }
+
+
 
     if (bbK) {
         let [_, b, K] = bbK
@@ -611,13 +642,10 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
     if (qe) {
         let q = qe
         if (ctx[q] !== undefined) {
-            // todo fix fix
-            if (!(ctx[q] === from || ctx[q] === to)) {
+            if (ctx[q] !== from) {
                 return undefined
             }
-            // todo fix
-            let c = { ...ctx, [q]: to}
-            return [q, [c]]
+            return [q, [ctx]]
         }
 
         let froms = m.get_pieces_bb(pos, q_to_roles_c(q, lowers_turn))

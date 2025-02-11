@@ -6,7 +6,66 @@ import { parseFen } from "../src/fen"
 set_debug()
 let m = await PositionManager.make()
 
+
+it('find_san10_c B= b/K', () => {
+
+  let id = '058i4'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E b= +Q
+ A
+  Q= b+N
+`, m), pos)
+
+  console.log(res)
+})
+
+
 it.only('find_san10_c B= b/K', () => {
+
+  let id = '066RW'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E b= +Q
+ A
+  E =Q
+  Q= b+B
+   E b= =B
+    A
+     E b
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+it('find_san10_c B= b/K', () => {
+
+  let id = '00DTg'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E b= +Q
+ A
+  E b= =Q 5
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+
+it('find_san10_c B= b/K', () => {
 
   let id = '04h4k'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
@@ -14,7 +73,7 @@ it.only('find_san10_c B= b/K', () => {
   let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
   let res = print_rules(make_root(fen, `
-E b= +K, q +Q
+E b= +K q+Q
  A
   B= b/K q/Q
   Q= b/K
