@@ -31,164 +31,173 @@ export function find_san10_c(fen: string, rules: string, m: PositionManager) {
     return print_m(c, pos)
 }
 
+function ctx_make_move(c: Context, move: MoveC) {
+    let { from, to } = move_c_to_Move(move)
 
-export function match_rules(l: Line, pos: PositionC, moves: MoveC[], g: CGroup, lowers_turn: Color, m: PositionManager): [CGroup, CGroup] {
+    let res: Context = {}
+    for (let key of Object.keys(c)) {
+        res[key] = c[key]
+        if (q_to_roles_c(key, 'white').length > 0) {
+
+            if (c[key] === from) {
+                res[key] = to
+            } else if (c[key] === to) {
+                res[key] = -res[key]
+            }
+        }
+    }
+
+    return res
+}
+
+export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Context, lowers_turn: Color, m: PositionManager): CGroup | undefined {
 
     if (l.rule[0] === 'E') {
+        let a_ctx = ctx
         if (moves.length > 0) {
             m.make_move(pos, moves[moves.length - 1])
+
+            a_ctx = ctx_make_move(ctx, moves[moves.length - 1])
         }
-        let aa: CGroup = [],
-        bb: CGroup = []
 
         let rule = l.rule.slice(1).trim()
 
         let covered_push = false
         for (let move of m.get_legal_moves(pos)) {
-            let iaa = g
-            let ibb: CGroup = []
 
+            let a
             if (DEBUG) {
-                let a = m.make_san(pos, move)
+                a = m.make_san(pos, move)
                 if (a === 'Bxc3#') {
                     console.log(a)
                 }
             }
 
+            let matched: CGroup = [a_ctx]
+
             if (rule) {
-                let [saa, sbb] = match_rule_comma(rule, iaa, pos, move, lowers_turn, m)
-                iaa = saa
-                ibb.push(...sbb)
+                let i = match_rule_comma(rule, a_ctx, pos, move, lowers_turn, m)
+                if (i === undefined || i.length === 0) {
+                    continue
+                }
+                matched = i
             }
 
 
             for (let child of l.children) {
-                if (iaa.length === 0) {
+                if (matched.length === 0) {
                     break
                 }
-
-                let [saa, sbb] = match_rules(child, pos, [...moves, move], iaa, lowers_turn, m)
-                iaa = saa
-                ibb.push(...sbb)
+                matched = matched.filter(cc => 
+                    !match_rules(child, pos, [...moves, move], cc, lowers_turn, m))
             }
 
-            if (iaa.length > 0) {
-                l.m.push(({ ms: [...moves, move], ctx: iaa[0] }))
+            if (l.children.length === 0 && matched.length > 0) {
+                l.m.push(({ ms: [...moves, move], ctx: a_ctx }))
+                covered_push = true
+            }
+
+            if (matched.length === 0) {
+                l.m.push(({ ms: [...moves, move], ctx: a_ctx }))
                 covered_push = true
             }
         }
 
+
+        let res: CGroup | undefined = [ctx]
+
         if (covered_push) {
-            aa.push(...g)
         } else {
-            bb.push(...g)
+            res = undefined
         }
+
 
         if (moves.length > 0) {
             m.unmake_move(pos, moves[moves.length - 1])
         }
-        return [aa, bb]
+        return res
     }
 
     if (l.rule[0] === 'A') {
+        let a_ctx = ctx
         if (moves.length > 0) {
             m.make_move(pos, moves[moves.length - 1])
+            a_ctx = ctx_make_move(ctx, moves[moves.length - 1])
         }
-        let aa: CGroup = [],
-        bb: CGroup = []
 
         let rule = l.rule.slice(1).trim()
 
         let covered_push = true
-
         for (let move of m.get_legal_moves(pos)) {
 
             let a
             if (DEBUG) {
                 a = m.make_san(pos, move)
-                if (a.includes('Qxg5')) {
+                if (a.includes('gxh6')) {
                     console.log(a)
                 }
             }
 
-            let iaa: CGroup = []
-            let ibb  = g
-
-            /*
-            if (rule) {
-                let [saa, sbb] = match_rule_comma(rule, ibb, pos, move, lowers_turn, m)
-                ibb = sbb
-                iaa.push(...saa)
-            }
-                */
+            let matched: CGroup = [a_ctx]
 
             for (let child of l.children) {
-                let [saa, sbb] = match_rules(child, pos, [...moves, move], ibb, lowers_turn, m)
-                ibb = sbb
-                iaa.push(...saa)
-                if (ibb.length === 0) {
+                if (matched.length === 0) {
                     break
                 }
+                matched = matched.filter(cc => 
+                    !match_rules(child, pos, [...moves, move], cc, lowers_turn, m))
             }
 
-            if (ibb.length > 0) {
+            if (matched.length > 0) {
                 covered_push = false
                 break
             }
-            /*
-            if (ibb.length === 0) {
-                l.m.push(...iaa.map(ctx => ({ ms: [...moves, move], ctx })))
-                aa.push(...iaa)
-            }
-                */
         }
 
+        let res: CGroup | undefined = [ctx]
         if (covered_push) {
-            aa.push(...g)
-            l.m.push(...g.map(ctx => ({ ms: moves, ctx })))
+            l.m.push(...res.map(ctx => ({ ms: moves, ctx })))
         } else {
-            bb.push(...g)
+            res = undefined
         }
 
         if (moves.length > 0) {
             m.unmake_move(pos, moves[moves.length - 1])
         }
-        return [aa, bb]
+        return res
     }
-
-    let iaa: CGroup = []
-    let ibb: CGroup = []
 
     let rule = l.rule[0] === '\\' ? l.rule.slice(1) : l.rule
     let move = moves[moves.length - 1]
 
-    let [saa, sbb] = match_rule_comma(rule, g, pos, move, lowers_turn, m)
-    if (rule === '.') {
-        //console.log('here')
-    }
-    iaa = saa
-    ibb.push(...sbb)
+    let i = match_rule_comma(rule, ctx, pos, move, lowers_turn, m)
 
-    let imm: Context[] = []
+    if (i === undefined || i.length === 0) {
+        return undefined
+    }
+
+    let matched = i
+
     if (l.children.length === 0) {
-        imm = iaa
-    }
-    for (let child of l.children) {
-        let [saa, sbb] = match_rules(child, pos, moves, iaa, lowers_turn, m)
-        iaa = sbb
-        imm.push(...saa)
+        l.m.push(({ ms: moves, ctx }))
+        return matched
     }
 
-    if (imm.length > 0) {
+    for (let child of l.children) {
+        if (matched.length === 0) {
+            break
+        }
+        matched = matched.filter(cc =>
+            !match_rules(child, pos, moves, cc, lowers_turn, m))
+    }
+
+    if (matched.length === 0) {
         if (moves.length > 0) {
-            l.m.push(...imm.map(ctx => ({ ms: moves, ctx })))
+            l.m.push(({ ms: moves, ctx }))
         }
     }
 
-    if (l.children.length > 0) {
-        ibb.push(...iaa)
-    }
-    return [imm, ibb]
+    return [ctx]
 }
 
 export function make_root(fen: string, rules: string, m: PositionManager) {
@@ -200,9 +209,7 @@ export function make_root(fen: string, rules: string, m: PositionManager) {
         return root
     }
 
-    let g: CGroup = [{}]
-
-    match_rules(root, pos, [], g, m.pos_turn(pos), m)
+    match_rules(root, pos, [], {}, m.pos_turn(pos), m)
 
     m.delete_position(pos)
 
@@ -317,54 +324,51 @@ export type Context = Record<Var, SquareC>
 
 export type CGroup = Context[]
 
-function match_rule(rule: string, g: CGroup, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): [CGroup, CGroup] {
+function match_rule(rule: string, g: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): CGroup | undefined {
     if (rule === '.') {
-        return [g, []]
+        return [g]
     }
 
-    if (rule[0] === '!') {
-        let [a, b] = match_rule(rule.slice(1), g, pos, last_move, lowers_turn, m)
-        return [b, a]
-    }
-
+    let aa: CGroup = []
     let [from, ...tos] = rule.split(' ')
 
+    let frr = match_str_pc_from(from, g, pos, last_move, lowers_turn, m)
 
-    let aa: CGroup = [],
-    bb: CGroup = []
+    if (!frr) {
+        return undefined
+    }
 
-    for (let pc of g) {
-        let frr = match_str_pc_from(from, pc, pos, last_move, lowers_turn, m)
+    let [q_from, rr] = frr
 
-        if (!frr) {
-            bb.push(pc)
+    let pushed = false
+    for (let r of rr) {
+
+        let a = tos.reduce((acc, to) =>
+            acc.flatMap(_ => match_str_pc_to(to, q_from, _, pos, last_move, lowers_turn, m) ?? []), [r])
+        if (!a || a.length === 0) {
             continue
         }
-        let [q_from, rr] = frr
-
-        let pushed = false
-        for (let r of rr) {
-
-            let a = tos.reduce((acc, to) =>
-                acc.flatMap(_ => match_str_pc_to(to, q_from, _, pos, last_move, lowers_turn, m) ?? []), [r])
-            if (!a || a.length === 0) {
-                continue
-            }
-            pushed = true
-            aa.push(...a)
-        }
-
-        if (!pushed) {
-            bb.push(pc)
-        }
+        pushed = true
+        aa.push(...a)
     }
-    return [aa, bb]
+
+    return aa
 }
 
-export function match_rule_comma(rule: string, p: CGroup, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): [CGroup, CGroup] {
-    return rule.split(',')
-    .reduce<[CGroup, CGroup]>((acc, rule) => 
-        match_rule(rule.trim(), acc[0], pos, last_move, lowers_turn, m), [p, []])
+export function match_rule_comma(rule: string, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): CGroup | undefined {
+    let g = [ctx]
+    let rr = rule.split(',')
+    for (let r of rr) {
+        let ag: CGroup = []
+        for (let ctx of g) {
+            let ii = match_rule(r.trim(), ctx, pos, last_move, lowers_turn, m)
+            if (ii !== undefined) {
+                ag.push(...ii)
+            }
+        }
+        g = ag
+    }
+    return g
 }
 
 function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): Context[] | undefined {
@@ -373,6 +377,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     let eb = str.match(/\=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let oc1 = str.match(/\+([a-h][1-8])$/)
     let ocR = str.match(/\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
+    let bbK = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\/([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
 
     if (li) {
         if (li !== m.make_san(pos, last_move)) {
@@ -405,6 +410,27 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     let m_piece =  m.get_at(pos, from)!
     let x_piece = m.get_at(pos, to)
 
+    if (bbK) {
+        let [_, b, K] = bbK
+
+
+        let bb = ctx[b] ? SquareSet.fromSquare(ctx[b]) : m.get_pieces_bb(pos, q_to_roles_c(b, lowers_turn))
+        let KK = ctx[K] ? SquareSet.fromSquare(ctx[K]) : m.get_pieces_bb(pos, q_to_roles_c(K, lowers_turn))
+
+        for (let ibb of bb) {
+            let ikk = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
+
+            m.make_move(pos, last_move)
+
+            let ikk2 = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
+
+            if (ikk !== undefined && ikk2 === undefined) {
+                res.push({...ctx, [b]: ibb, [K]: ikk})
+            }
+            m.unmake_move(pos, last_move)
+        }
+
+    }
 
     if (eb) {
 
@@ -614,6 +640,8 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
             if (ctx[q] === from) {
                 return undefined
             } else if (ctx[q] === to) {
+                return undefined
+            } else if (ctx[q] < 0) {
                 return undefined
             }
             return [q, [ctx]]
