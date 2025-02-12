@@ -28,7 +28,7 @@ export function find_san10_c(fen: string, rules: string, m: PositionManager) {
 
     let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
-    return print_m(c, pos)
+    return print_m(c, pos, false)
 }
 
 function ctx_make_move(c: Context, move: MoveC) {
@@ -68,7 +68,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Contex
             let a
             if (DEBUG) {
                 a = m.make_san(pos, move)
-                if (a === 'Qxd4') {
+                if (a === 'Bxb5') {
                     console.log(a)
                 }
             }
@@ -83,6 +83,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Contex
                 matched = i
             }
 
+            let nb_matched = matched.length
 
             for (let child of l.children) {
                 if (matched.length === 0) {
@@ -97,7 +98,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Contex
                 covered_push = true
             }
 
-            if (matched.length === 0) {
+            if (matched.length < nb_matched) {
                 l.m.push(({ ms: [...moves, move], ctx: a_ctx }))
                 covered_push = true
             }
@@ -239,7 +240,7 @@ export function parse_rules(str: string): Line {
             rule = rule.slice(0, -1).trim()
         }
 
-        if (rule[rule.length - 1] === 'P') {
+        if (rule[rule.length - 1] === '9') {
             no_c = true
             rule = rule.slice(0, -1).trim()
         }
@@ -258,7 +259,7 @@ export function parse_rules(str: string): Line {
     return root
 }
 
-export function print_m(m: M, pos: Position) {
+export function print_m(m: M, pos: Position, no_c: boolean) {
     pos = pos.clone()
    
     let sans = m.ms.map((c: MoveC) => {
@@ -268,7 +269,9 @@ export function print_m(m: M, pos: Position) {
         return san
     })
 
-    return sans.join(' ')
+    let c_ctx = no_c ? JSON.stringify(m.ctx) : ''
+
+    return sans.join(' ') + c_ctx
 }
 
 export function print_rules(l: Line, pos: Position): string {
@@ -278,9 +281,9 @@ export function print_rules(l: Line, pos: Position): string {
 
     let long = l.long ? 150 : 1
 
-    let m = l.no_c ? l.p_m : l.m
+    let m = l.m
 
-    let ms = m.slice(0, long).map(_ => print_m(_, pos)).join(', ')
+    let ms = m.slice(0, long).map(_ => print_m(_, pos, l.no_c)).join(', ')
 
     if (m.length > 1) {
         ms += '..' + m.length
@@ -552,6 +555,9 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
             if (!attacks.has(ctx[R])) {
                 m.unmake_move(pos, last_move)
                 return undefined
+            } else {
+                m.unmake_move(pos, last_move)
+                return [ctx]
             }
         }
 
