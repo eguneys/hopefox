@@ -66,7 +66,7 @@ E b= +Q +c2, n +c2, Q +c2
 
 
 
-it.only('find_san10_c P\'', () => {
+it('find_san10_c P\'', () => {
 
   let id = '0FaX9'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
@@ -75,6 +75,50 @@ it.only('find_san10_c P\'', () => {
 
   let res = print_rules(make_root(fen, `
 E b= =P, P' +P q/R
+`, m), pos)
+
+  console.log(res)
+})
+
+
+it('find_san10_c q= =Q', () => {
+
+  let id = '0FkLr'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E q= =Q
+ A
+  "Rxa1
+   E q
+  .
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+
+it.only('find_san10_c +g2', () => {
+
+  let id = '002Ua'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E q= +h2 +n, n +h2, K +h2
+ A
+  E p= =B
+  E k= =B
+  E q= =h2 #
+  Q= =n
+   E q= =Q
+  K= =g2
+   E q= +K +n +g2
 `, m), pos)
 
   console.log(res)

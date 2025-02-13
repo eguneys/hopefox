@@ -31,13 +31,17 @@ export function find_san10_c(fen: string, rules: string, m: PositionManager) {
     return print_m(c, pos, false)
 }
 
+function is_piece(key: string) {
+    return !!key.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
+}
+
 function ctx_make_move(c: Context, move: MoveC) {
     let { from, to } = move_c_to_Move(move)
 
     let res: Context = {}
     for (let key of Object.keys(c)) {
         res[key] = c[key]
-        if (q_to_roles_c(key, 'white').length > 0) {
+        if (is_piece(key)) {
 
             if (c[key] === from) {
                 res[key] = to
@@ -68,7 +72,7 @@ export function match_rules(l: Line, pos: PositionC, moves: MoveC[], ctx: Contex
             let a
             if (DEBUG) {
                 a = m.make_san(pos, move)
-                if (a === 'Bxb5') {
+                if (a === 'Qg4+') {
                     console.log(a)
                 }
             }
@@ -383,6 +387,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     let ocR = str.match(/\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let bbK = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\/([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let uqQ = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
+    let uqh7 = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\+([a-h][1-8])$/)
 
     if (li) {
         if (li !== m.make_san(pos, last_move)) {
@@ -408,7 +413,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
 
     let res = []
 
-    if (ctx[from_q] === undefined || ctx[from_q] < 0) {
+    if (ctx[from_q] === undefined || ctx[from_q] < 0 || isNegativeZero(ctx[from_q])) {
         return undefined
     }
 
@@ -419,6 +424,27 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     let m_piece =  m.get_at(pos, from)!
     let x_piece = m.get_at(pos, to)
 
+    if (uqh7) {
+        let [_, q, h7] = uqh7
+
+        let bb = ctx[q] ? SquareSet.fromSquare(ctx[q]) : m.get_pieces_bb(pos, q_to_roles_c(q, lowers_turn))
+        let bh7 = ctx[h7] ? SquareSet.fromSquare(ctx[h7]) : SquareSet.full()
+
+        for (let ibb of bb) {
+            let ikk = m.pos_attacks(pos, ibb).intersect(bh7).singleSquare()
+
+            m.make_move(pos, last_move)
+
+            let ikk2 = m.pos_attacks(pos, ibb).intersect(bh7).singleSquare()
+
+            if (ikk === undefined && ikk2 !== undefined) {
+                res.push({...ctx, [q]: ibb, [h7]: ikk2})
+            }
+            m.unmake_move(pos, last_move)
+        }
+
+        return res
+    }
 
     if (uqQ) {
         let [_, q, Q] = uqQ
@@ -675,7 +701,7 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
                 return undefined
             } else if (ctx[q] === to) {
                 return undefined
-            } else if (ctx[q] < 0) {
+            } else if (ctx[q] < 0 || isNegativeZero(ctx[q])) {
                 return undefined
             }
             return [q, [ctx]]
@@ -738,4 +764,9 @@ export function q_to_roles_c(q: string, lowers_turn: Color): PieceTypeC[] {
         case 'a': return [B_PAWN, B_KING, B_QUEEN, B_ROOK, B_BISHOP, B_KNIGHT]
         default: return []
     }
+}
+
+function isNegativeZero(n: number) {
+    n = Number( n );
+    return (n === 0) && (1 / n === -Infinity);
 }
