@@ -1,4 +1,4 @@
-import { move_c_to_Move, MoveC, PieceTypeC, PositionC, PositionManager, role_to_c, SquareC } from "./hopefox_c"
+import { color_c_opposite, move_c_to_Move, MoveC, piece_c_color_of, PieceTypeC, PositionC, PositionManager, role_to_c, SquareC } from "./hopefox_c"
 import { Color, Move } from "./types"
 import { W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_PAWN, W_KING } from './hopefox_c'
 import { B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_PAWN, B_KING } from './hopefox_c'
@@ -23,7 +23,10 @@ export function find_san10_c(fen: string, rules: string, m: PositionManager) {
     let c = root.children[0]?.m[0]
 
     if (!c) {
-        return undefined
+        c = root.children[0].children[0].m[0]
+        if (!c) {
+            return undefined
+        }
     }
 
     let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
@@ -332,7 +335,7 @@ export type Context = Record<Var, SquareC>
 
 export type CGroup = Context[]
 
-function match_rule(rule: string, g: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): CGroup | undefined {
+function match_rule(rule: string, g: Context, pos: PositionC, last_move: MoveC | undefined, lowers_turn: Color, m: PositionManager): CGroup | undefined {
     if (rule === '.') {
         return [g]
     }
@@ -363,7 +366,7 @@ function match_rule(rule: string, g: Context, pos: PositionC, last_move: MoveC, 
     return aa
 }
 
-export function match_rule_comma(rule: string, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): CGroup | undefined {
+export function match_rule_comma(rule: string, ctx: Context, pos: PositionC, last_move: MoveC | undefined, lowers_turn: Color, m: PositionManager): CGroup | undefined {
     let g = [ctx]
     let rr = rule.split(',')
     for (let r of rr) {
@@ -379,7 +382,7 @@ export function match_rule_comma(rule: string, ctx: Context, pos: PositionC, las
     return g
 }
 
-function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): Context[] | undefined {
+function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC, last_move_c: MoveC | undefined, lowers_turn: Color, m: PositionManager): Context[] | undefined {
     let li = str.match(/^"(\w*)$/)?.[1]
     let eh7 = str.match(/\=([a-h][1-8])$/)
     let eb = str.match(/\=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
@@ -388,9 +391,15 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     let bbK = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\/([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let uqQ = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\+([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
     let uqh7 = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\+([a-h][1-8])$/)
+    let zp = str.match(/0\+/)
+
+    let qbK = str.match(/^([pqrnbkPQRNBKmjuaglMJUAGL]'?)\|([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)
 
     if (li) {
-        if (li !== m.make_san(pos, last_move)) {
+        if (last_move_c === undefined) {
+            return undefined
+        }
+        if (li !== m.make_san(pos, last_move_c)) {
             return undefined
         }
         return [ctx]
@@ -400,9 +409,14 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
 
     if (str.match(/#/)) {
 
-        let s = m.make_move(pos, last_move)
+        if (last_move_c) {
+            let s = m.make_move(pos, last_move_c)
+        }
         let mated = m.is_checkmate(pos)
-        m.unmake_move(pos, last_move)
+
+        if (last_move_c) {
+            m.unmake_move(pos, last_move_c)
+        }
 
         if (!mated) {
             return undefined
@@ -411,7 +425,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
         }
     }
 
-    let res = []
+    let res: Context[] = []
 
     if (ctx[from_q] === undefined || ctx[from_q] < 0 || isNegativeZero(ctx[from_q])) {
         return undefined
@@ -419,10 +433,31 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
 
     let q_piece = m.get_at(pos, ctx[from_q])!
 
-    let { from, to } = move_c_to_Move(last_move)
+    if (zp) {
 
-    let m_piece =  m.get_at(pos, from)!
-    let x_piece = m.get_at(pos, to)
+        if (!last_move_c) {
+            return undefined
+        }
+
+        let { from, to } = move_c_to_Move(last_move_c)
+
+        let m_piece = m.get_at(pos, from)!
+        let x_piece = m.get_at(pos, to)
+
+
+        if (last_move_c) {
+            m.make_move(pos, last_move_c)
+        }
+        let aa = m.pos_attacks_of_color(pos, color_c_opposite(piece_c_color_of(q_piece))).has(to)
+
+        if (last_move_c) {
+            m.unmake_move(pos, last_move_c)
+        }
+        if (aa) {
+            return undefined
+        }
+        return [ctx]
+    }
 
     if (uqh7) {
         let [_, q, h7] = uqh7
@@ -433,14 +468,18 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
         for (let ibb of bb) {
             let ikk = m.pos_attacks(pos, ibb).intersect(bh7).singleSquare()
 
-            m.make_move(pos, last_move)
+            if (last_move_c) {
+                m.make_move(pos, last_move_c)
+            }
 
             let ikk2 = m.pos_attacks(pos, ibb).intersect(bh7).singleSquare()
 
             if (ikk === undefined && ikk2 !== undefined) {
                 res.push({...ctx, [q]: ibb, [h7]: ikk2})
             }
-            m.unmake_move(pos, last_move)
+            if (last_move_c) {
+                m.unmake_move(pos, last_move_c)
+            }
         }
 
         return res
@@ -455,39 +494,73 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
         for (let ibb of bb) {
             let ikk = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
 
-            m.make_move(pos, last_move)
+            if (last_move_c) {
+                m.make_move(pos, last_move_c)
+            }
 
             let ikk2 = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
 
             if (ikk === undefined && ikk2 !== undefined) {
                 res.push({...ctx, [q]: ibb, [Q]: ikk2})
             }
-            m.unmake_move(pos, last_move)
+            if (last_move_c) {
+                m.unmake_move(pos, last_move_c)
+            }
         }
 
         return res
     }
 
 
+    if (qbK) {
+        let [_, q, K] = qbK
+
+        if (last_move_c !== undefined) {
+            return undefined
+        }
+
+        let KK = (ctx[K] >= 0) ? SquareSet.fromSquare(ctx[K]) : m.get_pieces_bb(pos, q_to_roles_c(K, lowers_turn))
+
+        let qq = (ctx[q] >= 0) ? [m.get_at(pos, ctx[q])!] : q_to_roles_c(q, lowers_turn)
+
+        let occupied = m.pos_occupied(pos)
+        for (let iqq of qq) {
+            let bb_qq = m.get_pieces_bb(pos, [iqq])
+            for (let bq of bb_qq) {
+                let ikk = m.attacks(iqq, bq, occupied).intersect(KK).singleSquare()
+                let ikk2 = m.attacks(iqq, bq, occupied.without(ctx[from_q])).intersect(KK).singleSquare()
+
+                if (ikk === undefined && ikk2 !== undefined) {
+                    res.push({ ...ctx, [q]: bq, [K]: ikk2 })
+                }
+            }
+        }
+
+    }
 
     if (bbK) {
         let [_, b, K] = bbK
 
 
-        let bb = ctx[b] ? SquareSet.fromSquare(ctx[b]) : m.get_pieces_bb(pos, q_to_roles_c(b, lowers_turn))
-        let KK = ctx[K] ? SquareSet.fromSquare(ctx[K]) : m.get_pieces_bb(pos, q_to_roles_c(K, lowers_turn))
+        let bb = (ctx[b] >= 0) ? SquareSet.fromSquare(ctx[b]) : m.get_pieces_bb(pos, q_to_roles_c(b, lowers_turn))
+        let KK = (ctx[K] >= 0) ? SquareSet.fromSquare(ctx[K]) : m.get_pieces_bb(pos, q_to_roles_c(K, lowers_turn))
 
         for (let ibb of bb) {
             let ikk = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
 
-            m.make_move(pos, last_move)
+            if (last_move_c) {
+            m.make_move(pos, last_move_c)
+            }
 
             let ikk2 = m.pos_attacks(pos, ibb).intersect(KK).singleSquare()
 
             if (ikk !== undefined && ikk2 === undefined) {
                 res.push({...ctx, [b]: ibb, [K]: ikk})
             }
-            m.unmake_move(pos, last_move)
+
+            if (last_move_c) {
+            m.unmake_move(pos, last_move_c)
+            }
         }
 
     }
@@ -495,6 +568,15 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     if (eb) {
 
         let [_, b] = eb
+
+        if (!last_move_c) {
+            return undefined
+        }
+
+        let { from, to } = move_c_to_Move(last_move_c)
+
+        let m_piece = m.get_at(pos, from)!
+        let x_piece = m.get_at(pos, to)
 
         if (!x_piece) {
             return undefined
@@ -525,6 +607,17 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     if (eh7) {
         let [_, h7] = eh7
 
+        if (!last_move_c) {
+            return undefined
+        }
+
+        let { from, to } = move_c_to_Move(last_move_c)
+
+        let m_piece = m.get_at(pos, from)!
+        let x_piece = m.get_at(pos, to)
+
+
+
         if (ctx[h7] !== undefined) {
             if (ctx[h7] !== to) {
                 return undefined
@@ -539,62 +632,104 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
     if (oc1) {
         let [_, c1] = oc1
 
-        m.make_move(pos, last_move)
+
+        if (last_move_c) {
+            m.make_move(pos, last_move_c)
+        }
 
         let a_to = ctx[from_q]
-        if (a_to === from) {
-            a_to = to
+        if (last_move_c) {
+
+            let { from, to } = move_c_to_Move(last_move_c)
+
+            if (a_to === from) {
+                a_to = to
+            }
         }
+
+
 
         let attacks = m.pos_attacks(pos, a_to)
 
         if (ctx[c1] !== undefined) {
             if (!attacks.has(ctx[c1])) {
-                m.unmake_move(pos, last_move)
+
+                if (last_move_c) {
+                    m.unmake_move(pos, last_move_c)
+                }
                 return undefined
             }
             let c = {...ctx}
             res.push(c)
         } else {
-            for (let c_sq of attacks) {
+            c_attacks: for (let c_sq of attacks) {
+                for (let key of Object.keys(ctx)) {
+                    if (ctx[key] === c_sq) {
+                        if (is_piece(key)) {
+                            continue c_attacks
+                        }
+                    }
+                }
                 let c = { ...ctx, [c1]: c_sq }
                 res.push(c)
             }
         }
 
-        m.unmake_move(pos, last_move)
+        if (last_move_c) {
+            m.unmake_move(pos, last_move_c)
+        }
     }
 
     if (ocR) {
         let [_, R] = ocR
 
 
-        m.make_move(pos, last_move)
+        if (last_move_c) {
+            m.make_move(pos, last_move_c)
+        }
         let a_to = ctx[from_q]
-        if (a_to === from) {
-            a_to = to
+        if (last_move_c) {
+
+            let { from, to } = move_c_to_Move(last_move_c)
+
+            if (a_to === from) {
+                a_to = to
+            }
         }
 
         let attacks = m.pos_attacks(pos, a_to)
 
         if (ctx[R] !== undefined) {
             if (!attacks.has(ctx[R])) {
-                m.unmake_move(pos, last_move)
+                if (last_move_c) {
+                    m.unmake_move(pos, last_move_c)
+                }
                 return undefined
             } else {
-                m.unmake_move(pos, last_move)
+                if (last_move_c) {
+                m.unmake_move(pos, last_move_c)
+                }
                 return [ctx]
             }
         }
 
         let r_roles = m.get_pieces_bb(pos, q_to_roles_c(R, lowers_turn))
 
-        for (let c_sq of attacks.intersect(r_roles)) {
+        c_attacks: for (let c_sq of attacks.intersect(r_roles)) {
+            for (let key of Object.keys(ctx)) {
+                    if (ctx[key] === c_sq) {
+                        if (is_piece(key)) {
+                            continue c_attacks
+                        }
+                    }
+                }
             let c = {...ctx, [R]: c_sq}
             res.push(c)
         }
 
-        m.unmake_move(pos, last_move)
+        if (last_move_c) {
+            m.unmake_move(pos, last_move_c)
+        }
     }
 
     return res
@@ -602,7 +737,7 @@ function match_str_pc_to(str: string, from_q: Var, ctx: Context, pos: PositionC,
 
 
 
-function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move: MoveC, lowers_turn: Color, m: PositionManager): [Var, Context[]] | undefined {
+function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move_c: MoveC | undefined, lowers_turn: Color, m: PositionManager): [Var, Context[]] | undefined {
 
     let li = str.match(/^"(\w*)$/)?.[1]
     let eq = str.match(/^=([pqrnbkPQRNBKmjuaglMJUAGL]'?)$/)?.[1]
@@ -612,16 +747,25 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
 
     let res: Context[] = []
 
-    let { from, to } = move_c_to_Move(last_move)
+
+    const last_move = last_move_c ? move_c_to_Move(last_move_c): undefined
 
     if (li) {
-        if (li !== m.make_san(pos, last_move)) {
+        if (last_move_c === undefined) {
+            return undefined
+        }
+        if (li !== m.make_san(pos, last_move_c)) {
             return undefined
         }
         return [li, [ctx]]
     }
 
     if (ec1) {
+
+        if (last_move === undefined) {
+            return undefined
+        }
+        let { from, to } = last_move
 
         let q = ec1
         if (ctx[q] !== undefined) {
@@ -644,6 +788,11 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
 
 
     if (eq) {
+        if (last_move === undefined) {
+            return undefined
+        }
+        let { from, to } = last_move
+
 
         let q = eq
 
@@ -672,6 +821,12 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
     }
 
     if (qe) {
+        if (last_move === undefined) {
+            return undefined
+        }
+        let { from, to } = last_move
+
+
         let q = qe
         if (ctx[q] !== undefined) {
             if (ctx[q] !== from) {
@@ -697,11 +852,16 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
         let q = qq
 
         if (ctx[q] !== undefined) {
-            if (ctx[q] === from) {
-                return undefined
-            } else if (ctx[q] === to) {
-                return undefined
-            } else if (ctx[q] < 0 || isNegativeZero(ctx[q])) {
+            if (last_move) {
+                let { from, to} = last_move
+                if (ctx[q] === from) {
+                    return undefined
+                } else if (ctx[q] === to) {
+                    return undefined
+                }
+            }
+            
+            if (ctx[q] < 0 || isNegativeZero(ctx[q])) {
                 return undefined
             }
             return [q, [ctx]]
@@ -709,8 +869,10 @@ function match_str_pc_from(str: string, ctx: Context, pos: PositionC, last_move:
 
         let froms = m.get_pieces_bb(pos, q_to_roles_c(q, lowers_turn))
 
-        froms.set(from, false)
-        froms.set(to, false)
+        if (last_move) {
+            froms.set(last_move.from, false)
+            froms.set(last_move.to, false)
+        }
 
         for (let from of froms) {
             let c = { ...ctx, [q]: from }

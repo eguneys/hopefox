@@ -43,12 +43,27 @@ export const B_QUEEN = QUEEN + 8
 export const B_KING = KING + 8
 
 
+export const W_PIECES = [W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING]
+export const B_PIECES = [B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING]
+export const ALL_PIECES = [...W_PIECES, ...B_PIECES]
 
 
 const NORMAL_MOVE = 0
 const PROMOTION = 1 << 14
 const EN_PASSANT = 2 << 14
 const CASTLING = 3 << 14
+
+export function color_c_opposite(color: ColorC) {
+    return color === WHITE ? BLACK: WHITE;
+}
+
+export function piece_c_color_of(piece: PieceC) {
+    return piece >> 3
+}
+
+export function piece_c_type_of(piece: PieceC) {
+    return piece & 7
+}
 
 export function role_to_c(r: Role) {
     switch (r) {
@@ -160,11 +175,23 @@ export class PositionManager {
         return res
     }
 
-
-    attacks(pt: PieceTypeC, s: SquareC, bb: SquareSet): SquareSet {
+    pos_occupied(pos: PositionC) {
         const bbPtr = this.m._malloc(4 * 2)
 
-        this.m._attacks(pt, s, bb.lo, bb.hi, bbPtr)
+        this.m._get_occupied(pos, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+
+        return new SquareSet(lo, hi)
+    }
+
+    attacks(pc: PieceC, s: SquareC, bb: SquareSet): SquareSet {
+        const bbPtr = this.m._malloc(4 * 2)
+
+        this.m._get_attacks(piece_c_type_of(pc), piece_c_color_of(pc), s, bb.lo, bb.hi, bbPtr)
 
         const lo = this.m.getValue(bbPtr, 'i32')
         const hi = this.m.getValue(bbPtr + 4, 'i32')
@@ -186,6 +213,35 @@ export class PositionManager {
 
         return new SquareSet(lo, hi)
     }
+
+    pos_attacks_of_color(pos: PositionC, color: ColorC) {
+        const bbPtr = this.m._malloc(4 * 2)
+
+        this.m._pos_attacks_to(pos, color, 0, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+
+        return new SquareSet(lo, hi)
+    }
+
+
+    get_pieces_color_bb(pos: PositionC, color: ColorC) {
+        const bbPtr = this.m._malloc(4 * 2)
+
+        this.m._get_pieces_color_bb(pos, color, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+        return new SquareSet(lo, hi)
+    }
+
+
+
 
     get_pieces_bb(pos: PositionC, pieces: PieceC[]) {
         const bbPtr = this.m._malloc(4 * 2)

@@ -1,4 +1,4 @@
-import { expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 import { tenk } from "./fixture"
 import { Chess, make_root, PositionManager, print_rules, set_debug } from "../src"
 import { parseFen } from "../src/fen"
@@ -6,6 +6,96 @@ import { parseFen } from "../src/fen"
 set_debug()
 let m = await PositionManager.make()
 
+
+it('find_san10_c P +N q|B', () => {
+
+  let id = '0109Q'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+P +N q|B
+ E b= =N
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+it('find_san10_c P +N\'', () => {
+
+  let id = '03wlD'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+P +N' +N, q +N
+ E b= =N'
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+
+it.only('find_san10_c P +N\'', () => {
+
+  let id = '04hwM'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+P +N' +N, q +N
+ E b= =N'
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+it('find_san10_c N +R E', () => {
+
+  let id = '00Htd'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+N +Q, q +Q
+ E b= =N +K
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+it('find_san10_c N +R E', () => {
+
+  let id = '00VNr'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+N +R
+ E b= =N
+`, m), pos)
+
+  console.log(res)
+})
+
+
+
+
+
+describe.skip(() => {
 
 it('find_san10_c B= b/K', () => {
 
@@ -100,9 +190,26 @@ E q= =Q
 })
 
 
+it('find_san10_c 0 operator', () => {
+
+  let id = '006of'
+  let fen = tenk.find(_ => _.id === id)!.move_fens[0]
+
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+  let res = print_rules(make_root(fen, `
+E q= =d3 +N 0+
+ A 5
+  .
+`, m), pos)
+
+  console.log(res)
+})
 
 
-it.only('find_san10_c +g2', () => {
+
+
+it('find_san10_c - +g2', () => {
 
   let id = '002Ua'
   let fen = tenk.find(_ => _.id === id)!.move_fens[0]
@@ -298,3 +405,5 @@ E b= =h7 +Q
 
 })
 
+
+})
