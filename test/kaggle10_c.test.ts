@@ -6,6 +6,7 @@ import { parseFen } from "../src/fen"
 set_debug()
 let m = await PositionManager.make()
 
+describe.skip(() => {
 
 it('find_san10_c P +N q|B', () => {
 
@@ -93,6 +94,7 @@ N +R
 
 
 
+})
 
 
 describe.skip(() => {

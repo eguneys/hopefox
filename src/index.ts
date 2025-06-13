@@ -75,3 +75,5 @@ export * from './hopefox_c'
 export * from './kaggle10_c'
 
 export * from './kaggle_mate20'
+
+export * from './mor1'

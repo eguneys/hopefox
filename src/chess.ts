@@ -556,6 +556,14 @@ export class Chess extends Position {
     return pos.validate().map(_ => pos);
   }
 
+  static fromSetupUnchecked(setup: Setup): Chess {
+    const pos = new this();
+    pos.setupUnchecked(setup);
+    return pos
+  }
+
+
+
   clone(): Chess {
     return super.clone() as Chess;
   }
