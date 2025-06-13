@@ -5,7 +5,7 @@ let a = `
 :link: https://lichess.org/training/TYW5G
 :situation:
 Knight blocks queen Queen alignment
-Queen protected by Bishop
+Queen protected_by Bishop
 Bishop Queen battery eyes king, protected by knight
 queen is unprotected
 bishop is protected by queen

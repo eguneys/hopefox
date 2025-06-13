@@ -1,16 +1,18 @@
+import { pbkdf2 } from "crypto"
 import { attacks } from "./attacks"
-import { Chess } from "./chess"
+import { Chess, Position } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
 import { PositionManager } from "./hopefox_c"
 import { blocks } from "./hopefox_helper"
 import { setupClone } from "./setup"
 import { SquareSet } from "./squareSet"
-import { Piece } from "./types"
+import { Piece, Square } from "./types"
 
 enum TokenType {
     PIECE_NAME = 'PIECE_NAME',
     KEYWORD_BLOCKS = 'KEYWORD_BLOCKS',
     KEYWORD_ALIGNMENT = 'KEYWORD_ALIGNMENT',
+    KEYWORD_PROTECTED_BY = 'KEYWORD_PROTECTED_BY',
     EOF = 'EOF',
 }
 
@@ -35,6 +37,7 @@ class Lexer {
         this.keywords = new Map([
             ['blocks', TokenType.KEYWORD_BLOCKS],
             ['alignment', TokenType.KEYWORD_ALIGNMENT],
+            ['protected_by', TokenType.KEYWORD_PROTECTED_BY],
         ])
 
 
@@ -68,7 +71,7 @@ class Lexer {
     }
 
     private is_alpha_num(char: string): boolean {
-        return /[a-zA-Z0-9]/.test(char)
+        return /[a-zA-Z0-9_]/.test(char)
     }
 
     private word() {
@@ -99,12 +102,20 @@ class Lexer {
 }
 
 
-interface ParsedSentence {
-    action: 'blocks_alignment'
+interface BlocksAlignmentSentence {
+    type: 'blocks_alignment'
     blocker: string
     aligned1: string
     aligned2: string
 }
+
+interface ProtectedBySentence {
+    type: 'protected_by',
+    protected: string,
+    protector: string
+}
+
+type ParsedSentence = BlocksAlignmentSentence | ProtectedBySentence
 
 class ParserError extends Error {
 }
@@ -112,10 +123,12 @@ class ParserError extends Error {
 class Parser {
     private lexer: Lexer
     private current_token: Token
+    private lookahead_token: Token
 
     constructor(lexer: Lexer) {
         this.lexer = lexer
         this.current_token = this.lexer.get_next_token()
+        this.lookahead_token = this.lexer.get_next_token()
     }
 
     private error(expected_type?: TokenType) {
@@ -127,9 +140,14 @@ class Parser {
         }
     }
 
+    private advance_tokens() {
+        this.current_token = this.lookahead_token
+        this.lookahead_token = this.lexer.get_next_token()
+    }
+
     private eat(token_type: TokenType) {
         if (this.current_token.type === token_type) {
-            this.current_token = this.lexer.get_next_token()
+            this.advance_tokens()
         } else {
             this.error(token_type)
         }
@@ -142,20 +160,48 @@ class Parser {
         return token.value
     }
 
-    parse_sentence(): ParsedSentence {
+    parse_blocks_alignment(): BlocksAlignmentSentence {
         const blocker = this.piece()
         this.eat(TokenType.KEYWORD_BLOCKS)
         const aligned1 = this.piece()
         const aligned2 = this.piece()
         this.eat(TokenType.KEYWORD_ALIGNMENT)
-        this.eat(TokenType.EOF)
-
         return {
 
-            action: 'blocks_alignment',
+            type: 'blocks_alignment',
             blocker,
             aligned1,
             aligned2
+        }
+    }
+
+
+    parse_protected_by(): ProtectedBySentence {
+        let protected_piece = this.piece()
+        this.eat(TokenType.KEYWORD_PROTECTED_BY)
+        let protector = this.piece()
+
+        return {
+            type: 'protected_by',
+            protected: protected_piece,
+            protector
+        }
+    }
+
+    parse_sentence(): ParsedSentence {
+        if (this.current_token.type !== TokenType.PIECE_NAME) {
+            this.error(TokenType.PIECE_NAME)
+        }
+        if (this.lookahead_token.type === TokenType.KEYWORD_BLOCKS) {
+            const result = this.parse_blocks_alignment()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_PROTECTED_BY) {
+            const result = this.parse_protected_by()
+            this.eat(TokenType.EOF)
+            return result
+        } else {
+            throw this.error()
         }
     }
 }
@@ -179,14 +225,21 @@ function parse_piece(str: string): Piece {
     return m[str]
 }
 
+type Context = {
+    records: Record<string, Square>,
+    pos: Position
+}
+
 export function mor1(text: string) {
 
     let conds = text.trim().split('\n').filter(_ => !_.startsWith(':'))
 
-    let x = conds.slice(0, 1).map(line => {
+    let xx = conds.slice(0, 2).map(line => {
         let a = new Parser(new Lexer(line)).parse_sentence()
         return a
-    })[0]
+    })
+
+    let x = xx[0] as BlocksAlignmentSentence
 
     let aligned1 = parse_piece(x.aligned1)
     let aligned2 = parse_piece(x.aligned2)
@@ -194,7 +247,9 @@ export function mor1(text: string) {
 
     let pos = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
 
-    let res = []
+
+    let ccx: Context[] = []
+
     for (let aligned1_square of SquareSet.full()) {
         for (let aligned2_square of attacks(aligned1, aligned1_square, pos.board.occupied)) {
 
@@ -211,12 +266,52 @@ export function mor1(text: string) {
                 if (bb.length >= 2) {
 
                     if (bb[0].has(blocker_square) && bb[1].has(aligned2_square)) {
-                        res.push(p2)
+
+                        ccx.push({
+                            records: {
+                                [x.aligned1]: aligned1_square,
+                                [x.aligned2]: aligned2_square,
+                                [x.blocker]: blocker_square,
+                            },
+                            pos: p2
+                        })
                     }
                 }
             }
         }
     }
 
-    return res.map(_ => makeFen(_.toSetup()))
+    let y = xx[1] as ProtectedBySentence
+
+    let protector = parse_piece(y.protector)
+    let protected_piece = parse_piece(y.protected)
+
+    let ccx2 = []
+    for (let cx of ccx) {
+
+        let protector_squares = cx.records[y.protector] ? SquareSet.fromSquare(cx.records[y.protector]) : SquareSet.full()
+        let protected_squares = cx.records[y.protected] ? SquareSet.fromSquare(cx.records[y.protected]) : SquareSet.full()
+
+        for (let protector_square of protector_squares) {
+            for (let protected_square of protected_squares.intersect(attacks(protector, protector_square, cx.pos.board.occupied))) {
+
+                let p3 = cx.pos.clone()
+                p3.board.set(protector_square, protector)
+                p3.board.set(protected_square, protected_piece)
+
+                        ccx2.push({
+                            records: {
+                                [y.protector]: protector_square,
+                                [y.protected]: protected_square,
+                            },
+                            pos: p3
+                        })
+            }
+        }
+
+
+    }
+
+
+    return ccx2.map(_ => makeFen(_.pos.toSetup()))
 }
