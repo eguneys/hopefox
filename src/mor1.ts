@@ -25,6 +25,7 @@ enum TokenType {
     KEYWORD_PREVENTING_MATE = 'KEYWORD_PREVENTING_MATE',
     KEYWORD_INTERMEZZO = 'KEYWORD_INTERMEZZO',
     KEYWORD_RECAPTURES = 'KEYWORD_RECAPTURES',
+    KEYWORD_BEFORE = 'KEYWORD_BEFORE',
     COMMA = 'COMMA',
     EOF = 'EOF',
 }
@@ -63,6 +64,7 @@ class Lexer {
             ['intermezzo', TokenType.KEYWORD_INTERMEZZO],
             ['undefended', TokenType.KEYWORD_UNDEFENDED],
             ['recaptures', TokenType.KEYWORD_RECAPTURES],
+            ['before', TokenType.KEYWORD_BEFORE],
         ])
 
 
@@ -167,7 +169,7 @@ interface CanForkSentence {
     type: 'can_fork'
     piece: string
     forked: string[]
-    ifs: (MovesSentence | TakesSentence)[]
+    lines: Line[]
 }
 
 interface MovesSentence {
@@ -182,6 +184,12 @@ interface TakesSentence {
     with_check: boolean
 }
 
+interface BeforeSentence {
+    type: 'before'
+}
+
+type LineSentence = MovesSentence | TakesSentence | BeforeSentence
+type Line = LineSentence[]
 
 interface IsUnprotectedSentence {
     type: 'is_unprotected',
@@ -212,12 +220,17 @@ function is_unprotected(s: ParsedSentence): s is IsUnprotectedSentence {
     return s.type === 'is_unprotected'
 }
 
-function is_moves(s: MovesSentence | TakesSentence): s is MovesSentence {
+function is_moves(s: LineSentence): s is MovesSentence {
     return s.type === 'moves'
 }
-function is_takes(s: MovesSentence | TakesSentence): s is TakesSentence {
+function is_takes(s: LineSentence): s is TakesSentence {
     return s.type === 'takes'
 }
+function is_before(s: LineSentence): s is BeforeSentence {
+    return s.type === 'before'
+}
+
+
 
 class ParserError extends Error {
 }
@@ -342,7 +355,9 @@ class Parser {
             forked.push(this.piece())
         }
 
-        let ifs: (MovesSentence | TakesSentence)[] = []
+        let lines: Line[] = []
+        let line: Line = []
+
         while(true) {
             let current_token = this.current_token
             if (current_token.type === 'COMMA') {
@@ -351,13 +366,23 @@ class Parser {
 
                 if (this.current_token.type === 'KEYWORD_IF') {
                     this.eat(TokenType.KEYWORD_IF)
+                    if (line.length > 0) {
+                        lines.push(line)
+                        line = []
+                    }
+                }
+
+                if (this.current_token.type === 'KEYWORD_BEFORE') {
+                    this.eat(TokenType.KEYWORD_BEFORE)
+                    line.push({ type: 'before' })
                 }
 
                 if (this.lookahead_token.type === 'KEYWORD_MOVES') {
-                    ifs.push(this.parse_moves())
-                }
-                if (this.lookahead_token.type === 'KEYWORD_TAKES') {
-                    ifs.push(this.parse_takes())
+                    line.push(this.parse_moves())
+                } else if (this.lookahead_token.type === 'KEYWORD_RECAPTURES' || this.lookahead_token.type === 'KEYWORD_TAKES' || this.lookahead2_token.type === 'KEYWORD_TAKES') {
+                    line.push(this.parse_takes())
+                } else if (this.current_token.type === 'KEYWORD_PREVENTING_MATE') {
+                    this.eat(TokenType.KEYWORD_PREVENTING_MATE)
                 }
 
             } else {
@@ -365,11 +390,15 @@ class Parser {
             }
         }
 
+        if (line.length > 0) {
+            lines.push(line)
+        }
+
         return {
             type: 'can_fork',
             piece,
             forked,
-            ifs
+            lines
         }
     }
 
@@ -386,7 +415,24 @@ class Parser {
 
     parse_takes(): TakesSentence {
         let taker = this.piece()
-        this.eat(TokenType.KEYWORD_TAKES)
+
+        if (this.current_token.type === 'KEYWORD_INTERMEZZO') {
+            this.eat(TokenType.KEYWORD_INTERMEZZO)
+        }
+
+
+        if (this.current_token.type === 'KEYWORD_TAKES') {
+            this.eat(TokenType.KEYWORD_TAKES)
+        } else if (this.current_token.type === 'KEYWORD_RECAPTURES') {
+            this.eat(TokenType.KEYWORD_RECAPTURES)
+        }
+
+        if (this.current_token.type === 'KEYWORD_UNDEFENDED') {
+            this.eat(TokenType.KEYWORD_UNDEFENDED)
+        }
+
+
+
         let taken = this.piece()
 
         let with_check = false
@@ -399,7 +445,7 @@ class Parser {
             type: 'takes',
             taker,
             taken,
-            with_check
+            with_check,
         }
     }
 
@@ -735,6 +781,20 @@ function resolve_battery_eyes(x: BatteryEyesSentence, ccx: Context[]) {
     return ccx2
 }
 
+function move_records(records: Record<string, Square>, from: Square, to: Square) {
+
+    let res: Record<string, Square> = {}
+
+    for (let key of Object.keys(records)) {
+        if (records[key] === from) {
+            res[key] = to
+        } else {
+            res[key] = records[key]
+        }
+    }
+    return res
+}
+
 
 function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
@@ -791,7 +851,7 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
     }
 
-    if (x.ifs) {
+    if (x.lines) {
 
         let ccx3: Context[] = []
 
@@ -805,52 +865,83 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
                 to
             })
 
-            let pp = [p3]
 
-            for (let moves of x.ifs) {
-                let pp2 = []
-                for (let p3 of pp) {
-                    cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos }
+            let yes = true
+            for (let line of x.lines) {
+                let pp = [{ records: move_records(cx.records, from, to), pos: p3 }]
 
-                    if (is_moves(moves)) {
-                        let moves_square = cx.records[moves.piece]
-                        for (let mto of p3.dests(moves_square)) {
-                            let p4 = p3.clone()
-                            p4.play({
-                                from: moves_square,
-                                to: mto
-                            })
-                            pp2.push(p4)
-                        }
-                    }
+                for (let moves of line) {
+                    let pp2 = []
+                    for (let cxp3 of pp) {
+                        //cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos }
+                        //cx = { records: move_records(cx.records, from, to), pos: cx.pos }
+                        let cx = cxp3
+                        let p3 = cxp3.pos
 
-                    if (is_takes(moves)) {
+                        if (is_before(moves)) {
+                            for (let [from, tos] of p3.allDests()) {
+                                for (let to of tos) {
 
-                        let takes = moves
-                        let taken_square = cx.records[takes.taken]
-                        let taker_square = cx.records[takes.taker]
 
-                        for (let tto of p3.dests(taker_square).intersect(SquareSet.fromSquare(taken_square))) {
-                            let p5 = p3.clone()
-                            p5.play({
-                                from: taker_square,
-                                to: tto
-                            })
-
-                            if (takes.with_check === p5.isCheck()) {
-                                pp2.push(p5)
+                                    let p4 = p3.clone()
+                                    p4.play({
+                                        from,
+                                        to
+                                    })
+                                    pp2.push({ records: move_records(cx.records, from, to), pos: p4 })
+                                }
                             }
                         }
 
+                        if (is_moves(moves)) {
+                            let moves_square = cx.records[moves.piece]
+                            for (let mto of p3.dests(moves_square)) {
+                                let p4 = p3.clone()
+                                p4.play({
+                                    from: moves_square,
+                                    to: mto
+                                })
+                                let from = moves_square
+                                let to = mto
+                                pp2.push({ records: move_records(cx.records, from, to), pos: p4 })
+                            }
+                        }
+
+                        if (is_takes(moves)) {
+
+                            let takes = moves
+
+                            let taken_square = cx.records[takes.taken]
+                            let taker_square = cx.records[takes.taker]
+
+                            for (let tto of p3.dests(taker_square).intersect(SquareSet.fromSquare(taken_square))) {
+                                let p5 = p3.clone()
+                                p5.play({
+                                    from: taker_square,
+                                    to: tto
+                                })
+
+                                if (takes.with_check === p5.isCheck()) {
+                                    let from = taker_square
+                                    let to = tto
+                                    pp2.push({ records: move_records(cx.records, from, to), pos: p5 })
+                                }
+                            }
+
+                        }
                     }
+                    pp = pp2
                 }
-                pp = pp2
+
+                if (pp.length === 0) {
+                    yes = false
+                    break
+                }
             }
 
-            if (pp.length > 0) {
+            if (yes) {
                 ccx3.push(cx)
             }
-
         }
 
 
