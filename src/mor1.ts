@@ -7,6 +7,7 @@ import { blocks } from "./hopefox_helper"
 import { setupClone } from "./setup"
 import { SquareSet } from "./squareSet"
 import { Piece, Square } from "./types"
+import { parseSquare } from "./util"
 
 enum TokenType {
     PIECE_NAME = 'PIECE_NAME',
@@ -19,6 +20,7 @@ enum TokenType {
     KEYWORD_MOVES = 'KEYWORD_MOVES',
     KEYWORD_TAKES = 'KEYWORD_TAKES',
     KEYWORD_WITH_CHECK = 'KEYWORD_WITH_CHECK',
+    KEYWORD_IS_UNPROTECTED = 'KEYWORD_IS_UNPROTECTED',
     COMMA = 'COMMA',
     EOF = 'EOF',
 }
@@ -51,6 +53,7 @@ class Lexer {
             ['moves', TokenType.KEYWORD_MOVES],
             ['takes', TokenType.KEYWORD_TAKES],
             ['with_check', TokenType.KEYWORD_WITH_CHECK],
+            ['is_unprotected', TokenType.KEYWORD_IS_UNPROTECTED],
         ])
 
 
@@ -171,6 +174,10 @@ interface TakesSentence {
 }
 
 
+interface IsUnprotectedSentence {
+    type: 'is_unprotected',
+    piece: string
+}
 
 
 type ParsedSentence = BlocksAlignmentSentence 
@@ -178,6 +185,7 @@ type ParsedSentence = BlocksAlignmentSentence
 | BatteryEyesSentence
 | BatteryEyesProtectedBySentence
 | CanForkSentence
+| IsUnprotectedSentence
 
 function is_blocks_alignment(s: ParsedSentence): s is BlocksAlignmentSentence {
     return s.type === 'blocks_alignment'
@@ -191,6 +199,11 @@ function is_battery_eyes_protected_by(s: ParsedSentence): s is BatteryEyesProtec
 function is_can_fork(s: ParsedSentence): s is CanForkSentence {
     return s.type === 'can_fork'
 }
+function is_unprotected(s: ParsedSentence): s is IsUnprotectedSentence {
+    return s.type === 'is_unprotected'
+}
+
+
 
 class ParserError extends Error {
 }
@@ -238,6 +251,7 @@ class Parser {
         return token.value
     }
 
+
     parse_blocks_alignment(): BlocksAlignmentSentence {
         const blocker = this.piece()
         this.eat(TokenType.KEYWORD_BLOCKS)
@@ -252,6 +266,17 @@ class Parser {
             aligned2
         }
     }
+
+    parse_is_unprotected(): IsUnprotectedSentence {
+        const piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_UNPROTECTED)
+
+        return {
+            type: 'is_unprotected',
+            piece
+        }
+    }
+
 
 
     parse_protected_by(): ProtectedBySentence {
@@ -334,7 +359,12 @@ class Parser {
         if (this.current_token.type !== TokenType.PIECE_NAME) {
             this.error(TokenType.PIECE_NAME)
         }
-        if (this.lookahead_token.type === TokenType.KEYWORD_CAN_FORK) {
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_IS_UNPROTECTED) {
+            const result = this.parse_is_unprotected()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_CAN_FORK) {
             const result = this.parse_can_fork()
             this.eat(TokenType.EOF)
             return result
@@ -391,19 +421,19 @@ function resolve_blocks_alignment(x: BlocksAlignmentSentence, ccx: Context[]) {
 
         let aligned1_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.aligned1]) {
+        if (cx.records[x.aligned1] !== undefined) {
             aligned1_squares = SquareSet.fromSquare(cx.records[x.aligned1])
         }
 
         let blocker_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.blocker]) {
+        if (cx.records[x.blocker] !== undefined) {
             blocker_squares = SquareSet.fromSquare(cx.records[x.blocker])
         }
 
         let aligned2_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.aligned2]) {
+        if (cx.records[x.aligned2] !== undefined) {
             aligned2_squares = SquareSet.fromSquare(cx.records[x.aligned2])
         }
 
@@ -460,15 +490,14 @@ function resolve_protected_by(y: ProtectedBySentence, ccx: Context[]) {
         let protector_squares = cx.pos.board.occupied.complement()
         let protected_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[y.protector]) {
+        if (cx.records[y.protector] !== undefined) {
             protector_squares = SquareSet.fromSquare(cx.records[y.protector])
         }
-        if (cx.records[y.protected]) {
+        if (cx.records[y.protected] !== undefined) {
             protected_squares = SquareSet.fromSquare(cx.records[y.protected])
         }
 
         for (let protector_square of protector_squares) {
-
             let protected_squares2 = protected_squares.intersect(attacks(protector, protector_square, cx.pos.board.occupied))
 
             for (let protected_square of protected_squares2) {
@@ -476,6 +505,7 @@ function resolve_protected_by(y: ProtectedBySentence, ccx: Context[]) {
                 let p3 = cx.pos.clone()
                 p3.board.set(protector_square, protector)
                 p3.board.set(protected_square, protected_piece)
+                let f = makeFen(p3.toSetup())
 
                 ccx2.push({
                     records: {
@@ -513,20 +543,20 @@ function resolve_battery_eyes_protected_by(x: BatteryEyesProtectedBySentence, cc
 
         let protector_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.back]) {
+        if (cx.records[x.back] !== undefined) {
             back_squares = SquareSet.fromSquare(cx.records[x.back])
         }
-        if (cx.records[x.front]) {
+        if (cx.records[x.front] !== undefined) {
             front_squares = SquareSet.fromSquare(cx.records[x.front])
         }
-        if (cx.records[x.eyes]) {
+        if (cx.records[x.eyes] !== undefined) {
             eyes_squares = SquareSet.fromSquare(cx.records[x.eyes])
 
             eyes_squares = attacks(eyes, cx.records[x.eyes], cx.pos.board.occupied)
 
         }
 
-        if (cx.records[x.protector]) {
+        if (cx.records[x.protector] !== undefined) {
             protector_squares = SquareSet.fromSquare(cx.records[x.protector])
         }
 
@@ -597,13 +627,13 @@ function resolve_battery_eyes(x: BatteryEyesSentence, ccx: Context[]) {
         let front_squares = cx.pos.board.occupied.complement()
         let eyes_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.back]) {
+        if (cx.records[x.back] !== undefined) {
             back_squares = SquareSet.fromSquare(cx.records[x.back])
         }
-        if (cx.records[x.front]) {
+        if (cx.records[x.front] !== undefined) {
             front_squares = SquareSet.fromSquare(cx.records[x.front])
         }
-        if (cx.records[x.eyes]) {
+        if (cx.records[x.eyes] !== undefined) {
             eyes_squares = SquareSet.fromSquare(cx.records[x.eyes])
 
             eyes_squares = attacks(eyes, cx.records[x.eyes], cx.pos.board.occupied)
@@ -670,7 +700,7 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
         let piece_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.piece]) {
+        if (cx.records[x.piece] !== undefined) {
             piece_squares = SquareSet.fromSquare(cx.records[x.piece])
         }
 
@@ -712,8 +742,7 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
     }
 
-
-    if (false && x.if) {
+    if (x.if) {
 
         let ccx3 = []
 
@@ -728,6 +757,8 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
                 from,
                 to
             })
+
+            cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos } 
 
             let moves_square = cx.records[moves.piece]
 
@@ -753,7 +784,7 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
                             records: {
                                 ...cx.records
                             },
-                            pos: p5
+                            pos: cx.pos
                         })
 
                     }
@@ -766,6 +797,30 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
 
         return ccx3
+
+    }
+
+    return ccx2
+}
+
+function resolve_is_unprotected(x: IsUnprotectedSentence, ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    let piece = parse_piece(x.piece)
+
+    context: for (let cx of ccx) {
+
+        let piece_square = cx.records[x.piece]
+
+        for (let from of cx.pos.board.occupied) {
+            let from_piece = cx.pos.board.get(from)!
+
+            if (attacks(from_piece, from, cx.pos.board.occupied).has(piece_square)) {
+                continue context
+            }
+
+        }
+        ccx2.push(cx)
 
     }
 
@@ -787,6 +842,7 @@ export function mor1(text: string) {
 
     let k1_squares = SquareSet.full()
     k1_squares = k1_squares.intersect(SquareSet.backrank('black'))
+    //k1_squares = SquareSet.fromSquare(parseSquare('g8'))
 
     let k1 = parse_piece('king')
     let k2 = parse_piece('King')
@@ -797,6 +853,7 @@ export function mor1(text: string) {
         let k2_squares = SquareSet.full().diff(attacks(k1, k1_square, pos.board.occupied))
         k2_squares = k2_squares.intersect(SquareSet.backrank('white'))
         k2_squares = k2_squares.set(k1_square, false)
+        k2_squares = SquareSet.fromSquare(parseSquare('g1'))
 
         for (let k2_square of k2_squares) {
             let p2 = pos.clone()
@@ -813,8 +870,8 @@ export function mor1(text: string) {
 
 
     for (let x of xx) {
-        if (ccx.length > 2000) {
-            //ccx = ccx.slice(2000, 4000)
+        if (ccx.length > 20000) {
+            //ccx = ccx.slice(10000, 20000)
         }
         if (is_blocks_alignment(x)) {
             ccx = resolve_blocks_alignment(x, ccx)
@@ -824,6 +881,8 @@ export function mor1(text: string) {
             ccx = resolve_battery_eyes_protected_by(x, ccx)
         } else if (is_can_fork(x)) {
             ccx = resolve_can_fork(x, ccx)
+        } else if (is_unprotected(x)) {
+            ccx = resolve_is_unprotected(x, ccx)
         } else {
             ccx = resolve_battery_eyes(x, ccx)
         }
@@ -832,7 +891,18 @@ export function mor1(text: string) {
         ccx = filter_not_mates(ccx)
     }
 
-    return ccx.map(_ => makeFen(_.pos.toSetup()))
+    let res = ccx.map(_ => makeFen(_.pos.toSetup()))
+
+    /*
+    console.log(res)
+    console.log(res.includes("2q3k1/2b5/7n/8/2N5/1B6/2Q5/6K1 w - - 0 1"))
+    console.log(res.includes("6k1/2q1b3/5n2/8/8/2N5/2Q5/1B4K1 w - - 0 1"))
+    console.log(res.includes("5k2/8/4n3/7b/8/2QN3q/1B6/B5K1 w - - 0 1"))
+    console.log(res.includes("1k6/8/n7/4q3/8/6B1/1N3Q2/Q5K1 w - - 0 1"))
+    return ''
+    */
+
+    return res
 }
 
 
@@ -843,7 +913,10 @@ function filter_not_mates(ccx: Context[]) {
         if (cx.pos.isCheckmate()) {
             continue
         }
-        if (cx.pos.isCheck()) {
+        if (cx.pos.turn === 'white' && cx.pos.isCheck()) {
+            continue
+        }
+        if (cx.pos.validate().isErr) {
             continue
         }
         ccx2.push(cx)

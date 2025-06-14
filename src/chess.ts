@@ -248,7 +248,7 @@ export abstract class Position {
     return pos;
   }
 
-  protected validate(): Result<undefined, PositionError> {
+  validate(): Result<undefined, PositionError> {
     if (this.board.occupied.isEmpty()) return Result.err(new PositionError(IllegalSetup.Empty));
     if (this.board.king.size() !== 2) return Result.err(new PositionError(IllegalSetup.Kings));
 
