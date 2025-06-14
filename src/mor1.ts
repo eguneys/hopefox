@@ -21,6 +21,10 @@ enum TokenType {
     KEYWORD_TAKES = 'KEYWORD_TAKES',
     KEYWORD_WITH_CHECK = 'KEYWORD_WITH_CHECK',
     KEYWORD_IS_UNPROTECTED = 'KEYWORD_IS_UNPROTECTED',
+    KEYWORD_UNDEFENDED = 'KEYWORD_UNDEFENDED',
+    KEYWORD_PREVENTING_MATE = 'KEYWORD_PREVENTING_MATE',
+    KEYWORD_INTERMEZZO = 'KEYWORD_INTERMEZZO',
+    KEYWORD_RECAPTURES = 'KEYWORD_RECAPTURES',
     COMMA = 'COMMA',
     EOF = 'EOF',
 }
@@ -54,6 +58,11 @@ class Lexer {
             ['takes', TokenType.KEYWORD_TAKES],
             ['with_check', TokenType.KEYWORD_WITH_CHECK],
             ['is_unprotected', TokenType.KEYWORD_IS_UNPROTECTED],
+
+            ['preventing_mate', TokenType.KEYWORD_PREVENTING_MATE],
+            ['intermezzo', TokenType.KEYWORD_INTERMEZZO],
+            ['undefended', TokenType.KEYWORD_UNDEFENDED],
+            ['recaptures', TokenType.KEYWORD_RECAPTURES],
         ])
 
 
@@ -158,7 +167,7 @@ interface CanForkSentence {
     type: 'can_fork'
     piece: string
     forked: string[]
-    if: [MovesSentence, TakesSentence]
+    ifs: (MovesSentence | TakesSentence)[]
 }
 
 interface MovesSentence {
@@ -168,9 +177,9 @@ interface MovesSentence {
 
 interface TakesSentence {
     type: 'takes'
-    piece: string
-    takes: string
-    with_check?: true
+    taken: string
+    taker: string
+    with_check: boolean
 }
 
 
@@ -203,7 +212,12 @@ function is_unprotected(s: ParsedSentence): s is IsUnprotectedSentence {
     return s.type === 'is_unprotected'
 }
 
-
+function is_moves(s: MovesSentence | TakesSentence): s is MovesSentence {
+    return s.type === 'moves'
+}
+function is_takes(s: MovesSentence | TakesSentence): s is TakesSentence {
+    return s.type === 'takes'
+}
 
 class ParserError extends Error {
 }
@@ -328,31 +342,63 @@ class Parser {
             forked.push(this.piece())
         }
 
+        let ifs = []
+        while(true) {
+            if (this.current_token.type === 'COMMA') {
 
-        this.eat(TokenType.COMMA)
+                this.eat(TokenType.COMMA)
 
-        this.eat(TokenType.KEYWORD_IF)
-        let moves = this.piece()
-        this.eat(TokenType.KEYWORD_MOVES)
+                if (this.lookahead_token.type === 'KEYWORD_IF') {
+                    this.eat(TokenType.KEYWORD_IF)
+                }
 
-        this.eat(TokenType.COMMA)
-        let taker = this.piece()
-        this.eat(TokenType.KEYWORD_TAKES)
-        let takes = this.piece()
+                if (this.lookahead_token.type === 'KEYWORD_MOVES') {
+                    ifs.push(this.parse_moves())
+                }
+                if (this.lookahead_token.type === 'KEYWORD_TAKES') {
+                    ifs.push(this.parse_takes())
+                }
 
-        this.eat(TokenType.KEYWORD_WITH_CHECK)
-
-        let _if: [MovesSentence, TakesSentence] = [{ type: 'moves', piece: moves }, { type: 'takes', piece: taker, takes, with_check: true }]
+            }
+        }
 
         return {
             type: 'can_fork',
             piece,
             forked,
-            if: _if
+            ifs
         }
     }
 
 
+    parse_moves() {
+        let moves = this.piece()
+        this.eat(TokenType.KEYWORD_MOVES)
+
+        return {
+            type: 'moves',
+            piece: moves
+        }
+    }
+
+    parse_takes() {
+        let taker = this.piece()
+        this.eat(TokenType.KEYWORD_TAKES)
+        let taken = this.piece()
+
+        let with_check = false
+        if (this.lookahead_token.type === TokenType.KEYWORD_WITH_CHECK) {
+            this.eat(TokenType.KEYWORD_WITH_CHECK)
+            with_check = true
+        }
+
+        return {
+            type: 'takes',
+            taker,
+            taken,
+            with_check
+        }
+    }
 
 
     parse_sentence(): ParsedSentence {
@@ -742,13 +788,11 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
     }
 
-    if (x.if) {
+    if (x.ifs) {
 
-        let ccx3 = []
+        let ccx3: Context[] = []
 
-        let [moves, takes] = x.if
-
-        context: for (let i = 0; i< ccx2.length; i++) {
+        context: for (let i = 0; i < ccx2.length; i++) {
             let cx = ccx2[i]
             let [from, to] = if_ms[i]
 
@@ -758,40 +802,50 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
                 to
             })
 
-            cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos } 
+            let pp = [p3]
 
-            let moves_square = cx.records[moves.piece]
+            for (let moves of x.ifs) {
+                let pp2 = []
+                for (let p3 of pp) {
+                cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos }
 
-            for (let mto of p3.dests(moves_square)) {
-                let p4 = p3.clone()
-                p4.play({
-                    from: moves_square,
-                    to: mto
-                })
-
-                let takes_square = cx.records[takes.piece]
-                let taken_square = cx.records[takes.takes]
-
-                for (let tto of p4.dests(takes_square).intersect(SquareSet.fromSquare(taken_square))) {
-                    let p5 = p4.clone()
-                    p5.play({
-                        from: takes_square,
-                        to: tto
-                    })
-
-                    if (p5.isCheck()) {
-                        ccx3.push({
-                            records: {
-                                ...cx.records
-                            },
-                            pos: cx.pos
+                if (is_moves(moves)) {
+                    let moves_square = cx.records[moves.piece]
+                    for (let mto of p3.dests(moves_square)) {
+                        let p4 = p3.clone()
+                        p4.play({
+                            from: moves_square,
+                            to: mto
                         })
-
-                        continue context
+                        pp2.push(p4)
                     }
                 }
 
+                if (is_takes(moves)) {
 
+                    let takes = moves
+                    let taken_square = cx.records[takes.taken]
+                    let taker_square = cx.records[takes.taker]
+
+                    for (let tto of p3.dests(taker_square).intersect(SquareSet.fromSquare(taken_square))) {
+                        let p5 = p3.clone()
+                        p5.play({
+                            from: taker_square,
+                            to: tto
+                        })
+
+                        if (takes.with_check === p5.isCheck()) {
+                            pp2.push(p5)
+                        }
+                    }
+
+                }
+                }
+                pp = pp2
+            }
+
+            if (pp.length > 0) {
+                ccx3.push(cx)
             }
 
         }
