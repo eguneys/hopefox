@@ -5,6 +5,7 @@ let a = `
 :link: https://lichess.org/training/k1PXu
 :situation:
 both rooks are_aligned on_the_2nd_rank
+King is_at_the_backrank and attacks a rook so_there_is_no_mate_threat
 `
 
 let b = `

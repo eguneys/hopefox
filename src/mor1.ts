@@ -8,6 +8,7 @@ import { setupClone } from "./setup"
 import { SquareSet } from "./squareSet"
 import { Piece, Square } from "./types"
 import { parseSquare } from "./util"
+import { piece } from "./debug"
 
 
 
@@ -129,7 +130,10 @@ class Lexer {
         this.pair_names = new Map([
             ['rooks', TokenType.PAIR_NAME],
             ['bishops', TokenType.PAIR_NAME],
-            ['knights', TokenType.PAIR_NAME]
+            ['knights', TokenType.PAIR_NAME],
+            ['Rooks', TokenType.PAIR_NAME],
+            ['Bishops', TokenType.PAIR_NAME],
+            ['Knights', TokenType.PAIR_NAME]
         ])
 
     }
@@ -531,14 +535,17 @@ class Parser {
         }
 
         this.eat(TokenType.KEYWORD_ARE_ALIGNED)
+        let rank
         if (this.current_token.type === TokenType.KEYWORD_ON_THE_2ND_RANK) {
             this.eat(TokenType.KEYWORD_ON_THE_2ND_RANK)
+            rank = 1
         }
 
         return {
             type: 'are_aligned',
             piece1,
-            piece2
+            piece2,
+            rank
 
         }
     }
@@ -587,6 +594,9 @@ function pair_to_pieces(str: string): [string, string] {
         'rooks': ['rook', 'rook2'],
         'knights': ['knight', 'knight2'],
         'bishops': ['bishop', 'bishop2'],
+        'Rooks': ['Rook', 'Rook2'],
+        'Knights': ['Knight', 'Knight2'],
+        'Bishops': ['Bishop', 'Bishop2'],
     }
 
     return m[str]
@@ -607,7 +617,23 @@ function parse_piece(str: string): Piece {
         'Knight': { role: 'knight', color: 'white' },
         'Pawn': { role: 'pawn', color: 'white' },
     }
-    return m[str]
+
+    const m2: Record<string, Piece> = {
+        'queen2': { role: 'queen', color: 'black' },
+        'bishop2': { role: 'bishop', color: 'black' },
+        'rook2': { role: 'rook', color: 'black' },
+        'king2': { role: 'king', color: 'black' },
+        'knight2': { role: 'knight', color: 'black' },
+        'pawn2': { role: 'pawn', color: 'black' },
+        'Queen2': { role: 'queen', color: 'white' },
+        'Bishop2': { role: 'bishop', color: 'white' },
+        'Rook2': { role: 'rook', color: 'white' },
+        'King2': { role: 'king', color: 'white' },
+        'Knight2': { role: 'knight', color: 'white' },
+        'Pawn2': { role: 'pawn', color: 'white' },
+    }
+
+    return m[str] ?? m2[str]
 }
 
 type Context = {
@@ -1090,8 +1116,58 @@ function resolve_is_unprotected(x: IsUnprotectedSentence, ccx: Context[]) {
 function resolve_are_aligned(x: AreAlignedSentence, ccx: Context[]) {
     let ccx2: Context[] = []
 
+    let piece1 = parse_piece(x.piece1)
+    let piece2 = parse_piece(x.piece2)
+
     for (let cx of ccx) {
 
+        let piece1_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.piece1] !== undefined) {
+            piece1_squares = SquareSet.fromSquare(cx.records[x.piece1])
+        }
+
+        let piece2_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.piece1] !== undefined) {
+            piece2_squares = SquareSet.fromSquare(cx.records[x.piece2])
+        }
+
+        for (let piece1_square of piece1_squares) {
+
+            if (x.rank) {
+                if (!SquareSet.fromRank(x.rank).has(piece1_square)) {
+                    continue
+                }
+            }
+
+            for (let piece2_square of piece2_squares.intersect(attacks(piece1, piece1_square, cx.pos.board.occupied))) {
+
+                if (x.rank) {
+                    if (!SquareSet.fromRank(x.rank).has(piece2_square)) {
+                        continue
+                    }
+                }
+
+
+
+                let p3 = cx.pos.clone()
+
+                p3.board.set(piece1_square, piece1)
+                p3.board.set(piece2_square, piece2)
+
+                ccx2.push({
+                    records: {
+                        ...cx.records,
+                        [x.piece1]: piece1_square,
+                        [x.piece2]: piece2_square
+                    },
+                    pos: p3
+                })
+
+
+            }
+        }
     }
 
     return ccx2
