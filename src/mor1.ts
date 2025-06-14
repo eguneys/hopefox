@@ -342,13 +342,14 @@ class Parser {
             forked.push(this.piece())
         }
 
-        let ifs = []
+        let ifs: (MovesSentence | TakesSentence)[] = []
         while(true) {
-            if (this.current_token.type === 'COMMA') {
+            let current_token = this.current_token
+            if (current_token.type === 'COMMA') {
 
                 this.eat(TokenType.COMMA)
 
-                if (this.lookahead_token.type === 'KEYWORD_IF') {
+                if (this.current_token.type === 'KEYWORD_IF') {
                     this.eat(TokenType.KEYWORD_IF)
                 }
 
@@ -359,6 +360,8 @@ class Parser {
                     ifs.push(this.parse_takes())
                 }
 
+            } else {
+                break
             }
         }
 
@@ -371,7 +374,7 @@ class Parser {
     }
 
 
-    parse_moves() {
+    parse_moves(): MovesSentence {
         let moves = this.piece()
         this.eat(TokenType.KEYWORD_MOVES)
 
@@ -381,13 +384,13 @@ class Parser {
         }
     }
 
-    parse_takes() {
+    parse_takes(): TakesSentence {
         let taker = this.piece()
         this.eat(TokenType.KEYWORD_TAKES)
         let taken = this.piece()
 
         let with_check = false
-        if (this.lookahead_token.type === TokenType.KEYWORD_WITH_CHECK) {
+        if (this.current_token.type === TokenType.KEYWORD_WITH_CHECK) {
             this.eat(TokenType.KEYWORD_WITH_CHECK)
             with_check = true
         }
@@ -807,39 +810,39 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
             for (let moves of x.ifs) {
                 let pp2 = []
                 for (let p3 of pp) {
-                cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos }
+                    cx = { records: { ...cx.records, [x.piece]: to }, pos: cx.pos }
 
-                if (is_moves(moves)) {
-                    let moves_square = cx.records[moves.piece]
-                    for (let mto of p3.dests(moves_square)) {
-                        let p4 = p3.clone()
-                        p4.play({
-                            from: moves_square,
-                            to: mto
-                        })
-                        pp2.push(p4)
-                    }
-                }
-
-                if (is_takes(moves)) {
-
-                    let takes = moves
-                    let taken_square = cx.records[takes.taken]
-                    let taker_square = cx.records[takes.taker]
-
-                    for (let tto of p3.dests(taker_square).intersect(SquareSet.fromSquare(taken_square))) {
-                        let p5 = p3.clone()
-                        p5.play({
-                            from: taker_square,
-                            to: tto
-                        })
-
-                        if (takes.with_check === p5.isCheck()) {
-                            pp2.push(p5)
+                    if (is_moves(moves)) {
+                        let moves_square = cx.records[moves.piece]
+                        for (let mto of p3.dests(moves_square)) {
+                            let p4 = p3.clone()
+                            p4.play({
+                                from: moves_square,
+                                to: mto
+                            })
+                            pp2.push(p4)
                         }
                     }
 
-                }
+                    if (is_takes(moves)) {
+
+                        let takes = moves
+                        let taken_square = cx.records[takes.taken]
+                        let taker_square = cx.records[takes.taker]
+
+                        for (let tto of p3.dests(taker_square).intersect(SquareSet.fromSquare(taken_square))) {
+                            let p5 = p3.clone()
+                            p5.play({
+                                from: taker_square,
+                                to: tto
+                            })
+
+                            if (takes.with_check === p5.isCheck()) {
+                                pp2.push(p5)
+                            }
+                        }
+
+                    }
                 }
                 pp = pp2
             }
