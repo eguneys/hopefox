@@ -748,7 +748,7 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
 
         let [moves, takes] = x.if
 
-        for (let i = 0; i< ccx2.length; i++) {
+        context: for (let i = 0; i< ccx2.length; i++) {
             let cx = ccx2[i]
             let [from, to] = if_ms[i]
 
@@ -787,6 +787,7 @@ function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
                             pos: cx.pos
                         })
 
+                        continue context
                     }
                 }
 
