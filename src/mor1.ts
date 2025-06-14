@@ -1,7 +1,7 @@
 import { pbkdf2 } from "crypto"
 import { attacks } from "./attacks"
-import { Chess, Position } from "./chess"
-import { EMPTY_FEN, makeFen, parseFen } from "./fen"
+import { Chess, Position, pseudoDests } from "./chess"
+import { EMPTY_FEN, makeFen, parseCastlingFen, parseFen } from "./fen"
 import { PositionManager } from "./hopefox_c"
 import { blocks } from "./hopefox_helper"
 import { setupClone } from "./setup"
@@ -13,6 +13,13 @@ enum TokenType {
     KEYWORD_BLOCKS = 'KEYWORD_BLOCKS',
     KEYWORD_ALIGNMENT = 'KEYWORD_ALIGNMENT',
     KEYWORD_PROTECTED_BY = 'KEYWORD_PROTECTED_BY',
+    KEYWORD_BATTERY_EYES = 'KEYWORD_BATTERY_EYES',
+    KEYWORD_CAN_FORK = 'KEYWORD_CAN_FORK',
+    KEYWORD_IF = 'KEYWORD_IF',
+    KEYWORD_MOVES = 'KEYWORD_MOVES',
+    KEYWORD_TAKES = 'KEYWORD_TAKES',
+    KEYWORD_WITH_CHECK = 'KEYWORD_WITH_CHECK',
+    COMMA = 'COMMA',
     EOF = 'EOF',
 }
 
@@ -38,6 +45,12 @@ class Lexer {
             ['blocks', TokenType.KEYWORD_BLOCKS],
             ['alignment', TokenType.KEYWORD_ALIGNMENT],
             ['protected_by', TokenType.KEYWORD_PROTECTED_BY],
+            ['battery_eyes', TokenType.KEYWORD_BATTERY_EYES],
+            ['can_fork', TokenType.KEYWORD_CAN_FORK],
+            ['if', TokenType.KEYWORD_IF],
+            ['moves', TokenType.KEYWORD_MOVES],
+            ['takes', TokenType.KEYWORD_TAKES],
+            ['with_check', TokenType.KEYWORD_WITH_CHECK],
         ])
 
 
@@ -74,6 +87,10 @@ class Lexer {
         return /[a-zA-Z0-9_]/.test(char)
     }
 
+    private is_comma(char: string): boolean {
+        return char === ','
+    }
+
     private word() {
         let result = ''
         while (this.current_char !== undefined && this.is_alpha_num(this.current_char)) {
@@ -89,6 +106,10 @@ class Lexer {
             if (/\s/.test(this.current_char)) {
                 this.skip_whitespace()
                 continue
+            }
+            if (this.is_comma(this.current_char)) {
+                this.advance()
+                return { type: TokenType.COMMA, value: ',' }
             }
             const word_str = this.word()
             if (this.keywords.has(word_str)) {
@@ -110,12 +131,66 @@ interface BlocksAlignmentSentence {
 }
 
 interface ProtectedBySentence {
-    type: 'protected_by',
-    protected: string,
+    type: 'protected_by'
+    protected: string
     protector: string
 }
 
-type ParsedSentence = BlocksAlignmentSentence | ProtectedBySentence
+interface BatteryEyesSentence {
+    type: 'battery_eyes'
+    back: string
+    front: string
+    eyes: string
+}
+
+interface BatteryEyesProtectedBySentence {
+    type: 'battery_eyes_protected_by'
+    back: string
+    front: string
+    eyes: string
+    protector: string
+}
+
+interface CanForkSentence {
+    type: 'can_fork'
+    piece: string
+    forked: string[]
+    if: [MovesSentence, TakesSentence]
+}
+
+interface MovesSentence {
+    type: 'moves'
+    piece: string
+}
+
+interface TakesSentence {
+    type: 'takes'
+    piece: string
+    takes: string
+    with_check?: true
+}
+
+
+
+
+type ParsedSentence = BlocksAlignmentSentence 
+| ProtectedBySentence
+| BatteryEyesSentence
+| BatteryEyesProtectedBySentence
+| CanForkSentence
+
+function is_blocks_alignment(s: ParsedSentence): s is BlocksAlignmentSentence {
+    return s.type === 'blocks_alignment'
+}
+function is_protected_by(s: ParsedSentence): s is ProtectedBySentence {
+    return s.type === 'protected_by'
+}
+function is_battery_eyes_protected_by(s: ParsedSentence): s is BatteryEyesProtectedBySentence {
+    return s.type === 'battery_eyes_protected_by'
+}
+function is_can_fork(s: ParsedSentence): s is CanForkSentence {
+    return s.type === 'can_fork'
+}
 
 class ParserError extends Error {
 }
@@ -124,11 +199,13 @@ class Parser {
     private lexer: Lexer
     private current_token: Token
     private lookahead_token: Token
+    private lookahead2_token: Token
 
     constructor(lexer: Lexer) {
         this.lexer = lexer
         this.current_token = this.lexer.get_next_token()
         this.lookahead_token = this.lexer.get_next_token()
+        this.lookahead2_token = this.lexer.get_next_token()
     }
 
     private error(expected_type?: TokenType) {
@@ -142,7 +219,8 @@ class Parser {
 
     private advance_tokens() {
         this.current_token = this.lookahead_token
-        this.lookahead_token = this.lexer.get_next_token()
+        this.lookahead_token = this.lookahead2_token
+        this.lookahead2_token = this.lexer.get_next_token()
     }
 
     private eat(token_type: TokenType) {
@@ -188,16 +266,88 @@ class Parser {
         }
     }
 
+    parse_battery_eyes(): BatteryEyesSentence | BatteryEyesProtectedBySentence {
+        let back = this.piece()
+        let front = this.piece()
+        this.eat(TokenType.KEYWORD_BATTERY_EYES)
+        let eyes = this.piece()
+
+        if (this.current_token.type === TokenType.KEYWORD_PROTECTED_BY) {
+            this.eat(TokenType.KEYWORD_PROTECTED_BY)
+            let protector = this.piece()
+
+        return {
+            type: 'battery_eyes_protected_by',
+            back,
+            front,
+            eyes,
+            protector
+        }
+
+        }
+
+        return {
+            type: 'battery_eyes',
+            back,
+            front,
+            eyes
+        }
+    }
+
+    parse_can_fork(): CanForkSentence {
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_CAN_FORK)
+
+        let forked = []
+        while (this.current_token.type === TokenType.PIECE_NAME) {
+            forked.push(this.piece())
+        }
+
+
+        this.eat(TokenType.COMMA)
+
+        this.eat(TokenType.KEYWORD_IF)
+        let moves = this.piece()
+        this.eat(TokenType.KEYWORD_MOVES)
+
+        this.eat(TokenType.COMMA)
+        let taker = this.piece()
+        this.eat(TokenType.KEYWORD_TAKES)
+        let takes = this.piece()
+
+        this.eat(TokenType.KEYWORD_WITH_CHECK)
+
+        let _if: [MovesSentence, TakesSentence] = [{ type: 'moves', piece: moves }, { type: 'takes', piece: taker, takes, with_check: true }]
+
+        return {
+            type: 'can_fork',
+            piece,
+            forked,
+            if: _if
+        }
+    }
+
+
+
+
     parse_sentence(): ParsedSentence {
         if (this.current_token.type !== TokenType.PIECE_NAME) {
             this.error(TokenType.PIECE_NAME)
         }
-        if (this.lookahead_token.type === TokenType.KEYWORD_BLOCKS) {
+        if (this.lookahead_token.type === TokenType.KEYWORD_CAN_FORK) {
+            const result = this.parse_can_fork()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_BLOCKS) {
             const result = this.parse_blocks_alignment()
             this.eat(TokenType.EOF)
             return result
         } else if (this.lookahead_token.type === TokenType.KEYWORD_PROTECTED_BY) {
             const result = this.parse_protected_by()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead2_token.type === TokenType.KEYWORD_BATTERY_EYES) {
+            const result = this.parse_battery_eyes()
             this.eat(TokenType.EOF)
             return result
         } else {
@@ -221,7 +371,6 @@ function parse_piece(str: string): Piece {
         'Knight': { role: 'knight', color: 'white' },
         'Pawn': { role: 'pawn', color: 'white' },
     }
-    console.log(str, m[str])
     return m[str]
 }
 
@@ -230,58 +379,77 @@ type Context = {
     pos: Position
 }
 
-export function mor1(text: string) {
-
-    let conds = text.trim().split('\n').filter(_ => !_.startsWith(':'))
-
-    let xx = conds.slice(0, 2).map(line => {
-        let a = new Parser(new Lexer(line)).parse_sentence()
-        return a
-    })
-
-    let x = xx[0] as BlocksAlignmentSentence
+function resolve_blocks_alignment(x: BlocksAlignmentSentence, ccx: Context[]) {
 
     let aligned1 = parse_piece(x.aligned1)
     let aligned2 = parse_piece(x.aligned2)
     let blocker = parse_piece(x.blocker)
 
-    let pos = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
 
+    let ccx2 = []
+    for (let cx of ccx) {
 
-    let ccx: Context[] = []
+        let aligned1_squares = cx.pos.board.occupied.complement()
 
-    for (let aligned1_square of SquareSet.full()) {
-        for (let aligned2_square of attacks(aligned1, aligned1_square, pos.board.occupied)) {
+        if (cx.records[x.aligned1]) {
+            aligned1_squares = SquareSet.fromSquare(cx.records[x.aligned1])
+        }
 
-            for (let blocker_square of SquareSet.full()) {
+        let blocker_squares = cx.pos.board.occupied.complement()
 
-                let p2 = pos.clone()
-                p2.board.set(aligned1_square, aligned1)
-                p2.board.set(aligned2_square, aligned2)
+        if (cx.records[x.blocker]) {
+            blocker_squares = SquareSet.fromSquare(cx.records[x.blocker])
+        }
 
-                p2.board.set(blocker_square, blocker)
+        let aligned2_squares = cx.pos.board.occupied.complement()
 
-                let bb = blocks(aligned1, aligned1_square, p2.board.occupied)
+        if (cx.records[x.aligned2]) {
+            aligned2_squares = SquareSet.fromSquare(cx.records[x.aligned2])
+        }
 
-                if (bb.length >= 2) {
+        for (let aligned1_square of aligned1_squares) {
 
-                    if (bb[0].has(blocker_square) && bb[1].has(aligned2_square)) {
+            let aligned2_squares2 = aligned2_squares.set(aligned1_square, false)
 
-                        ccx.push({
-                            records: {
-                                [x.aligned1]: aligned1_square,
-                                [x.aligned2]: aligned2_square,
-                                [x.blocker]: blocker_square,
-                            },
-                            pos: p2
-                        })
+            for (let aligned2_square of aligned2_squares2) {
+
+                let blocker_squares2 = blocker_squares.set(aligned1_square, false)
+                blocker_squares2 = blocker_squares2.set(aligned2_square, false)
+
+                for (let blocker_square of blocker_squares2) {
+
+                    let p2 = cx.pos.clone()
+                    p2.board.set(aligned1_square, aligned1)
+                    p2.board.set(aligned2_square, aligned2)
+
+                    p2.board.set(blocker_square, blocker)
+
+                    let bb = blocks(aligned1, aligned1_square, p2.board.occupied)
+
+                    if (bb.length >= 2) {
+
+                        if (bb[0].has(blocker_square) && bb[1].has(aligned2_square)) {
+
+                            ccx2.push({
+                                records: {
+                                    ...cx.records,
+                                    [x.aligned1]: aligned1_square,
+                                    [x.aligned2]: aligned2_square,
+                                    [x.blocker]: blocker_square,
+                                },
+                                pos: p2
+                            })
+                        }
                     }
                 }
             }
         }
     }
 
-    let y = xx[1] as ProtectedBySentence
+    return ccx2
+}
+
+function resolve_protected_by(y: ProtectedBySentence, ccx: Context[]) {
 
     let protector = parse_piece(y.protector)
     let protected_piece = parse_piece(y.protected)
@@ -289,29 +457,397 @@ export function mor1(text: string) {
     let ccx2 = []
     for (let cx of ccx) {
 
-        let protector_squares = cx.records[y.protector] ? SquareSet.fromSquare(cx.records[y.protector]) : SquareSet.full()
-        let protected_squares = cx.records[y.protected] ? SquareSet.fromSquare(cx.records[y.protected]) : SquareSet.full()
+        let protector_squares = cx.pos.board.occupied.complement()
+        let protected_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[y.protector]) {
+            protector_squares = SquareSet.fromSquare(cx.records[y.protector])
+        }
+        if (cx.records[y.protected]) {
+            protected_squares = SquareSet.fromSquare(cx.records[y.protected])
+        }
 
         for (let protector_square of protector_squares) {
-            for (let protected_square of protected_squares.intersect(attacks(protector, protector_square, cx.pos.board.occupied))) {
+
+            let protected_squares2 = protected_squares.intersect(attacks(protector, protector_square, cx.pos.board.occupied))
+
+            for (let protected_square of protected_squares2) {
 
                 let p3 = cx.pos.clone()
                 p3.board.set(protector_square, protector)
                 p3.board.set(protected_square, protected_piece)
 
-                        ccx2.push({
-                            records: {
-                                [y.protector]: protector_square,
-                                [y.protected]: protected_square,
-                            },
-                            pos: p3
-                        })
+                ccx2.push({
+                    records: {
+                        ...cx.records,
+                        [y.protector]: protector_square,
+                        [y.protected]: protected_square,
+                    },
+                    pos: p3
+                })
             }
         }
 
 
     }
 
+    return ccx2
+}
 
-    return ccx2.map(_ => makeFen(_.pos.toSetup()))
+
+function resolve_battery_eyes_protected_by(x: BatteryEyesProtectedBySentence, ccx: Context[]) {
+
+    let back = parse_piece(x.back)
+    let front = parse_piece(x.front)
+    let eyes = parse_piece(x.eyes)
+
+    let protector = parse_piece(x.protector)
+
+    let ccx2: Context[] = []
+
+    for (let cx of ccx) {
+
+        let back_squares = cx.pos.board.occupied.complement()
+        let front_squares = cx.pos.board.occupied.complement()
+        let eyes_squares = cx.pos.board.occupied.complement()
+
+        let protector_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.back]) {
+            back_squares = SquareSet.fromSquare(cx.records[x.back])
+        }
+        if (cx.records[x.front]) {
+            front_squares = SquareSet.fromSquare(cx.records[x.front])
+        }
+        if (cx.records[x.eyes]) {
+            eyes_squares = SquareSet.fromSquare(cx.records[x.eyes])
+
+            eyes_squares = attacks(eyes, cx.records[x.eyes], cx.pos.board.occupied)
+
+        }
+
+        if (cx.records[x.protector]) {
+            protector_squares = SquareSet.fromSquare(cx.records[x.protector])
+        }
+
+        for (let back_square of back_squares) {
+            let front_squares2 = front_squares.intersect(attacks(back, back_square, cx.pos.board.occupied))
+
+            for (let front_square of front_squares2) {
+
+
+                for (let eye_square of eyes_squares) {
+
+
+                    for (let protector_square of protector_squares) {
+                        if (!attacks(protector, protector_square, cx.pos.board.occupied).has(eye_square)) {
+                            continue
+                        }
+
+                        let p3 = cx.pos.clone()
+
+                        p3.board.set(back_square, back)
+                        p3.board.set(front_square, front)
+                        p3.board.set(eye_square, eyes)
+                        p3.board.set(protector_square, protector)
+
+                        let bb = blocks(back, back_square, p3.board.occupied)
+
+                        if (bb.length >= 2) {
+                            if (bb[0].has(front_square) && bb[1].has(eye_square)) {
+
+                                p3.board.take(eye_square)
+                                ccx2.push({
+                                    records: {
+                                        ...cx.records,
+                                        [x.front]: front_square,
+                                        [x.back]: back_square,
+                                        [x.protector]: protector_square
+                                    },
+                                    pos: p3
+                                })
+
+                            }
+                        }
+                    }
+                }
+
+
+            }
+
+        }
+
+
+    }
+
+    return ccx2
+}
+
+function resolve_battery_eyes(x: BatteryEyesSentence, ccx: Context[]) {
+
+    let back = parse_piece(x.back)
+    let front = parse_piece(x.front)
+    let eyes = parse_piece(x.eyes)
+
+    let ccx2: Context[] = []
+
+    for (let cx of ccx) {
+
+        let back_squares = cx.pos.board.occupied.complement()
+        let front_squares = cx.pos.board.occupied.complement()
+        let eyes_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.back]) {
+            back_squares = SquareSet.fromSquare(cx.records[x.back])
+        }
+        if (cx.records[x.front]) {
+            front_squares = SquareSet.fromSquare(cx.records[x.front])
+        }
+        if (cx.records[x.eyes]) {
+            eyes_squares = SquareSet.fromSquare(cx.records[x.eyes])
+
+            eyes_squares = attacks(eyes, cx.records[x.eyes], cx.pos.board.occupied)
+
+        }
+
+        for (let back_square of back_squares) {
+            let front_squares2 = front_squares.intersect(attacks(back, back_square, cx.pos.board.occupied))
+
+            for (let front_square of front_squares2) {
+
+
+                for (let eye_square of eyes_squares) {
+
+
+                    let p3 = cx.pos.clone()
+
+                    p3.board.set(back_square, back)
+                    p3.board.set(front_square, front)
+                    p3.board.set(eye_square, eyes)
+
+                    let bb = blocks(back, back_square, p3.board.occupied)
+
+                    if (bb.length >= 2) {
+                        if (bb[0].has(front_square) && bb[1].has(eye_square)) {
+
+                            p3.board.take(eye_square)
+                            ccx2.push({
+                                records: {
+                                    ...cx.records,
+                                    [x.front]: front_square,
+                                    [x.back]: back_square,
+                                    [x.eyes]: eye_square,
+                                },
+                                pos: p3
+                            })
+
+                        }
+                    }
+                }
+
+
+            }
+
+        }
+
+
+    }
+
+    return ccx2
+}
+
+
+function resolve_can_fork(x: CanForkSentence, ccx: Context[]) {
+
+    let piece = parse_piece(x.piece)
+    let forked = x.forked.map(parse_piece)
+
+    let ccx2: Context[] = []
+
+    let if_ms = []
+
+    for (let cx of ccx) {
+
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.piece]) {
+            piece_squares = SquareSet.fromSquare(cx.records[x.piece])
+        }
+
+        let forked_squares = SquareSet.empty()
+
+        for (let forked of x.forked) {
+            forked_squares = forked_squares.set(cx.records[forked], true)
+        }
+
+        for (let piece_square of piece_squares) {
+
+            let a1_squares = attacks(piece, piece_square, cx.pos.board.occupied)
+
+            for (let a1_square of a1_squares) {
+                let fork_squares = attacks(piece, a1_square, cx.pos.board.occupied)
+                if (!fork_squares.supersetOf(forked_squares)) {
+                    continue
+                }
+
+
+                let p3 = cx.pos.clone()
+
+                p3.board.set(piece_square, piece)
+
+                if_ms.push([piece_square, a1_square])
+
+                ccx2.push({
+                    records: {
+                        ...cx.records,
+                        [x.piece]: piece_square
+                    },
+                    pos: p3
+                })
+
+
+            }
+
+        }
+
+    }
+
+
+    if (false && x.if) {
+
+        let ccx3 = []
+
+        let [moves, takes] = x.if
+
+        for (let i = 0; i< ccx2.length; i++) {
+            let cx = ccx2[i]
+            let [from, to] = if_ms[i]
+
+            let p3 = cx.pos.clone()
+            p3.play({
+                from,
+                to
+            })
+
+            let moves_square = cx.records[moves.piece]
+
+            for (let mto of p3.dests(moves_square)) {
+                let p4 = p3.clone()
+                p4.play({
+                    from: moves_square,
+                    to: mto
+                })
+
+                let takes_square = cx.records[takes.piece]
+                let taken_square = cx.records[takes.takes]
+
+                for (let tto of p4.dests(takes_square).intersect(SquareSet.fromSquare(taken_square))) {
+                    let p5 = p4.clone()
+                    p5.play({
+                        from: takes_square,
+                        to: tto
+                    })
+
+                    if (p5.isCheck()) {
+                        ccx3.push({
+                            records: {
+                                ...cx.records
+                            },
+                            pos: p5
+                        })
+
+                    }
+                }
+
+
+            }
+
+        }
+
+
+        return ccx3
+
+    }
+
+    return ccx2
+}
+
+export function mor1(text: string) {
+
+    let conds = text.trim().split('\n').filter(_ => !_.startsWith(':'))
+
+    let xx = conds.map(line => {
+        let a = new Parser(new Lexer(line)).parse_sentence()
+        return a
+    })
+
+
+    let ccx: Context[] = []
+
+
+    let k1_squares = SquareSet.full()
+    k1_squares = k1_squares.intersect(SquareSet.backrank('black'))
+
+    let k1 = parse_piece('king')
+    let k2 = parse_piece('King')
+
+    for (let k1_square of k1_squares) {
+        let pos = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
+        pos.board.set(k1_square, k1)
+        let k2_squares = SquareSet.full().diff(attacks(k1, k1_square, pos.board.occupied))
+        k2_squares = k2_squares.intersect(SquareSet.backrank('white'))
+        k2_squares = k2_squares.set(k1_square, false)
+
+        for (let k2_square of k2_squares) {
+            let p2 = pos.clone()
+            p2.board.set(k2_square, k2)
+            ccx.push({
+                records: {
+                    'king': k1_square,
+                    'King': k2_square
+                },
+                pos: p2
+            })
+        }
+    }
+
+
+    for (let x of xx) {
+        if (ccx.length > 2000) {
+            //ccx = ccx.slice(2000, 4000)
+        }
+        if (is_blocks_alignment(x)) {
+            ccx = resolve_blocks_alignment(x, ccx)
+        } else if (is_protected_by(x)) {
+            ccx = resolve_protected_by(x, ccx)
+        } else if (is_battery_eyes_protected_by(x)) {
+            ccx = resolve_battery_eyes_protected_by(x, ccx)
+        } else if (is_can_fork(x)) {
+            ccx = resolve_can_fork(x, ccx)
+        } else {
+            ccx = resolve_battery_eyes(x, ccx)
+        }
+
+
+        ccx = filter_not_mates(ccx)
+    }
+
+    return ccx.map(_ => makeFen(_.pos.toSetup()))
+}
+
+
+function filter_not_mates(ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    for (let cx of ccx) {
+        if (cx.pos.isCheckmate()) {
+            continue
+        }
+        if (cx.pos.isCheck()) {
+            continue
+        }
+        ccx2.push(cx)
+    }
+
+    return ccx2
 }
