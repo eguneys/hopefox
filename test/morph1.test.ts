@@ -2,6 +2,22 @@ import { it, expect } from 'vitest'
 import { mor1 } from '../src'
 
 let a = `
+:link: https://lichess.org/training/k1PXu
+:situation:
+both rooks are_aligned on_the_2nd_rank
+`
+
+let b = `
+King is_at_the_backrank and attacks a rook so_there_is_no_mate_threat
+king on_backrank and knights are_aligned around_the_king
+Rook is_onto king protected_by Pawn
+Queen eyes king and both knights
+Queen can_check and_then deliver_mate if king moves, but the knight or rook can_block protected_by a pawn
+`
+
+
+
+let a1 = `
 :link: https://lichess.org/training/TYW5G
 :situation:
 king protected_by knight
@@ -12,11 +28,7 @@ bishop protected_by queen
 queen is_unprotected
 Knight can_fork queen bishop knight, if queen moves, Knight takes knight with_check, if queen takes Queen, preventing_mate, Knight intermezzo takes undefended bishop with_check, before Bishop recaptures queen
 `
-let b = `
-Knight can_fork queen bishop knight, if queen moves, Knight takes knight with_check
-Knight can_fork queen bishop knight, if queen moves, Knight takes knight with_check, then battery_delivers_mate.
-Knight can fork queen bishop and knight by sacrificing to a pawn bishop and a knight, if taken Queen takes queen, white is up a queen winning. If the queen moves, Knight takes knight with check, then Bishop Queen battery delivers mate. If queen takes Queen, preventing mate, Knight intermezzo takes undefended bishop with check, before Bishop recaptures queen.
-`
+
 
 it('works', () => {
     let b = mor1(a)

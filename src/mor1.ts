@@ -9,7 +9,10 @@ import { SquareSet } from "./squareSet"
 import { Piece, Square } from "./types"
 import { parseSquare } from "./util"
 
+
+
 enum TokenType {
+    PAIR_NAME = 'PAIR_NAME',
     PIECE_NAME = 'PIECE_NAME',
     KEYWORD_BLOCKS = 'KEYWORD_BLOCKS',
     KEYWORD_ALIGNMENT = 'KEYWORD_ALIGNMENT',
@@ -26,6 +29,25 @@ enum TokenType {
     KEYWORD_INTERMEZZO = 'KEYWORD_INTERMEZZO',
     KEYWORD_RECAPTURES = 'KEYWORD_RECAPTURES',
     KEYWORD_BEFORE = 'KEYWORD_BEFORE',
+
+    KEYWORD_BOTH = 'KEYWORD_BOTH',
+    KEYWORD_ARE_ALIGNED = 'KEYWORD_ARE_ALIGNED',
+    KEYWORD_ON_THE_2ND_RANK = 'KEYWORD_ON_THE_2ND_RANK',
+    KEYWORD_IS_AT_THE_BACKRANK = 'KEYWORD_IS_AT_THE_BACKRANK',
+    KEYWORD_SO_THERE_IS_NO_MATE_THREAT = 'KEYWORD_SO_THERE_IS_NO_MATE_THREAT',
+    KEYWORD_ON_BACKRANK = 'KEYWORD_ON_BACKRANK',
+    KEYWORD_AROUND_THE_KING = 'KEYWORD_AROUND_THE_KING',
+    KEYWORD_IS_ONTO = 'KEYWORD_IS_ONTO',
+    KEYWORD_EYES = 'KEYWORD_EYES',
+    KEYWORD_CAN_CHECK = 'KEYWORD_CAN_CHECK',
+    KEYWORD_AND_THEN = 'KEYWORD_AND_THEN',
+    KEYWORD_AND = 'KEYWORD_AND',
+    KEYWORD_DELIVER_MATE = 'KEYWORD_DELIVER_MATE',
+    KEYWORD_THE = 'KEYWORD_THE',
+    KEYWORD_BUT = 'KEYWORD_BUT',
+    KEYWORD_OR = 'KEYWORD_OR',
+    KEYWORD_A = 'KEYWORD_A',
+
     COMMA = 'COMMA',
     EOF = 'EOF',
 }
@@ -42,6 +64,7 @@ class Lexer {
 
     private keywords: Map<string, TokenType>
     private piece_names: Map<string, TokenType>
+    private pair_names: Map<string, TokenType>
 
     constructor(text: string) {
         this.text = text
@@ -65,6 +88,26 @@ class Lexer {
             ['undefended', TokenType.KEYWORD_UNDEFENDED],
             ['recaptures', TokenType.KEYWORD_RECAPTURES],
             ['before', TokenType.KEYWORD_BEFORE],
+
+
+            ['both', TokenType.KEYWORD_BOTH],
+            ['are_aligned', TokenType.KEYWORD_ARE_ALIGNED],
+            ['on_the_2nd_rank', TokenType.KEYWORD_ON_THE_2ND_RANK],
+            ['is_at_the_backrank', TokenType.KEYWORD_IS_AT_THE_BACKRANK],
+            ['so_there_is_no_mate_threat', TokenType.KEYWORD_SO_THERE_IS_NO_MATE_THREAT],
+            ['on_backrank', TokenType.KEYWORD_ON_BACKRANK],
+            ['around_the_king', TokenType.KEYWORD_AROUND_THE_KING],
+            ['is_onto', TokenType.KEYWORD_IS_ONTO],
+            ['eyes', TokenType.KEYWORD_EYES],
+            ['can_check', TokenType.KEYWORD_CAN_CHECK],
+            ['and_then', TokenType.KEYWORD_AND_THEN],
+            ['and', TokenType.KEYWORD_AND],
+            ['deliver_mate', TokenType.KEYWORD_DELIVER_MATE],
+            ['the', TokenType.KEYWORD_THE],
+            ['but', TokenType.KEYWORD_BUT],
+            ['or', TokenType.KEYWORD_OR],
+            ['a', TokenType.KEYWORD_A],
+
         ])
 
 
@@ -81,6 +124,12 @@ class Lexer {
             ['Rook', TokenType.PIECE_NAME],
             ['Pawn', TokenType.PIECE_NAME],
             ['King', TokenType.PIECE_NAME],
+        ])
+
+        this.pair_names = new Map([
+            ['rooks', TokenType.PAIR_NAME],
+            ['bishops', TokenType.PAIR_NAME],
+            ['knights', TokenType.PAIR_NAME]
         ])
 
     }
@@ -130,10 +179,20 @@ class Lexer {
                 return { type: this.keywords.get(word_str)!, value: word_str }
             } else if (this.piece_names.has(word_str)) {
                 return { type: TokenType.PIECE_NAME, value: word_str }
+            } else if (this.pair_names.has(word_str)) {
+                return { type: TokenType.PAIR_NAME, value: word_str }
             }
         }
         return { type: TokenType.EOF, value: '' }
     }
+}
+
+interface AreAlignedSentence {
+    type: 'are_aligned',
+    piece1: string,
+    piece2: string,
+    rank?: number,
+    around?: string
 }
 
 
@@ -203,6 +262,11 @@ type ParsedSentence = BlocksAlignmentSentence
 | BatteryEyesProtectedBySentence
 | CanForkSentence
 | IsUnprotectedSentence
+| AreAlignedSentence
+
+function is_are_aligned(s: ParsedSentence): s is AreAlignedSentence {
+    return s.type === 'are_aligned'
+}
 
 function is_blocks_alignment(s: ParsedSentence): s is BlocksAlignmentSentence {
     return s.type === 'blocks_alignment'
@@ -270,6 +334,13 @@ class Parser {
             this.error(token_type)
         }
     }
+
+    private pair() {
+        const token = this.current_token
+        this.eat(TokenType.PAIR_NAME)
+        return token.value
+    }
+
 
 
     private piece() {
@@ -449,8 +520,38 @@ class Parser {
         }
     }
 
+    parse_are_aligned(): AreAlignedSentence {
+        if (this.current_token.type === TokenType.KEYWORD_BOTH) {
+            this.eat(TokenType.KEYWORD_BOTH)
+        }
+
+        let piece1 = '', piece2 = ''
+        if (this.current_token.type === TokenType.PAIR_NAME) {
+            [piece1, piece2] = pair_to_pieces(this.pair())
+        }
+
+        this.eat(TokenType.KEYWORD_ARE_ALIGNED)
+        if (this.current_token.type === TokenType.KEYWORD_ON_THE_2ND_RANK) {
+            this.eat(TokenType.KEYWORD_ON_THE_2ND_RANK)
+        }
+
+        return {
+            type: 'are_aligned',
+            piece1,
+            piece2
+
+        }
+    }
+
 
     parse_sentence(): ParsedSentence {
+
+        if (this.lookahead2_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
+            const result = this.parse_are_aligned()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
         if (this.current_token.type !== TokenType.PIECE_NAME) {
             this.error(TokenType.PIECE_NAME)
         }
@@ -479,6 +580,16 @@ class Parser {
             throw this.error()
         }
     }
+}
+
+function pair_to_pieces(str: string): [string, string] {
+    const m: Record<string, [string, string]> = {
+        'rooks': ['rook', 'rook2'],
+        'knights': ['knight', 'knight2'],
+        'bishops': ['bishop', 'bishop2'],
+    }
+
+    return m[str]
 }
 
 function parse_piece(str: string): Piece {
@@ -976,6 +1087,16 @@ function resolve_is_unprotected(x: IsUnprotectedSentence, ccx: Context[]) {
     return ccx2
 }
 
+function resolve_are_aligned(x: AreAlignedSentence, ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    for (let cx of ccx) {
+
+    }
+
+    return ccx2
+}
+
 export function mor1(text: string) {
 
     let conds = text.trim().split('\n').filter(_ => !_.startsWith(':'))
@@ -1032,6 +1153,8 @@ export function mor1(text: string) {
             ccx = resolve_can_fork(x, ccx)
         } else if (is_unprotected(x)) {
             ccx = resolve_is_unprotected(x, ccx)
+        } else if (is_are_aligned(x)) {
+            ccx = resolve_are_aligned(x, ccx)
         } else {
             ccx = resolve_battery_eyes(x, ccx)
         }
