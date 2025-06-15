@@ -1,14 +1,19 @@
 import { attacks, between } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AttacksSentence, BlocksAlignmentSentence, EyesSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanForkSentence, EyesSentence, IsAroundTheKingSentence, Lexer, Parser } from "./mor1"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
 
 type Pieces = 'king' | 'King' | 'rook' | 'Rook' | 'queen' | 'Queen' | 'knight' | 'Knight' | 'bishop' | 'Bishop' | 'pawn' | 'Pawn'
+| 'rook2' | 'bishop2' | 'knight2'
+| 'Rook2' | 'Bishop2' | 'Knight2'
 
-const Pieces: Pieces[] = ['king','King','rook','Rook', 'queen', 'Queen', 'knight', 'Knight', 'bishop', 'Bishop', 'pawn', 'Pawn']
+const Pieces: Pieces[] = ['king','King','rook','Rook', 'queen', 'Queen', 'knight', 'Knight', 'bishop', 'Bishop', 'pawn', 'Pawn',
+    'rook2', 'bishop2', 'knight2',
+    'Rook2', 'Bishop2', 'Knight2',
+]
 
 type QBoard = Record<Pieces, SquareSet>
 
@@ -26,22 +31,23 @@ function q_board(): QBoard {
         Bishop: SquareSet.full(),
         pawn: SquareSet.full(),
         Pawn: SquareSet.full(),
+        rook2: SquareSet.full(),
+        bishop2: SquareSet.full(),
+        knight2: SquareSet.full(),
+        Rook2: SquareSet.full(),
+        Bishop2: SquareSet.full(),
+        Knight2: SquareSet.full(),
+
     }
 }
 
 function q_equals(a: QBoard, b: QBoard) {
-    return a.king.equals(b.king) &&
-    a.queen.equals(b.queen) &&
-    a.bishop.equals(b.bishop) &&
-    a.knight.equals(b.knight) &&
-    a.rook.equals(b.rook) &&
-    a.pawn.equals(b.pawn) &&
-    a.King.equals(b.King) &&
-    a.Queen.equals(b.Queen) &&
-    a.Bishop.equals(b.Bishop) &&
-    a.Knight.equals(b.Knight) &&
-    a.Rook.equals(b.Rook) &&
-    a.Pawn.equals(b.Pawn)
+    for (let p of Pieces) {
+        if (!a[p].equals(b[p])) {
+            return false
+        }
+    }
+    return true
 }
 
 function q_clone(a: QBoard) {
@@ -223,6 +229,48 @@ const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
     eyes.map((eye1, i) => q[eye1] = res2s[i])
 }
 
+const qc_is_around_the_king = (p1: Pieces) => (q: QBoard) => {
+
+    let piece = parse_piece(p1)
+    let king: Pieces = piece.color === 'white' ? 'King' : 'king'
+    let king_piece = parse_piece(king)
+
+    let res = SquareSet.empty()
+    for (let ks of q[king]) {
+        for (let p1s of attacks(king_piece, ks, SquareSet.empty()).intersect(q[p1])) {
+            res = res.set(p1s, true)
+        }
+    }
+    q[p1] = res
+}
+
+
+const qc_can_fork = (p1: Pieces, forked: Pieces[]) => (q: QBoard) => {
+
+    let piece = parse_piece(p1)
+    let forked_pieces = forked.map(parse_piece)
+
+
+    let res1 = SquareSet.empty()
+    let res2s = forked.map(_ => SquareSet.empty())
+
+    for (let p1s of q[p1]) {
+        for (let a1s of attacks(piece, p1s, SquareSet.empty()))
+        for (let i = 0; i < forked.length; i++) {
+            let p2 = forked[i]
+            let res2 = res2s[i]
+
+            for (let p2s of attacks(piece, a1s, SquareSet.empty()).intersect(q[p2])) {
+                res1 = res1.set(p1s, true)
+                res2s[i] = res2.set(p2s, true)
+            }
+        }
+    }
+
+    q[p1] = res1
+    forked.map((forked1, i) => q[forked1] = res2s[i])
+}
+
 
 const mcc: Record<string, any> = {
     alignment: (x: AlignmentSentence) =>
@@ -234,7 +282,14 @@ const mcc: Record<string, any> = {
         qc_alignment_blocker(x.aligned1 as Pieces, x.aligned2 as Pieces, x.blocker as Pieces),
     eyes: (x: EyesSentence) =>
         x.blocker ? qc_attacks_blocker(x.piece as Pieces, x.eyes[0] as Pieces, x.blocker as Pieces) :
-        qc_eyes(x.piece as Pieces, x.eyes as Pieces[])
+        qc_eyes(x.piece as Pieces, x.eyes as Pieces[]),
+        are_aligned: (x: AreAlignedSentence) =>
+            qc_alignment(x.piece1 as Pieces, x.piece2 as Pieces),
+    is_around_the_king: (x: IsAroundTheKingSentence) =>
+        qc_is_around_the_king(x.piece as Pieces),
+    can_fork: (x: CanForkSentence) =>
+        qc_can_fork(x.piece as Pieces, x.forked as Pieces[])
+
 }
 
 
@@ -252,6 +307,7 @@ export function mor2(text: string) {
         if (mcc[x.type]) {
             return mcc[x.type](x)
         }
+        console.warn('Unknown MCC', x.type)
         return (q: QBoard) => {}
     })
 
@@ -263,8 +319,9 @@ export function mor2(text: string) {
     let q = q_board()
     qc_put(q, 'king', parseSquare('g8'))
 
-    q = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight'], f)
+    //q = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //q = qc_pull2(q, ['queen', 'Knight'], f)
+    q = qc_pull2(q, ['king', 'queen', 'Knight'], f)
 
     return qc_fen_singles(q)
 }
@@ -293,9 +350,8 @@ function color_pieces(pieces: Pieces): Color {
 }
 
 function parse_piece(pieces: Pieces): Piece {
-
     let color = color_pieces(pieces)
-    let role = pieces.toLowerCase() as Role
+    let role = pieces.replace(/2/, '').toLowerCase() as Role
     return {
         color,
         role

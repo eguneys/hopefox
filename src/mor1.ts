@@ -206,7 +206,7 @@ export class Lexer {
     }
 }
 
-interface AreAlignedSentence {
+export interface AreAlignedSentence {
     type: 'are_aligned',
     piece1: string,
     piece2: string,
@@ -250,7 +250,7 @@ interface BatteryEyesProtectedBySentence {
     protector: string
 }
 
-interface CanForkSentence {
+export interface CanForkSentence {
     type: 'can_fork'
     piece: string
     forked: string[]
@@ -318,7 +318,7 @@ interface CanCheckAndThenDeliverMateIfKingMovesSentence  {
     piece: string
 }
 
-interface IsAroundTheKingSentence {
+export interface IsAroundTheKingSentence {
     type: 'is_around_the_king'
     piece: string
 }

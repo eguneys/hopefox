@@ -5,12 +5,7 @@ import { mor2 } from '../src'
 let a = `
 :link: https://lichess.org/training/qsJ3w
 :situation:
-queen Queen alignment
-bishop queen alignment
-Pawn attacks bishop
-rook Rook alignment blocked_by bishop
-queen eyes Knight blocked_by Pawn
-rooks are_aligned
+Knight can_fork king queen
 `
 
 let ac = `
