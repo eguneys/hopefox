@@ -1,5 +1,5 @@
 import { pbkdf2 } from "crypto"
-import { attacks } from "./attacks"
+import { attacks, between } from "./attacks"
 import { Chess, Position, pseudoDests } from "./chess"
 import { EMPTY_FEN, makeFen, parseCastlingFen, parseFen } from "./fen"
 import { PositionManager } from "./hopefox_c"
@@ -53,6 +53,8 @@ enum TokenType {
     KEYWORD_IS_HANGING = 'KEYWORD_IS_HANGING',
 
     KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES = 'KEYWORD_CC_AT_DMIKM',
+
+    KEYWORD_IS_AROUND_THE_KING = 'KEYWORD_IS_AROUND_THE_KING',
 
     COMMA = 'COMMA',
     EOF = 'EOF',
@@ -117,6 +119,7 @@ class Lexer {
             ['can_check_and_then_deliver_mate_if_king_moves', TokenType.KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES],
             ['blocked_by', TokenType.KEYWORD_BLOCKED_BY],
             ['is_hanging', TokenType.KEYWORD_IS_HANGING],
+            ['is_around_the_king', TokenType.KEYWORD_IS_AROUND_THE_KING],
 
         ])
 
@@ -312,6 +315,10 @@ interface CanCheckAndThenDeliverMateIfKingMovesSentence  {
     piece: string
 }
 
+interface IsAroundTheKingSentence {
+    type: 'is_around_the_king'
+    piece: string
+}
 
 type ParsedSentence = BlocksAlignmentSentence 
 | ProtectedBySentence
@@ -327,6 +334,7 @@ type ParsedSentence = BlocksAlignmentSentence
 | CanCheckAndThenDeliverMateIfKingMovesSentence 
 | AlignmentSentence
 | IsHangingSentence
+| IsAroundTheKingSentence
 
 function is_at_the_backrank(s: ParsedSentence): s is IsAtTheBackrankSentence {
     return s.type === 'is_at_the_backrank'
@@ -354,6 +362,11 @@ function is_unprotected(s: ParsedSentence): s is IsUnprotectedSentence {
 function is_hanging(s: ParsedSentence): s is IsHangingSentence {
     return s.type === 'is_hanging'
 }
+function is_around_the_king(s: ParsedSentence): s is IsAroundTheKingSentence {
+    return s.type === 'is_around_the_king'
+}
+
+
 
 function is_attacks(s: ParsedSentence): s is AttacksSentence {
     return s.type === 'attacks'
@@ -767,6 +780,17 @@ class Parser {
         }
     }
 
+
+    parse_is_around_the_king(): IsAroundTheKingSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_AROUND_THE_KING)
+
+        return { type: 'is_around_the_king', piece }
+    }
+
+
+
     parse_sentence(): ParsedSentence {
 
         if (this.lookahead_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
@@ -792,6 +816,10 @@ class Parser {
             return result
         } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_ONTO) {
             const result = this.parse_is_onto()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_AROUND_THE_KING) {
+            const result = this.parse_is_around_the_king()
             this.eat(TokenType.EOF)
             return result
         } else if (this.lookahead_token.type === TokenType.KEYWORD_EYES) {
@@ -1395,7 +1423,7 @@ function resolve_are_aligned(x: AreAlignedSentence, ccx: Context[]) {
 
         let piece2_squares = cx.pos.board.occupied.complement()
 
-        if (cx.records[x.piece1] !== undefined) {
+        if (cx.records[x.piece2] !== undefined) {
             piece2_squares = SquareSet.fromSquare(cx.records[x.piece2])
         }
 
@@ -1542,14 +1570,23 @@ function resolve_eyes(y: EyesSentence, ccx: Context[]) {
             eyes_squares_ss = [eyes_squares]
         }
 
+
         for (let piece_square of piece_squares) {
-            if (!eyes_squares_ss.find(_ => _.subsetOf(attacks(piece, piece_square, cx.pos.board.occupied)))) {
-                continue
+            if (y.blocker !== undefined) {
+                let y_blocker = y.blocker
+                if (!eyes_squares_ss.find(_ => _.subsetOf(attacks(piece, piece_square, cx.pos.board.occupied.without(cx.records[y_blocker]))))) {
+                    continue
+                }
+
+
+            } else {
+                if (!eyes_squares_ss.find(_ => _.subsetOf(attacks(piece, piece_square, cx.pos.board.occupied)))) {
+                    continue
+                }
             }
 
             let p3 = cx.pos.clone()
             p3.board.set(piece_square, piece)
-            let f = makeFen(p3.toSetup())
 
             ccx2.push({
                 records: {
@@ -1560,6 +1597,109 @@ function resolve_eyes(y: EyesSentence, ccx: Context[]) {
             })
         }
 
+
+    }
+
+    return ccx2
+}
+
+
+function resolve_eyes2(y: EyesSentence, ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    let piece = parse_piece(y.piece)
+    let eyes = y.eyes.map(parse_piece)
+    let blocker = y.blocker ? parse_piece(y.blocker) : undefined
+
+    for (let cx of ccx) {
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[y.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[y.piece])
+        }
+
+        if (blocker) {
+            let blocker_squares = cx.pos.board.occupied.complement()
+
+            if (cx.records[y.blocker!] !== undefined) {
+                blocker_squares = SquareSet.fromSquare(cx.records[y.blocker!])
+            }
+
+            let y_eyes_squares = cx.pos.board.occupied.complement()
+
+            if (cx.records[y.eyes![0]] !== undefined) {
+                y_eyes_squares = SquareSet.fromSquare(cx.records[y.eyes![0]])
+            }
+
+            for (let piece_square of piece_squares) {
+
+                for (let blocker_square of blocker_squares) {
+                let y_eyes_squares2 = y_eyes_squares.intersect(attacks(piece, piece_square, cx.pos.board.occupied.without(blocker_square)))
+                for (let y_eyes_square of y_eyes_squares2) {
+
+                    if (!between(piece_square, y_eyes_square).has(blocker_square)) {
+                        continue
+                    }
+
+                    let p3 = cx.pos.clone()
+                    p3.board.set(piece_square, piece)
+                    p3.board.set(y_eyes_square, parse_piece(y.eyes[0]))
+                    p3.board.set(blocker_square, blocker)
+
+
+                    ccx2.push({
+                        records: {
+                            ...cx.records,
+                            [y.piece]: piece_square,
+                            [y.eyes[0]]: y_eyes_square,
+                            [y.blocker!]: blocker_square
+                        },
+                        pos: p3
+                    })
+
+
+                }
+
+            }
+            }
+
+
+
+
+        } else {
+            for (let y_eyes of y.eyes) {
+
+                let y_eyes_squares = cx.pos.board.occupied.complement()
+
+                if (cx.records[y_eyes] !== undefined) {
+                    y_eyes_squares = SquareSet.fromSquare(cx.records[y_eyes])
+                }
+
+                for (let piece_square of piece_squares) {
+
+                    for (let y_eyes_square of y_eyes_squares.intersect(attacks(piece, piece_square, cx.pos.board.occupied))) {
+                        let p3 = cx.pos.clone()
+                        p3.board.set(piece_square, piece)
+                        p3.board.set(y_eyes_square, parse_piece(y_eyes))
+
+
+                        ccx2.push({
+                            records: {
+                                ...cx.records,
+                                [y.piece]: piece_square,
+                                [y_eyes]: y_eyes_square,
+                            },
+                            pos: p3
+                        })
+
+
+                    }
+
+                }
+
+
+            }
+        }
 
     }
 
@@ -1713,53 +1853,49 @@ function resolve_alignment(x: AlignmentSentence, ccx: Context[]) {
             piece2_squares = SquareSet.fromSquare(cx.records[x.aligned2])
         }
 
-        let blocker_squares = cx.pos.board.occupied.complement()
-        if (x.blocker !== undefined && cx.records[x.blocker] !== undefined) {
-            blocker_squares =  SquareSet.fromSquare(cx.records[x.blocker])
-        }
-
         for (let piece1_square of piece1_squares) {
 
-            for (let piece2_square of piece2_squares.intersect(attacks(piece1, piece1_square, cx.pos.board.occupied))) {
+            let piece2_squares2 = piece2_squares.intersect(attacks(piece1, piece1_square, cx.pos.board.occupied))
 
-                let bb = blocks(piece1, piece1_square, cx.pos.board.occupied)
+            if (x.blocker) {
+                piece2_squares2 = piece2_squares.intersect(attacks(piece1, piece1_square, cx.pos.board.occupied.without(cx.records[x.blocker])))
+            }
 
-                for (let blocker_square of blocker_squares) {
-                    if (bb.length >= 2) {
-                        if (bb[0].has(blocker_square) && bb[1].has(piece2_square)) {
+            for (let piece2_square of piece2_squares2) {
 
+                let p3 = cx.pos.clone()
 
-                            let p3 = cx.pos.clone()
+                p3.board.set(piece1_square, piece1)
+                p3.board.set(piece2_square, piece2)
 
-                            p3.board.set(piece1_square, piece1)
-                            p3.board.set(piece2_square, piece2)
+                if (x.blocker) {
 
-                            let records = {
+                    let blocker_square = cx.records[x.blocker]
+                    let bb = between(piece1_square, piece2_square)
+
+                    if (bb.has(blocker_square)) {
+
+                        ccx2.push({
+                            records: {
                                 ...cx.records,
                                 [x.aligned1]: piece1_square,
                                 [x.aligned2]: piece2_square,
-                            }
-
-                            if (x.blocker) {
-                                records[x.blocker] = blocker_square
-                            } else {
-                                ccx2.push({
-                                    records,
-                                    pos: p3
-                                })
-                                break
-                            }
-
-                            ccx2.push({
-                                records,
-                                pos: p3
-                            })
-                        }
+                                [x.blocker]: blocker_square
+                            },
+                            pos: p3
+                        })
                     }
+                } else {
+                ccx2.push({
+                    records: {
+                        ...cx.records,
+                        [x.aligned1]: piece1_square,
+                        [x.aligned2]: piece2_square,
+                    },
+                        pos: p3
+                    })
+
                 }
-
-
-
             }
         }
     }
@@ -1792,6 +1928,40 @@ function resolve_hanging(x: IsHangingSentence, ccx: Context[]) {
     return ccx2
 }
 
+function resolve_is_around_the_king(x: IsAroundTheKingSentence, ccx: Context[]) {
+    let piece = parse_piece(x.piece)
+    let ccx2: Context[] = []
+
+
+    for (let cx of ccx) {
+
+        let around_squares = attacks(parse_piece('king'), cx.records['king'], cx.pos.board.occupied)
+
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[x.piece])
+        }
+
+
+        for (let piece_square of around_squares.intersect(piece_squares)) {
+            let p3 = cx.pos.clone()
+            p3.board.set(piece_square, piece)
+
+
+            ccx2.push({
+                records: {
+                    ...cx.records,
+                    [x.piece]: piece_square
+                },
+                pos: p3
+            })
+        }
+
+    }
+
+    return ccx2
+}
 
 
 
@@ -1839,7 +2009,7 @@ export function mor1(text: string) {
 
     for (let x of xx) {
         if (ccx.length > 20000) {
-            //ccx = ccx.slice(10000, 20000)
+            //ccx = ccx.slice(0, 20000)
         }
         if (is_blocks_alignment(x)) {
             ccx = resolve_blocks_alignment(x, ccx)
@@ -1859,7 +2029,7 @@ export function mor1(text: string) {
         } else if (is_attacks(x)) {
             ccx = resolve_attacks(x, ccx)
         } else if (is_eyes(x)) {
-            ccx = resolve_eyes(x, ccx)
+            ccx = resolve_eyes2(x, ccx)
         } else if (is_onto(x)) {
             ccx = resolve_is_onto(x, ccx)
         } else if (is_can_check_and_then_deliver_mate_if_king_moves(x)) {
@@ -1868,6 +2038,8 @@ export function mor1(text: string) {
             ccx = resolve_alignment(x, ccx)
         } else if (is_hanging(x)) {
             ccx = resolve_hanging(x, ccx)
+        } else if (is_around_the_king(x)) {
+            ccx = resolve_is_around_the_king(x, ccx)
         } else {
             ccx = resolve_battery_eyes(x, ccx)
         }

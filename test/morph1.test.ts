@@ -11,12 +11,26 @@ rook Rook alignment blocked_by bishop
 queen eyes Knight blocked_by Pawn
 Queen is_hanging
 rooks are_aligned
+pawn is_around_the_king
+Knight eyes pawn
+Knight can_fork king queen
 `
 
 let b = `
+Knight eyes pawn and can_fork king and queen protected_by pawn
+:link: https://lichess.org/training/qsJ3w
+:situation:
+queen Queen alignment
+bishop queen alignment
+Pawn attacks bishop
+rook Rook alignment blocked by bishop
+queen eyes Knight blocked by Pawn
+Queen is hanging
+rooks are aligned
 material rook up
+
 Knight eyes king pawn and can fork king and queen protected by king pawn
-Queen can eye king blocked by king pawn and threaten mate on king pawn, king cant escape mate, black cant defend both mate and Knight fork, queen can defend mate but cannot escape Knight fork winning.
+Queen can_eye king blocked by king pawn and threaten mate on king pawn, king cant escape mate, black cant defend both mate and Knight fork, queen can defend mate but cannot escape Knight fork winning.
 `
 
 let a2 = `
