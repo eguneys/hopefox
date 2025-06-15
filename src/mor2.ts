@@ -16,10 +16,10 @@ function q_board(): QBoard {
     return {
         king: SquareSet.full(),
         King: SquareSet.full(),
-        rook: SquareSet.full(),
-        Rook: SquareSet.full(),
         queen: SquareSet.full(),
         Queen: SquareSet.full(),
+        rook: SquareSet.full(),
+        Rook: SquareSet.full(),
         knight: SquareSet.full(),
         Knight: SquareSet.full(),
         bishop: SquareSet.full(),
@@ -111,6 +111,36 @@ const qc_attacks = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
     q[p2] = res2
 }
 
+const qc_attacks_blocker = (p1: Pieces, p2: Pieces, blocker: Pieces) => (q: QBoard) => {
+    let piece1 = parse_piece(p1)
+    let piece2 = parse_piece(p2)
+    let blocker1 = parse_piece(blocker)
+
+    let res1 = SquareSet.empty()
+    let res2 = SquareSet.empty()
+    let res3 = SquareSet.empty()
+
+    for (let p1s of q[p1]) {
+        for (let p2s of attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])) {
+            for (let b1s of q[blocker]) {
+
+                if (between(p1s, p2s).has(b1s)) {
+
+                    res1 = res1.set(p1s, true)
+                    res2 = res2.set(p2s, true)
+                    res3 = res3.set(b1s, true)
+                }
+            }
+        }
+    }
+
+    q[p1] = res1
+    q[p2] = res2
+    q[blocker] = res3
+}
+
+
+
 const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard) => {
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
@@ -180,7 +210,12 @@ const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
     for (let p1s of q[p1]) {
         for (let i = 0; i < eyes.length; i++) {
             let p2 = eyes[i]
-            attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])
+            let res2 = res2s[i]
+
+            for (let p2s of attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])) {
+                res1 = res1.set(p1s, true)
+                res2s[i] = res2.set(p2s, true)
+            }
         }
     }
 
@@ -198,7 +233,8 @@ const mcc: Record<string, any> = {
     blocks_alignment: (x: BlocksAlignmentSentence) =>
         qc_alignment_blocker(x.aligned1 as Pieces, x.aligned2 as Pieces, x.blocker as Pieces),
     eyes: (x: EyesSentence) =>
-        qc_eyes(x.piece as Pieces, x.eyes)
+        x.blocker ? qc_attacks_blocker(x.piece as Pieces, x.eyes[0] as Pieces, x.blocker as Pieces) :
+        qc_eyes(x.piece as Pieces, x.eyes as Pieces[])
 }
 
 
@@ -227,7 +263,8 @@ export function mor2(text: string) {
     let q = q_board()
     qc_put(q, 'king', parseSquare('g8'))
 
-    q = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook'], f)
+    q = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight'], f)
+    //q = qc_pull2(q, ['queen', 'Knight'], f)
 
     return qc_fen_singles(q)
 }
@@ -239,7 +276,7 @@ function qc_fen_singles(q: QBoard) {
 
     for (let p of Pieces) {
         let sq = q[p].singleSquare()
-        if (sq) {
+        if (sq !== undefined) {
 
             res.board.set(sq, parse_piece(p))
         }

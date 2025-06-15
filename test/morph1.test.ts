@@ -9,7 +9,8 @@ queen Queen alignment
 bishop queen alignment
 Pawn attacks bishop
 rook Rook alignment blocked_by bishop
-queen eyes Knight
+queen eyes Knight blocked_by Pawn
+rooks are_aligned
 `
 
 let ac = `
