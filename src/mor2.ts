@@ -1,3 +1,4 @@
+import { skip } from "node:test"
 import { attacks, between } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
@@ -180,32 +181,6 @@ const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard)
     q[b1] = res3
 }
 
-function qc_pull1(q: QBoard, pieces: Pieces) {
-    let f = q[pieces].first()
-    if (f === undefined) {
-        return false
-    }
-    q[pieces] = SquareSet.fromSquare(f)
-    return true
-}
-
-function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
-    for (let piece of pieces) {
-        let q2 = { ... q }
-        qc_pull1(q2, piece)
-        while (true) {
-            if (q_equals(q, q2)) {
-                break
-            }
-            cc(q2)
-            q = q2
-            q2 = { ...q2 }
-        }
-    }
-
-    return q
-}
-
 const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
     let piece1 = parse_piece(p1)
     let eyes1 = eyes.map(parse_piece)
@@ -326,7 +301,69 @@ export function mor2(text: string) {
     return qc_fen_singles(q)
 }
 
+function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
+    let limit = 0
+    let q2 = q
+    let skips = pieces.map(_ => 0)
+    let qqs = pieces.map(_ => ({ ...q }))
 
+    for (let i = 0; i < pieces.length; i++){
+        //if (limit++ > 1000) break
+        console.log(qc_fen_singles(q2), skips)
+        let piece = pieces[i]
+        let skip = skips[i]
+
+        let q_back = { ...q2 }
+        let q3 = { ... q2 }
+        let is_end = !qc_pull1(q3, piece, skip)
+        if (is_end) {
+            skips[i] = 0
+            i -= 1
+            skips[i]++;
+            i -= 1
+
+            q2 = q
+            for (let j = 0; j < i; j++) {
+                qc_pull1(q2, pieces[j], skips[j])
+            }
+
+            continue
+        }
+
+        while (true) {
+            if (q_equals(q2, q3)) {
+                break
+            }
+            cc(q3)
+            q2= q3
+            q3 = { ...q3 }
+        }
+        for (let piece of pieces) {
+            if (q3[piece].isEmpty()){
+                skips[i] = skip + 1
+                i -= 1
+                q2 = q_back
+                break
+            }
+        }
+    }
+
+    return q2
+}
+
+function qc_pull1(q: QBoard, pieces: Pieces, skip: number = 0) {
+    for (let i = 0; i < skip; i++) {
+        q[pieces] = q[pieces].withoutFirst()
+    }
+
+    let f = q[pieces].first()
+    if (f === undefined) {
+        return false
+    }
+    q[pieces] = SquareSet.fromSquare(f)
+
+    return true
+}
 
 function qc_fen_singles(q: QBoard) {
     let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
