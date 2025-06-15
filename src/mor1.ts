@@ -49,6 +49,8 @@ enum TokenType {
     KEYWORD_OR = 'KEYWORD_OR',
     KEYWORD_A = 'KEYWORD_A',
     KEYWORD_ATTACKS = 'KEYWORD_ATTACKS',
+    KEYWORD_BLOCKED_BY = 'KEYWORD_BLOCKED_BY',
+    KEYWORD_IS_HANGING = 'KEYWORD_IS_HANGING',
 
     KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES = 'KEYWORD_CC_AT_DMIKM',
 
@@ -113,7 +115,8 @@ class Lexer {
             ['a', TokenType.KEYWORD_A],
             ['attacks', TokenType.KEYWORD_ATTACKS],
             ['can_check_and_then_deliver_mate_if_king_moves', TokenType.KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES],
-
+            ['blocked_by', TokenType.KEYWORD_BLOCKED_BY],
+            ['is_hanging', TokenType.KEYWORD_IS_HANGING],
 
         ])
 
@@ -213,6 +216,13 @@ interface BlocksAlignmentSentence {
     aligned2: string
 }
 
+interface AlignmentSentence {
+    type: 'alignment',
+    blocker?: string
+    aligned1: string
+    aligned2: string
+}
+
 interface ProtectedBySentence {
     type: 'protected_by'
     protected: string
@@ -272,6 +282,10 @@ interface IsUnprotectedSentence {
     type: 'is_unprotected',
     piece: string
 }
+interface IsHangingSentence {
+    type: 'is_hanging',
+    piece: string
+}
 
 interface IsAtTheBackrankSentence {
     type: 'is_at_the_backrank',
@@ -282,6 +296,7 @@ interface EyesSentence {
     type: 'eyes'
     piece: string
     eyes: string[]
+    blocker?: string
 }
 
 interface IsOntoSentence {
@@ -310,6 +325,8 @@ type ParsedSentence = BlocksAlignmentSentence
 | EyesSentence
 | IsOntoSentence
 | CanCheckAndThenDeliverMateIfKingMovesSentence 
+| AlignmentSentence
+| IsHangingSentence
 
 function is_at_the_backrank(s: ParsedSentence): s is IsAtTheBackrankSentence {
     return s.type === 'is_at_the_backrank'
@@ -334,6 +351,9 @@ function is_can_fork(s: ParsedSentence): s is CanForkSentence {
 function is_unprotected(s: ParsedSentence): s is IsUnprotectedSentence {
     return s.type === 'is_unprotected'
 }
+function is_hanging(s: ParsedSentence): s is IsHangingSentence {
+    return s.type === 'is_hanging'
+}
 
 function is_attacks(s: ParsedSentence): s is AttacksSentence {
     return s.type === 'attacks'
@@ -348,7 +368,9 @@ function is_can_check_and_then_deliver_mate_if_king_moves(s: ParsedSentence): s 
     return s.type === 'can_check_and_then_deliver_mate_if_king_moves'
 }
 
-
+function is_alignment(s: ParsedSentence): s is AlignmentSentence {
+    return s.type === 'alignment'
+}
 
 
 function is_moves(s: LineSentence): s is MovesSentence {
@@ -442,6 +464,17 @@ class Parser {
             piece
         }
     }
+
+    parse_is_hanging(): IsHangingSentence {
+        const piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_HANGING)
+
+        return {
+            type: 'is_hanging',
+            piece
+        }
+    }
+
 
 
 
@@ -673,6 +706,17 @@ class Parser {
             eyes.push(piece2)
         }
 
+        if (this.current_token.type === TokenType.KEYWORD_BLOCKED_BY) {
+            this.eat(TokenType.KEYWORD_BLOCKED_BY)
+            let blocker = this.piece()
+
+            return {
+                type: 'eyes',
+                piece,
+                eyes,
+                blocker
+            }
+        }
 
 
         return { type: 'eyes', piece, eyes }
@@ -699,6 +743,30 @@ class Parser {
         return { type: 'can_check_and_then_deliver_mate_if_king_moves', piece }
     }
 
+    parse_alignment(): AlignmentSentence {
+        let aligned1 = this.piece()
+        let aligned2 = this.piece()
+        this.eat(TokenType.KEYWORD_ALIGNMENT)
+
+        if (this.current_token.type === TokenType.KEYWORD_BLOCKED_BY) {
+            this.eat(TokenType.KEYWORD_BLOCKED_BY)
+            let blocker = this.piece()
+
+            return {
+                type: 'alignment',
+                aligned1,
+                aligned2,
+                blocker
+            }
+        }
+
+        return {
+            type: 'alignment',
+            aligned1,
+            aligned2
+        }
+    }
+
     parse_sentence(): ParsedSentence {
 
         if (this.lookahead_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
@@ -712,9 +780,10 @@ class Parser {
             return result
         }
 
-
-        if (this.current_token.type !== TokenType.PIECE_NAME) {
-            this.error(TokenType.PIECE_NAME)
+        if (this.lookahead2_token.type === TokenType.KEYWORD_ALIGNMENT) {
+            const result = this.parse_alignment()
+            this.eat(TokenType.EOF)
+            return result
         }
 
         if (this.lookahead_token.type === TokenType.KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES) {
@@ -735,6 +804,10 @@ class Parser {
             return result
         } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_AT_THE_BACKRANK) {
             const result = this.parse_is_at_the_backrank()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_HANGING) {
+            const result = this.parse_is_hanging()
             this.eat(TokenType.EOF)
             return result
         } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_UNPROTECTED) {
@@ -1613,6 +1686,113 @@ function resolve_can_check_and_then_deliver_mate_if_king_moves(x: CanCheckAndThe
 }
 
 
+function resolve_alignment(x: AlignmentSentence, ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    let piece1 = parse_piece(x.aligned1)
+    let piece2 = parse_piece(x.aligned2)
+
+
+    let blocker
+    if (x.blocker) {
+        blocker = parse_piece(x.blocker)
+    }
+
+
+    for (let cx of ccx) {
+
+        let piece1_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.aligned1] !== undefined) {
+            piece1_squares = SquareSet.fromSquare(cx.records[x.aligned1])
+        }
+
+        let piece2_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.aligned2] !== undefined) {
+            piece2_squares = SquareSet.fromSquare(cx.records[x.aligned2])
+        }
+
+        let blocker_squares = cx.pos.board.occupied.complement()
+        if (x.blocker !== undefined && cx.records[x.blocker] !== undefined) {
+            blocker_squares =  SquareSet.fromSquare(cx.records[x.blocker])
+        }
+
+        for (let piece1_square of piece1_squares) {
+
+            for (let piece2_square of piece2_squares.intersect(attacks(piece1, piece1_square, cx.pos.board.occupied))) {
+
+                let bb = blocks(piece1, piece1_square, cx.pos.board.occupied)
+
+                for (let blocker_square of blocker_squares) {
+                    if (bb.length >= 2) {
+                        if (bb[0].has(blocker_square) && bb[1].has(piece2_square)) {
+
+
+                            let p3 = cx.pos.clone()
+
+                            p3.board.set(piece1_square, piece1)
+                            p3.board.set(piece2_square, piece2)
+
+                            let records = {
+                                ...cx.records,
+                                [x.aligned1]: piece1_square,
+                                [x.aligned2]: piece2_square,
+                            }
+
+                            if (x.blocker) {
+                                records[x.blocker] = blocker_square
+                            } else {
+                                ccx2.push({
+                                    records,
+                                    pos: p3
+                                })
+                                break
+                            }
+
+                            ccx2.push({
+                                records,
+                                pos: p3
+                            })
+                        }
+                    }
+                }
+
+
+
+            }
+        }
+    }
+
+    return ccx2
+}
+
+
+function resolve_hanging(x: IsHangingSentence, ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    let piece = parse_piece(x.piece)
+
+    context: for (let cx of ccx) {
+
+        let piece_square = cx.records[x.piece]
+
+        for (let from of cx.pos.board.occupied) {
+            let from_piece = cx.pos.board.get(from)!
+
+            if (attacks(from_piece, from, cx.pos.board.occupied).has(piece_square)) {
+                continue context
+            }
+
+        }
+        ccx2.push(cx)
+
+    }
+
+    return ccx2
+}
+
+
 
 
 export function mor1(text: string) {
@@ -1684,6 +1864,10 @@ export function mor1(text: string) {
             ccx = resolve_is_onto(x, ccx)
         } else if (is_can_check_and_then_deliver_mate_if_king_moves(x)) {
             ccx = resolve_can_check_and_then_deliver_mate_if_king_moves(x, ccx)
+        } else if (is_alignment(x)) {
+            ccx = resolve_alignment(x, ccx)
+        } else if (is_hanging(x)) {
+            ccx = resolve_hanging(x, ccx)
         } else {
             ccx = resolve_battery_eyes(x, ccx)
         }
