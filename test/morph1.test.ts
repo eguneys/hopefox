@@ -2,19 +2,35 @@ import { it, expect } from 'vitest'
 import { mor1 } from '../src'
 
 let a = `
-:link: https://lichess.org/training/k1PXu
+:link: https://lichess.org/training/qsJ3w
 :situation:
-both rooks are_aligned on_the_2nd_rank
-King is_at_the_backrank and attacks a rook so_there_is_no_mate_threat
+queen Queen alignment
+bishop queen alignment
+Pawn attacks bishop
+rook Rook alignment blocked_by bishop
+queen eyes Knight blocked_by Pawn
+Queen is_hanging
+rooks are_aligned
 `
 
 let b = `
-King is_at_the_backrank and attacks a rook so_there_is_no_mate_threat
-king on_backrank and knights are_aligned around_the_king
-Rook is_onto king protected_by Pawn
-Queen eyes king and both knights
-Queen can_check and_then deliver_mate if king moves, but the knight or rook can_block protected_by a pawn
+material rook up
+Knight eyes king pawn and can fork king and queen protected by king pawn
+Queen can eye king blocked by king pawn and threaten mate on king pawn, king cant escape mate, black cant defend both mate and Knight fork, queen can defend mate but cannot escape Knight fork winning.
 `
+
+let a2 = `
+:link: https://lichess.org/training/k1PXu
+:situation:
+both rooks are_aligned on_the_2nd_rank
+King is_at_the_backrank 
+King attacks a rook so_there_is_no_mate_threat
+knights are_aligned around_the_king
+Queen eyes king and both knights
+Rook is_onto king protected_by Pawn
+Queen can_check_and_then_deliver_mate_if_king_moves, but the knight and rook can_block protected_by a pawn
+`
+
 
 
 

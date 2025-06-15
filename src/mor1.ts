@@ -48,6 +48,9 @@ enum TokenType {
     KEYWORD_BUT = 'KEYWORD_BUT',
     KEYWORD_OR = 'KEYWORD_OR',
     KEYWORD_A = 'KEYWORD_A',
+    KEYWORD_ATTACKS = 'KEYWORD_ATTACKS',
+
+    KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES = 'KEYWORD_CC_AT_DMIKM',
 
     COMMA = 'COMMA',
     EOF = 'EOF',
@@ -108,6 +111,9 @@ class Lexer {
             ['but', TokenType.KEYWORD_BUT],
             ['or', TokenType.KEYWORD_OR],
             ['a', TokenType.KEYWORD_A],
+            ['attacks', TokenType.KEYWORD_ATTACKS],
+            ['can_check_and_then_deliver_mate_if_king_moves', TokenType.KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES],
+
 
         ])
 
@@ -254,8 +260,40 @@ interface BeforeSentence {
 type LineSentence = MovesSentence | TakesSentence | BeforeSentence
 type Line = LineSentence[]
 
+interface AttacksSentence {
+    type: 'attacks'
+    piece: string
+    attacked: string
+}
+
+
+
 interface IsUnprotectedSentence {
     type: 'is_unprotected',
+    piece: string
+}
+
+interface IsAtTheBackrankSentence {
+    type: 'is_at_the_backrank',
+    piece: string
+}
+
+interface EyesSentence {
+    type: 'eyes'
+    piece: string
+    eyes: string[]
+}
+
+interface IsOntoSentence {
+    type: 'is_onto'
+    piece: string
+    is_onto: string
+    protected_by: string
+}
+
+
+interface CanCheckAndThenDeliverMateIfKingMovesSentence  {
+    type: 'can_check_and_then_deliver_mate_if_king_moves',
     piece: string
 }
 
@@ -267,6 +305,15 @@ type ParsedSentence = BlocksAlignmentSentence
 | CanForkSentence
 | IsUnprotectedSentence
 | AreAlignedSentence
+| IsAtTheBackrankSentence
+| AttacksSentence
+| EyesSentence
+| IsOntoSentence
+| CanCheckAndThenDeliverMateIfKingMovesSentence 
+
+function is_at_the_backrank(s: ParsedSentence): s is IsAtTheBackrankSentence {
+    return s.type === 'is_at_the_backrank'
+}
 
 function is_are_aligned(s: ParsedSentence): s is AreAlignedSentence {
     return s.type === 'are_aligned'
@@ -288,12 +335,29 @@ function is_unprotected(s: ParsedSentence): s is IsUnprotectedSentence {
     return s.type === 'is_unprotected'
 }
 
+function is_attacks(s: ParsedSentence): s is AttacksSentence {
+    return s.type === 'attacks'
+}
+function is_eyes(s: ParsedSentence): s is EyesSentence {
+    return s.type === 'eyes'
+}
+function is_onto(s: ParsedSentence): s is IsOntoSentence {
+    return s.type === 'is_onto'
+}
+function is_can_check_and_then_deliver_mate_if_king_moves(s: ParsedSentence): s is CanCheckAndThenDeliverMateIfKingMovesSentence {
+    return s.type === 'can_check_and_then_deliver_mate_if_king_moves'
+}
+
+
+
+
 function is_moves(s: LineSentence): s is MovesSentence {
     return s.type === 'moves'
 }
 function is_takes(s: LineSentence): s is TakesSentence {
     return s.type === 'takes'
 }
+
 function is_before(s: LineSentence): s is BeforeSentence {
     return s.type === 'before'
 }
@@ -540,30 +604,140 @@ class Parser {
             this.eat(TokenType.KEYWORD_ON_THE_2ND_RANK)
             rank = 1
         }
+        let around
+        if (this.current_token.type === TokenType.KEYWORD_AROUND_THE_KING) {
+            this.eat(TokenType.KEYWORD_AROUND_THE_KING)
+            around = 'king'
+        }
+
+
+
+
 
         return {
             type: 'are_aligned',
             piece1,
             piece2,
-            rank
+            rank,
+            around
 
         }
     }
 
+    parse_is_at_the_backrank(): IsAtTheBackrankSentence {
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_AT_THE_BACKRANK)
+        return { type: 'is_at_the_backrank', piece }
+    }
+
+    parse_attacks(): AttacksSentence {
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_ATTACKS)
+
+        if (this.current_token.type === TokenType.KEYWORD_A) {
+            this.eat(TokenType.KEYWORD_A)
+        }
+
+        let attacked = this.piece()
+
+
+        if (this.current_token.type === TokenType.KEYWORD_SO_THERE_IS_NO_MATE_THREAT) {
+            this.eat(TokenType.KEYWORD_SO_THERE_IS_NO_MATE_THREAT)
+        }
+
+        return { type: 'attacks', piece, attacked }
+    }
+
+    parse_eyes(): EyesSentence {
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_EYES)
+
+        if (this.current_token.type === TokenType.KEYWORD_A) {
+            this.eat(TokenType.KEYWORD_A)
+        }
+
+        let eyes = [this.piece()]
+
+        if (this.current_token.type === TokenType.KEYWORD_AND) {
+            this.eat(TokenType.KEYWORD_AND)
+        }
+
+        if (this.current_token.type === TokenType.KEYWORD_BOTH) {
+            this.eat(TokenType.KEYWORD_BOTH)
+        }
+
+        let piece1 = '', piece2 = ''
+        if (this.current_token.type === TokenType.PAIR_NAME) {
+            [piece1, piece2] = pair_to_pieces(this.pair())
+            eyes.push(piece1)
+            eyes.push(piece2)
+        }
+
+
+
+        return { type: 'eyes', piece, eyes }
+    }
+
+
+    parse_is_onto(): IsOntoSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_ONTO)
+
+        let is_onto = this.piece()
+
+        this.eat(TokenType.KEYWORD_PROTECTED_BY)
+
+        let protected_by = this.piece()
+
+        return { type: 'is_onto', piece, is_onto, protected_by }
+    }
+
+    parse_can_check_and_then(): CanCheckAndThenDeliverMateIfKingMovesSentence {
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES)
+        return { type: 'can_check_and_then_deliver_mate_if_king_moves', piece }
+    }
 
     parse_sentence(): ParsedSentence {
 
+        if (this.lookahead_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
+            const result = this.parse_are_aligned()
+            this.eat(TokenType.EOF)
+            return result
+        }
         if (this.lookahead2_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
             const result = this.parse_are_aligned()
             this.eat(TokenType.EOF)
             return result
         }
 
+
         if (this.current_token.type !== TokenType.PIECE_NAME) {
             this.error(TokenType.PIECE_NAME)
         }
 
-        if (this.lookahead_token.type === TokenType.KEYWORD_IS_UNPROTECTED) {
+        if (this.lookahead_token.type === TokenType.KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES) {
+            const result = this.parse_can_check_and_then()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_ONTO) {
+            const result = this.parse_is_onto()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_EYES) {
+            const result = this.parse_eyes()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_ATTACKS) {
+            const result = this.parse_attacks()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_AT_THE_BACKRANK) {
+            const result = this.parse_is_at_the_backrank()
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.KEYWORD_IS_UNPROTECTED) {
             const result = this.parse_is_unprotected()
             this.eat(TokenType.EOF)
             return result
@@ -1119,7 +1293,26 @@ function resolve_are_aligned(x: AreAlignedSentence, ccx: Context[]) {
     let piece1 = parse_piece(x.piece1)
     let piece2 = parse_piece(x.piece2)
 
+
+
+
     for (let cx of ccx) {
+
+        let around_squares = SquareSet.full()
+
+        if (x.around) {
+            let around = parse_piece(x.around)
+
+            let around_square = cx.records[x.around]
+
+            around_squares = attacks(around, around_square, cx.pos.board.occupied)
+
+            let aaa = around_squares
+            for (let around_square of aaa) {
+                around_squares = around_squares.union(attacks(around, around_square, cx.pos.board.occupied))
+            }
+
+        }
 
         let piece1_squares = cx.pos.board.occupied.complement()
 
@@ -1132,6 +1325,9 @@ function resolve_are_aligned(x: AreAlignedSentence, ccx: Context[]) {
         if (cx.records[x.piece1] !== undefined) {
             piece2_squares = SquareSet.fromSquare(cx.records[x.piece2])
         }
+
+        piece1_squares = piece1_squares.intersect(around_squares)
+        piece2_squares = piece2_squares.intersect(around_squares)
 
         for (let piece1_square of piece1_squares) {
 
@@ -1172,6 +1368,252 @@ function resolve_are_aligned(x: AreAlignedSentence, ccx: Context[]) {
 
     return ccx2
 }
+
+function resolve_is_at_the_backrank(x: IsAtTheBackrankSentence, ccx: Context[]) {
+
+    let piece = parse_piece(x.piece)
+
+    let ccx2: Context[] = []
+
+    context: for (let cx of ccx) {
+
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[x.piece])
+        }
+
+        for (let piece_square of piece_squares) {
+            if (SquareSet.backrank(piece.color).has(piece_square)) {
+                ccx2.push(cx)
+                continue context
+            }
+        }
+    }
+    return ccx2
+}
+
+function resolve_attacks(y: AttacksSentence, ccx: Context[]) {
+
+    let piece = parse_piece(y.piece)
+    let attacked = parse_piece(y.attacked)
+
+    let ccx2 = []
+    for (let cx of ccx) {
+
+        let piece_squares = cx.pos.board.occupied.complement()
+        let attacked_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[y.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[y.piece])
+        }
+        if (cx.records[y.attacked] !== undefined) {
+            attacked_squares = SquareSet.fromSquare(cx.records[y.attacked])
+        }
+
+        for (let piece_square of piece_squares) {
+            let attacked_squares2 = attacked_squares.intersect(attacks(piece, piece_square, cx.pos.board.occupied))
+
+            for (let attacked_square of attacked_squares2) {
+
+                let p3 = cx.pos.clone()
+                p3.board.set(piece_square, piece)
+                p3.board.set(attacked_square, attacked)
+                let f = makeFen(p3.toSetup())
+
+                ccx2.push({
+                    records: {
+                        ...cx.records,
+                        [y.piece]: piece_square,
+                        [y.attacked]: attacked_square,
+                    },
+                    pos: p3
+                })
+            }
+        }
+
+
+    }
+
+    return ccx2
+}
+
+
+function resolve_eyes(y: EyesSentence, ccx: Context[]) {
+
+    let piece = parse_piece(y.piece)
+
+    let eyes = y.eyes.map(parse_piece)
+
+    let ccx2 = []
+    for (let cx of ccx) {
+
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[y.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[y.piece])
+        }
+
+
+        let eyes_squares_ss = []
+        let eyes_squares = SquareSet.empty()
+        for (let eyes of y.eyes.filter(_ => _ !== 'king')) {
+            eyes_squares = eyes_squares.set(cx.records[eyes], true)
+        }
+        if (y.eyes.includes('king')) {
+
+            for (let k_square of attacks(parse_piece('king'), cx.records['king'], cx.pos.board.occupied)) {
+                eyes_squares_ss.push(eyes_squares.with(k_square))
+            }
+        } else {
+            eyes_squares_ss = [eyes_squares]
+        }
+
+        for (let piece_square of piece_squares) {
+            if (!eyes_squares_ss.find(_ => _.subsetOf(attacks(piece, piece_square, cx.pos.board.occupied)))) {
+                continue
+            }
+
+            let p3 = cx.pos.clone()
+            p3.board.set(piece_square, piece)
+            let f = makeFen(p3.toSetup())
+
+            ccx2.push({
+                records: {
+                    ...cx.records,
+                    [y.piece]: piece_square,
+                },
+                pos: p3
+            })
+        }
+
+
+    }
+
+    return ccx2
+}
+
+
+function resolve_is_onto(y: IsOntoSentence, ccx: Context[]) {
+
+    let piece = parse_piece(y.piece)
+    let is_onto = parse_piece(y.is_onto)
+    let protected_by = parse_piece(y.protected_by)
+
+    let ccx2: Context[] = []
+    for (let cx of ccx) {
+
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[y.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[y.piece])
+        }
+
+        let protected_by_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[y.protected_by] !== undefined) {
+            protected_by_squares = SquareSet.fromSquare(cx.records[y.protected_by])
+        }
+
+
+        for (let protected_by_square of protected_by_squares) {
+            let protected_by_protected_squares = attacks(protected_by, protected_by_square, cx.pos.board.occupied)
+
+            let onto_squares = piece_squares.intersect(attacks(is_onto, cx.records[y.is_onto], cx.pos.board.occupied))
+            onto_squares = onto_squares.intersect(protected_by_protected_squares)
+
+            for (let piece_square of onto_squares) {
+
+                let p3 = cx.pos.clone()
+                p3.board.set(piece_square, piece)
+                p3.board.set(protected_by_square, protected_by)
+
+                ccx2.push({
+                    records: {
+                        ...cx.records,
+                        [y.piece]: piece_square,
+                        [y.protected_by]: protected_by_square
+                    },
+                    pos: p3
+                })
+
+            }
+        }
+
+    }
+
+    return ccx2
+}
+
+function resolve_can_check_and_then_deliver_mate_if_king_moves(x: CanCheckAndThenDeliverMateIfKingMovesSentence, ccx: Context[]) {
+
+    let piece = parse_piece(x.piece)
+    let ccx2: Context[] = []
+
+    context: for (let cx of ccx) {
+
+        let piece_squares = cx.pos.board.occupied.complement()
+
+        if (cx.records[x.piece] !== undefined) {
+            piece_squares = SquareSet.fromSquare(cx.records[x.piece])
+        }
+
+        for (let piece_square of piece_squares) {
+
+            let p2 = cx.pos.clone()
+
+            for (let check_square of p2.dests(piece_square)) {
+                let p3 = p2.clone()
+                p3.play({
+                    from: piece_square,
+                    to: check_square
+                })
+
+                if (p3.isCheck()) {
+
+
+                    for (let mto of p3.dests(p2.board.kingOf('black')!)) {
+                            let p4 = p3.clone()
+                            p4.play({
+                                from: p2.board.kingOf('black')!,
+                                to: mto
+                            })
+
+                            for (let mate_to of p4.dests(check_square)) {
+
+                                let p5 = p4.clone()
+                                p5.play({
+                                    from: check_square,
+                                    to: mate_to
+                                })
+
+                                if (p5.isCheckmate()) {
+                                    ccx2.push({
+                                        records: {
+                                            ...cx.records,
+                                            [x.piece]: check_square
+                                        },
+                                        pos: cx.pos
+                                    })
+                                    continue context
+                                }
+                            }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+    return ccx2
+}
+
+
+
 
 export function mor1(text: string) {
 
@@ -1231,6 +1673,17 @@ export function mor1(text: string) {
             ccx = resolve_is_unprotected(x, ccx)
         } else if (is_are_aligned(x)) {
             ccx = resolve_are_aligned(x, ccx)
+        } else if (is_at_the_backrank(x)) {
+            ccx = resolve_is_at_the_backrank(x, ccx)
+
+        } else if (is_attacks(x)) {
+            ccx = resolve_attacks(x, ccx)
+        } else if (is_eyes(x)) {
+            ccx = resolve_eyes(x, ccx)
+        } else if (is_onto(x)) {
+            ccx = resolve_is_onto(x, ccx)
+        } else if (is_can_check_and_then_deliver_mate_if_king_moves(x)) {
+            ccx = resolve_can_check_and_then_deliver_mate_if_king_moves(x, ccx)
         } else {
             ccx = resolve_battery_eyes(x, ccx)
         }
