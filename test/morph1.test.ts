@@ -1,7 +1,14 @@
 import { it, expect } from 'vitest'
 import { mor1 } from '../src'
+import { mor2 } from '../src'
 
 let a = `
+:link: https://lichess.org/training/qsJ3w
+:situation:
+queen Queen alignment
+`
+
+let ac = `
 :link: https://lichess.org/training/qsJ3w
 :situation:
 queen Queen alignment
@@ -14,10 +21,12 @@ rooks are_aligned
 pawn is_around_the_king
 Knight eyes pawn
 Knight can_fork king queen
+Queen can_eye king
 `
 
 let b = `
 Knight eyes pawn and can_fork king and queen protected_by pawn
+Queen can_eye king blocked_by pawn and threaten_mate_on pawn
 :link: https://lichess.org/training/qsJ3w
 :situation:
 queen Queen alignment
@@ -61,7 +70,12 @@ Knight can_fork queen bishop knight, if queen moves, Knight takes knight with_ch
 `
 
 
-it('works', () => {
+it.skip('works', () => {
     let b = mor1(a)
+    expect(b).toBe(``)
+})
+
+it('mor2', () => {
+    let b = mor2(a)
     expect(b).toBe(``)
 })

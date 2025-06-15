@@ -55,6 +55,7 @@ enum TokenType {
     KEYWORD_CAN_CHECK_AND_THEN_DELIVER_MATE_IF_KING_MOVES = 'KEYWORD_CC_AT_DMIKM',
 
     KEYWORD_IS_AROUND_THE_KING = 'KEYWORD_IS_AROUND_THE_KING',
+    KEYWORD_CAN_EYE = 'KEYWORD_CAN_EYE',
 
     COMMA = 'COMMA',
     EOF = 'EOF',
@@ -65,7 +66,7 @@ interface Token {
     value: string
 }
 
-class Lexer {
+export class Lexer {
     private text: string
     private pos: number
     private current_char?: string
@@ -120,6 +121,8 @@ class Lexer {
             ['blocked_by', TokenType.KEYWORD_BLOCKED_BY],
             ['is_hanging', TokenType.KEYWORD_IS_HANGING],
             ['is_around_the_king', TokenType.KEYWORD_IS_AROUND_THE_KING],
+
+            ['can_eye', TokenType.KEYWORD_CAN_EYE],
 
         ])
 
@@ -320,6 +323,12 @@ interface IsAroundTheKingSentence {
     piece: string
 }
 
+interface CanEyeSentence {
+    type: 'can_eye'
+    piece: string
+    eye: string
+}
+
 type ParsedSentence = BlocksAlignmentSentence 
 | ProtectedBySentence
 | BatteryEyesSentence
@@ -335,6 +344,7 @@ type ParsedSentence = BlocksAlignmentSentence
 | AlignmentSentence
 | IsHangingSentence
 | IsAroundTheKingSentence
+| CanEyeSentence
 
 function is_at_the_backrank(s: ParsedSentence): s is IsAtTheBackrankSentence {
     return s.type === 'is_at_the_backrank'
@@ -384,6 +394,10 @@ function is_can_check_and_then_deliver_mate_if_king_moves(s: ParsedSentence): s 
 function is_alignment(s: ParsedSentence): s is AlignmentSentence {
     return s.type === 'alignment'
 }
+function is_can_eye(s: ParsedSentence): s is CanEyeSentence {
+    return s.type === 'can_eye'
+}
+
 
 
 function is_moves(s: LineSentence): s is MovesSentence {
@@ -399,10 +413,11 @@ function is_before(s: LineSentence): s is BeforeSentence {
 
 
 
+
 class ParserError extends Error {
 }
 
-class Parser {
+export class Parser {
     private lexer: Lexer
     private current_token: Token
     private lookahead_token: Token
@@ -789,15 +804,19 @@ class Parser {
         return { type: 'is_around_the_king', piece }
     }
 
+    parse_can_eye(): CanEyeSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_CAN_EYE)
+        let eye = this.piece()
+
+        return { type: 'can_eye', piece, eye }
+    }
 
 
     parse_sentence(): ParsedSentence {
 
-        if (this.lookahead_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
-            const result = this.parse_are_aligned()
-            this.eat(TokenType.EOF)
-            return result
-        }
+
         if (this.lookahead2_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
             const result = this.parse_are_aligned()
             this.eat(TokenType.EOF)
@@ -806,6 +825,18 @@ class Parser {
 
         if (this.lookahead2_token.type === TokenType.KEYWORD_ALIGNMENT) {
             const result = this.parse_alignment()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_CAN_EYE) {
+            const result = this.parse_can_eye()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
+            const result = this.parse_are_aligned()
             this.eat(TokenType.EOF)
             return result
         }
@@ -1963,6 +1994,15 @@ function resolve_is_around_the_king(x: IsAroundTheKingSentence, ccx: Context[]) 
     return ccx2
 }
 
+function resolve_can_eye(x: CanEyeSentence, ccx: Context[]) {
+    let ccx2: Context[] = []
+
+    for (let cx of ccx) {
+
+    }
+
+    return ccx2;
+}
 
 
 export function mor1(text: string) {
@@ -2008,8 +2048,8 @@ export function mor1(text: string) {
 
 
     for (let x of xx) {
-        if (ccx.length > 20000) {
-            //ccx = ccx.slice(0, 20000)
+        if (ccx.length > 100) {
+            //ccx = ccx.slice(0, 100)
         }
         if (is_blocks_alignment(x)) {
             ccx = resolve_blocks_alignment(x, ccx)
@@ -2040,6 +2080,8 @@ export function mor1(text: string) {
             ccx = resolve_hanging(x, ccx)
         } else if (is_around_the_king(x)) {
             ccx = resolve_is_around_the_king(x, ccx)
+        } else if (is_can_eye(x)) {
+            ccx = resolve_can_eye(x, ccx)
         } else {
             ccx = resolve_battery_eyes(x, ccx)
         }
