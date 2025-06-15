@@ -6,6 +6,9 @@ let a = `
 :link: https://lichess.org/training/qsJ3w
 :situation:
 queen Queen alignment
+bishop queen alignment
+Pawn attacks bishop
+rook Rook alignment blocked_by bishop
 `
 
 let ac = `

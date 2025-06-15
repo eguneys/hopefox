@@ -1,10 +1,14 @@
 import { attacks, between } from "./attacks"
-import { Lexer, Parser } from "./mor1"
+import { Chess } from "./chess"
+import { EMPTY_FEN, makeFen, parseFen } from "./fen"
+import { AlignmentSentence, AttacksSentence, BlocksAlignmentSentence, Lexer, Parser } from "./mor1"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
 
 type Pieces = 'king' | 'King' | 'rook' | 'Rook' | 'queen' | 'Queen' | 'knight' | 'Knight' | 'bishop' | 'Bishop' | 'pawn' | 'Pawn'
+
+const Pieces: Pieces[] = ['king','King','rook','Rook', 'queen', 'Queen', 'knight', 'Knight', 'bishop', 'Bishop', 'pawn', 'Pawn']
 
 type QBoard = Record<Pieces, SquareSet>
 
@@ -25,6 +29,25 @@ function q_board(): QBoard {
     }
 }
 
+function q_equals(a: QBoard, b: QBoard) {
+    return a.king.equals(b.king) &&
+    a.queen.equals(b.queen) &&
+    a.bishop.equals(b.bishop) &&
+    a.knight.equals(b.knight) &&
+    a.rook.equals(b.rook) &&
+    a.pawn.equals(b.pawn) &&
+    a.King.equals(b.King) &&
+    a.Queen.equals(b.Queen) &&
+    a.Bishop.equals(b.Bishop) &&
+    a.Knight.equals(b.Knight) &&
+    a.Rook.equals(b.Rook) &&
+    a.Pawn.equals(b.Pawn)
+}
+
+function q_clone(a: QBoard) {
+    return { ...a }
+}
+
 function qc_backrank(q: QBoard, pieces: Pieces) {
     q[pieces] = q[pieces].intersect(SquareSet.backrank(color_pieces(pieces)))
 }
@@ -33,23 +56,27 @@ function qc_put(q: QBoard, pieces: Pieces, square: Square) {
     q[pieces] = q[pieces].intersect(SquareSet.fromSquare(square))
 }
 
-function qc_pull(q: QBoard, pieces: Pieces) {
-    let f = q[pieces].first()
-    if (f === undefined) {
-        throw new Error('Cannot pull')
-    }
-    q[pieces] = SquareSet.fromSquare(f)
-}
-
-
 
 function qc_take(q: QBoard, pieces: Pieces) {
     q[pieces] = SquareSet.empty()
 }
 
+function qc_dedup(q: QBoard) {
+
+    for (let p of Pieces) {
+
+        if (q[p].size() === 1) {
+            for (let p2 of Pieces) {
+                if (p !== p2) {
+                    q[p2] = q[p2].without(q[p].singleSquare()!)
+                }
+            }
+        }
+    }
+}
 
 
-function qc_alignment(q: QBoard, p1: Pieces, p2: Pieces) {
+const qc_alignment = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
 
@@ -71,7 +98,7 @@ function qc_alignment(q: QBoard, p1: Pieces, p2: Pieces) {
 }
 
 
-function qc_attacks(q: QBoard, p1: Pieces, p2: Pieces) {
+const qc_attacks = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
 
@@ -84,7 +111,7 @@ function qc_attacks(q: QBoard, p1: Pieces, p2: Pieces) {
     q[p2] = res2
 }
 
-function qc_alignment_blocker(q: QBoard, p1: Pieces, p2: Pieces, b1: Pieces) {
+const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard) => {
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
     let blocker1 = parse_piece(b1)
@@ -117,6 +144,42 @@ function qc_alignment_blocker(q: QBoard, p1: Pieces, p2: Pieces, b1: Pieces) {
     q[b1] = res3
 }
 
+function qc_pull1(q: QBoard, pieces: Pieces) {
+    let f = q[pieces].first()
+    if (f === undefined) {
+        return false
+    }
+    q[pieces] = SquareSet.fromSquare(f)
+    return true
+}
+
+function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
+    for (let piece of pieces) {
+        let q2 = { ... q }
+        qc_pull1(q2, piece)
+        while (true) {
+            if (q_equals(q, q2)) {
+                break
+            }
+            cc(q2)
+            q = q2
+            q2 = { ...q2 }
+        }
+    }
+
+    return q
+}
+
+
+const mcc: Record<string, any> = {
+    alignment: (x: AlignmentSentence) =>
+        x.blocker ? 
+        qc_alignment_blocker(x.aligned1 as Pieces, x.aligned2 as Pieces, x.blocker as Pieces) :
+        qc_alignment(x.aligned1 as Pieces, x.aligned2 as Pieces),
+    attacks: (x: AttacksSentence) => qc_attacks(x.piece as Pieces, x.attacked as Pieces),
+    blocks_alignment: (x: BlocksAlignmentSentence) =>
+        qc_alignment_blocker(x.aligned1 as Pieces, x.aligned2 as Pieces, x.blocker as Pieces)
+}
 
 
 export function mor2(text: string) {
@@ -130,34 +193,46 @@ export function mor2(text: string) {
 
 
     let cc = xx.map(x => {
-        if (x.type === 'alignment') {
-            return (q:QBoard) => {
-                qc_alignment(q, x.aligned1 as Pieces, x.aligned2 as Pieces)
-            }
+        if (mcc[x.type]) {
+            return mcc[x.type](x)
         }
         return (q: QBoard) => {}
     })
 
+    const f = (q: QBoard) => {
+        cc.forEach(_ => _(q))
+        qc_dedup(q)
+    }
+
     let q = q_board()
     qc_put(q, 'king', parseSquare('g8'))
-    cc.forEach(c => c(q))
-    qc_pull(q, 'queen')
-    cc.forEach(c => c(q))
-    qc_pull(q, 'Queen')
-    cc.forEach(c => c(q))
 
-    return q
+    q = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook'], f)
+
+    return qc_fen_singles(q)
 }
 
 
 
+function qc_fen_singles(q: QBoard) {
+    let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
+
+    for (let p of Pieces) {
+        let sq = q[p].singleSquare()
+        if (sq) {
+
+            res.board.set(sq, parse_piece(p))
+        }
+    }
+    return makeFen(res.toSetup())
+}
 
 
 function color_pieces(pieces: Pieces): Color {
     if (pieces[0].toLowerCase() === pieces[0]) {
-        return 'white'
+        return 'black'
     }
-    return 'black'
+    return 'white'
 }
 
 function parse_piece(pieces: Pieces): Piece {

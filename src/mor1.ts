@@ -215,14 +215,14 @@ interface AreAlignedSentence {
 }
 
 
-interface BlocksAlignmentSentence {
+export interface BlocksAlignmentSentence {
     type: 'blocks_alignment'
     blocker: string
     aligned1: string
     aligned2: string
 }
 
-interface AlignmentSentence {
+export interface AlignmentSentence {
     type: 'alignment',
     blocker?: string
     aligned1: string
@@ -276,7 +276,7 @@ interface BeforeSentence {
 type LineSentence = MovesSentence | TakesSentence | BeforeSentence
 type Line = LineSentence[]
 
-interface AttacksSentence {
+export interface AttacksSentence {
     type: 'attacks'
     piece: string
     attacked: string
