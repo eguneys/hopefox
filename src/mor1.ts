@@ -298,7 +298,7 @@ interface IsAtTheBackrankSentence {
     piece: string
 }
 
-interface EyesSentence {
+export interface EyesSentence {
     type: 'eyes'
     piece: string
     eyes: string[]

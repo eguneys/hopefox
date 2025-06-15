@@ -1,7 +1,7 @@
 import { attacks, between } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AttacksSentence, BlocksAlignmentSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AttacksSentence, BlocksAlignmentSentence, EyesSentence, Lexer, Parser } from "./mor1"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
@@ -170,6 +170,24 @@ function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
     return q
 }
 
+const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
+    let piece1 = parse_piece(p1)
+    let eyes1 = eyes.map(parse_piece)
+
+    let res1 = SquareSet.empty()
+    let res2s = eyes.map(_ => SquareSet.empty())
+
+    for (let p1s of q[p1]) {
+        for (let i = 0; i < eyes.length; i++) {
+            let p2 = eyes[i]
+            attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])
+        }
+    }
+
+    q[p1] = res1
+    eyes.map((eye1, i) => q[eye1] = res2s[i])
+}
+
 
 const mcc: Record<string, any> = {
     alignment: (x: AlignmentSentence) =>
@@ -178,7 +196,9 @@ const mcc: Record<string, any> = {
         qc_alignment(x.aligned1 as Pieces, x.aligned2 as Pieces),
     attacks: (x: AttacksSentence) => qc_attacks(x.piece as Pieces, x.attacked as Pieces),
     blocks_alignment: (x: BlocksAlignmentSentence) =>
-        qc_alignment_blocker(x.aligned1 as Pieces, x.aligned2 as Pieces, x.blocker as Pieces)
+        qc_alignment_blocker(x.aligned1 as Pieces, x.aligned2 as Pieces, x.blocker as Pieces),
+    eyes: (x: EyesSentence) =>
+        qc_eyes(x.piece as Pieces, x.eyes)
 }
 
 
