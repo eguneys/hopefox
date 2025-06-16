@@ -143,8 +143,8 @@ const qc_attacks_blocker = (p1: Pieces, p2: Pieces, blocker: Pieces) => (q: QBoa
     let res3 = SquareSet.empty()
 
     for (let p1s of q[p1]) {
-        for (let p2s of attacks(piece1, p1s, occupied).intersect(q[p2])) {
-            for (let b1s of q[blocker]) {
+        for (let b1s of q[blocker]) {
+            for (let p2s of attacks(piece1, p1s, occupied.without(b1s)).intersect(q[p2])) {
 
                 if (between(p1s, p2s).has(b1s)) {
 
@@ -370,10 +370,8 @@ export function mor2(text: string) {
     qc_put(q, 'king', parseSquare('g8'))
 
     let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
-    //let qq = qc_pull2o(q, ['Knight', 'queen', 'Pawn', 'Queen'], f)
-    //q = qc_pull2(q, ['king', 'queen', 'Knight'], f)
-    //let qq = qc_pull2o(q, ['king', 'queen', 'Queen'], f)
-    //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Queen', 'rook', 'Rook', 'bishop', 'Pawn', 'Knight', 'rook2'], f)
+    //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
+    //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
 
     return qq?.map(qc_fen_singles)
 }
@@ -381,9 +379,12 @@ export function mor2(text: string) {
 function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
     let res: QBoard[] = []
+    let limit = 0
 
     function dfs(q: QBoard) {
 
+        //if (limit ++ > 100000) return
+        //console.log(qc_fen_singles(q))
         let q2 = { ...q }
         let q3 = q2
 
@@ -400,6 +401,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
         for (let piece of pieces) {
             if (q3[piece].isEmpty()) {
+                //console.log('blow', piece)
                 return
             }
         }
@@ -424,13 +426,18 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
             let count = q3[piece].size()
             for (let skip = 0; skip < count; skip++) {
                 let q_next = { ...q3 }
+                //console.log('pull', piece, skip)
+                if (piece === 'King' && skip === 50) {
+                    debugger
+                }
                 qc_pull1(q_next, piece, skip)
                 dfs(q_next)
-                if (res.length >= 1) {
+                if (res.length >= 10) {
                     return
                 }
             }
-            //break
+            //console.log('out pull', piece)
+            break
         }
     }
 
