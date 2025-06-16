@@ -2,7 +2,7 @@ import { skip } from "node:test"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AreAttackingSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, IsDefendingSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AreAttackingSentence, AttacksSentence, BlocksAlignmentSentence, CanAttackSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, IsDefendingSentence, Lexer, Parser } from "./mor1"
 import { go_black, go_white, SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
@@ -538,6 +538,8 @@ const mcc: Record<string, any> = {
         qc_is_defending(x.piece as Pieces, x.defended as Pieces, x.from_behind),
     are_attacking: (x: AreAttackingSentence) =>
         qc_are_attacking(x.piece as Pieces, x.piece2 as Pieces, x.attacked as Pieces),
+    can_attack: (x: CanAttackSentence) =>
+        qc_can_eye(x.piece as Pieces, x.attacked as Pieces),
 }
 
 export function mor2(text: string) {
@@ -570,7 +572,7 @@ export function mor2(text: string) {
     //let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
-    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook', 'Pawn', 'knight'], f)
+    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook', 'Pawn', 'knight', 'King'], f)
     //let qq = qc_pull2o(q, ['king', 'APP', 'Pawn', 'knight'], f)
 
 
