@@ -2,7 +2,47 @@ import { it, expect } from 'vitest'
 import { mor1 } from '../src'
 import { mor2 } from '../src'
 
+
 let a = `
+:link: https://lichess.org/training/39zmg
+:situation:
+king is_controlling APP push
+`
+
+
+
+let basdf = `
+:link: https://lichess.org/training/39zmg
+:situation:
+king is_controlling APP push
+knight2 is_blockading Queening_Square
+Rook is_defending Pawn from_behind
+knight and king are_attacking Pawn
+King can_attack knight
+`
+
+
+let aa = `
+:link: https://lichess.org/training/39zmg
+:situation:
+two knights vs Rook and an Connected APP
+king is controlling Connected APP push
+knight 2 is blockading queening square
+edge 2 connected passed pawns connected by another pawn
+King is aside
+Rook is defending Pawn from behind
+knight and king are attacking Pawn
+Rook king alignment blocked by Pawn
+King can attack blockading knight
+if King attacks knight 2, knight 2's 2 escape squares are controlled by the King and 1 escape square is occupied by king, so it is trapped, then knight 2 can take Pawn 2 pinning itself to Rook king alignment, If King takes knight, king takes APP, Rook vs knight and three connected pps losing.
+
+:line:
+King attacks knight 2, knight takes Pawn, if Rook takes knight immediately, king takes Rook, and creating an escape square for the knight 2, knight and 3 connected pp vs a Pawn is losing.
+So APP push first, threatening Rook takes knight followed by King takes knight 2 and queen, knight 2 decoys King by moving to an escape square controlled by the King, Rook takes knight first, decoying king attack the app about to promote, then King takes knight 2, app is unstoppable winning.
+`
+
+
+let a4 = `
 :link: https://lichess.org/training/qsJ3w
 :situation:
 queen Queen alignment

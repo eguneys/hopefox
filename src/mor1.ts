@@ -15,6 +15,11 @@ import { piece } from "./debug"
 enum TokenType {
     PAIR_NAME = 'PAIR_NAME',
     PIECE_NAME = 'PIECE_NAME',
+    APP_PIECE_NAME = 'APP_PIECE_NAME',
+    SQUARE_NAME = 'SQUARE_NAME',
+
+    MOBILITY_NAME = 'MOBILITY_NAME',
+
     KEYWORD_BLOCKS = 'KEYWORD_BLOCKS',
     KEYWORD_ALIGNMENT = 'KEYWORD_ALIGNMENT',
     KEYWORD_PROTECTED_BY = 'KEYWORD_PROTECTED_BY',
@@ -58,6 +63,12 @@ enum TokenType {
     KEYWORD_CAN_EYE = 'KEYWORD_CAN_EYE',
     KEYWORD_CAN_THREATEN_MATE_ON = 'KEYWORD_CAN_THREATEN_MATE_ON',
     KEYWORD_WITH = 'KEYWORD_WITH',
+    KEYWORD_IS_CONTROLLING = 'KEYWORD_IS_CONTROLLING',
+    KEYWORD_IS_BLOCKADING = 'KEYWORD_IS_BLOCKADING',
+    KEYWORD_IS_DEFENDING = 'KEYWORD_IS_DEFENDING',
+
+    KEYWORD_ARE_ATTACKING = 'KEYWORD_ARE_ATTACKING',
+    KEYWORD_CAN_ATTACK = 'KEYWORD_CAN_ATTACK',
 
     COMMA = 'COMMA',
     EOF = 'EOF',
@@ -76,6 +87,9 @@ export class Lexer {
     private keywords: Map<string, TokenType>
     private piece_names: Map<string, TokenType>
     private pair_names: Map<string, TokenType>
+    private app_piece_names: Map<string, TokenType>
+    private square_names: Map<string, TokenType>
+    private mobility_names: Map<string, TokenType>
 
     constructor(text: string) {
         this.text = text
@@ -128,6 +142,13 @@ export class Lexer {
             ['can_threaten_mate_on', TokenType.KEYWORD_CAN_THREATEN_MATE_ON],
             ['with', TokenType.KEYWORD_WITH],
 
+            ['is_controlling', TokenType.KEYWORD_IS_CONTROLLING],
+            ['is_blockading', TokenType.KEYWORD_IS_BLOCKADING],
+            ['are_attacking', TokenType.KEYWORD_ARE_ATTACKING],
+            ['is_defending', TokenType.KEYWORD_IS_DEFENDING],
+
+            ['can_attack', TokenType.KEYWORD_CAN_ATTACK],
+
         ])
 
 
@@ -144,6 +165,16 @@ export class Lexer {
             ['Rook', TokenType.PIECE_NAME],
             ['Pawn', TokenType.PIECE_NAME],
             ['King', TokenType.PIECE_NAME],
+
+            ['knight2', TokenType.PIECE_NAME],
+            ['bishop2', TokenType.PIECE_NAME],
+            ['rook2', TokenType.PIECE_NAME],
+            ['pawn2', TokenType.PIECE_NAME],
+            ['Knight2', TokenType.PIECE_NAME],
+            ['Bishop2', TokenType.PIECE_NAME],
+            ['Rook2', TokenType.PIECE_NAME],
+            ['Pawn2', TokenType.PIECE_NAME],
+            ['King', TokenType.PIECE_NAME],
         ])
 
         this.pair_names = new Map([
@@ -155,6 +186,20 @@ export class Lexer {
             ['Knights', TokenType.PAIR_NAME]
         ])
 
+        this.app_piece_names = new Map([
+            ['APP', TokenType.APP_PIECE_NAME],
+            ['app', TokenType.APP_PIECE_NAME]
+        ])
+
+        this.square_names = new Map([
+            ['Queening_Square', TokenType.SQUARE_NAME],
+            ['queening_square', TokenType.SQUARE_NAME]
+        ])
+
+        this.mobility_names = new Map([
+            ['push', TokenType.MOBILITY_NAME],
+            ['escape', TokenType.MOBILITY_NAME]
+        ])
     }
 
     private advance() {
@@ -204,6 +249,12 @@ export class Lexer {
                 return { type: TokenType.PIECE_NAME, value: word_str }
             } else if (this.pair_names.has(word_str)) {
                 return { type: TokenType.PAIR_NAME, value: word_str }
+            } else if (this.app_piece_names.has(word_str)) {
+                return { type: TokenType.APP_PIECE_NAME, value: word_str }
+            } else if (this.mobility_names.has(word_str)) {
+                return { type: TokenType.MOBILITY_NAME, value: word_str }
+            } else if (this.square_names.has(word_str)) {
+                return { type: TokenType.SQUARE_NAME, value: word_str }
             }
         }
         return { type: TokenType.EOF, value: '' }
@@ -340,6 +391,45 @@ export interface CanThreatenMateOnSentence {
     with: string
 }
 
+export interface IsControllingSentence {
+    type: 'is_controlling'
+    piece: string
+    square: string
+    push: boolean
+}
+
+export interface IsBlockadingSentence {
+    type: 'is_blockading'
+    piece: string
+    square: string
+}
+
+export interface IsDefendingSentence {
+    type: 'is_defending'
+    piece: string
+    defended: string
+    from_behind: boolean
+}
+
+
+
+
+export interface AreAttackingSentence {
+    type: 'are_attacking'
+    piece: string
+    piece2: string
+    attacked: string
+}
+
+export interface CanAttackSentence {
+    type: 'can_attack'
+    piece: string
+    attacked: string
+}
+
+
+
+
 type ParsedSentence = BlocksAlignmentSentence 
 | ProtectedBySentence
 | BatteryEyesSentence
@@ -357,6 +447,11 @@ type ParsedSentence = BlocksAlignmentSentence
 | IsAroundTheKingSentence
 | CanEyeSentence
 | CanThreatenMateOnSentence
+| IsControllingSentence
+| IsBlockadingSentence
+| IsDefendingSentence
+| AreAttackingSentence
+| CanAttackSentence
 
 function is_at_the_backrank(s: ParsedSentence): s is IsAtTheBackrankSentence {
     return s.type === 'is_at_the_backrank'
@@ -434,12 +529,14 @@ export class Parser {
     private current_token: Token
     private lookahead_token: Token
     private lookahead2_token: Token
+    private lookahead3_token: Token
 
     constructor(lexer: Lexer) {
         this.lexer = lexer
         this.current_token = this.lexer.get_next_token()
         this.lookahead_token = this.lexer.get_next_token()
         this.lookahead2_token = this.lexer.get_next_token()
+        this.lookahead3_token = this.lexer.get_next_token()
     }
 
     private error(expected_type?: TokenType) {
@@ -454,7 +551,8 @@ export class Parser {
     private advance_tokens() {
         this.current_token = this.lookahead_token
         this.lookahead_token = this.lookahead2_token
-        this.lookahead2_token = this.lexer.get_next_token()
+        this.lookahead2_token = this.lookahead3_token
+        this.lookahead3_token = this.lexer.get_next_token()
     }
 
     private eat(token_type: TokenType) {
@@ -478,6 +576,19 @@ export class Parser {
         this.eat(TokenType.PIECE_NAME)
         return token.value
     }
+
+    private app_piece() {
+        const token = this.current_token
+        this.eat(TokenType.APP_PIECE_NAME)
+        return token.value
+    }
+
+    private square() {
+        const token = this.current_token
+        this.eat(TokenType.SQUARE_NAME)
+        return token.value
+    }
+
 
 
     parse_blocks_alignment(): BlocksAlignmentSentence {
@@ -836,10 +947,70 @@ export class Parser {
         return { type: 'can_threaten_mate_on', piece, eye, with: _with }
     }
 
+    parse_is_controlling(): IsControllingSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_CONTROLLING)
+        let square = this.app_piece()
+
+        if (this.current_token.type === TokenType.MOBILITY_NAME) {
+            this.eat(TokenType.MOBILITY_NAME)
+        }
+
+        return { type: 'is_controlling', piece, square, push: true }
+    }
+
+    parse_is_blockading(): IsBlockadingSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_BLOCKADING)
+        let square = this.square()
+
+        return { type: 'is_blockading', piece, square }
+    }
+
+
+    parse_is_defending(): IsDefendingSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_IS_DEFENDING)
+        let defended = this.piece()
+
+        return { type: 'is_defending', piece, defended, from_behind: true }
+    }
+
+
+    parse_are_attacking(): AreAttackingSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_AND)
+        let piece2 = this.piece()
+        this.eat(TokenType.KEYWORD_ARE_ATTACKING)
+        let attacked = this.piece()
+
+        return { type: 'are_attacking', piece, piece2, attacked }
+    }
+
+
+    parse_can_attack(): CanAttackSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_CAN_ATTACK)
+        let attacked = this.piece()
+
+        return { type: 'can_attack', piece, attacked }
+    }
+
+
 
 
     parse_sentence(): ParsedSentence {
 
+        if (this.lookahead3_token.type === TokenType.KEYWORD_ARE_ATTACKING) {
+            const result = this.parse_are_attacking()
+            this.eat(TokenType.EOF)
+            return result
+        }
 
         if (this.lookahead2_token.type === TokenType.KEYWORD_ARE_ALIGNED) {
             const result = this.parse_are_aligned()
@@ -852,6 +1023,35 @@ export class Parser {
             this.eat(TokenType.EOF)
             return result
         }
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_IS_DEFENDING) {
+            const result = this.parse_is_defending()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_CAN_ATTACK) {
+            const result = this.parse_can_attack()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_IS_BLOCKADING) {
+            const result = this.parse_is_blockading()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_IS_CONTROLLING) {
+            const result = this.parse_is_controlling()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+
 
         if (this.lookahead_token.type === TokenType.KEYWORD_CAN_THREATEN_MATE_ON) {
             const result = this.parse_can_threaten_mate_on()

@@ -2,7 +2,7 @@ import { skip } from "node:test"
 import { attacks, between } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsControllingSentence, Lexer, Parser } from "./mor1"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
@@ -352,6 +352,11 @@ const qc_can_threaten_mate_on = (p1: Pieces, eye1: Pieces, with1: Pieces) => (q:
 
 }
 
+const qc_is_controlling = (piece: Pieces, square: Pieces, push: boolean) => (q: QBoard) => {
+
+}
+
+
 const mcc: Record<string, any> = {
     alignment: (x: AlignmentSentence) =>
         x.blocker ? 
@@ -372,8 +377,9 @@ const mcc: Record<string, any> = {
     can_eye: (x: CanEyeSentence) =>
         qc_can_eye(x.piece as Pieces, x.eye as Pieces),
     can_threaten_mate_on: (x: CanThreatenMateOnSentence) =>
-        qc_can_threaten_mate_on(x.piece as Pieces, x.eye as Pieces, x.with as Pieces)
-
+        qc_can_threaten_mate_on(x.piece as Pieces, x.eye as Pieces, x.with as Pieces),
+    is_controlling: (x: IsControllingSentence) =>
+        qc_is_controlling(x.piece as Pieces, x.square as Pieces, x.push)
 }
 
 
@@ -401,11 +407,12 @@ export function mor2(text: string) {
     }
 
     let q = q_board()
-    qc_put(q, 'king', parseSquare('g8'))
+    //qc_put(q, 'king', parseSquare('g8'))
 
-    let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
+    //let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
+    let qq = qc_pull2o(q, ['king'], f)
 
     return qq?.map(qc_fen_singles)
 }
