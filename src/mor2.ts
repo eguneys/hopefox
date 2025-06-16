@@ -2,7 +2,7 @@ import { skip } from "node:test"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, IsDefendingSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AreAttackingSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, IsDefendingSentence, Lexer, Parser } from "./mor1"
 import { go_black, go_white, SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
@@ -130,6 +130,11 @@ function SquareSet_Queening(color: Color, sq: Square) {
 }
 
 function qc_app_places(q: QBoard) {
+
+
+    q['pawn'] = q['pawn'].intersect(SquareSet.backranks().complement())
+    q['Pawn'] = q['Pawn'].intersect(SquareSet.backranks().complement())
+
     q['app'] = q['app'].intersect(SquareSet_APP('black'))
     q['APP'] = q['APP'].intersect(SquareSet_APP('white'))
 
@@ -471,6 +476,39 @@ const qc_is_defending = (p1: Pieces, d1: Pieces, from_behind: boolean) => (q: QB
     q[d1] = res2
 }
 
+const qc_are_attacking = (p1: Pieces, p2: Pieces, a1: Pieces) => (q: QBoard) => {
+
+    let occupied = q_occupied(q)
+    let piece = parse_piece(p1)
+    let piece2 = parse_piece(p2)
+    let attacked = parse_piece(a1)
+
+    let res1 = SquareSet.empty()
+    let res2 = SquareSet.empty()
+    let res3 = SquareSet.empty()
+
+    for (let p1s of q[p1]) {
+        for (let p2s of q[p2]) {
+            let a1ss = attacks(piece, p1s, occupied)
+            .intersect(attacks(piece2, p2s, occupied))
+            .intersect(q[a1])
+
+            for (let a1s of a1ss) {
+                res1 = res1.set(p1s, true)
+                res2 = res2.set(p2s, true)
+                res3 = res3.set(a1s, true)
+            }
+        }
+    }
+
+    q[p1] = res1
+    q[p2] = res2
+    q[a1] = res3
+}
+
+
+
+
 const mcc: Record<string, any> = {
     alignment: (x: AlignmentSentence) =>
         x.blocker ? 
@@ -498,6 +536,8 @@ const mcc: Record<string, any> = {
         qc_is_blockading(x.piece as Pieces, x.square as Pieces),
     is_defending: (x: IsDefendingSentence) =>
         qc_is_defending(x.piece as Pieces, x.defended as Pieces, x.from_behind),
+    are_attacking: (x: AreAttackingSentence) =>
+        qc_are_attacking(x.piece as Pieces, x.piece2 as Pieces, x.attacked as Pieces),
 }
 
 export function mor2(text: string) {
@@ -530,7 +570,9 @@ export function mor2(text: string) {
     //let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
-    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook', 'Pawn'], f)
+    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook', 'Pawn', 'knight'], f)
+    //let qq = qc_pull2o(q, ['king', 'APP', 'Pawn', 'knight'], f)
+
 
     return qq?.map(qc_fen_singles)
 }
