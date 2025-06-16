@@ -372,7 +372,8 @@ export function mor2(text: string) {
     //let qq = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //q = qc_pull2(q, ['queen', 'Knight'], f)
     //q = qc_pull2(q, ['king', 'queen', 'Knight'], f)
-    let qq = qc_pull2(q, ['king', 'queen', 'Queen'], f)
+    //let qq = qc_pull2(q, ['king', 'queen', 'Queen'], f)
+    let qq = qc_pull2(q, ['queen', 'Queen', 'rook', 'Rook', 'bishop', 'Pawn', 'Knight', 'rook2'], f)
 
     return qq.map(qc_fen_singles)
 }
@@ -387,7 +388,7 @@ function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
     for (let i = 0; i < pieces.length; i++) {
         //if (limit++ > 1000) break
-        console.log(qc_fen_singles(q2), skips)
+        //console.log(qc_fen_singles(q2), skips)
         let piece = pieces[i]
         let skip = skips[i]
 
@@ -441,7 +442,7 @@ function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
             }
                 */
 
-            if (res.length > 10) {
+            if (res.length > 0) {
                 break
             }
 
