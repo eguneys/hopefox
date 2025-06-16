@@ -2,7 +2,7 @@ import { skip } from "node:test"
 import { attacks, between } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanForkSentence, EyesSentence, IsAroundTheKingSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, EyesSentence, IsAroundTheKingSentence, Lexer, Parser } from "./mor1"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
@@ -40,6 +40,17 @@ function q_board(): QBoard {
         Knight2: SquareSet.full(),
 
     }
+}
+
+function q_occupied(a: QBoard) {
+    let res = SquareSet.empty()
+
+    for (let p of Pieces) {
+        if (a[p].singleSquare()) {
+            res = res.union(a[p])
+        }
+    }
+    return res
 }
 
 function q_equals(a: QBoard, b: QBoard) {
@@ -84,6 +95,7 @@ function qc_dedup(q: QBoard) {
 
 
 const qc_alignment = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
+    let occupied = q_occupied(q)
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
 
@@ -91,9 +103,9 @@ const qc_alignment = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
     let res2 = SquareSet.empty()
 
     for (let p1s of q[p1]) {
-        for (let p2s of attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])) {
+        for (let p2s of attacks(piece1, p1s, occupied).intersect(q[p2])) {
 
-            if (attacks(piece2, p2s, SquareSet.empty()).has(p1s)) {
+            if (attacks(piece2, p2s, occupied).has(p1s)) {
                 res1 = res1.set(p1s, true)
                 res2 = res2.set(p2s, true)
             }
@@ -106,19 +118,22 @@ const qc_alignment = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
 
 
 const qc_attacks = (p1: Pieces, p2: Pieces) => (q: QBoard) => {
+    let occupied = q_occupied(q)
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
 
     let res2 = SquareSet.empty()
 
     for (let p1s of q[p1]) {
-        res2 = res2.union(attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2]))
+        res2 = res2.union(attacks(piece1, p1s, occupied).intersect(q[p2]))
     }
 
     q[p2] = res2
 }
 
 const qc_attacks_blocker = (p1: Pieces, p2: Pieces, blocker: Pieces) => (q: QBoard) => {
+    let occupied = q_occupied(q)
+
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
     let blocker1 = parse_piece(blocker)
@@ -128,7 +143,7 @@ const qc_attacks_blocker = (p1: Pieces, p2: Pieces, blocker: Pieces) => (q: QBoa
     let res3 = SquareSet.empty()
 
     for (let p1s of q[p1]) {
-        for (let p2s of attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])) {
+        for (let p2s of attacks(piece1, p1s, occupied).intersect(q[p2])) {
             for (let b1s of q[blocker]) {
 
                 if (between(p1s, p2s).has(b1s)) {
@@ -149,6 +164,7 @@ const qc_attacks_blocker = (p1: Pieces, p2: Pieces, blocker: Pieces) => (q: QBoa
 
 
 const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard) => {
+    let occupied = q_occupied(q)
     let piece1 = parse_piece(p1)
     let piece2 = parse_piece(p2)
     let blocker1 = parse_piece(b1)
@@ -158,9 +174,9 @@ const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard)
     let res3 = SquareSet.empty()
 
     for (let p1s of q[p1]) {
-        for (let p2s of attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])) {
+        for (let p2s of attacks(piece1, p1s, occupied).intersect(q[p2])) {
 
-            if (attacks(piece2, p2s, SquareSet.empty()).has(p1s)) {
+            if (attacks(piece2, p2s, occupied).has(p1s)) {
 
                 for (let b1s of q[b1]) {
 
@@ -182,6 +198,7 @@ const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard)
 }
 
 const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
+    let occupied = q_occupied(q)
     let piece1 = parse_piece(p1)
     let eyes1 = eyes.map(parse_piece)
 
@@ -193,7 +210,7 @@ const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
             let p2 = eyes[i]
             let res2 = res2s[i]
 
-            for (let p2s of attacks(piece1, p1s, SquareSet.empty()).intersect(q[p2])) {
+            for (let p2s of attacks(piece1, p1s, occupied).intersect(q[p2])) {
                 res1 = res1.set(p1s, true)
                 res2s[i] = res2.set(p2s, true)
             }
@@ -205,23 +222,22 @@ const qc_eyes = (p1: Pieces, eyes: Pieces[]) => (q: QBoard) => {
 }
 
 const qc_is_around_the_king = (p1: Pieces) => (q: QBoard) => {
-
+    let occupied = q_occupied(q)
     let piece = parse_piece(p1)
     let king: Pieces = piece.color === 'white' ? 'King' : 'king'
     let king_piece = parse_piece(king)
 
     let res = SquareSet.empty()
     for (let ks of q[king]) {
-        for (let p1s of attacks(king_piece, ks, SquareSet.empty()).intersect(q[p1])) {
+        for (let p1s of attacks(king_piece, ks, occupied).intersect(q[p1])) {
             res = res.set(p1s, true)
         }
     }
     q[p1] = res
 }
 
-
-const qc_can_fork = (p1: Pieces, forked: Pieces[]) => (q: QBoard) => {
-
+const qc_can_fork_or = (p1: Pieces, forked: Pieces[]) => (q: QBoard) => {
+    let occupied = q_occupied(q)
     let piece = parse_piece(p1)
     let forked_pieces = forked.map(parse_piece)
 
@@ -230,12 +246,12 @@ const qc_can_fork = (p1: Pieces, forked: Pieces[]) => (q: QBoard) => {
     let res2s = forked.map(_ => SquareSet.empty())
 
     for (let p1s of q[p1]) {
-        for (let a1s of attacks(piece, p1s, SquareSet.empty()))
+        for (let a1s of attacks(piece, p1s, occupied))
         for (let i = 0; i < forked.length; i++) {
             let p2 = forked[i]
             let res2 = res2s[i]
 
-            for (let p2s of attacks(piece, a1s, SquareSet.empty()).intersect(q[p2])) {
+            for (let p2s of attacks(piece, a1s, occupied).intersect(q[p2])) {
                 res1 = res1.set(p1s, true)
                 res2s[i] = res2.set(p2s, true)
             }
@@ -244,6 +260,63 @@ const qc_can_fork = (p1: Pieces, forked: Pieces[]) => (q: QBoard) => {
 
     q[p1] = res1
     forked.map((forked1, i) => q[forked1] = res2s[i])
+}
+
+
+
+const qc_can_fork_and = (p1: Pieces, forked: Pieces[]) => (q: QBoard) => {
+    let occupied = q_occupied(q)
+    let piece = parse_piece(p1)
+    let forked_pieces = forked.map(parse_piece)
+
+
+    let res1 = SquareSet.empty()
+    let res2s = forked.map(_ => SquareSet.empty())
+
+    for (let p1s of q[p1]) {
+        a1s: for (let a1s of attacks(piece, p1s, occupied)) {
+            for (let i = 0; i < forked.length; i++) {
+                let p2 = forked[i]
+
+                if (attacks(piece, a1s, SquareSet.empty()).intersect(q[p2]).isEmpty()) {
+                    continue a1s
+                }
+            }
+            res1 = res1.set(p1s, true)
+
+            /*
+            for (let p2s of attacks(piece, a1s, SquareSet.empty()).intersect(fork_all)) {
+                res1 = res1.set(p1s, true)
+            }
+                */
+
+        }
+    }
+
+    q[p1] = res1
+    //forked.map((forked1, i) => q[forked1] = res2s[i])
+}
+
+const qc_can_eye = (p1: Pieces, eye: Pieces) => (q: QBoard) => {
+
+    let occupied = q_occupied(q)
+    let piece = parse_piece(p1)
+    let eye_piece = parse_piece(eye)
+
+
+    let res1 = SquareSet.empty()
+    let res2 = SquareSet.empty()
+
+    for (let p1s of q[p1]) {
+        a1s: for (let a1s of attacks(piece, p1s, occupied)) {
+            for (let p2s of attacks(piece, a1s, occupied).intersect(q[eye])) {
+                res1 = res1.set(p1s, true)
+            }
+        }
+    }
+
+    q[p1] = res1
+
 }
 
 
@@ -263,7 +336,9 @@ const mcc: Record<string, any> = {
     is_around_the_king: (x: IsAroundTheKingSentence) =>
         qc_is_around_the_king(x.piece as Pieces),
     can_fork: (x: CanForkSentence) =>
-        qc_can_fork(x.piece as Pieces, x.forked as Pieces[])
+        qc_can_fork_and(x.piece as Pieces, x.forked as Pieces[]),
+    can_eye: (x: CanEyeSentence) =>
+        qc_can_eye(x.piece as Pieces, x.eye as Pieces)
 
 }
 
@@ -294,11 +369,12 @@ export function mor2(text: string) {
     let q = q_board()
     qc_put(q, 'king', parseSquare('g8'))
 
-    //q = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
+    //let qq = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //q = qc_pull2(q, ['queen', 'Knight'], f)
-    q = qc_pull2(q, ['king', 'queen', 'Knight'], f)
+    //q = qc_pull2(q, ['king', 'queen', 'Knight'], f)
+    let qq = qc_pull2(q, ['king', 'queen', 'Queen'], f)
 
-    return qc_fen_singles(q)
+    return qq.map(qc_fen_singles)
 }
 
 function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
@@ -307,7 +383,9 @@ function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
     let skips = pieces.map(_ => 0)
     let qqs = pieces.map(_ => ({ ...q }))
 
-    for (let i = 0; i < pieces.length; i++){
+    let res = []
+
+    for (let i = 0; i < pieces.length; i++) {
         //if (limit++ > 1000) break
         console.log(qc_fen_singles(q2), skips)
         let piece = pieces[i]
@@ -317,13 +395,16 @@ function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
         let q3 = { ... q2 }
         let is_end = !qc_pull1(q3, piece, skip)
         if (is_end) {
+            if (i === 0) {
+                break
+            }
             skips[i] = 0
             i -= 1
             skips[i]++;
             i -= 1
 
-            q2 = q
-            for (let j = 0; j < i; j++) {
+            q2 = {...q}
+            for (let j = 0; j < i + 1; j++) {
                 qc_pull1(q2, pieces[j], skips[j])
             }
 
@@ -346,9 +427,30 @@ function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
                 break
             }
         }
-    }
 
-    return q2
+
+        if (i === pieces.length - 1) {
+            res.push(q2)
+            skips[i] = skip + 1
+            i = -1
+
+            q2 = { ...q }
+            /*
+            for (let j = 0; j < pieces.length; j++) {
+                qc_pull1(q2, pieces[j], skips[j])
+            }
+                */
+
+            if (res.length > 10) {
+                break
+            }
+
+            continue
+        }
+
+     }
+
+    return res
 }
 
 function qc_pull1(q: QBoard, pieces: Pieces, skip: number = 0) {

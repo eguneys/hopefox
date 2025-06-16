@@ -323,7 +323,7 @@ export interface IsAroundTheKingSentence {
     piece: string
 }
 
-interface CanEyeSentence {
+export interface CanEyeSentence {
     type: 'can_eye'
     piece: string
     eye: string

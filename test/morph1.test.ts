@@ -5,7 +5,8 @@ import { mor2 } from '../src'
 let a = `
 :link: https://lichess.org/training/qsJ3w
 :situation:
-Knight can_fork king queen
+queen Queen alignment
+
 `
 
 let ac = `
