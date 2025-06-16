@@ -369,23 +369,24 @@ export function mor2(text: string) {
     let q = q_board()
     qc_put(q, 'king', parseSquare('g8'))
 
-    //let qq = qc_pull2(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
-    //q = qc_pull2(q, ['queen', 'Knight'], f)
+    let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
+    //let qq = qc_pull2o(q, ['Knight', 'queen', 'Pawn', 'Queen'], f)
     //q = qc_pull2(q, ['king', 'queen', 'Knight'], f)
-    //let qq = qc_pull2(q, ['king', 'queen', 'Queen'], f)
-    let qq = qc_pull2(q, ['queen', 'Queen', 'rook', 'Rook', 'bishop', 'Pawn', 'Knight', 'rook2'], f)
+    //let qq = qc_pull2o(q, ['king', 'queen', 'Queen'], f)
+    //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Queen', 'rook', 'Rook', 'bishop', 'Pawn', 'Knight', 'rook2'], f)
 
-    return qq.map(qc_fen_singles)
+    return qq?.map(qc_fen_singles)
 }
 
 function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
-    let q2 = { ... q }
-    let q3 = q2
+    let res: QBoard[] = []
 
-    let res = []
+    function dfs(q: QBoard) {
 
-    while (res.length < 10) {
+        let q2 = { ...q }
+        let q3 = q2
+
 
         while (true) {
             cc(q3)
@@ -397,34 +398,44 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
             q3 = { ...q3 }
         }
 
-        let fail = false
         for (let piece of pieces) {
             if (q3[piece].isEmpty()) {
-                fail = true
-                break
+                return
             }
-        }
-        if (fail) {
-            res.push(q3)
         }
 
         let all_single = true
-        for (let i = 0; i < pieces.length; i++) {
-            let piece = pieces[i]
-            if (q3[piece].singleSquare()) {
-                continue
+        for (let piece of pieces) {
+            if (q3[piece].singleSquare() === undefined) {
+                all_single = false
+                break
             }
-            let skip = 0
-            qc_pull1(q3, piece, skip)
-            all_single = false
-            break
         }
 
         if (all_single) {
             res.push(q3)
+            return
+        }
+
+        for (let piece of pieces) {
+            if (q3[piece].singleSquare() !== undefined) {
+                continue
+            }
+            let count = q3[piece].size()
+            for (let skip = 0; skip < count; skip++) {
+                let q_next = { ...q3 }
+                qc_pull1(q_next, piece, skip)
+                dfs(q_next)
+                if (res.length >= 1) {
+                    return
+                }
+            }
+            //break
         }
     }
 
+    dfs(q)
+    return res
 }
 
 function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
