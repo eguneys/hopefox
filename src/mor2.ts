@@ -174,11 +174,11 @@ const qc_alignment_blocker = (p1: Pieces, p2: Pieces, b1: Pieces) => (q: QBoard)
     let res3 = SquareSet.empty()
 
     for (let p1s of q[p1]) {
-        for (let p2s of attacks(piece1, p1s, occupied).intersect(q[p2])) {
+        for (let b1s of q[b1]) {
+            for (let p2s of attacks(piece1, p1s, occupied.without(b1s)).intersect(q[p2])) {
 
-            if (attacks(piece2, p2s, occupied).has(p1s)) {
+                if (attacks(piece2, p2s, occupied.without(b1s)).has(p1s)) {
 
-                for (let b1s of q[b1]) {
 
                     if (between(p1s, p2s).has(b1s)) {
 

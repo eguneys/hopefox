@@ -8,12 +8,14 @@ let a = `
 queen Queen alignment
 bishop queen alignment
 Pawn attacks bishop
+rook Rook alignment blocked_by bishop
 queen eyes Knight blocked_by Pawn
 rooks are_aligned
 pawn is_around_the_king
 Knight eyes pawn
 Knight can_fork king queen
 Queen can_eye king
+Queen is_hanging
 `
 
 let ac = `
