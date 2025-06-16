@@ -530,7 +530,7 @@ export function mor2(text: string) {
     //let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
-    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook'], f)
+    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook', 'Pawn'], f)
 
     return qq?.map(qc_fen_singles)
 }

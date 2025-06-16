@@ -974,7 +974,15 @@ export class Parser {
 
         let piece = this.piece()
         this.eat(TokenType.KEYWORD_IS_DEFENDING)
-        let defended = this.piece()
+
+        let defended
+        if (this.current_token.type === TokenType.APP_PIECE_NAME) {
+
+            defended = this.app_piece()
+        } else {
+            defended = this.piece()
+        }
+
 
         return { type: 'is_defending', piece, defended, from_behind: true }
     }

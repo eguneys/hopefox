@@ -9,6 +9,7 @@ let a = `
 king is_controlling APP push
 knight2 is_blockading Queening_Square
 Rook is_defending Pawn from_behind
+Pawn is_defending APP
 `
 
 
