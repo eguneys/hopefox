@@ -14,8 +14,8 @@ rooks are_aligned
 pawn is_around_the_king
 Knight eyes pawn
 Knight can_fork king queen
-Queen can_eye king
 Queen is_hanging
+Queen can_threaten_mate_on pawn with Knight
 `
 
 let ac = `
@@ -31,7 +31,7 @@ rooks are_aligned
 pawn is_around_the_king
 Knight eyes pawn
 Knight can_fork king queen
-Queen can_eye king
+Queen can_threaten_mate_on pawn with Knight
 `
 
 let b = `

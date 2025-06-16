@@ -56,6 +56,8 @@ enum TokenType {
 
     KEYWORD_IS_AROUND_THE_KING = 'KEYWORD_IS_AROUND_THE_KING',
     KEYWORD_CAN_EYE = 'KEYWORD_CAN_EYE',
+    KEYWORD_CAN_THREATEN_MATE_ON = 'KEYWORD_CAN_THREATEN_MATE_ON',
+    KEYWORD_WITH = 'KEYWORD_WITH',
 
     COMMA = 'COMMA',
     EOF = 'EOF',
@@ -123,6 +125,8 @@ export class Lexer {
             ['is_around_the_king', TokenType.KEYWORD_IS_AROUND_THE_KING],
 
             ['can_eye', TokenType.KEYWORD_CAN_EYE],
+            ['can_threaten_mate_on', TokenType.KEYWORD_CAN_THREATEN_MATE_ON],
+            ['with', TokenType.KEYWORD_WITH],
 
         ])
 
@@ -329,6 +333,13 @@ export interface CanEyeSentence {
     eye: string
 }
 
+export interface CanThreatenMateOnSentence {
+    type: 'can_threaten_mate_on'
+    piece: string
+    eye: string
+    with: string
+}
+
 type ParsedSentence = BlocksAlignmentSentence 
 | ProtectedBySentence
 | BatteryEyesSentence
@@ -345,6 +356,7 @@ type ParsedSentence = BlocksAlignmentSentence
 | IsHangingSentence
 | IsAroundTheKingSentence
 | CanEyeSentence
+| CanThreatenMateOnSentence
 
 function is_at_the_backrank(s: ParsedSentence): s is IsAtTheBackrankSentence {
     return s.type === 'is_at_the_backrank'
@@ -813,6 +825,18 @@ export class Parser {
         return { type: 'can_eye', piece, eye }
     }
 
+    parse_can_threaten_mate_on(): CanThreatenMateOnSentence {
+
+        let piece = this.piece()
+        this.eat(TokenType.KEYWORD_CAN_THREATEN_MATE_ON)
+        let eye = this.piece()
+        this.eat(TokenType.KEYWORD_WITH)
+        let _with = this.piece()
+
+        return { type: 'can_threaten_mate_on', piece, eye, with: _with }
+    }
+
+
 
     parse_sentence(): ParsedSentence {
 
@@ -825,6 +849,12 @@ export class Parser {
 
         if (this.lookahead2_token.type === TokenType.KEYWORD_ALIGNMENT) {
             const result = this.parse_alignment()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_CAN_THREATEN_MATE_ON) {
+            const result = this.parse_can_threaten_mate_on()
             this.eat(TokenType.EOF)
             return result
         }
@@ -2083,7 +2113,7 @@ export function mor1(text: string) {
         } else if (is_can_eye(x)) {
             ccx = resolve_can_eye(x, ccx)
         } else {
-            ccx = resolve_battery_eyes(x, ccx)
+            //ccx = resolve_battery_eyes(x, ccx)
         }
 
 

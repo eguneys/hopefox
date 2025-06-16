@@ -2,10 +2,11 @@ import { skip } from "node:test"
 import { attacks, between } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, EyesSentence, IsAroundTheKingSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, Lexer, Parser } from "./mor1"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
+import { pbkdf2Sync } from "crypto"
 
 type Pieces = 'king' | 'King' | 'rook' | 'Rook' | 'queen' | 'Queen' | 'knight' | 'Knight' | 'bishop' | 'Bishop' | 'pawn' | 'Pawn'
 | 'rook2' | 'bishop2' | 'knight2'
@@ -319,6 +320,37 @@ const qc_can_eye = (p1: Pieces, eye: Pieces) => (q: QBoard) => {
 
 }
 
+const qc_can_threaten_mate_on = (p1: Pieces, eye1: Pieces, with1: Pieces) => (q: QBoard) => {
+
+    let occupied = q_occupied(q)
+    const piece = parse_piece(p1)
+    const eye_piece = parse_piece(eye1)
+    const with_piece = parse_piece(with1)
+
+
+    let res1 = SquareSet.empty()
+    let res2 = SquareSet.empty()
+    let res3 = SquareSet.empty()
+
+    for (let p1s of q[p1]) {
+        for (let w1s of q[with1]) {
+            a1s: for (let a1s of
+                attacks(piece, p1s, occupied).intersect(attacks(with_piece, w1s, occupied))) {
+                for (let p2s of attacks(piece, a1s, occupied).intersect(q[eye1])) {
+                    res1 = res1.set(p1s, true)
+                    res2 = res2.set(p2s, true)
+                    res3 = res3.set(w1s, true)
+                }
+            }
+        }
+    }
+
+
+    q[p1] = res1
+    q[eye1] = res2
+    q[with1] = res3
+
+}
 
 const mcc: Record<string, any> = {
     alignment: (x: AlignmentSentence) =>
@@ -338,7 +370,9 @@ const mcc: Record<string, any> = {
     can_fork: (x: CanForkSentence) =>
         qc_can_fork_and(x.piece as Pieces, x.forked as Pieces[]),
     can_eye: (x: CanEyeSentence) =>
-        qc_can_eye(x.piece as Pieces, x.eye as Pieces)
+        qc_can_eye(x.piece as Pieces, x.eye as Pieces),
+    can_threaten_mate_on: (x: CanThreatenMateOnSentence) =>
+        qc_can_threaten_mate_on(x.piece as Pieces, x.eye as Pieces, x.with as Pieces)
 
 }
 
