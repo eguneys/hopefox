@@ -378,6 +378,55 @@ export function mor2(text: string) {
     return qq.map(qc_fen_singles)
 }
 
+function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
+
+    let q2 = { ... q }
+    let q3 = q2
+
+    let res = []
+
+    while (res.length < 10) {
+
+        while (true) {
+            cc(q3)
+            if (q_equals(q2, q3)) {
+                break
+            }
+
+            q2 = q3
+            q3 = { ...q3 }
+        }
+
+        let fail = false
+        for (let piece of pieces) {
+            if (q3[piece].isEmpty()) {
+                fail = true
+                break
+            }
+        }
+        if (fail) {
+            res.push(q3)
+        }
+
+        let all_single = true
+        for (let i = 0; i < pieces.length; i++) {
+            let piece = pieces[i]
+            if (q3[piece].singleSquare()) {
+                continue
+            }
+            let skip = 0
+            qc_pull1(q3, piece, skip)
+            all_single = false
+            break
+        }
+
+        if (all_single) {
+            res.push(q3)
+        }
+    }
+
+}
+
 function qc_pull2(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
     let limit = 0
     let q2 = q

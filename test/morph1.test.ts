@@ -10,7 +10,6 @@ bishop queen alignment
 Pawn attacks bishop
 queen eyes Knight blocked_by Pawn
 rooks are_aligned
-Knight eyes pawn
 `
 
 let ac = `
