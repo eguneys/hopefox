@@ -2,7 +2,7 @@ import { skip } from "node:test"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, Lexer, Parser } from "./mor1"
+import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, IsDefendingSentence, Lexer, Parser } from "./mor1"
 import { go_black, go_white, SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
@@ -448,6 +448,28 @@ const qc_is_blockading = (p1: Pieces, sq1: Pieces) => (q: QBoard) => {
     q[p1] = q[p1].intersect(q[sq1])
 }
 
+const qc_is_defending = (p1: Pieces, d1: Pieces, from_behind: boolean) => (q: QBoard) => {
+
+    let occupied = q_occupied(q)
+    let piece = parse_piece(p1)
+
+    let res1 = SquareSet.empty()
+    let res2 = SquareSet.empty()
+    for (let p1s of q[p1]) {
+        let a1ss = attacks(piece, p1s, occupied).intersect(q[d1])
+        for (let a1s of a1ss) {
+            if (rank_of(a1s) > rank_of(p1s) && piece.color === 'white' ||
+                rank_of(a1s) < rank_of(p1s)) {
+
+                    res1 = res1.set(p1s, true)
+                    res2 = res2.set(a1s, true)
+            }
+        }
+    }
+
+    q[p1] = res1
+    q[d1] = res2
+}
 
 const mcc: Record<string, any> = {
     alignment: (x: AlignmentSentence) =>
@@ -473,7 +495,9 @@ const mcc: Record<string, any> = {
     is_controlling: (x: IsControllingSentence) =>
         qc_is_controlling(x.piece as Pieces, x.square as Pieces, x.push),
     is_blockading: (x: IsBlockadingSentence) =>
-        qc_is_blockading(x.piece as Pieces, x.square as Pieces)
+        qc_is_blockading(x.piece as Pieces, x.square as Pieces),
+    is_defending: (x: IsDefendingSentence) =>
+        qc_is_defending(x.piece as Pieces, x.defended as Pieces, x.from_behind),
 }
 
 export function mor2(text: string) {
@@ -506,7 +530,7 @@ export function mor2(text: string) {
     //let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
-    let qq = qc_pull2o(q, ['king', 'APP', 'knight2'], f)
+    let qq = qc_pull2o(q, ['king', 'APP', 'knight2', 'Rook'], f)
 
     return qq?.map(qc_fen_singles)
 }
