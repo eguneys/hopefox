@@ -7,6 +7,7 @@ let a = `
 :link: https://lichess.org/training/39zmg
 :situation:
 king is_controlling APP push
+knight2 is_blockading Queening_Square
 `
 
 

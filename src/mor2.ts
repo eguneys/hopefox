@@ -1,9 +1,9 @@
 import { skip } from "node:test"
-import { attacks, between } from "./attacks"
+import { attacks, between, pawnAttacks } from "./attacks"
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsControllingSentence, Lexer, Parser } from "./mor1"
-import { SquareSet } from "./squareSet"
+import { AlignmentSentence, AreAlignedSentence, AttacksSentence, BlocksAlignmentSentence, CanEyeSentence, CanForkSentence, CanThreatenMateOnSentence, EyesSentence, IsAroundTheKingSentence, IsBlockadingSentence, IsControllingSentence, Lexer, Parser } from "./mor1"
+import { go_black, go_white, SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { parseSquare } from "./util"
 import { pbkdf2Sync } from "crypto"
@@ -11,10 +11,14 @@ import { pbkdf2Sync } from "crypto"
 type Pieces = 'king' | 'King' | 'rook' | 'Rook' | 'queen' | 'Queen' | 'knight' | 'Knight' | 'bishop' | 'Bishop' | 'pawn' | 'Pawn'
 | 'rook2' | 'bishop2' | 'knight2'
 | 'Rook2' | 'Bishop2' | 'Knight2'
+| 'app' | 'APP'
+| 'queening_square' | 'Queening_Square'
 
 const Pieces: Pieces[] = ['king','King','rook','Rook', 'queen', 'Queen', 'knight', 'Knight', 'bishop', 'Bishop', 'pawn', 'Pawn',
     'rook2', 'bishop2', 'knight2',
     'Rook2', 'Bishop2', 'Knight2',
+    'app', 'APP',
+    'queening_square', 'Queening_Square'
 ]
 
 type QBoard = Record<Pieces, SquareSet>
@@ -39,7 +43,11 @@ function q_board(): QBoard {
         Rook2: SquareSet.full(),
         Bishop2: SquareSet.full(),
         Knight2: SquareSet.full(),
+        app: SquareSet.full(),
+        APP: SquareSet.full(),
 
+        queening_square: SquareSet.full(),
+        Queening_Square: SquareSet.full()
     }
 }
 
@@ -91,6 +99,52 @@ function qc_dedup(q: QBoard) {
                 }
             }
         }
+    }
+}
+
+
+function SquareSet_APP(color: Color) {
+    if (color === 'white') {
+
+        return SquareSet.fromRank(6).union(
+            SquareSet.fromRank(7))
+    } else {
+        return SquareSet.fromRank(2).union(
+            SquareSet.fromRank(3))
+    }
+}
+
+function file_of(sq: Square) {
+    return sq % 8
+}
+function rank_of(sq: Square) {
+    return Math.floor(sq / 8)
+}
+
+function SquareSet_Queening(color: Color, sq: Square) {
+    if (color === 'white') {
+        return SquareSet.fromRank(7).intersect(SquareSet.fromFile(file_of(sq)))
+    } else {
+        return SquareSet.fromRank(0).intersect(SquareSet.fromFile(file_of(sq)))
+    }
+}
+
+function qc_app_places(q: QBoard) {
+    q['app'] = q['app'].intersect(SquareSet_APP('black'))
+    q['APP'] = q['APP'].intersect(SquareSet_APP('white'))
+
+    q['queening_square'] = SquareSet.empty()
+    for (let aps of q['app']) {
+        q['queening_square'] = q['queening_square'].union(
+            SquareSet_Queening('black', aps)
+        )
+    }
+
+    q['Queening_Square'] = SquareSet.empty()
+    for (let aps of q['APP']) {
+        q['Queening_Square'] = q['Queening_Square'].union(
+            SquareSet_Queening('white', aps)
+        )
     }
 }
 
@@ -352,8 +406,46 @@ const qc_can_threaten_mate_on = (p1: Pieces, eye1: Pieces, with1: Pieces) => (q:
 
 }
 
-const qc_is_controlling = (piece: Pieces, square: Pieces, push: boolean) => (q: QBoard) => {
+const qc_is_controlling = (p1: Pieces, s1: Pieces, push: boolean) => (q: QBoard) => {
 
+    const piece = parse_piece(p1)
+    const square = parse_piece(s1)
+
+    let res1 = SquareSet.empty()
+    let res2 = SquareSet.empty()
+
+
+    for (let p1s of q[p1]) {
+        for (let sq1 of q[s1]) {
+            let sq1push = sq1
+            if (push) {
+                if (square.color === 'white') {
+                    sq1push = go_black(sq1push)!
+                } else {
+
+                    sq1push = go_white(sq1push)!
+                }
+            }
+            if (sq1push ===  undefined) {
+                continue
+            }
+            if (attacks(piece, p1s, SquareSet.empty()).has(sq1push)) {
+
+                res1 = res1.set(p1s, true)
+                res2 = res2.set(sq1, true)
+            }
+        }
+    }
+
+    q[p1] = res1
+    q[s1] = res2
+
+}
+
+const qc_is_blockading = (p1: Pieces, sq1: Pieces) => (q: QBoard) => {
+    let piece = parse_piece(p1)
+
+    q[p1] = q[p1].intersect(q[sq1])
 }
 
 
@@ -379,9 +471,10 @@ const mcc: Record<string, any> = {
     can_threaten_mate_on: (x: CanThreatenMateOnSentence) =>
         qc_can_threaten_mate_on(x.piece as Pieces, x.eye as Pieces, x.with as Pieces),
     is_controlling: (x: IsControllingSentence) =>
-        qc_is_controlling(x.piece as Pieces, x.square as Pieces, x.push)
+        qc_is_controlling(x.piece as Pieces, x.square as Pieces, x.push),
+    is_blockading: (x: IsBlockadingSentence) =>
+        qc_is_blockading(x.piece as Pieces, x.square as Pieces)
 }
-
 
 export function mor2(text: string) {
     let conds = text.trim().split('\n').filter(_ => !_.startsWith(':'))
@@ -404,6 +497,7 @@ export function mor2(text: string) {
     const f = (q: QBoard) => {
         cc.forEach(_ => _(q))
         qc_dedup(q)
+        qc_app_places(q)
     }
 
     let q = q_board()
@@ -412,7 +506,7 @@ export function mor2(text: string) {
     //let qq = qc_pull2o(q, ['King', 'king', 'queen', 'Queen', 'bishop', 'Pawn', 'Rook', 'rook', 'Knight', 'rook2', 'pawn'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'Rook', 'rook', 'rook2', 'pawn', 'Knight', 'King', 'king', 'queen', 'Queen', 'bishop'], f)
     //let qq = qc_pull2o(q, ['Pawn', 'queen', 'Knight', 'Pawn'], f)
-    let qq = qc_pull2o(q, ['king'], f)
+    let qq = qc_pull2o(q, ['king', 'APP', 'knight2'], f)
 
     return qq?.map(qc_fen_singles)
 }
@@ -583,6 +677,9 @@ function qc_fen_singles(q: QBoard) {
         let sq = q[p].singleSquare()
         if (sq !== undefined) {
 
+            if (parse_piece_and_squares(p) === undefined) {
+                continue
+            }
             res.board.set(sq, parse_piece(p))
         }
     }
@@ -597,7 +694,21 @@ function color_pieces(pieces: Pieces): Color {
     return 'white'
 }
 
+function parse_piece_and_squares(pieces: Pieces): Piece | undefined {
+
+    if (pieces.includes('quare')) {
+        return undefined
+    }
+    return parse_piece(pieces)
+}
+
 function parse_piece(pieces: Pieces): Piece {
+    if (pieces === 'app') {
+        return { color: 'black', role: 'pawn' }
+    }
+    if (pieces === 'APP') {
+        return { color: 'white', role: 'pawn' }
+    }
     let color = color_pieces(pieces)
     let role = pieces.replace(/2/, '').toLowerCase() as Role
     return {
