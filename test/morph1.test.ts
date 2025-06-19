@@ -2,8 +2,29 @@ import { it, expect } from 'vitest'
 import { mor1 } from '../src'
 import { mor2 } from '../src'
 
-
 let a = `
+:link: https://lichess.org/training/hqqdz
+:situation:
+queen Queen alignment
+rook queen alignment
+rook Queen alignment blocked_by queen
+rooks are_aligned
+Rooks are_aligned
+`
+
+let axx = `
+:link: https://lichess.org/training/hqqdz
+:situation:
+queen Queen aligned
+rook queen aligned
+rook Queen aligned blocked_by queen
+rooks are_aligned
+Rooks are_aligned
+:line:
+Queen takes queen, rook recaptures, Rook skewers king and rook2
+`
+
+let a3 = `
 :link: https://lichess.org/training/39zmg
 :situation:
 king is_controlling APP push
@@ -11,7 +32,7 @@ knight2 is_blockading Queening_Square
 Rook is_defending Pawn from_behind
 Pawn is_defending APP
 knight and king are_attacking Pawn
-King can_attack knight
+King can_attack knight2
 `
 
 
@@ -23,7 +44,7 @@ king is_controlling APP push
 knight2 is_blockading Queening_Square
 Rook is_defending Pawn from_behind
 knight and king are_attacking Pawn
-King can_attack knight
+King can_attack knight2
 `
 
 
@@ -130,7 +151,7 @@ it.skip('works', () => {
     expect(b).toBe(``)
 })
 
-it('mor2', () => {
+it.skip('mor2', () => {
     let b = mor2(a)
     expect(b).toBe(``)
 })
