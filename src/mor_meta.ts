@@ -116,21 +116,23 @@ class Parser {
         this.eat(TokenType.BEGIN_DEF)
 
 
-        let res = []
+        let res: Token[] = []
         while (this.current_token.type !== TokenType.BEGIN_DEF) {
             if (this.current_token.type === TokenType.SUBJECT_NAME) {
                 res.push(this.current_token)
                 this.eat(TokenType.SUBJECT_NAME)
-            }
-            if (this.current_token.type === TokenType.KEYWORD) {
+            } else if (this.current_token.type === TokenType.KEYWORD_ACTION) {
+                res.push(this.current_token)
+                this.eat(TokenType.KEYWORD_ACTION)
+            } else if (this.current_token.type === TokenType.KEYWORD) {
                 res.push(this.current_token)
                 this.eat(TokenType.KEYWORD)
-            }
-            if (this.current_token.type === TokenType.OBJECT_NAME) {
+            } else if (this.current_token.type === TokenType.OBJECT_NAME) {
                 res.push(this.current_token)
                 this.eat(TokenType.OBJECT_NAME)
+            } else {
+                throw this.error(TokenType.BEGIN_DEF)
             }
-            this.error(TokenType.BEGIN_DEF)
         }
 
         return { type: 'begin_def_sentence', res }
@@ -398,7 +400,9 @@ export class Lexer {
 
 export function mor_meta1(text: string) {
 
-    for (let line of text.trim().split('\n')) {
+    let defs = text.trim().split('\n\n')
+    for (let def of defs)
+    for (let line of def.trim().split('\n')) {
 
         let p = new Parser(new Lexer(line))
         let ss = p.parse_sentence()
