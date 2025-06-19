@@ -4,6 +4,8 @@ import {mor_meta1} from '../src'
 let a = `
 :Subject takes object:
 Subject captures object
+Subject is_eying object1 after Subject moves
+Subject is_eying object2 after Subject moves
 `
 
 let b = `

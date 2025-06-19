@@ -95,6 +95,20 @@ class Parser {
             return result
         }
 
+        if (this.lookahead_token.type === TokenType.KEYWORD_CAPTURES) {
+            const result = this.parse_captures()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+        if (this.lookahead_token.type === TokenType.KEYWORD_IS_EYING) {
+            const result = this.parse_is_eying()
+            this.eat(TokenType.EOF)
+            return result
+        }
+
+
+
         throw this.error()
     }
 
@@ -124,7 +138,6 @@ class Parser {
 
     parse_moves(): MovesSentence {
         let subject = this.subject()
-        this.eat(TokenType.SUBJECT_NAME)
         this.eat(TokenType.KEYWORD_MOVES)
 
         return { type: 'moves', subject }
@@ -133,11 +146,28 @@ class Parser {
 
     parse_captures(): CapturesSentence {
         let subject = this.subject()
-        this.eat(TokenType.SUBJECT_NAME)
         this.eat(TokenType.KEYWORD_CAPTURES)
 
         return { type: 'captures', subject }
     }
+
+    parse_is_eying(): IsEyingSentence {
+        let subject = this.subject()
+        this.eat(TokenType.KEYWORD_IS_EYING)
+
+        let object = this.object()
+
+        let before = true
+
+        if (this.current_token.type === TokenType.KEYWORD_AFTER) {
+            this.eat(TokenType.KEYWORD_AFTER)
+            before = false
+        }
+
+
+        return { type: 'is_eying', subject, object, before }
+    }
+
 
 }
 
@@ -146,6 +176,7 @@ class ParserError extends Error {}
 type ParsedSentence = BeginDefSentence
 | MovesSentence
 | CapturesSentence
+| IsEyingSentence
 
 type BeginDefSentence = {
     type: 'begin_def_sentence',
@@ -160,6 +191,13 @@ type MovesSentence = {
 type CapturesSentence = {
     type: 'captures',
     subject: string
+}
+
+type IsEyingSentence = {
+    type: 'is_eying',
+    subject: string
+    object: string
+    before: boolean
 }
 
 enum TokenType {
@@ -279,12 +317,14 @@ export class Lexer {
 
 
         this.subject_names = new Map([
-            ['Subject', TokenType.MOBILITY_NAME],
-            ['subject', TokenType.MOBILITY_NAME]
+            ['Subject', TokenType.SUBJECT_NAME],
+            ['subject', TokenType.SUBJECT_NAME]
         ])
         this.object_names = new Map([
-            ['Object', TokenType.MOBILITY_NAME],
-            ['object', TokenType.MOBILITY_NAME]
+            ['Object', TokenType.OBJECT_NAME],
+            ['object', TokenType.OBJECT_NAME],
+            ['object1', TokenType.OBJECT_NAME],
+            ['object2', TokenType.OBJECT_NAME]
         ])
 
 
@@ -358,9 +398,12 @@ export class Lexer {
 
 export function mor_meta1(text: string) {
 
-    let p = new Parser(new Lexer(text))
-    let ss = p.parse_sentence()
-    return ss
+    for (let line of text.trim().split('\n')) {
+
+        let p = new Parser(new Lexer(line))
+        let ss = p.parse_sentence()
+        console.log(ss)
+    }
 }
 
 
