@@ -174,8 +174,16 @@ export class Parser {
     parse_sentence(): ParsedSentence {
 
         const precessor = this.precessor()
+
+        if (this.current_token.type === TokenType.EOF) {
+            return { type: 'precessor', precessor }
+        }
         
-        if (this.lookahead_token.type === TokenType.OPERATOR_MOVE) {
+        if (this.current_token.type === TokenType.OPERATOR_MOVE) {
+            const result = this.parse_capture(precessor)
+            this.eat(TokenType.EOF)
+            return result
+        } else if (this.lookahead_token.type === TokenType.OPERATOR_MOVE) {
             const result = this.parse_move_attack(precessor)
             this.eat(TokenType.EOF)
             return result
@@ -186,6 +194,13 @@ export class Parser {
         }
         
         throw this.error()
+    }
+
+    parse_capture(precessor: Precessor): CaptureSentence {
+        this.eat(TokenType.OPERATOR_MOVE)
+        let captured = this.piece()
+
+        return { type: 'capture', precessor, captured }
     }
 
     parse_attack(precessor: Precessor): AttackSentence {
@@ -233,13 +248,33 @@ export class Parser {
         let blocked: [Pieces, Pieces][] = []
         let unblocked: [Pieces, Pieces][] = []
 
+        let captured: Pieces | undefined
+
+        let zero_attack = false,
+        zero_defend = false
 
         while (true) {
 
             let current_token_type = this.current_token.type
             let lookahead_token_type = this.lookahead_token.type
 
-            if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
+            if (current_token_type === TokenType.ZERO) {
+                this.eat(TokenType.ZERO)
+                if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
+                    this.eat(TokenType.OPERATOR_ATTACK)
+                    zero_attack = true
+                } else if (this.current_token.type === TokenType.OPERATOR_DEFEND) {
+                    this.eat(TokenType.OPERATOR_DEFEND)
+                    zero_defend = true
+                }
+            } else if (current_token_type === TokenType.OPERATOR_MOVE) {
+                this.eat(TokenType.OPERATOR_MOVE)
+                let piece = this.piece()
+
+                captured = piece
+
+
+            } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
                 let piece = this.piece()
                 this.eat(TokenType.OPERATOR_ATTACK)
 
@@ -272,23 +307,42 @@ export class Parser {
             type: 'move_attack',
             precessor,
             move,
+            captured,
             attack,
             blocked,
-            unblocked
+            unblocked,
+            zero_attack,
+            zero_defend
         }
     }
 }
 
 type ParsedSentence = MoveAttackSentence
 | AttackSentence
+| PrecessorSentence
+| CaptureSentence
+
+type CaptureSentence = {
+    type: 'capture',
+    precessor: Precessor,
+    captured: Pieces
+}
+
+type PrecessorSentence = {
+    type: 'precessor',
+    precessor: Precessor
+}
 
 type MoveAttackSentence = {
     type: 'move_attack'
     precessor: Precessor
     move: Pieces
+    captured: Pieces | undefined
     attack: Pieces[]
     blocked: [Pieces, Pieces][]
     unblocked: [Pieces, Pieces][]
+    zero_attack: boolean
+    zero_defend: boolean
 }
 
 
@@ -298,8 +352,8 @@ type AttackSentence = {
     piece: Pieces
     to_attack: Pieces[]
     to_defend: Pieces[]
-    zero_attack?: boolean
-    zero_defend?: boolean
+    zero_attack: boolean
+    zero_defend: boolean
 }
 
 function move_attack_constraint(res: MoveAttackSentence) {
@@ -404,13 +458,13 @@ function move_attack_constraint(res: MoveAttackSentence) {
 
 
 export type Line = {
-    depth: number,
-    rule: string,
-    children: Line[],
-    m: M[],
-    long: boolean,
+    depth: number
+    rule: string
+    children: Line[]
+    m: M[]
+    long: boolean
     no_c: boolean
-    cc: QConstraint
+    sentence: ParsedSentence
 }
 
 export type M = {
@@ -461,14 +515,15 @@ function parse_line_recur(node: Line) {
 
     let res = p.parse_sentence()
 
-    node.cc = resolve_cc(res)
+    node.sentence = res
 
     node.children.map(parse_line_recur)
 }
 
 function cc_recur(node: Line) {
     return (q: QBoard) => {
-        node.cc(q)
+        let cc = resolve_cc(node.sentence)
+        cc(q)
         for (let child of node.children) {
             cc_recur(child)(q)
         }
@@ -486,11 +541,13 @@ export function mor3(text: string) {
         cc_recur(root)(q)
 
         qc_dedup(q)
+
+        qc_kings(q)
     }
 
     let q = q_board()
 
-    let qq = qc_pull2o(q, ['b', 'B', 'Q'], f)
+    let qq = qc_pull2o(q, ['b', 'B', 'Q', 'k', 'K'], f)
 
     return qq?.map(qc_fen_singles)
 }
@@ -501,6 +558,7 @@ function resolve_cc(res: ParsedSentence) {
         return move_attack_constraint(res)
     }
     if (res.type === 'attack') {
+
     }
 
     return no_constraint
@@ -543,6 +601,19 @@ function qc_put(q: QBoard, pieces: Pieces, square: Square) {
 
 function qc_take(q: QBoard, pieces: Pieces) {
     q[pieces] = SquareSet.empty()
+}
+
+function qc_kings(q: QBoard) {
+
+    let K = q['K'].singleSquare()
+    if (K) {
+        q['k'] = q['k'].intersect(attacks(parse_piece('K'), K, SquareSet.empty()).complement())
+    }
+
+    let k = q['k'].singleSquare()
+    if (k) {
+        q['K'] = q['K'].intersect(attacks(parse_piece('k'), k, SquareSet.empty()).complement())
+    }
 }
 
 function qc_dedup(q: QBoard) {
