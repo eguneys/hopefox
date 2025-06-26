@@ -8,10 +8,14 @@ import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
 
 enum TokenType {
+    ZERO = 'ZERO',
     PIECE_NAME = 'PIECE_NAME',
     OPERATOR_MOVE = 'OPERATOR_MOVE',
     OPERATOR_ATTACK = 'OPERATOR_ATTACK',
+    OPERATOR_DEFEND = 'OPERATOR_DEFEND',
     OPERATOR_BLOCK = 'OPERATOR_BLOCK',
+    OPERATOR_UNBLOCK = 'OPERATOR_UNBLOCK',
+    PRECESSOR = 'PRECESSOR',
     EOF = 'EOF'
 }
 
@@ -27,7 +31,13 @@ const PIECE_NAMES = [
     'P2', 'N2', 'B2', 'R2',
 ]
 
+const PRECESSORS = [
+    'G', 'Z', 'A', 'E'
+]
+
 export type Pieces = typeof PIECE_NAMES[number]
+
+export type Precessor = typeof PRECESSORS[number]
 
 export class Lexer {
     private text: string
@@ -44,7 +54,9 @@ export class Lexer {
         this.operators = new Map([
             ['=', TokenType.OPERATOR_MOVE],
             ['+', TokenType.OPERATOR_ATTACK],
+            ['-', TokenType.OPERATOR_DEFEND],
             ['/', TokenType.OPERATOR_BLOCK],
+            ['|', TokenType.OPERATOR_UNBLOCK],
         ])
     }
 
@@ -79,7 +91,15 @@ export class Lexer {
         while (this.current_char !== undefined) {
             this.skip_whitespace()
 
+            if (this.current_char === '0') {
+                this.advance()
+                return { type: TokenType.ZERO, value: '0' }
+            }
+
             const word_str = this.word()
+            if (PRECESSORS.includes(word_str)) {
+                return { type: TokenType.PRECESSOR, value: word_str }
+            }
             if (PIECE_NAMES.includes(word_str)) {
                 return { type: TokenType.PIECE_NAME, value: word_str }
             }
@@ -89,11 +109,16 @@ export class Lexer {
                 this.advance()
                 return { type,  value }
             }
+            if (this.current_char === undefined) {
+                break
+            }
+            throw new LexerError(`Unexpected token ${this.current_char}`)
         }
         return { type: TokenType.EOF, value: '' }
     }
 }
 
+class LexerError extends Error {}
 class ParserError extends Error {}
 
 
@@ -101,11 +126,13 @@ export class Parser {
     private lexer: Lexer
     private current_token: Token
     private lookahead_token: Token
+    private lookahead2_token: Token
 
     constructor(lexer: Lexer) {
         this.lexer = lexer
         this.current_token = this.lexer.get_next_token()
         this.lookahead_token = this.lexer.get_next_token()
+        this.lookahead2_token = this.lexer.get_next_token()
     }
 
     private error(expected_type?: TokenType) {
@@ -120,7 +147,8 @@ export class Parser {
 
     private advance_tokens() {
         this.current_token = this.lookahead_token
-        this.lookahead_token = this.lexer.get_next_token()
+        this.lookahead_token = this.lookahead2_token
+        this.lookahead2_token = this.lexer.get_next_token()
     }
 
     private eat(token_type: TokenType) {
@@ -137,68 +165,155 @@ export class Parser {
         return token.value
     }
 
-    parse_sentence(): ParsedSentence {
-        
-        const result = this.parse_move_attack()
-        this.eat(TokenType.EOF)
-        return result
+    private precessor() {
+        const token = this.current_token
+        this.eat(TokenType.PRECESSOR)
+        return token.value
+    }
 
+    parse_sentence(): ParsedSentence {
+
+        const precessor = this.precessor()
+        
+        if (this.lookahead_token.type === TokenType.OPERATOR_MOVE) {
+            const result = this.parse_move_attack(precessor)
+            this.eat(TokenType.EOF)
+            return result
+        } else {
+            const result = this.parse_attack(precessor)
+            this.eat(TokenType.EOF)
+            return result
+        }
+        
         throw this.error()
     }
 
+    parse_attack(precessor: Precessor): AttackSentence {
+        let piece = this.piece()
+
+        let to_attack: Pieces[] = []
+        let to_defend: Pieces[] = []
+        let zero_attack = false
+        let zero_defend = false
+
+        while (true) {
+            let current_token_type = this.current_token.type
+            if (current_token_type === TokenType.ZERO) {
+                this.eat(TokenType.ZERO)
+                if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
+                    this.eat(TokenType.OPERATOR_ATTACK)
+                    zero_attack = true
+                } else if (this.current_token.type === TokenType.OPERATOR_DEFEND) {
+                    this.eat(TokenType.OPERATOR_DEFEND)
+                    zero_defend = true
+                }
+            } else {
+                break
+            }
+        }
+
+        return {
+            type: 'attack',
+            precessor,
+            piece,
+            to_attack,
+            to_defend,
+            zero_attack,
+            zero_defend
+        }
+    }
 
     // E b= +Q +R/Q
-    parse_move_attack(): MoveAttackSentence {
+    parse_move_attack(precessor: Precessor): MoveAttackSentence {
 
         let move = this.piece()
         this.eat(TokenType.OPERATOR_MOVE)
 
         let attack = []
-        let attack_blocked: [Pieces, Pieces][] = []
+        let blocked: [Pieces, Pieces][] = []
+        let unblocked: [Pieces, Pieces][] = []
 
-        let current_token_type = this.current_token.type
-        while (current_token_type === TokenType.OPERATOR_ATTACK) {
 
-            this.eat(TokenType.OPERATOR_ATTACK)
-            let attack1 = this.piece()
-            current_token_type = this.current_token.type
-            if (current_token_type === TokenType.OPERATOR_BLOCK) {
-                this.eat(TokenType.OPERATOR_BLOCK)
-                let blocked1 = this.piece()
+        while (true) {
 
-                attack_blocked.push([attack1, blocked1])
-                continue
+            let current_token_type = this.current_token.type
+            let lookahead_token_type = this.lookahead_token.type
+
+            if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
+                let piece = this.piece()
+                this.eat(TokenType.OPERATOR_ATTACK)
+
+                if (this.current_token.type === TokenType.OPERATOR_UNBLOCK) {
+                    this.eat(TokenType.OPERATOR_UNBLOCK)
+                    let piece2 = this.piece()
+
+                    unblocked.push([piece, piece2])
+                }
+
+            } else if (current_token_type === TokenType.OPERATOR_ATTACK) {
+
+                this.eat(TokenType.OPERATOR_ATTACK)
+                let attack1 = this.piece()
+                current_token_type = this.current_token.type
+                if (current_token_type === TokenType.OPERATOR_BLOCK) {
+                    this.eat(TokenType.OPERATOR_BLOCK)
+                    let blocked1 = this.piece()
+
+                    blocked.push([attack1, blocked1])
+                    continue
+                }
+                attack.push(attack1)
+            } else {
+                break
             }
-            attack.push(attack1)
         }
 
         return {
             type: 'move_attack',
+            precessor,
             move,
             attack,
-            attack_blocked
+            blocked,
+            unblocked
         }
     }
 }
 
 type ParsedSentence = MoveAttackSentence
+| AttackSentence
 
 type MoveAttackSentence = {
     type: 'move_attack'
+    precessor: Precessor
     move: Pieces
     attack: Pieces[]
-    attack_blocked: [Pieces, Pieces][]
+    blocked: [Pieces, Pieces][]
+    unblocked: [Pieces, Pieces][]
 }
+
+
+type AttackSentence = {
+    type: 'attack'
+    precessor: Precessor
+    piece: Pieces
+    to_attack: Pieces[]
+    to_defend: Pieces[]
+    zero_attack?: boolean
+    zero_defend?: boolean
+}
+
 function move_attack_constraint(res: MoveAttackSentence) {
 
     let move = parse_piece(res.move)
     let attacks1 = res.attack.map(parse_piece)
-    let attacks_blocked = res.attack_blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
 
     return (q: QBoard) => {
         let res1 = SquareSet.empty()
         let res2 = attacks1.map(_ => SquareSet.empty())
-        let res3 = attacks_blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
+        let res3 = blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
+        let res4 = unblocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
 
         let occupied = q_occupied(q)
         for (let m1 of q[res.move]) {
@@ -224,8 +339,8 @@ function move_attack_constraint(res: MoveAttackSentence) {
 
 
 
-                for (let i =0; i < res.attack_blocked.length; i++) {
-                    let [a3, a2] = res.attack_blocked[i]
+                for (let i =0; i < res.blocked.length; i++) {
+                    let [a3, a2] = res.blocked[i]
 
                     let skipped = true
                     for (let aa2 of a2s.intersect(q[a2])) {
@@ -248,7 +363,21 @@ function move_attack_constraint(res: MoveAttackSentence) {
                     }
                 }
 
+                for (let i =0; i < res.unblocked.length; i++) {
+                    let [u3, u2] = res.unblocked[i]
 
+                    for (let u3s of q[u3]) {
+                        let a3s = attacks(unblocked[i][0], u3s, occupied.without(m1))
+
+                        for (let u2s of q[u2]) {
+                            if (a3s.has(u2s) && between(u3s, u2s).has(m1)) {
+                                res1 = res1.set(m1, true)
+                                res4[i][0] = res4[i][0].set(u3s, true)
+                                res4[i][1] = res4[i][1].set(u2s, true)
+                            }
+                        }
+                    }
+                }
 
             }
         }
@@ -260,30 +389,121 @@ function move_attack_constraint(res: MoveAttackSentence) {
             q[res.attack[i]] = res2[i]
         }
 
-        for (let i = 0; i < res.attack_blocked.length; i++) {
-            q[res.attack_blocked[i][0]] = res3[i][0]
-            q[res.attack_blocked[i][1]] = res3[i][1]
+        for (let i = 0; i < res.blocked.length; i++) {
+            q[res.blocked[i][0]] = res3[i][0]
+            q[res.blocked[i][1]] = res3[i][1]
+        }
+
+
+        for (let i = 0; i < res.unblocked.length; i++) {
+            q[res.unblocked[i][0]] = res4[i][0]
+            q[res.unblocked[i][1]] = res4[i][1]
+        }
+    }
+}
+
+
+export type Line = {
+    depth: number,
+    rule: string,
+    children: Line[],
+    m: M[],
+    long: boolean,
+    no_c: boolean
+    cc: QConstraint
+}
+
+export type M = {
+    board: QBoard
+ }
+
+export function parse_rules(str: string): Line {
+    let ss = str.trim().split('\n')
+
+    let root = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, cc: no_constraint }
+    const stack: Line[] = [root]
+
+    for (let i = 0; i < ss.length; i++) {
+        let line = ss[i]
+        let rule = line.trim()
+        if (!rule) continue
+
+        const depth = line.search(/\S/)
+
+        let no_c = false
+        let long = false
+        if (rule[rule.length - 1] === '5') {
+            long = true
+            rule = rule.slice(0, -1).trim()
+        }
+
+        if (rule[rule.length - 1] === 'P') {
+            no_c = true
+            rule = rule.slice(0, -1).trim()
+        }
+
+
+
+        let node: Line  = { depth, rule, children: [], m: [], long, no_c, cc: no_constraint }
+
+        while (stack.length > depth + 1) {
+            stack.pop()
+        }
+
+        stack[stack.length - 1].children.push(node)
+        stack.push(node)
+    }
+    return root
+}
+
+function parse_line_recur(node: Line) {
+    let p = new Parser(new Lexer(node.rule))
+
+    let res = p.parse_sentence()
+
+    node.cc = resolve_cc(res)
+
+    node.children.map(parse_line_recur)
+}
+
+function cc_recur(node: Line) {
+    return (q: QBoard) => {
+        node.cc(q)
+        for (let child of node.children) {
+            cc_recur(child)(q)
         }
     }
 }
 
 export function mor3(text: string) {
 
-    let p = new Parser(new Lexer(text))
-    let res = p.parse_sentence()
+    let root = parse_rules(text)
+    root.children.forEach(parse_line_recur)
 
-    let cc: QConstraint[] = [move_attack_constraint(res)]
 
     const f = (q: QBoard) => {
-        cc.forEach(_ => _(q))
+
+        cc_recur(root)(q)
+
         qc_dedup(q)
     }
 
     let q = q_board()
 
-    let qq = qc_pull2o(q, ['b', 'Q', 'R'], f)
+    let qq = qc_pull2o(q, ['b', 'B', 'Q'], f)
 
     return qq?.map(qc_fen_singles)
+}
+
+const no_constraint = (q: QBoard) => {}
+function resolve_cc(res: ParsedSentence) {
+    if (res.type === 'move_attack') {
+        return move_attack_constraint(res)
+    }
+    if (res.type === 'attack') {
+    }
+
+    return no_constraint
 }
 
 type QConstraint = (q: QBoard) => void
@@ -400,7 +620,6 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
             let count = q3[piece].size()
             for (let skip = 0; skip < count; skip++) {
                 let q_next = { ...q3 }
-                //console.log('pull', piece, skip)
                 /*
                 if (piece === 'King' && skip === 50) {
                     debugger
@@ -461,7 +680,7 @@ function parse_piece_and_squares(pieces: Pieces): Piece | undefined {
 }
 
 function parse_piece(pieces: Pieces): Piece {
-    const color_pieces = (p: Pieces): Color => p.toLowerCase() === p ? 'black': 'white'
+    const color_pieces = (p: Pieces): Color => p.toLowerCase() === p ? 'white': 'black'
 
     const pieces_to_role: Record<string, Role> = {
         'r': 'rook',
