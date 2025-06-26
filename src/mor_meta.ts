@@ -398,16 +398,45 @@ export class Lexer {
     }
 }
 
-export function mor_meta1(text: string) {
+type BeginDefStructure = {
+    tokens: Token[],
+    actions: ParsedSentence[]
+}
 
-    let defs = text.trim().split('\n\n')
-    for (let def of defs)
+export function mor_meta1(meta_text: string, text: string) {
+
+    let defs: ParsedSentence[] = []
+    let defs_text = meta_text.trim().split('\n\n')
+    for (let def of defs_text)
     for (let line of def.trim().split('\n')) {
 
         let p = new Parser(new Lexer(line))
         let ss = p.parse_sentence()
-        console.log(ss)
+        defs.push(ss)
     }
+
+    let bds = []
+    let tokens: Token[] = []
+    let actions: ParsedSentence[] = []
+    for (let i = 0; i < defs.length; i++) {
+        let def = defs[i]
+
+        if (def.type === 'begin_def_sentence') {
+            if (tokens.length > 0) {
+                bds.push({
+                    tokens,
+                    actions
+                })
+            }
+
+            tokens = def.res
+            actions = []
+        } else {
+            actions.push(def)
+        }
+    }
+
+    console.log(bds[0])
 }
 
 
