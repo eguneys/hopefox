@@ -16,8 +16,13 @@ E b= +Q +R/Q
  E b= =R 0+
 `
 
+
+    let a1 = `
+E b= +Q +R
+`
+
     let a = `
-E b= +Q +R/Q
+E b= +R/Q
 `
 
     expect(mor3(a)).toBe('')

@@ -5,6 +5,7 @@ import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { squareSet } from "./debug"
+import { blocks } from "./hopefox_helper"
 
 enum TokenType {
     PIECE_NAME = 'PIECE_NAME',
@@ -152,19 +153,30 @@ export class Parser {
         let move = this.piece()
         this.eat(TokenType.OPERATOR_MOVE)
 
-        this.eat(TokenType.OPERATOR_ATTACK)
-        let attack = this.piece()
+        let attack = []
+        let attack_blocked: [Pieces, Pieces][] = []
 
-        this.eat(TokenType.OPERATOR_ATTACK)
-        let attack_blocked1 = this.piece()
-        this.eat(TokenType.OPERATOR_BLOCK)
-        let attack_blocked2 = this.piece()
+        let current_token_type = this.current_token.type
+        while (current_token_type === TokenType.OPERATOR_ATTACK) {
+
+            this.eat(TokenType.OPERATOR_ATTACK)
+            let attack1 = this.piece()
+            current_token_type = this.current_token.type
+            if (current_token_type === TokenType.OPERATOR_BLOCK) {
+                this.eat(TokenType.OPERATOR_BLOCK)
+                let blocked1 = this.piece()
+
+                attack_blocked.push([attack1, blocked1])
+                continue
+            }
+            attack.push(attack1)
+        }
 
         return {
             type: 'move_attack',
             move,
-            attack: [attack],
-            attack_blocked: [[attack_blocked1, attack_blocked2]]
+            attack,
+            attack_blocked
         }
     }
 }
@@ -186,21 +198,55 @@ function move_attack_constraint(res: MoveAttackSentence) {
     return (q: QBoard) => {
         let res1 = SquareSet.empty()
         let res2 = attacks1.map(_ => SquareSet.empty())
+        let res3 = attacks_blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
+
         let occupied = q_occupied(q)
         for (let m1 of q[res.move]) {
-            for (let m2 of attacks(move, m1, occupied)) {
+            move: for (let m2 of attacks(move, m1, occupied)) {
 
                 let a2s = attacks(move, m2, occupied.without(m1))
 
                 for (let i =0; i < res.attack.length; i++) {
                     let a1 = res.attack[i]
 
-                    let ayay = squareSet(a2s.intersect(q[a1]))
+                    //let ayay = squareSet(a2s.intersect(q[a1]))
+                    let skipped = true
                     for (let aa1 of a2s.intersect(q[a1])) {
                         res1 = res1.set(m1, true)
                         res2[i] = res2[i].set(aa1, true)
+                        skipped = false
+                    }
+
+                    if (skipped) {
+                        continue move
                     }
                 }
+
+
+
+                for (let i =0; i < res.attack_blocked.length; i++) {
+                    let [a2, a3] = res.attack_blocked[i]
+
+                    let skipped = true
+                    for (let aa1 of a2s.intersect(q[a2])) {
+                        for (let aa2 of a2s.intersect(q[a3])) {
+                            if (!between(m2, aa2).has(aa1)) {
+                                continue
+                            }
+
+                            res1 = res1.set(m1, true)
+                            res3[i][0] = res3[i][0].set(aa1, true)
+                            res3[i][1] = res3[i][1].set(aa2, true)
+                            skipped = false
+                        }
+                    }
+
+                    if (skipped) {
+                        continue move
+                    }
+                }
+
+
 
             }
         }
@@ -210,6 +256,11 @@ function move_attack_constraint(res: MoveAttackSentence) {
 
         for (let i = 0; i < res.attack.length; i++) {
             q[res.attack[i]] = res2[i]
+        }
+
+        for (let i = 0; i < res.attack_blocked.length; i++) {
+            q[res.attack_blocked[i][0]] = res3[i][0]
+            q[res.attack_blocked[i][1]] = res3[i][1]
         }
     }
 }
@@ -304,8 +355,8 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
     function dfs(q: QBoard) {
 
-        if (limit ++ > 100) return
-        console.log(qc_fen_singles(q))
+        //if (limit ++ > 100) return
+        //console.log(qc_fen_singles(q))
         let q2 = { ...q }
         let q3 = q2
 
@@ -347,7 +398,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
             let count = q3[piece].size()
             for (let skip = 0; skip < count; skip++) {
                 let q_next = { ...q3 }
-                //console.log('pull', piece, skip)
+                console.log('pull', piece, skip)
                 /*
                 if (piece === 'King' && skip === 50) {
                     debugger
@@ -360,7 +411,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
                     return
                 }
             }
-            //console.log('out pull', piece)
+            console.log('out pull', piece)
             break
         }
     }
