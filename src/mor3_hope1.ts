@@ -225,17 +225,19 @@ function move_attack_constraint(res: MoveAttackSentence) {
 
 
                 for (let i =0; i < res.attack_blocked.length; i++) {
-                    let [a2, a3] = res.attack_blocked[i]
+                    let [a3, a2] = res.attack_blocked[i]
 
                     let skipped = true
-                    for (let aa1 of a2s.intersect(q[a2])) {
-                        for (let aa2 of a2s.intersect(q[a3])) {
-                            if (!between(m2, aa2).has(aa1)) {
+                    for (let aa2 of a2s.intersect(q[a2])) {
+
+                        let a3s = attacks(move, m2, occupied.without(m1).without(aa2))
+                        for (let aa3 of a3s.intersect(q[a3])) {
+                            if (!between(m2, aa3).has(aa2)) {
                                 continue
                             }
 
                             res1 = res1.set(m1, true)
-                            res3[i][0] = res3[i][0].set(aa1, true)
+                            res3[i][0] = res3[i][0].set(aa3, true)
                             res3[i][1] = res3[i][1].set(aa2, true)
                             skipped = false
                         }
@@ -373,7 +375,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
         for (let piece of pieces) {
             if (q3[piece].isEmpty()) {
-                console.log('blow', piece)
+                //console.log('blow', piece)
                 return
             }
         }
@@ -398,7 +400,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
             let count = q3[piece].size()
             for (let skip = 0; skip < count; skip++) {
                 let q_next = { ...q3 }
-                console.log('pull', piece, skip)
+                //console.log('pull', piece, skip)
                 /*
                 if (piece === 'King' && skip === 50) {
                     debugger
@@ -411,7 +413,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
                     return
                 }
             }
-            console.log('out pull', piece)
+            //console.log('out pull', piece)
             break
         }
     }
