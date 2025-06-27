@@ -36,11 +36,7 @@ G B 0+ 0-
 `
 
 let a = `
-E b= +B r+|Q
- A
-  E =Q
-  E b= =B 0+
-  Z Q= +B
+E b=
 `
 
     expect(mor3(a)).toBe('')

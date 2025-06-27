@@ -317,10 +317,16 @@ export class Parser {
     }
 }
 
-type ParsedSentence = MoveAttackSentence
+type UndefinedSentence = { type: 'undefined' }
+
+type ParsedSentence = 
+UndefinedSentence
+| MoveAttackSentence
 | AttackSentence
 | PrecessorSentence
 | CaptureSentence
+
+
 
 type CaptureSentence = {
     type: 'capture',
@@ -363,17 +369,32 @@ function move_attack_constraint(res: MoveAttackSentence) {
     let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
     let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
 
+    let captured = res.captured ? parse_piece(res.captured) : undefined
+
     return (q: QBoard) => {
+        let occupied = q_occupied(q)
+
         let res1 = SquareSet.empty()
         let res2 = attacks1.map(_ => SquareSet.empty())
         let res3 = blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
         let res4 = unblocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
 
-        let occupied = q_occupied(q)
+        let res5 = SquareSet.empty()
+
         for (let m1 of q[res.move]) {
             move: for (let m2 of attacks(move, m1, occupied)) {
 
+                res1 = res1.set(m2, true)
+
                 let a2s = attacks(move, m2, occupied.without(m1))
+
+
+                if (res.captured) {
+                    res5 = a2s.intersect(q[res.captured])
+                    if (res5.isEmpty()) {
+                        continue move
+                    }
+                }
 
                 for (let i =0; i < res.attack.length; i++) {
                     let a1 = res.attack[i]
@@ -381,7 +402,7 @@ function move_attack_constraint(res: MoveAttackSentence) {
                     //let ayay = squareSet(a2s.intersect(q[a1]))
                     let skipped = true
                     for (let aa1 of a2s.intersect(q[a1])) {
-                        res1 = res1.set(m1, true)
+                        res1 = res1.set(m2, true)
                         res2[i] = res2[i].set(aa1, true)
                         skipped = false
                     }
@@ -405,7 +426,7 @@ function move_attack_constraint(res: MoveAttackSentence) {
                                 continue
                             }
 
-                            res1 = res1.set(m1, true)
+                            res1 = res1.set(m2, true)
                             res3[i][0] = res3[i][0].set(aa3, true)
                             res3[i][1] = res3[i][1].set(aa2, true)
                             skipped = false
@@ -425,7 +446,7 @@ function move_attack_constraint(res: MoveAttackSentence) {
 
                         for (let u2s of q[u2]) {
                             if (a3s.has(u2s) && between(u3s, u2s).has(m1)) {
-                                res1 = res1.set(m1, true)
+                                res1 = res1.set(m2, true)
                                 res4[i][0] = res4[i][0].set(u3s, true)
                                 res4[i][1] = res4[i][1].set(u2s, true)
                             }
@@ -436,6 +457,9 @@ function move_attack_constraint(res: MoveAttackSentence) {
             }
         }
 
+        if (res.captured) {
+            q[res.captured] = res5
+        }
 
         q[res.move] = res1
 
@@ -474,7 +498,7 @@ export type M = {
 export function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
 
-    let root = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, cc: no_constraint }
+    let root: Line = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined' } }
     const stack: Line[] = [root]
 
     for (let i = 0; i < ss.length; i++) {
@@ -498,7 +522,7 @@ export function parse_rules(str: string): Line {
 
 
 
-        let node: Line  = { depth, rule, children: [], m: [], long, no_c, cc: no_constraint }
+        let node: Line  = { depth, rule, children: [], m: [], long, no_c, sentence: { type: 'undefined' } }
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -560,8 +584,26 @@ function resolve_cc(res: ParsedSentence) {
     if (res.type === 'attack') {
 
     }
+    if (res.type === 'precessor') {
+        if (res.precessor === 'A') {
+            return move_A_legals
+        }
+    }
 
     return no_constraint
+}
+
+
+function move_A_legals(q: QBoard) {
+
+    let occupied = q_occupied(q)
+    for (let p of Pieces) {
+        for (let p1 of q[p]) {
+            for (let a1 of attacks(parse_piece(p), p1, occupied)) {
+                q[p].set(a1, true)
+            }
+        }
+    }
 }
 
 type QConstraint = (q: QBoard) => void
@@ -697,6 +739,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
                 }
                     */
 
+                //console.log('pull', piece, skip)
                 qc_pull1(q_next, piece, skip)
                 dfs(q_next)
                 if (res.length >= 10) {
