@@ -362,7 +362,7 @@ type AttackSentence = {
     zero_defend: boolean
 }
 
-function move_attack_constraint(res: MoveAttackSentence) {
+function move_attack_constraint(res: MoveAttackSentence): QConstraint {
 
     let move = parse_piece(res.move)
     let attacks1 = res.attack.map(parse_piece)
@@ -372,9 +372,15 @@ function move_attack_constraint(res: MoveAttackSentence) {
     let captured = res.captured ? parse_piece(res.captured) : undefined
 
     return (q: QBoard) => {
+
+        let q_captured = q_board()
+        let q2 = { ... q }
+        let q3 = { ... q }
+
         let occupied = q_occupied(q)
 
-        let res1 = SquareSet.empty()
+        let res1_before = SquareSet.empty()
+        let res1_after = SquareSet.empty()
         let res2 = attacks1.map(_ => SquareSet.empty())
         let res3 = blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
         let res4 = unblocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
@@ -382,15 +388,16 @@ function move_attack_constraint(res: MoveAttackSentence) {
         let res5 = SquareSet.empty()
 
         for (let m1 of q[res.move]) {
+            let m1_valid = false
+            let res1_after_m1 = SquareSet.empty()
             move: for (let m2 of attacks(move, m1, occupied)) {
 
-                res1 = res1.set(m2, true)
 
                 let a2s = attacks(move, m2, occupied.without(m1))
 
 
                 if (res.captured) {
-                    res5 = a2s.intersect(q[res.captured])
+                    res5 = res5.union(a2s.intersect(q[res.captured]))
                     if (res5.isEmpty()) {
                         continue move
                     }
@@ -402,7 +409,6 @@ function move_attack_constraint(res: MoveAttackSentence) {
                     //let ayay = squareSet(a2s.intersect(q[a1]))
                     let skipped = true
                     for (let aa1 of a2s.intersect(q[a1])) {
-                        res1 = res1.set(m2, true)
                         res2[i] = res2[i].set(aa1, true)
                         skipped = false
                     }
@@ -425,8 +431,6 @@ function move_attack_constraint(res: MoveAttackSentence) {
                             if (!between(m2, aa3).has(aa2)) {
                                 continue
                             }
-
-                            res1 = res1.set(m2, true)
                             res3[i][0] = res3[i][0].set(aa3, true)
                             res3[i][1] = res3[i][1].set(aa2, true)
                             skipped = false
@@ -441,41 +445,72 @@ function move_attack_constraint(res: MoveAttackSentence) {
                 for (let i =0; i < res.unblocked.length; i++) {
                     let [u3, u2] = res.unblocked[i]
 
+                    let skipped = true
                     for (let u3s of q[u3]) {
                         let a3s = attacks(unblocked[i][0], u3s, occupied.without(m1))
 
                         for (let u2s of q[u2]) {
                             if (a3s.has(u2s) && between(u3s, u2s).has(m1)) {
-                                res1 = res1.set(m2, true)
                                 res4[i][0] = res4[i][0].set(u3s, true)
                                 res4[i][1] = res4[i][1].set(u2s, true)
+                                skipped = false
                             }
                         }
                     }
+                    if (skipped) {
+                        continue move
+                    }
                 }
 
+                res1_after_m1 = res1_after_m1.set(m2, true)
+            }
+
+            if (!res1_after_m1.isEmpty()) {
+                res1_before = res1_before.set(m1, true)
+                res1_after = res1_after.union(res1_after_m1)
             }
         }
 
         if (res.captured) {
-            q[res.captured] = res5
+            //q2[res.captured] = res5
+            //q3[res.captured] = res5
+
+            q2[res.captured] = SquareSet.empty()
+            q3[res.captured] = SquareSet.empty()
+
+            q_captured[res.captured] = res5
         }
 
-        q[res.move] = res1
+        q2[res.move] = res1_before
+        q3[res.move] = res1_after
 
         for (let i = 0; i < res.attack.length; i++) {
-            q[res.attack[i]] = res2[i]
+            q2[res.attack[i]] = res2[i]
+            q3[res.attack[i]] = res2[i]
         }
 
         for (let i = 0; i < res.blocked.length; i++) {
-            q[res.blocked[i][0]] = res3[i][0]
-            q[res.blocked[i][1]] = res3[i][1]
+            q2[res.blocked[i][0]] = res3[i][0]
+            q2[res.blocked[i][1]] = res3[i][1]
+
+
+            q3[res.blocked[i][0]] = res3[i][0]
+            q3[res.blocked[i][1]] = res3[i][1]
         }
 
 
         for (let i = 0; i < res.unblocked.length; i++) {
-            q[res.unblocked[i][0]] = res4[i][0]
-            q[res.unblocked[i][1]] = res4[i][1]
+            q2[res.unblocked[i][0]] = res4[i][0]
+            q2[res.unblocked[i][1]] = res4[i][1]
+
+            q3[res.unblocked[i][0]] = res4[i][0]
+            q3[res.unblocked[i][1]] = res4[i][1]
+        }
+
+        return {
+            before: q2,
+            after: q3,
+            captured: q_captured
         }
     }
 }
@@ -554,18 +589,167 @@ function cc_recur(node: Line) {
     }
 }
 
+
+type QNode = {
+    board: QBoard,
+    sentence: ParsedSentence,
+    children: QNode[]
+    res: QBoard[]
+}
+
+function q_node(root: Line): QNode {
+    let sentence = root.sentence
+    let board = q_board()
+    let children = root.children.map(q_node)
+
+    return {
+        board,
+        sentence,
+        children,
+        res: []
+    }
+}
+
+function q_node_pull(node: QNode, pieces: Pieces[]) {
+
+    let res: QBoard[] = []
+    let limit = 0
+
+    let q = node.board
+
+    function dfs(q: QBoard) {
+        let cc = resolve_cc(node.sentence)
+
+        //if (limit ++ > 100) return false
+        // console.log(qc_fen_singles(q))
+        let q3 = { ...q }
+
+        let q_captured_first
+        while (true) {
+            //let [q4, q5] = cc(q3)
+            let { before: q4, after: q5, captured: q_captured } = cc(q3)
+            q_captured_first = q_captured_first ?? q_captured
+
+            /* builtin constraints */
+            qc_dedup(q4)
+            qc_kings(q4)
+            /* builtin constraints */
+
+            for (let piece of pieces) {
+                if (q4[piece].isEmpty()) {
+                    if (q_captured_first[piece].isEmpty()) {
+
+                        return true
+                    }
+                }
+                if (q5[piece].isEmpty()) {
+                    if (q_captured_first[piece].isEmpty()) {
+                        return true
+                    }
+                }
+            }
+
+
+
+            if (q_equals(q3, q4)) {
+                let child_ok = node.children.every(child => {
+                    let q_child = child.board
+
+                    child.board = { ...q5 }
+                    q_node_pull(child, pieces)
+
+                    //return q_equals(q_child, child.board)
+                    return child.res.length > 0
+                })
+
+
+                if (child_ok) {
+
+                    {
+                        let all_single = true
+                        for (let piece of pieces) {
+
+                            if (!q3[piece].isEmpty() && q3[piece].singleSquare() === undefined) {
+                                all_single = false
+                                break
+                            }
+                        }
+
+                        if (all_single) {
+                            // console.log(qc_fen_singles(q3))
+                            res.push(q3)
+                            return true
+                        }
+                    }
+                }
+                break
+            }
+            q3 = q4
+        }
+
+
+        for (let piece of pieces) {
+            if (q3[piece].singleSquare() !== undefined) {
+                continue
+            }
+
+
+            if (node.sentence.type === 'move_attack' && node.sentence.unblocked.length > 0) {
+                if (q3['Q'].singleSquare() === 0) {
+
+                    if (q3['b'].singleSquare() === 1) {
+                        if (q3['r'].singleSquare() === 2) {
+                            console.log(qc_fen_singles(q3))
+                        }
+                    }
+                }
+            }
+            let count = q3[piece].size()
+            for (let skip = 0; skip < count; skip++) {
+                let q_next = { ...q3 }
+
+                //console.log('pull', piece, skip)
+                qc_pull1(q_next, piece, skip)
+
+                let reached = dfs(q_next)
+                if (!reached) {
+                    return true
+                }
+                if (res.length >= 10) {
+                    return true
+                }
+
+            }
+            //console.log('out pull', piece)
+            break
+        }
+
+    }
+
+    dfs(q)
+
+    node.res = res
+    return res
+}
+
 export function mor3(text: string) {
 
     let root = parse_rules(text)
     root.children.forEach(parse_line_recur)
 
+    let res = q_node(root)
 
+    //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
+    let qq = q_node_pull(res.children[0], ['b', 'Q', 'r', 'B'])
+
+    return qq?.map(qc_fen_singles)
+
+    /*
     const f = (q: QBoard) => {
 
         cc_recur(root)(q)
 
         qc_dedup(q)
-
         qc_kings(q)
     }
 
@@ -574,10 +758,16 @@ export function mor3(text: string) {
     let qq = qc_pull2o(q, ['b', 'B', 'Q', 'k', 'K'], f)
 
     return qq?.map(qc_fen_singles)
+    */
 }
 
-const no_constraint = (q: QBoard) => {}
-function resolve_cc(res: ParsedSentence) {
+const no_constraint: QConstraint = (q: QBoard) => ({
+    before: q,
+    after: q,
+    captured: q_board()
+})
+
+function resolve_cc(res: ParsedSentence): QConstraint {
     if (res.type === 'move_attack') {
         return move_attack_constraint(res)
     }
@@ -586,7 +776,7 @@ function resolve_cc(res: ParsedSentence) {
     }
     if (res.type === 'precessor') {
         if (res.precessor === 'A') {
-            return move_A_legals
+            //return move_A_legals
         }
     }
 
@@ -606,7 +796,11 @@ function move_A_legals(q: QBoard) {
     }
 }
 
-type QConstraint = (q: QBoard) => void
+type QConstraint = (q: QBoard) => {
+    before: QBoard,
+    after: QBoard,
+    captured: QBoard
+}
 
 const Pieces = PIECE_NAMES
 
