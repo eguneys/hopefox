@@ -6,6 +6,7 @@ import { Color, Piece, Role, Square } from "./types"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
+import { chdir } from "process"
 
 enum TokenType {
     ZERO = 'ZERO',
@@ -317,7 +318,7 @@ export class Parser {
     }
 }
 
-type UndefinedSentence = { type: 'undefined' }
+type UndefinedSentence = { type: 'undefined', precessor: 'E' }
 
 type ParsedSentence = 
 UndefinedSentence
@@ -373,7 +374,7 @@ function move_attack_constraint(res: MoveAttackSentence): QConstraint {
 
     return (q: QBoard) => {
 
-        let q_captured = q_board()
+        let q_captured = q_board_zero()
         let q2 = { ... q }
         let q3 = { ... q }
 
@@ -533,7 +534,7 @@ export type M = {
 export function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
 
-    let root: Line = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined' } }
+    let root: Line = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined', precessor: 'E' } }
     const stack: Line[] = [root]
 
     for (let i = 0; i < ss.length; i++) {
@@ -557,7 +558,7 @@ export function parse_rules(str: string): Line {
 
 
 
-        let node: Line  = { depth, rule, children: [], m: [], long, no_c, sentence: { type: 'undefined' } }
+        let node: Line  = { depth, rule, children: [], m: [], long, no_c, sentence: { type: 'undefined', precessor: 'E' } }
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -624,10 +625,17 @@ function q_node_pull(node: QNode, pieces: Pieces[]) {
         // console.log(qc_fen_singles(q))
         let q3 = { ...q }
 
+        //if (qc_fen_singles(q) === "8/8/8/8/8/3Bk3/3pb3/q1R5 w - - 0 1") {
+        let df = qc_fen_singles(q)
+        if (df.includes("8/8/8/8/8/8/2p5/qBRbk3 w - - 0 1")) {
+            console.log('here', df)
+        }
         let q_captured_first
         while (true) {
-            //let [q4, q5] = cc(q3)
             let { before: q4, after: q5, captured: q_captured } = cc(q3)
+
+            let qff = qc_fen_singles(q4)
+            let qffaf = qc_fen_singles(q5)
             q_captured_first = q_captured_first ?? q_captured
 
             /* builtin constraints */
@@ -658,7 +666,12 @@ function q_node_pull(node: QNode, pieces: Pieces[]) {
                     child.board = { ...q5 }
                     q_node_pull(child, pieces)
 
-                    //return q_equals(q_child, child.board)
+                    if (child.sentence.precessor === 'E') {
+                        return child.res.length > 0
+                    }
+                    if (child.sentence.precessor === 'Z') {
+                        return child.res.length === 0
+                    }
                     return child.res.length > 0
                 })
 
@@ -699,7 +712,7 @@ function q_node_pull(node: QNode, pieces: Pieces[]) {
 
                     if (q3['b'].singleSquare() === 1) {
                         if (q3['r'].singleSquare() === 2) {
-                            console.log(qc_fen_singles(q3))
+                            //console.log(qc_fen_singles(q3))
                         }
                     }
                 }
@@ -740,7 +753,7 @@ export function mor3(text: string) {
     let res = q_node(root)
 
     //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
-    let qq = q_node_pull(res.children[0], ['b', 'Q', 'r', 'B'])
+    let qq = q_node_pull(res.children[0], ['b', 'Q', 'r', 'B', 'P', 'K'])
 
     return qq?.map(qc_fen_singles)
 
@@ -806,6 +819,15 @@ const Pieces = PIECE_NAMES
 
 type QBoard = Record<Pieces, SquareSet>
 
+function q_board_zero(): QBoard {
+    let res: QBoard = {}
+
+    for (let piece of Pieces) {
+        res[piece] = SquareSet.empty()
+    }
+
+    return res
+}
 
 function q_board(): QBoard {
     let res: QBoard = {}
@@ -884,7 +906,7 @@ function qc_pull2o(q: QBoard, pieces: Pieces[], cc: (q: QBoard) => void) {
 
     function dfs(q: QBoard) {
 
-        //if (limit ++ > 100) return
+        if (limit ++ > 100) return
         //console.log(qc_fen_singles(q))
         let q2 = { ...q }
         let q3 = q2
