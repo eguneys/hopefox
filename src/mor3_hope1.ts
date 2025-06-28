@@ -37,7 +37,7 @@ const OPPONENT_PIECE_NAMES = [
 const PIECE_NAMES = PLAYER_PIECE_NAMES.concat(OPPONENT_PIECE_NAMES)
 
 const PRECESSORS = [
-    'G', 'Z', 'A', 'E'
+    'G', 'Z', 'A', 'E', '.'
 ]
 
 export type Pieces = typeof PIECE_NAMES[number]
@@ -99,6 +99,11 @@ export class Lexer {
             if (this.current_char === '0') {
                 this.advance()
                 return { type: TokenType.ZERO, value: '0' }
+            }
+
+            if (this.current_char === '.') {
+                this.advance()
+                return { type: TokenType.PRECESSOR, value: '.' }
             }
 
             const word_str = this.word()
@@ -177,6 +182,11 @@ export class Parser {
     }
 
     parse_sentence(): ParsedSentence {
+
+        if (this.current_token.type === TokenType.DOT) {
+            this.eat(TokenType.DOT)
+            return { type: 'precessor', precessor: 'dot' }
+        }
 
         const precessor = this.precessor()
 
@@ -472,13 +482,10 @@ function qnode_pull3o(node: QNode, pieces: Pieces[]) {
 
 function make_cc(node: QNode, pieces: Pieces[]) {
 
-    let cc = resolve_cc(node.sentence)
     return (qq: QExpansion[]): boolean => {
 
-        qq = qq.filter(cc)
-
         if (qq.length === 0) {
-            return false
+            return true
         }
 
         if (node.sentence.precessor === 'A') {
@@ -490,9 +497,10 @@ function make_cc(node: QNode, pieces: Pieces[]) {
         } else if (node.sentence.precessor === 'E') {
             let lqq = qq
             for (let c of node.children) {
-                lqq = lqq.filter(q => qnode_expand(c, Pieces, {...q.after}).length > 0)
-                if (lqq.length < qq.length) {
-                    return true
+                for (let q of lqq) {
+                    if (qnode_expand(c, Pieces, { ...q.after }).length > 0) {
+                        return true
+                    }
                 }
             }
             return false
@@ -501,14 +509,22 @@ function make_cc(node: QNode, pieces: Pieces[]) {
     }
 }
 
+function qe_id(q: QBoard): QExpansion[] {
+    return [{ before: q, after: q }]
+}
+
 function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard): QExpansion[] {
 
+    let pcc = make_cc(node, pieces)
     let cc = resolve_cc(node.sentence)
     let res: QExpansion[] = []
 
-    let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) : qe_all_opponent(q, pieces)
+    let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) :
+        node.sentence.precessor === 'A' ? qe_all_opponent(q, pieces) :
+        qe_id(q)
 
-    while (eqq.length !== 0) {
+
+    out: while (eqq.length !== 0) {
 
         eqq = eqq.filter(cc)
 
@@ -522,7 +538,6 @@ function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard): QExpansion[] {
             qc_dedup(ex.after)
             qc_kings(ex.after)
         }
-
 
         for (let piece of pieces) {
             eqq = eqq.filter(_ => {
@@ -541,14 +556,18 @@ function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard): QExpansion[] {
                 res.push(eq)
                 pick_piece(eq, pieces)
 
-                if (res.length >= 10) {
-                    return res
+                if (res.length >= 2) {
+                    break out
                 }
             } else {
                 aqq.push(...aq)
             }
         }
         eqq = aqq
+    }
+
+    if (!pcc(res)) {
+        return []
     }
 
     return res
@@ -877,7 +896,7 @@ export function mor3(text: string) {
 
     //let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
 
-    let qq = qnode_expand(res.children[0], ['b', 'Q', 'R'], q_board())
+    let qq = qnode_expand(res.children[0], ['b', 'r', 'B', 'Q'], q_board())
 
     /*
     console.log(
@@ -1022,6 +1041,11 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
     return (qexp: QExpansion) => {
         if (!qexp.move) {
             return false
+        }
+
+
+        if (qc_fen_singles(qexp.before) === "8/8/8/8/8/8/B7/qr6 w - - 0 1") {
+            console.log('yay')
         }
 
         let q_before = qexp.before

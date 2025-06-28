@@ -24,7 +24,7 @@ E b= +Q 0-
 
 
 
-it.skip('nests', () => {
+it('nests', () => {
 
  let b = `
 G B 0+ 0-
@@ -38,12 +38,14 @@ G B 0+ 0-
 let a = `
 E b= +B r+|Q
  A
+  E =Q
+  .
 `
 
     expect(mor3(a)).toBe('')
 })
 
-it('works', () => {
+it.skip('works', () => {
 
 
     let fen = tenk.find(_ => _.id === '00GYk')!.move_fens[0]
