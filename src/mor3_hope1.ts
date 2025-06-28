@@ -6,7 +6,7 @@ import { Color, Piece, Role, Square } from "./types"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
-import { chdir } from "process"
+import { chdir, execArgv, execPath } from "process"
 
 enum TokenType {
     ZERO = 'ZERO',
@@ -25,12 +25,16 @@ interface Token {
     value: string
 }
 
-const PIECE_NAMES = [
+const PLAYER_PIECE_NAMES = [
     'p', 'n', 'q', 'b', 'k', 'r',
-    'P', 'N', 'Q', 'B', 'K', 'R',
     'p2', 'n2', 'b2', 'r2',
+]
+const OPPONENT_PIECE_NAMES = [
+    'P', 'N', 'Q', 'B', 'K', 'R',
     'P2', 'N2', 'B2', 'R2',
 ]
+
+const PIECE_NAMES = PLAYER_PIECE_NAMES.concat(OPPONENT_PIECE_NAMES)
 
 const PRECESSORS = [
     'G', 'Z', 'A', 'E'
@@ -363,6 +367,647 @@ type AttackSentence = {
     zero_defend: boolean
 }
 
+export type Line = {
+    depth: number
+    rule: string
+    children: Line[]
+    m: M[]
+    long: boolean
+    no_c: boolean
+    sentence: ParsedSentence
+}
+
+export type M = {
+    board: QBoard
+ }
+
+export function parse_rules(str: string): Line {
+    let ss = str.trim().split('\n')
+
+    let root: Line = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined', precessor: 'E' } }
+    const stack: Line[] = [root]
+
+    for (let i = 0; i < ss.length; i++) {
+        let line = ss[i]
+        let rule = line.trim()
+        if (!rule) continue
+
+        const depth = line.search(/\S/)
+
+        let no_c = false
+        let long = false
+        if (rule[rule.length - 1] === '5') {
+            long = true
+            rule = rule.slice(0, -1).trim()
+        }
+
+        if (rule[rule.length - 1] === 'P') {
+            no_c = true
+            rule = rule.slice(0, -1).trim()
+        }
+
+
+
+        let node: Line  = { depth, rule, children: [], m: [], long, no_c, sentence: { type: 'undefined', precessor: 'E' } }
+
+        while (stack.length > depth + 1) {
+            stack.pop()
+        }
+
+        stack[stack.length - 1].children.push(node)
+        stack.push(node)
+    }
+    return root
+}
+
+function parse_line_recur(node: Line) {
+    let p = new Parser(new Lexer(node.rule))
+
+    let res = p.parse_sentence()
+
+    node.sentence = res
+
+    node.children.map(parse_line_recur)
+}
+
+/*
+function cc_recur(node: Line) {
+    return (q: QBoard) => {
+        let cc = resolve_cc(node.sentence)
+        cc(q)
+        for (let child of node.children) {
+            cc_recur(child)(q)
+        }
+    }
+}
+    */
+
+
+type QNode = {
+    board: QBoard,
+    sentence: ParsedSentence,
+    children: QNode[]
+    res: QBoard[]
+}
+
+function q_node(root: Line): QNode {
+    let sentence = root.sentence
+    let board = q_board()
+    let children = root.children.map(q_node)
+
+    return {
+        board,
+        sentence,
+        children,
+        res: []
+    }
+}
+
+
+function qnode_pull2o(node: QNode, pieces: Pieces[]) {
+
+    let res: QExpansion[] = []
+    let limit = 0
+
+    let cc = resolve_cc(node.sentence)
+
+    let q = node.board
+    let qq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) : qe_all_opponent(q, pieces)
+
+
+    function dfs(qq: QExpansion[]) {
+
+        //if (limit++ >  100) return false
+        //console.log(qc_fen_singles(q))
+
+        while (true) {
+            let expanded = qq.slice(0)
+
+            expanded.forEach(_ => cc(_))
+
+            for (let ex of expanded) {
+
+                qc_move_cause(ex)
+
+                qc_dedup(ex.before)
+                qc_kings(ex.before)
+
+                qc_dedup(ex.after)
+                qc_kings(ex.after)
+
+            }
+
+            for (let piece of pieces) {
+                expanded = expanded.filter(_ => {
+                    return (_.after[piece] === undefined || !_.after[piece].isEmpty()) && 
+                    (_.before[piece] === undefined || !_.before[piece].isEmpty())
+                })
+            }
+
+            let stable = false
+            if (expanded.length === qq.length) {
+                stable = true
+                for (let i = 0; i < expanded.length; i++) {
+                    if (!q_equals(expanded[i].after, qq[i].after)) {
+                        stable = false
+                        break
+                    }
+                }
+            }
+            if (stable) {
+
+                qq5: for (let q5 of qq) {
+
+
+                    let matched_child = node.children.length === 0
+                    for (let child of node.children) {
+                        child.board = { ...q5.after }
+                        let res = qnode_pull2o(child, pieces)
+
+                        if (child.sentence.precessor === 'Z') {
+                            if (res.length === 0) {
+                                matched_child = true
+                                break
+                            }
+                        } else if (res.length > 0) {
+                            matched_child = true
+                            break
+                        }
+                    }
+
+                    if (!matched_child) {
+                        if (node.sentence.precessor === 'A') {
+                            return
+                        }
+                    } else {
+                        {
+                            let all_single = true
+                            for (let piece of pieces) {
+
+                                if (q5.before[piece] !== undefined && !q5.before[piece].isEmpty() && q5.before[piece].singleSquare() === undefined) {
+                                    all_single = false
+                                    break
+                                }
+                            }
+
+                            if (all_single) {
+                                res.push({
+                                    before: {...q5.before},
+                                    after: {...q5.after},
+                                    move: q5.move
+                                })
+                                qq.splice(qq.indexOf(q5), 1)
+                                if (res.length > 10) {
+                                    return
+                                }
+                            }
+                        }
+                    }
+                }
+
+                break
+
+
+            }
+
+            qq = expanded
+        }
+
+        for (let q3 of qq) {
+            for (let piece of pieces) {
+
+                let q3_piece = q3.after[piece]
+                if (q3_piece === undefined || q3_piece!.singleSquare() !== undefined) {
+                    continue
+                }
+
+
+                let count = q3_piece!.size()
+                for (let skip = 0; skip < count; skip++) {
+                    let q_next = q3.before
+                    qc_pull1(q_next, piece, skip)
+
+                    q3.after[piece] = q_next[piece]
+
+                    dfs(qq)
+                    if (res.length >= 10) {
+                        return true
+                    }
+                }
+                break
+            }
+        }
+    }
+
+    dfs(qq)
+
+    return res
+}
+
+/*
+function q_node_pull(node: QNode, pieces: Pieces[]) {
+
+    let res: QBoard[] = []
+    let limit = 0
+
+    let q = node.board
+
+    function dfs(q: QBoard) {
+        let cc = resolve_cc(node.sentence)
+
+        //if (limit ++ > 100) return false
+        // console.log(qc_fen_singles(q))
+        let q3 = { ...q }
+
+        //if (qc_fen_singles(q) === "8/8/8/8/8/3Bk3/3pb3/q1R5 w - - 0 1") {
+        let df = qc_fen_singles(q)
+        if (df.includes("8/8/8/8/8/8/2p5/qBRbk3 w - - 0 1")) {
+            console.log('here', df)
+        }
+        let q_captured_first
+        while (true) {
+            let { before: q4, after: q5, captured: q_captured } = cc(q3)
+
+            let qff = qc_fen_singles(q4)
+            let qffaf = qc_fen_singles(q5)
+            q_captured_first = q_captured_first ?? q_captured
+
+            qc_dedup(q4)
+            qc_kings(q4)
+
+            for (let piece of pieces) {
+                if (q4[piece].isEmpty()) {
+                    if (q_captured_first[piece].isEmpty()) {
+
+                        return true
+                    }
+                }
+                if (q5[piece].isEmpty()) {
+                    if (q_captured_first[piece].isEmpty()) {
+                        return true
+                    }
+                }
+            }
+
+
+
+            if (q_equals(q3, q4)) {
+
+                let child_ok = node.children.every(child => {
+                    let q_child = child.board
+
+                    child.board = { ...q5 }
+                    q_node_pull(child, pieces)
+
+                    if (child.sentence.precessor === 'E') {
+                        return child.res.length > 0
+                    }
+                    if (child.sentence.precessor === 'Z') {
+                        return child.res.length === 0
+                    }
+                    return child.res.length > 0
+                })
+
+
+                if (child_ok) {
+
+                    {
+                        let all_single = true
+                        for (let piece of pieces) {
+
+                            if (!q3[piece].isEmpty() && q3[piece].singleSquare() === undefined) {
+                                all_single = false
+                                break
+                            }
+                        }
+
+                        if (all_single) {
+                            // console.log(qc_fen_singles(q3))
+                            res.push(q3)
+                            return true
+                        }
+                    }
+                }
+                break
+            }
+            q3 = q4
+        }
+
+
+        for (let piece of pieces) {
+            if (q3[piece].singleSquare() !== undefined) {
+                continue
+            }
+
+
+            if (node.sentence.type === 'move_attack' && node.sentence.unblocked.length > 0) {
+                if (q3['Q'].singleSquare() === 0) {
+
+                    if (q3['b'].singleSquare() === 1) {
+                        if (q3['r'].singleSquare() === 2) {
+                            //console.log(qc_fen_singles(q3))
+                        }
+                    }
+                }
+            }
+            let count = q3[piece].size()
+            for (let skip = 0; skip < count; skip++) {
+                let q_next = { ...q3 }
+
+                //console.log('pull', piece, skip)
+                qc_pull1(q_next, piece, skip)
+
+                let reached = dfs(q_next)
+                if (!reached) {
+                    return true
+                }
+                if (res.length >= 10) {
+                    return true
+                }
+
+            }
+            //console.log('out pull', piece)
+            break
+        }
+
+    }
+
+    dfs(q)
+
+    node.res = res
+    return res
+}
+    */
+
+export function mor3(text: string) {
+
+    let root = parse_rules(text)
+    root.children.forEach(parse_line_recur)
+
+    let res = q_node(root)
+
+    let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'R'])
+
+    /*
+    console.log(
+        qq.map(_ => qc_fen_singles(_.before)),
+        qq.map(_ => qc_fen_singles(_.after))
+    )
+        */
+    return qq.map(_ => qc_fen_singles(_.before))
+
+    //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
+    //let qq = q_node_pull(res.children[0], ['b', 'Q', 'r', 'B', 'P', 'K'])
+    //return qq?.map(qc_fen_singles)
+
+    /*
+    const f = (q: QBoard) => {
+
+        cc_recur(root)(q)
+
+        qc_dedup(q)
+        qc_kings(q)
+    }
+
+    let q = q_board()
+
+    let qq = qc_pull2o(q, ['b', 'B', 'Q', 'k', 'K'], f)
+
+    return qq?.map(qc_fen_singles)
+    */
+}
+
+const no_constraint: QConstraint = (q: QExpansion) => {}
+
+function resolve_cc(res: ParsedSentence): QConstraint {
+    if (res.type === 'move_attack') {
+        //return move_attack_constraint(res)
+        return qcc_move_attack(res)
+    }
+    if (res.type === 'attack') {
+
+    }
+    if (res.type === 'precessor') {
+        if (res.precessor === 'A') {
+            //return move_A_legals
+        }
+    }
+
+    return no_constraint
+}
+
+const player_piece_names = (pieces: Pieces[]) => pieces.filter(_ => _.toLowerCase() === _)
+const opponent_piece_names = (pieces: Pieces[]) => pieces.filter(_ => _.toLowerCase() !== _)
+
+type QExpansion = {
+    before: QBoard
+    after: QBoard
+    move: [Pieces, Square, Square]
+}
+
+const qe_all_player = (q: QBoard, pieces: Pieces[]) => {
+
+    let occupied = q_occupied(q)
+    let expanded: QExpansion[] = []
+
+
+    for (let p1 of player_piece_names(pieces)) {
+        if (q[p1] === undefined) {
+            continue
+        }
+
+
+        let q2 = { ...q }
+        qc_take(q2, p1)
+        for (let p1s of q[p1]) {
+
+            let q_before = { ...q }
+            qc_put(q_before, p1, p1s)
+
+            for (let a1s of attacks(parse_piece(p1), p1s, occupied)) {
+                let q3 = { ...q2 }
+                qc_put(q3, p1, a1s)
+
+                expanded.push({
+                    before: q_before,
+                    after: q3, 
+                    move: [p1, p1s, a1s]
+                })
+            }
+        }
+    }
+
+
+    return expanded
+}
+
+
+
+const qe_all_opponent = (q: QBoard, pieces: Pieces[]) => {
+
+    let occupied = q_occupied(q)
+    let expanded: QExpansion[] = []
+
+
+    for (let p1 of opponent_piece_names(pieces)) {
+        if (q[p1] === undefined) {
+            continue
+        }
+
+        let q2 = { ...q }
+        qc_take(q2, p1)
+        for (let p1s of q[p1]) {
+
+            let q_before = { ...q }
+            qc_put(q_before, p1, p1s)
+
+            for (let a1s of attacks(parse_piece(p1), p1s, occupied)) {
+                let q3 = { ...q2 }
+                qc_put(q3, p1, a1s)
+
+                expanded.push({
+                    before: q_before,
+                    after: q3, 
+                    move: [p1, p1s, a1s]
+                })
+            }
+        }
+    }
+
+
+    return expanded
+}
+
+function qcc_move_attack(res: MoveAttackSentence): QConstraint {
+
+
+    let move = parse_piece(res.move)
+    let attacks1 = res.attack.map(parse_piece)
+    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+
+    let captured = res.captured ? parse_piece(res.captured) : undefined
+
+    return (qexp: QExpansion) => {
+
+        let q_before = qexp.before
+        let q = qexp.after
+        let [mp1, m1, m2] = qexp.move
+
+        let occupied = q_occupied(q)
+
+        let res1_before = SquareSet.empty()
+        let res1_after = SquareSet.empty()
+        let res2 = attacks1.map(_ => SquareSet.empty())
+        let res3 = blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
+        let res4 = unblocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
+
+        let res5 = SquareSet.empty()
+
+        let q_res_move = q[res.move]
+
+        let a2s = attacks(move, m2, occupied)
+
+        let q3 = q
+
+        for (let i = 0; i < res.attack.length; i++) {
+            let a1 = res.attack[i]
+            if (q[a1] === undefined) {
+                return
+            }
+
+            let skipped = true
+            for (let aa1 of a2s.intersect(q[a1])) {
+                res2[i] = res2[i].set(aa1, true)
+                skipped = false
+            }
+
+            if (skipped) {
+                return
+            }
+        }
+
+
+        for (let i = 0; i < res.blocked.length; i++) {
+            let [a3, a2] = res.blocked[i]
+
+            if (q[a2] === undefined || q[a3] === undefined) {
+                return
+            }
+
+            let skipped = true
+            for (let aa2 of a2s.intersect(q[a2])) {
+
+                let a3s = attacks(move, m2, occupied.without(m1).without(aa2))
+                for (let aa3 of a3s.intersect(q[a3])) {
+                    if (!between(m2, aa3).has(aa2)) {
+                        continue
+                    }
+                    res3[i][0] = res3[i][0].set(aa3, true)
+                    res3[i][1] = res3[i][1].set(aa2, true)
+                    skipped = false
+                }
+            }
+
+            if (skipped) {
+                return
+            }
+        }
+
+        for (let i = 0; i < res.unblocked.length; i++) {
+            let [u3, u2] = res.unblocked[i]
+
+            if (q[u2] === undefined || q[u3] === undefined) {
+                return
+            }
+
+            let skipped = true
+            for (let u3s of q[u3]) {
+                let a3s = attacks(unblocked[i][0], u3s, occupied.without(m1))
+
+                for (let u2s of q[u2]) {
+                    if (a3s.has(u2s) && between(u3s, u2s).has(m1)) {
+                        res4[i][0] = res4[i][0].set(u3s, true)
+                        res4[i][1] = res4[i][1].set(u2s, true)
+                        skipped = false
+                    }
+                }
+            }
+            if (skipped) {
+                return
+            }
+        }
+
+
+        for (let i = 0; i < res.attack.length; i++) {
+            q3[res.attack[i]] = res2[i]
+
+            q_before[res.attack[i]] = res2[i]
+        }
+
+        for (let i = 0; i < res.blocked.length; i++) {
+            q3[res.blocked[i][0]] = res3[i][0]
+            q3[res.blocked[i][1]] = res3[i][1]
+
+
+            q_before[res.blocked[i][0]] = res3[i][0]
+            q_before[res.blocked[i][1]] = res3[i][1]
+        }
+
+
+        for (let i = 0; i < res.unblocked.length; i++) {
+            q3[res.unblocked[i][0]] = res4[i][0]
+            q3[res.unblocked[i][1]] = res4[i][1]
+
+
+            q_before[res.unblocked[i][0]] = res4[i][0]
+            q_before[res.unblocked[i][1]] = res4[i][1]
+        }
+
+    }
+}
+
+
 /*
 function move_attack_constraint(res: MoveAttackSentence): QConstraint {
 
@@ -519,288 +1164,6 @@ function move_attack_constraint(res: MoveAttackSentence): QConstraint {
     */
 
 
-export type Line = {
-    depth: number
-    rule: string
-    children: Line[]
-    m: M[]
-    long: boolean
-    no_c: boolean
-    sentence: ParsedSentence
-}
-
-export type M = {
-    board: QBoard
- }
-
-export function parse_rules(str: string): Line {
-    let ss = str.trim().split('\n')
-
-    let root: Line = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined', precessor: 'E' } }
-    const stack: Line[] = [root]
-
-    for (let i = 0; i < ss.length; i++) {
-        let line = ss[i]
-        let rule = line.trim()
-        if (!rule) continue
-
-        const depth = line.search(/\S/)
-
-        let no_c = false
-        let long = false
-        if (rule[rule.length - 1] === '5') {
-            long = true
-            rule = rule.slice(0, -1).trim()
-        }
-
-        if (rule[rule.length - 1] === 'P') {
-            no_c = true
-            rule = rule.slice(0, -1).trim()
-        }
-
-
-
-        let node: Line  = { depth, rule, children: [], m: [], long, no_c, sentence: { type: 'undefined', precessor: 'E' } }
-
-        while (stack.length > depth + 1) {
-            stack.pop()
-        }
-
-        stack[stack.length - 1].children.push(node)
-        stack.push(node)
-    }
-    return root
-}
-
-function parse_line_recur(node: Line) {
-    let p = new Parser(new Lexer(node.rule))
-
-    let res = p.parse_sentence()
-
-    node.sentence = res
-
-    node.children.map(parse_line_recur)
-}
-
-function cc_recur(node: Line) {
-    return (q: QBoard) => {
-        let cc = resolve_cc(node.sentence)
-        cc(q)
-        for (let child of node.children) {
-            cc_recur(child)(q)
-        }
-    }
-}
-
-
-type QNode = {
-    board: QBoard,
-    sentence: ParsedSentence,
-    children: QNode[]
-    res: QBoard[]
-}
-
-function q_node(root: Line): QNode {
-    let sentence = root.sentence
-    let board = q_board()
-    let children = root.children.map(q_node)
-
-    return {
-        board,
-        sentence,
-        children,
-        res: []
-    }
-}
-
-/*
-function q_node_pull(node: QNode, pieces: Pieces[]) {
-
-    let res: QBoard[] = []
-    let limit = 0
-
-    let q = node.board
-
-    function dfs(q: QBoard) {
-        let cc = resolve_cc(node.sentence)
-
-        //if (limit ++ > 100) return false
-        // console.log(qc_fen_singles(q))
-        let q3 = { ...q }
-
-        //if (qc_fen_singles(q) === "8/8/8/8/8/3Bk3/3pb3/q1R5 w - - 0 1") {
-        let df = qc_fen_singles(q)
-        if (df.includes("8/8/8/8/8/8/2p5/qBRbk3 w - - 0 1")) {
-            console.log('here', df)
-        }
-        let q_captured_first
-        while (true) {
-            let { before: q4, after: q5, captured: q_captured } = cc(q3)
-
-            let qff = qc_fen_singles(q4)
-            let qffaf = qc_fen_singles(q5)
-            q_captured_first = q_captured_first ?? q_captured
-
-            qc_dedup(q4)
-            qc_kings(q4)
-
-            for (let piece of pieces) {
-                if (q4[piece].isEmpty()) {
-                    if (q_captured_first[piece].isEmpty()) {
-
-                        return true
-                    }
-                }
-                if (q5[piece].isEmpty()) {
-                    if (q_captured_first[piece].isEmpty()) {
-                        return true
-                    }
-                }
-            }
-
-
-
-            if (q_equals(q3, q4)) {
-                let child_ok = node.children.every(child => {
-                    let q_child = child.board
-
-                    child.board = { ...q5 }
-                    q_node_pull(child, pieces)
-
-                    if (child.sentence.precessor === 'E') {
-                        return child.res.length > 0
-                    }
-                    if (child.sentence.precessor === 'Z') {
-                        return child.res.length === 0
-                    }
-                    return child.res.length > 0
-                })
-
-
-                if (child_ok) {
-
-                    {
-                        let all_single = true
-                        for (let piece of pieces) {
-
-                            if (!q3[piece].isEmpty() && q3[piece].singleSquare() === undefined) {
-                                all_single = false
-                                break
-                            }
-                        }
-
-                        if (all_single) {
-                            // console.log(qc_fen_singles(q3))
-                            res.push(q3)
-                            return true
-                        }
-                    }
-                }
-                break
-            }
-            q3 = q4
-        }
-
-
-        for (let piece of pieces) {
-            if (q3[piece].singleSquare() !== undefined) {
-                continue
-            }
-
-
-            if (node.sentence.type === 'move_attack' && node.sentence.unblocked.length > 0) {
-                if (q3['Q'].singleSquare() === 0) {
-
-                    if (q3['b'].singleSquare() === 1) {
-                        if (q3['r'].singleSquare() === 2) {
-                            //console.log(qc_fen_singles(q3))
-                        }
-                    }
-                }
-            }
-            let count = q3[piece].size()
-            for (let skip = 0; skip < count; skip++) {
-                let q_next = { ...q3 }
-
-                //console.log('pull', piece, skip)
-                qc_pull1(q_next, piece, skip)
-
-                let reached = dfs(q_next)
-                if (!reached) {
-                    return true
-                }
-                if (res.length >= 10) {
-                    return true
-                }
-
-            }
-            //console.log('out pull', piece)
-            break
-        }
-
-    }
-
-    dfs(q)
-
-    node.res = res
-    return res
-}
-    */
-
-export function mor3(text: string) {
-
-    let root = parse_rules(text)
-    root.children.forEach(parse_line_recur)
-
-    let res = q_node(root)
-
-
-
-
-
-    //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
-    //let qq = q_node_pull(res.children[0], ['b', 'Q', 'r', 'B', 'P', 'K'])
-    //return qq?.map(qc_fen_singles)
-
-    /*
-    const f = (q: QBoard) => {
-
-        cc_recur(root)(q)
-
-        qc_dedup(q)
-        qc_kings(q)
-    }
-
-    let q = q_board()
-
-    let qq = qc_pull2o(q, ['b', 'B', 'Q', 'k', 'K'], f)
-
-    return qq?.map(qc_fen_singles)
-    */
-}
-
-const no_constraint: QConstraint = (q: QBoard) => ({
-    before: q,
-    after: q,
-    captured: q_board()
-})
-
-function resolve_cc(res: ParsedSentence): QConstraint {
-    if (res.type === 'move_attack') {
-        //return move_attack_constraint(res)
-    }
-    if (res.type === 'attack') {
-
-    }
-    if (res.type === 'precessor') {
-        if (res.precessor === 'A') {
-            //return move_A_legals
-        }
-    }
-
-    return no_constraint
-}
-
 
 /*
 function move_A_legals(q: QBoard) {
@@ -816,11 +1179,8 @@ function move_A_legals(q: QBoard) {
 }
     */
 
-type QConstraint = (q: QBoard) => {
-    before: QBoard,
-    after: QBoard,
-    captured: QBoard
-}
+
+type QConstraint = (q: QExpansion) => void
 
 const Pieces = PIECE_NAMES
 
@@ -866,11 +1226,7 @@ function q_clone(a: QBoard) {
 }
 
 function qc_put(q: QBoard, pieces: Pieces, square: Square) {
-    if (q[pieces] === undefined) {
-        q[pieces] = SquareSet.fromSquare(square)
-    } else {
-        q[pieces] = q[pieces].intersect(SquareSet.fromSquare(square))
-    }
+    q[pieces] = SquareSet.fromSquare(square)
 }
 
 
@@ -905,6 +1261,23 @@ function qc_dedup(q: QBoard) {
             }
         }
     }
+}
+
+function qc_move_cause(q: QExpansion) {
+    if (!q.before[q.move[0]]?.has(q.move[1]) ||
+    !q.after[q.move[0]]?.has(q.move[2])) {
+        q.before[q.move[0]] = SquareSet.empty()
+        q.after[q.move[0]] = SquareSet.empty()
+    }
+
+
+    let occupied = q_occupied(q.before)
+
+    if (!attacks(parse_piece(q.move[0]), q.move[1], occupied).has(q.move[2])) {
+        q.before[q.move[0]] = SquareSet.empty()
+        q.after[q.move[0]] = SquareSet.empty()
+    }
+
 }
 
 function q_occupied(a: QBoard) {
