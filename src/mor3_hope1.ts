@@ -483,7 +483,7 @@ function qnode_pull2o(node: QNode, pieces: Pieces[]) {
         while (true) {
             let expanded = qq.slice(0)
 
-            expanded.forEach(_ => cc(_))
+            expanded = expanded.filter(_ => cc(_))
 
             for (let ex of expanded) {
 
@@ -557,7 +557,7 @@ function qnode_pull2o(node: QNode, pieces: Pieces[]) {
                                     move: q5.move
                                 })
                                 qq.splice(qq.indexOf(q5), 1)
-                                if (res.length > 10) {
+                                if (res.length >= 1) {
                                     return
                                 }
                             }
@@ -572,6 +572,7 @@ function qnode_pull2o(node: QNode, pieces: Pieces[]) {
 
             qq = expanded
         }
+
 
         for (let q3 of qq) {
             for (let piece of pieces) {
@@ -589,8 +590,11 @@ function qnode_pull2o(node: QNode, pieces: Pieces[]) {
 
                     q3.after[piece] = q_next[piece]
 
+                    if (node.sentence.precessor !== 'A') {
+                        console.log(3)
+                    }
                     dfs(qq)
-                    if (res.length >= 10) {
+                    if (res.length >= 1) {
                         return true
                     }
                 }
@@ -746,7 +750,7 @@ export function mor3(text: string) {
 
     let res = q_node(root)
 
-    let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'R'])
+    let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
 
     /*
     console.log(
@@ -777,7 +781,7 @@ export function mor3(text: string) {
     */
 }
 
-const no_constraint: QConstraint = (q: QExpansion) => {}
+const no_constraint: QConstraint = (q: QExpansion) => true
 
 function resolve_cc(res: ParsedSentence): QConstraint {
     if (res.type === 'move_attack') {
@@ -894,6 +898,12 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         let q = qexp.after
         let [mp1, m1, m2] = qexp.move
 
+        /*
+        if (qc_fen_singles(q_before) === "8/8/8/8/8/8/8/BqR5 w - - 0 1") {
+            console.log('here')
+        }
+            */
+
         let occupied = q_occupied(q)
 
         let res1_before = SquareSet.empty()
@@ -913,7 +923,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         for (let i = 0; i < res.attack.length; i++) {
             let a1 = res.attack[i]
             if (q[a1] === undefined) {
-                return
+                return false
             }
 
             let skipped = true
@@ -923,7 +933,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             }
 
             if (skipped) {
-                return
+                return false
             }
         }
 
@@ -932,7 +942,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             let [a3, a2] = res.blocked[i]
 
             if (q[a2] === undefined || q[a3] === undefined) {
-                return
+                return false
             }
 
             let skipped = true
@@ -950,7 +960,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             }
 
             if (skipped) {
-                return
+                return false
             }
         }
 
@@ -958,7 +968,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             let [u3, u2] = res.unblocked[i]
 
             if (q[u2] === undefined || q[u3] === undefined) {
-                return
+                return false
             }
 
             let skipped = true
@@ -974,7 +984,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
                 }
             }
             if (skipped) {
-                return
+                return false
             }
         }
 
@@ -1004,6 +1014,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             q_before[res.unblocked[i][1]] = res4[i][1]
         }
 
+        return true
     }
 }
 
@@ -1180,7 +1191,8 @@ function move_A_legals(q: QBoard) {
     */
 
 
-type QConstraint = (q: QExpansion) => void
+type QConstraint = (q: QExpansion) => boolean
+
 
 const Pieces = PIECE_NAMES
 
