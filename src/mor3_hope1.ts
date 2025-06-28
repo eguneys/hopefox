@@ -444,10 +444,8 @@ function cc_recur(node: Line) {
 
 
 type QNode = {
-    board: QBoard,
     sentence: ParsedSentence,
     children: QNode[]
-    res: QBoard[]
 }
 
 function q_node(root: Line): QNode {
@@ -456,14 +454,140 @@ function q_node(root: Line): QNode {
     let children = root.children.map(q_node)
 
     return {
-        board,
         sentence,
         children,
-        res: []
     }
 }
 
+function qnode_pull3o(node: QNode, pieces: Pieces[]) {
 
+    let cc = resolve_cc(node.sentence)
+
+    let dfs = (qq: QExpansion[]) => {
+
+    }
+
+    return dfs
+}
+
+function make_cc(node: QNode, pieces: Pieces[]) {
+
+    let cc = resolve_cc(node.sentence)
+    return (qq: QExpansion[]): boolean => {
+
+        qq = qq.filter(cc)
+
+        if (qq.length === 0) {
+            return false
+        }
+
+        if (node.sentence.precessor === 'A') {
+            let lqq = qq
+            for (let c of node.children) {
+                lqq = lqq.filter(q => qnode_expand(c, Pieces, {...q.after}).length > 0)
+            }
+            return lqq.length === 0
+        } else if (node.sentence.precessor === 'E') {
+            let lqq = qq
+            for (let c of node.children) {
+                lqq = lqq.filter(q => qnode_expand(c, Pieces, {...q.after}).length > 0)
+                if (lqq.length < qq.length) {
+                    return true
+                }
+            }
+            return false
+        }
+        return false
+    }
+}
+
+function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard): QExpansion[] {
+
+    let cc = resolve_cc(node.sentence)
+    let res: QExpansion[] = []
+
+    let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) : qe_all_opponent(q, pieces)
+
+    while (eqq.length !== 0) {
+
+        eqq = eqq.filter(cc)
+
+        for (let ex of eqq) {
+
+            qc_move_cause(ex)
+
+            qc_dedup(ex.before)
+            qc_kings(ex.before)
+
+            qc_dedup(ex.after)
+            qc_kings(ex.after)
+        }
+
+
+        for (let piece of pieces) {
+            eqq = eqq.filter(_ => {
+                return (_.after[piece] === undefined || !_.after[piece].isEmpty()) &&
+                    (_.before[piece] === undefined || !_.before[piece].isEmpty())
+            })
+        }
+
+
+
+
+        let aqq = []
+        for (let eq of eqq) {
+            let aq = pick_piece(eq, pieces)
+            if (aq.length === 0) {
+                res.push(eq)
+                pick_piece(eq, pieces)
+
+                if (res.length >= 10) {
+                    return res
+                }
+            } else {
+                aqq.push(...aq)
+            }
+        }
+        eqq = aqq
+    }
+
+    return res
+
+}
+
+function pick_piece(q: QExpansion, pieces: Pieces[]) {
+    let res: QExpansion[] = []
+
+    for (let p of pieces) {
+        if (q.move && q.move[0] === p) {
+            continue
+        }
+        let iq = { ... q.before}
+        while (iq[p] !== undefined && iq[p].singleSquare() === undefined) {
+            let aq = {...iq}
+            qc_pull1(aq, p)
+
+            let before = aq
+            let after = q.after
+
+            after[p] = before[p]
+
+            let move = q.move
+            res.push({
+                before,
+                after,
+                move
+            })
+            iq = aq
+        }
+        if (res.length > 0) {
+            break
+        }
+    }
+    return res
+}
+
+/*
 function qnode_pull2o(node: QNode, pieces: Pieces[]) {
 
     let res: QExpansion[] = []
@@ -607,6 +731,7 @@ function qnode_pull2o(node: QNode, pieces: Pieces[]) {
 
     return res
 }
+    */
 
 /*
 function q_node_pull(node: QNode, pieces: Pieces[]) {
@@ -750,7 +875,9 @@ export function mor3(text: string) {
 
     let res = q_node(root)
 
-    let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
+    //let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
+
+    let qq = qnode_expand(res.children[0], ['b', 'Q', 'R'], q_board())
 
     /*
     console.log(
@@ -806,7 +933,7 @@ const opponent_piece_names = (pieces: Pieces[]) => pieces.filter(_ => _.toLowerC
 type QExpansion = {
     before: QBoard
     after: QBoard
-    move: [Pieces, Square, Square]
+    move?: [Pieces, Square, Square]
 }
 
 const qe_all_player = (q: QBoard, pieces: Pieces[]) => {
@@ -893,6 +1020,9 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
     let captured = res.captured ? parse_piece(res.captured) : undefined
 
     return (qexp: QExpansion) => {
+        if (!qexp.move) {
+            return false
+        }
 
         let q_before = qexp.before
         let q = qexp.after
@@ -1276,6 +1406,9 @@ function qc_dedup(q: QBoard) {
 }
 
 function qc_move_cause(q: QExpansion) {
+    if (!q.move) {
+        return
+    }
     if (!q.before[q.move[0]]?.has(q.move[1]) ||
     !q.after[q.move[0]]?.has(q.move[2])) {
         q.before[q.move[0]] = SquareSet.empty()
