@@ -183,11 +183,6 @@ export class Parser {
 
     parse_sentence(): ParsedSentence {
 
-        if (this.current_token.type === TokenType.DOT) {
-            this.eat(TokenType.DOT)
-            return { type: 'precessor', precessor: 'dot' }
-        }
-
         const precessor = this.precessor()
 
         if (this.current_token.type === TokenType.EOF) {
@@ -454,8 +449,10 @@ function cc_recur(node: Line) {
 
 
 type QNode = {
-    sentence: ParsedSentence,
+    sentence: ParsedSentence
     children: QNode[]
+    res: QExpansion[]
+    children_resolved: boolean
 }
 
 function q_node(root: Line): QNode {
@@ -466,6 +463,8 @@ function q_node(root: Line): QNode {
     return {
         sentence,
         children,
+        res: [],
+        children_resolved: true
     }
 }
 
@@ -491,14 +490,20 @@ function make_cc(node: QNode, pieces: Pieces[]) {
         if (node.sentence.precessor === 'A') {
             let lqq = qq
             for (let c of node.children) {
-                lqq = lqq.filter(q => qnode_expand(c, Pieces, {...q.after}).length > 0)
+                lqq = lqq.filter(q => {
+                    qnode_expand(c, Pieces, {...q.after})
+                    
+                    return c.children_resolved
+                })
             }
             return lqq.length === 0
         } else if (node.sentence.precessor === 'E') {
             let lqq = qq
             for (let c of node.children) {
                 for (let q of lqq) {
-                    if (qnode_expand(c, Pieces, { ...q.after }).length > 0) {
+                    qnode_expand(c, Pieces, { ...q.after })
+                    
+                    if (c.children_resolved) {
                         return true
                     }
                 }
@@ -513,11 +518,11 @@ function qe_id(q: QBoard): QExpansion[] {
     return [{ before: q, after: q }]
 }
 
-function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard): QExpansion[] {
+function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard) {
 
     let pcc = make_cc(node, pieces)
     let cc = resolve_cc(node.sentence)
-    let res: QExpansion[] = []
+    let res: QExpansion[] = node.res
 
     let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) :
         node.sentence.precessor === 'A' ? qe_all_opponent(q, pieces) :
@@ -567,11 +572,8 @@ function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard): QExpansion[] {
     }
 
     if (!pcc(res)) {
-        return []
+        node.children_resolved = false
     }
-
-    return res
-
 }
 
 function pick_piece(q: QExpansion, pieces: Pieces[]) {
@@ -896,14 +898,11 @@ export function mor3(text: string) {
 
     //let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
 
-    let qq = qnode_expand(res.children[0], ['b', 'r', 'B', 'Q'], q_board())
+    qnode_expand(res.children[0], ['b', 'r', 'B', 'Q'], q_board())
 
-    /*
-    console.log(
-        qq.map(_ => qc_fen_singles(_.before)),
-        qq.map(_ => qc_fen_singles(_.after))
-    )
-        */
+    console.log(res.children[0])
+    let qq = res.children[0].res
+
     return qq.map(_ => qc_fen_singles(_.before))
 
     //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
