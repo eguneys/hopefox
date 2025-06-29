@@ -589,7 +589,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
                 })
                 pick_piece(eq, pieces)
 
-                if (res.length >= 100) {
+                if (res.length >= 10) {
                     break out
                 }
             } else {
@@ -1099,6 +1099,8 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
 
     let attacked_by = res.attacked_by.map(parse_piece)
 
+    let zero_defend = res.zero_defend
+
     return (qexp: QExpansion) => {
         if (!qexp.move) {
             return false
@@ -1107,6 +1109,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         if (qexp.move[0] !== res.move) {
             return false
         }
+
 
         if (res.captured) {
             if (qexp.before[res.captured]?.has(qexp.move[2])) {
@@ -1133,6 +1136,24 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             */
 
         let occupied = q_occupied(q)
+
+
+        if (zero_defend) {
+            for (let d1 of pieces_of_color(move.color)) {
+                if (q[d1] === undefined) {
+                    continue
+                }
+                let res = SquareSet.empty()
+
+                let pd1 = parse_piece(d1)
+                for (let d1s of q[d1]) {
+                    if (!attacks(pd1 ,d1s, occupied).has(m2)) {
+                        res = res.set(d1s, true)
+                    }
+                }
+                q[d1] = res
+            }
+        }
 
         let res1_before = SquareSet.empty()
         let res1_after = SquareSet.empty()
@@ -1541,10 +1562,12 @@ function qc_move_cause(q: QExpansion) {
         return
     }
 
+    /*
     if (qc_fen_singles(q.before).includes("8/8/8/8/8/1q6/8/QkrB4")) {
 
         console.log('yay')
     }
+        */
 
     if (!q.before[q.move[0]]?.has(q.move[1]) ||
     !q.after[q.move[0]]?.has(q.move[2])) {
@@ -1795,3 +1818,11 @@ export function print_node(n: QNode): string {
     return res
 }
 
+
+function pieces_of_color(turn: Color) {
+    if (turn === 'white') {
+        return PLAYER_PIECE_NAMES
+    } else {
+        return OPPONENT_PIECE_NAMES
+    }
+}

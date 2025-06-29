@@ -23,6 +23,8 @@ let a = `
 E b= +Q 0-
  A
   E q=f7 +K R+ K+ b+
+   A
+    E q= =R
 `
 
     expect(mor3(a)).toBe('')
