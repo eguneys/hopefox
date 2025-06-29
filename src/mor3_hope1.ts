@@ -14,6 +14,7 @@ import { opposite } from "./util"
 enum TokenType {
     ZERO = 'ZERO',
     PIECE_NAME = 'PIECE_NAME',
+    SQUARE_NAME = 'SQUARE_NAME',
     OPERATOR_MOVE = 'OPERATOR_MOVE',
     OPERATOR_ATTACK = 'OPERATOR_ATTACK',
     OPERATOR_DEFEND = 'OPERATOR_DEFEND',
@@ -43,9 +44,15 @@ const PRECESSORS = [
     'G', 'Z', 'A', 'E', '.'
 ]
 
+const SQUARE_NAMES = [
+    'f7', 'f2'
+]
+
 export type Pieces = typeof PIECE_NAMES[number]
 
 export type Precessor = typeof PRECESSORS[number]
+
+export type Squares = typeof SQUARE_NAMES[number]
 
 export class Lexer {
     private text: string
@@ -115,6 +122,9 @@ export class Lexer {
             }
             if (PIECE_NAMES.includes(word_str)) {
                 return { type: TokenType.PIECE_NAME, value: word_str }
+            }
+            if (SQUARE_NAMES.includes(word_str)) {
+                return { type: TokenType.SQUARE_NAME, value: word_str }
             }
             if (this.operators.has(this.current_char)) {
                 let value = this.current_char
@@ -257,9 +267,18 @@ export class Parser {
         let move = this.piece()
         this.eat(TokenType.OPERATOR_MOVE)
 
+        let move_to: Squares | undefined
+
+        if (this.current_token.type === TokenType.SQUARE_NAME) {
+            move_to = this.current_token.value
+            this.advance_tokens()
+        }
+
         let attack = []
         let blocked: [Pieces, Pieces][] = []
         let unblocked: [Pieces, Pieces][] = []
+
+        let attacked_by = []
 
         let captured: Pieces | undefined
 
@@ -296,6 +315,8 @@ export class Parser {
                     let piece2 = this.piece()
 
                     unblocked.push([piece, piece2])
+                } else {
+                    attacked_by.push(piece)
                 }
 
             } else if (current_token_type === TokenType.OPERATOR_ATTACK) {
@@ -325,7 +346,8 @@ export class Parser {
             blocked,
             unblocked,
             zero_attack,
-            zero_defend
+            zero_defend,
+            attacked_by
         }
     }
 }
@@ -362,6 +384,7 @@ type MoveAttackSentence = {
     unblocked: [Pieces, Pieces][]
     zero_attack: boolean
     zero_defend: boolean
+    attacked_by: Pieces[]
 }
 
 

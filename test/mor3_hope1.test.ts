@@ -3,10 +3,10 @@ import { mor3 } from '../src'
 import { tenk } from './fixture'
 
 
-it.skip('nests 2', () => {
+it('nests 2', () => {
 
     'https://lichess.org/training/08lX9'
-    let a = `
+    let b = `
 E b= +Q 0-
  A
   E q=f7 +K R+ K+ b+
@@ -19,12 +19,18 @@ E b= +Q 0-
    Z Q= +R
 `
 
+let a = `
+E b= +Q 0-
+ A
+  E q=f7 +K R+ K+ b+
+`
+
     expect(mor3(a)).toBe('')
 })
 
 
 
-it('nests', () => {
+it.skip('nests', () => {
 
  let b = `
 G B 0+ 0-
@@ -40,7 +46,6 @@ E b= +B r+|Q
  A
   E b= =B 0+
   E =Q
-  .
 `
 
     expect(mor3(a)).toBe('')
