@@ -471,17 +471,6 @@ function q_node(root: Line): QNode {
     }
 }
 
-function qnode_pull3o(node: QNode, pieces: Pieces[]) {
-
-    let cc = resolve_cc(node.sentence)
-
-    let dfs = (qq: QExpansion[]) => {
-
-    }
-
-    return dfs
-}
-
 function make_cc(node: QNode, pieces: Pieces[]) {
 
     return (qq: QExpansion[]): boolean => {
@@ -564,7 +553,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard) {
                 res.push(eq)
                 pick_piece(eq, pieces)
 
-                if (res.length >= 2) {
+                if (res.length >= 8) {
                     break out
                 }
             } else {
@@ -908,6 +897,7 @@ export function mor3(text: string) {
 
     //return qq.map(_ => qc_fen_singles(_.before))
 
+    console.log(print_node(res))
     return print_node(res)
 
     //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
@@ -937,6 +927,9 @@ function resolve_cc(res: ParsedSentence): QConstraint {
     if (res.type === 'move_attack') {
         //return move_attack_constraint(res)
         return qcc_move_attack(res)
+    }
+    if (res.type === 'capture') {
+        return qcc_move_capture(res)
     }
     if (res.type === 'attack') {
 
@@ -1032,6 +1025,24 @@ const qe_all_opponent = (q: QBoard, pieces: Pieces[]) => {
     return expanded
 }
 
+function qcc_move_capture(res: CaptureSentence): QConstraint {
+    return (q: QExpansion) => {
+
+        let move = q.move
+
+        if (!move) {
+            return false
+        }
+
+        if (q.before[res.captured]?.has(move[2])) {
+            q.after[res.captured] = undefined
+            return true
+        }
+
+        return false
+    }
+}
+
 function qcc_move_attack(res: MoveAttackSentence): QConstraint {
 
 
@@ -1048,9 +1059,19 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         }
 
 
-        if (qc_fen_singles(qexp.before) === "8/8/8/8/8/8/B7/qr6 w - - 0 1") {
-            console.log('yay')
+        if (res.captured) {
+            if (qexp.before[res.captured]?.has(qexp.move[2])) {
+                if (res.move === qexp.move[0]) {
+                    qexp.after[res.captured] = undefined
+                } else {
+                    return false
+                }
+            } else {
+                return false
+            }
         }
+
+
 
         let q_before = qexp.before
         let q = qexp.after
