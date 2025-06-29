@@ -2,6 +2,14 @@ import { expect, it } from 'vitest'
 import { mor3 } from '../src'
 import { tenk } from './fixture'
 
+it.skip('mate finds', () => {
+
+    let a = `
+E q= #
+`
+
+    expect(mor3(a)).toBe('')
+})
 
 it('nests 2', () => {
 
@@ -22,9 +30,9 @@ E b= +Q 0-
 let a = `
 E b= +Q 0-
  A
-  E q=f7 +K R+ K+ b+
+  E q=f7 +K R+ K+
    A
-    E q= =R
+    E q= =R #
 `
 
     expect(mor3(a)).toBe('')

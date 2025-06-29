@@ -1,6 +1,6 @@
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { color_c_opposite } from "./hopefox_c"
+import { color_c_opposite, PositionManager } from "./hopefox_c"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
 import { attacks, between, pawnAttacks } from "./attacks"
@@ -12,6 +12,7 @@ import { spawnSync } from "child_process"
 import { opposite } from "./util"
 
 enum TokenType {
+    MATE = 'MATE',
     ZERO = 'ZERO',
     PIECE_NAME = 'PIECE_NAME',
     SQUARE_NAME = 'SQUARE_NAME',
@@ -105,6 +106,11 @@ export class Lexer {
     public get_next_token(): Token {
         while (this.current_char !== undefined) {
             this.skip_whitespace()
+
+            if (this.current_char === '#') {
+                this.advance()
+                return { type: TokenType.MATE, value: '#' }
+            }
 
             if (this.current_char === '0') {
                 this.advance()
@@ -285,12 +291,17 @@ export class Parser {
         let zero_attack = false,
         zero_defend = false
 
+        let is_mate = false
+
         while (true) {
 
             let current_token_type = this.current_token.type
             let lookahead_token_type = this.lookahead_token.type
 
-            if (current_token_type === TokenType.ZERO) {
+            if (current_token_type === TokenType.MATE) {
+                this.eat(TokenType.MATE)
+                is_mate = true
+            } else if (current_token_type === TokenType.ZERO) {
                 this.eat(TokenType.ZERO)
                 if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
                     this.eat(TokenType.OPERATOR_ATTACK)
@@ -347,7 +358,8 @@ export class Parser {
             unblocked,
             zero_attack,
             zero_defend,
-            attacked_by
+            attacked_by,
+            is_mate
         }
     }
 }
@@ -385,6 +397,7 @@ type MoveAttackSentence = {
     zero_attack: boolean
     zero_defend: boolean
     attacked_by: Pieces[]
+    is_mate: boolean
 }
 
 
@@ -432,7 +445,7 @@ export function parse_rules(str: string): Line {
             rule = rule.slice(0, -1).trim()
         }
 
-        if (rule[rule.length - 1] === 'P') {
+        if (rule[rule.length - 1] === 'M') {
             no_c = true
             rule = rule.slice(0, -1).trim()
         }
@@ -582,15 +595,33 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
         for (let eq of eqq) {
             let aq = pick_piece(eq, pieces)
             if (aq.length === 0) {
+
+
+
+                if (qc_fen_singles(eq.after, 'black').includes("6rk/7Q")) {
+
+                    console.log('yay')
+                    console.log(qcc_is_mate(eq))
+                    console.log(qc_fen_singles(eq.after))
+                    //console.log(Chess.fromSetup(parseFen(qc_fen_singles(eq.after)).unwrap()).unwrap().isCheckmate())
+                    console.log('no')
+                }
+                if (node.sentence.type === 'move_attack' && node.sentence.is_mate) {
+
+                    if (!qcc_is_mate(eq)) {
+                        continue
+                    }
+                }
+
+
                 res.push({
                     parent: q_parent,
                     data: eq,
                     turn
                 })
-                pick_piece(eq, pieces)
 
-                if (res.length >= 10) {
-                    break out
+                if (res.length >= 10000) {
+                    //break out
                 }
             } else {
                 aqq.push(...aq)
@@ -602,6 +633,18 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
     if (!pcc(res)) {
         node.children_resolved = false
     }
+}
+
+let m = await PositionManager.make()
+function qcc_is_mate(eq: QExpansion) {
+    let fen = qc_fen_singles(eq.after, 'black')
+
+    let pos = m.create_position(fen)
+
+    let res = m.is_checkmate(pos)
+
+    m.delete_position(pos)
+    return res
 }
 
 function pick_piece(q: QExpansion, pieces: Pieces[]) {
@@ -933,8 +976,12 @@ export function mor3(text: string) {
         },
         turn: 'white'
     }
+
+    //q_collapse_fen(q_root.data, "q5rk/7p/8/8/8/7Q/5K2/1B6 w - - 0 1")
+
     //qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
-    qnode_expand(res.children[0], ['q', 'K', 'R', 'b', 'Q'], q_root, 'white')
+    qnode_expand(res.children[0], ['q', 'Q', 'R', 'b', 'K', 'P', 'k'], q_root, 'white')
+    //qnode_expand(res.children[0], ['q', 'K', 'k'], q_root, 'white')
 
     //console.log(res.children[0])
     //let qq = res.children[0].children[0].res
@@ -963,6 +1010,30 @@ export function mor3(text: string) {
 
     return qq?.map(qc_fen_singles)
     */
+}
+
+function q_collapse_fen(q: QExpansion, fen: string) {
+
+    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+    for (let sq of SquareSet.full()) {
+
+        let piece = pos.board.get(sq)
+        if (piece) {
+            let p1 = piece2_pieces(piece)
+            q.before[p1] = SquareSet.fromSquare(sq)
+            q.after[p1] = SquareSet.fromSquare(sq)
+        }
+    }
+
+}
+
+function piece2_pieces(piece: Piece) {
+    if (piece.color === 'white') {
+        return piece.role[0].toLowerCase()
+    } else {
+        return piece.role[0].toUpperCase()
+    }
 }
 
 const no_constraint: QConstraint = (q: QExpansion) => true
@@ -1101,6 +1172,8 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
 
     let zero_defend = res.zero_defend
 
+    let is_mate = res.is_mate
+
     return (qexp: QExpansion) => {
         if (!qexp.move) {
             return false
@@ -1109,7 +1182,6 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         if (qexp.move[0] !== res.move) {
             return false
         }
-
 
         if (res.captured) {
             if (qexp.before[res.captured]?.has(qexp.move[2])) {
@@ -1295,6 +1367,28 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             q_before[res.unblocked[i][0]] = res4[i][0]
             q_before[res.unblocked[i][1]] = res4[i][1]
         }
+
+
+        if (qc_fen_singles(q3, 'black').includes("6rk/7Q")) {
+            console.log('ok')
+            is_mate = true
+        }
+
+        if (is_mate) {
+            if (q3['K'] === undefined) {
+                return false
+            }
+
+            let res_k = SquareSet.empty()
+            for (let k1s of q3['K']) {
+                if (attacks(move, qexp.move[2], occupied).has(k1s)) {
+                    res_k = res_k.set(k1s, true)
+                }
+            }
+            q3['K'] = res_k
+            q_before['K'] = res_k
+        }
+
 
         return true
     }
