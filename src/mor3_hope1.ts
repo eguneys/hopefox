@@ -7,6 +7,7 @@ import { attacks, between, pawnAttacks } from "./attacks"
 import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
 import { chdir, execArgv, execPath } from "process"
+import { makeSan } from "./san"
 
 enum TokenType {
     ZERO = 'ZERO',
@@ -453,6 +454,7 @@ type QNode = {
     children: QNode[]
     res: QExpansion[]
     children_resolved: boolean
+    line: Line
 }
 
 function q_node(root: Line): QNode {
@@ -464,7 +466,8 @@ function q_node(root: Line): QNode {
         sentence,
         children,
         res: [],
-        children_resolved: true
+        children_resolved: true,
+        line: root
     }
 }
 
@@ -898,12 +901,14 @@ export function mor3(text: string) {
 
     //let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
 
-    qnode_expand(res.children[0], ['b', 'r', 'B', 'Q'], q_board())
+    qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_board())
 
-    console.log(res.children[0])
-    let qq = res.children[0].children[0].res
+    //console.log(res.children[0])
+    //let qq = res.children[0].children[0].res
 
-    return qq.map(_ => qc_fen_singles(_.before))
+    //return qq.map(_ => qc_fen_singles(_.before))
+
+    return print_node(res)
 
     //let qq = q_node_pull(res.children[0], ['b', 'Q', 'R'])
     //let qq = q_node_pull(res.children[0], ['b', 'Q', 'r', 'B', 'P', 'K'])
@@ -1545,8 +1550,9 @@ function qc_pull1(q: QBoard, pieces: Pieces, skip: number = 0) {
     return true
 }
 
-function qc_fen_singles(q: QBoard) {
+function qc_fen_singles(q: QBoard, turn: Color = 'white') {
     let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
+    res.turn = turn
 
     for (let p of Pieces) {
         let sq = q[p]?.singleSquare()
@@ -1594,3 +1600,60 @@ function parse_piece(pieces: Pieces): Piece {
         role
     }
 }
+
+
+export function print_m(e: QExpansion, turn: Color) {
+
+    if (!e.move) {
+        return ''
+    }
+
+    let fen = qc_fen_singles(e.before, turn)
+    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+    let move = {
+        from: e.move[1],
+        to: e.move[2]
+    }
+
+    let san = makeSan(pos, move)
+
+    return `${fen} ${san}`
+}
+
+export function print_node(n: QNode): string {
+    let l = n.line
+
+    let res = ''
+    let ind = " ".repeat(l.depth + 1)
+
+    let long = l.long ? 150 : 1
+
+    //let m = l.no_c ? l.p_m : l.m
+    //let m = l.no_c ? l.m : l.m
+
+    let m = l.no_c ? n.res : n.res
+
+    let turn: Color = l.depth % 2 === 1 ? 'black': 'white'
+    let ms = m.slice(0, long).map(_ => print_m(_, turn)).join(', ')
+
+    if (m.length > 1) {
+        ms += '..' + m.length
+    }
+
+    res += " " + l.rule + " <" + (ms ?? "?") + ">" + "\n"
+
+    let children = n.children.map((c, i) => {
+        if (i === n.children.length - 1) {
+            res += ind + "└─"
+        } else if (i === 0) {
+            res += ind + "├─"
+        } else {
+            res += ind + "│ "
+        }
+        res += print_node(c)
+    }).join('')
+
+    return res
+}
+

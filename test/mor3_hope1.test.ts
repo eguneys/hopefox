@@ -39,7 +39,6 @@ let a = `
 E b= +B r+|Q
  A
   E =Q
-  .
 `
 
     expect(mor3(a)).toBe('')
