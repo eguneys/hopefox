@@ -589,7 +589,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
                 })
                 pick_piece(eq, pieces)
 
-                if (res.length >= 1000) {
+                if (res.length >= 100) {
                     break out
                 }
             } else {
@@ -1104,6 +1104,9 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
             return false
         }
 
+        if (qexp.move[0] !== res.move) {
+            return false
+        }
 
         if (res.captured) {
             if (qexp.before[res.captured]?.has(qexp.move[2])) {
@@ -1537,6 +1540,12 @@ function qc_move_cause(q: QExpansion) {
     if (!q.move) {
         return
     }
+
+    if (qc_fen_singles(q.before).includes("8/8/8/8/8/1q6/8/QkrB4")) {
+
+        console.log('yay')
+    }
+
     if (!q.before[q.move[0]]?.has(q.move[1]) ||
     !q.after[q.move[0]]?.has(q.move[2])) {
         q.before[q.move[0]] = SquareSet.empty()
