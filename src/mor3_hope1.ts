@@ -510,11 +510,12 @@ function q_node(root: Line): QNode {
         sentence,
         children,
         res: [],
-        children_resolved: true,
+        children_resolved: false,
         line: root
     }
 }
 
+/*
 function make_cc(node: QNode, pieces: Pieces[]) {
 
     return (qq: QExpansionNode[]): boolean => {
@@ -537,14 +538,7 @@ function make_cc(node: QNode, pieces: Pieces[]) {
         } else if (node.sentence.precessor === 'E') {
             let lqq = qq
             for (let c of node.children) {
-                for (let q of lqq) {
-                    let resolved = qnode_expand(c, pieces, q, opposite(q.turn))
-                    
-                    if (resolved) {
-                        node.children_resolved = true
-                        return true
-                    }
-                }
+                qnode_expand(c, pieces, lqq, opposite(lqq[0].turn))
             }
             node.children_resolved = false
             return false
@@ -553,93 +547,122 @@ function make_cc(node: QNode, pieces: Pieces[]) {
         return false
     }
 }
+    */
 
 function qe_id(q: QBoard): QExpansion[] {
     return [{ before: q, after: q }]
 }
 
-function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, turn: Color) {
+function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[], turn: Color) {
 
-    let q = q_parent.data.after
-    let pcc = make_cc(node, pieces)
-    let cc = resolve_cc(node.sentence)
+    let sub_res: QExpansionNode[] = []
     let res: QExpansionNode[] = node.res
 
-    let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) :
-        node.sentence.precessor === 'A' ? qe_all_opponent(q, pieces) :
-        qe_id(q)
+    //let pcc = make_cc(node, pieces)
+    let cc = resolve_cc(node.sentence)
+
+    for (let q_parent of qq_parent) {
+        let q = q_parent.data.after
+
+        let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) :
+            node.sentence.precessor === 'A' ? qe_all_opponent(q, pieces) :
+                qe_id(q)
 
 
-    out: while (eqq.length !== 0) {
+        out: while (eqq.length !== 0) {
 
-        eqq = eqq.filter(cc)
+            eqq = eqq.filter(cc)
 
-        for (let ex of eqq) {
+            for (let ex of eqq) {
 
-            qc_move_cause(ex)
+                qc_move_cause(ex)
 
-            qc_dedup(ex.before)
-            qc_kings(ex.before)
+                qc_dedup(ex.before)
+                qc_kings(ex.before)
 
-            qc_dedup(ex.after)
-            qc_kings(ex.after)
-        }
-
-        for (let piece of pieces) {
-            eqq = eqq.filter(_ => {
-                return (_.after[piece] === undefined || !_.after[piece].isEmpty()) &&
-                    (_.before[piece] === undefined || !_.before[piece].isEmpty())
-            })
-        }
-
-
-
-
-        let aqq = []
-        for (let eq of eqq) {
-            let aq = pick_piece(eq, pieces)
-            if (aq.length === 0) {
-
-
-
-                if (qc_fen_singles(eq.after, 'black').includes("6rk/7Q")) {
-
-                    console.log('yay')
-                    console.log(qcc_is_mate(eq))
-                    console.log(qc_fen_singles(eq.after))
-                    //console.log(Chess.fromSetup(parseFen(qc_fen_singles(eq.after)).unwrap()).unwrap().isCheckmate())
-                    console.log('no')
-                }
-                if (node.sentence.type === 'move_attack' && node.sentence.is_mate) {
-
-                    if (!qcc_is_mate(eq)) {
-                        continue
-                    }
-                }
-
-
-                res.push({
-                    parent: q_parent,
-                    data: eq,
-                    turn
-                })
-
-                if (res.length >= 10000) {
-                    break out
-                }
-            } else {
-                aqq.push(...aq)
+                qc_dedup(ex.after)
+                qc_kings(ex.after)
             }
+
+            for (let piece of pieces) {
+                eqq = eqq.filter(_ => {
+                    return (_.after[piece] === undefined || !_.after[piece].isEmpty()) &&
+                        (_.before[piece] === undefined || !_.before[piece].isEmpty())
+                })
+            }
+
+
+
+
+            let aqq = []
+            for (let eq of eqq) {
+                let aq = pick_piece(eq, pieces)
+                if (aq.length === 0) {
+
+
+
+                    if (qc_fen_singles(eq.after, 'black').includes("6rk/7Q")) {
+
+                        console.log('yay')
+                        console.log(qcc_is_mate(eq))
+                        console.log(qc_fen_singles(eq.after))
+                        //console.log(Chess.fromSetup(parseFen(qc_fen_singles(eq.after)).unwrap()).unwrap().isCheckmate())
+                        console.log('no')
+                    }
+                    if (node.sentence.type === 'move_attack' && node.sentence.is_mate) {
+
+                        if (!qcc_is_mate(eq)) {
+                            continue
+                        }
+                    }
+
+
+                    res.push({
+                        parent: q_parent,
+                        data: eq,
+                        turn
+                    })
+
+                    if (res.length >= 10000) {
+                        break out
+                    }
+                } else {
+                    aqq.push(...aq)
+                }
+            }
+            eqq = aqq
         }
-        eqq = aqq
+
+
+
     }
 
-    return pcc(res)
-    /*
-    if (!pcc(res)) {
-        node.children_resolved = false
+
+    if (node.sentence.precessor === 'E') {
+
+        let lqq = qq_parent
+        for (let c of node.children) {
+            let eqq = qnode_expand(c, pieces, res, opposite(turn))
+
+            lqq = lqq.filter(p => !eqq.find(_ => _.parent === p))
+        }
+        if (node.children.length === 0 || lqq.length < qq_parent.length) {
+            node.children_resolved = true
+        }
+    } else if (node.sentence.precessor === 'A') {
+        let lqq = qq_parent
+        for (let c of node.children) {
+            let eqq = qnode_expand(c, pieces, res, opposite(turn))
+
+            lqq = lqq.filter(p => !eqq.find(_ => _.parent === p))
+        }
+        if (node.children.length === 0 || lqq.length === 0) {
+            node.children_resolved = true
+        }
     }
-        */
+
+
+    return res
 }
 
 let m = await PositionManager.make()
@@ -987,7 +1010,7 @@ export function mor3(text: string) {
     //q_collapse_fen(q_root.data, "q5rk/7p/8/8/8/7Q/5K2/1B6 w - - 0 1")
 
     //qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
-    qnode_expand(res.children[0], ['q', 'Q', 'R', 'b', 'K', 'P', 'k'], q_root, 'white')
+    qnode_expand(res.children[0], ['q', 'Q', 'R', 'b', 'K', 'P', 'k'], [q_root], 'white')
     //qnode_expand(res.children[0], ['q', 'K', 'k'], q_root, 'white')
 
     //console.log(res.children[0])
