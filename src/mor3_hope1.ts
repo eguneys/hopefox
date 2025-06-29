@@ -595,8 +595,6 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
             }
 
 
-
-
             let aqq = []
             for (let eq of eqq) {
                 let aq = pick_piece(eq, pieces)
@@ -625,15 +623,21 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                     }
 
 
+                    if (res.length >= 70000) {
+                        break out
+                    }
+
                     res.push({
                         parent: q_parent,
                         data: eq,
                         turn
                     })
 
-                    if (res.length >= 10) {
+
+                    if (res.length >= 10000) {
                         break out
                     }
+
                 } else {
                     aqq.push(...aq)
                 }
@@ -694,7 +698,7 @@ function pick_piece(q: QExpansion, pieces: Pieces[]) {
             continue
         }
         let iq = { ... q.before}
-        let limit = 3
+        let limit = 2
         while (iq[p] !== undefined && iq[p].singleSquare() === undefined) {
             if (limit-- === 0) {
                 break
