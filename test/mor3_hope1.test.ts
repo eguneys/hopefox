@@ -30,9 +30,9 @@ E b= +Q 0-
 let a = `
 E b= +Q 0-
  A
-  E q=f7 +K R+ K+
+  E q=f7 +K R+ K+ b2+
    A
-    E q= =R
+    E q= =R #
 `
 
     expect(mor3(a)).toBe('')

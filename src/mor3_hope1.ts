@@ -578,10 +578,13 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                 qc_move_cause(ex)
 
                 qc_dedup(ex.before)
-                qc_kings(ex.before)
+                //qc_kings(ex.before)
 
                 qc_dedup(ex.after)
-                qc_kings(ex.after)
+                //qc_kings(ex.after)
+
+                qc_safety(ex.before, turn)
+                qc_safety(ex.after, opposite(turn))
             }
 
             for (let piece of pieces) {
@@ -628,7 +631,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                         turn
                     })
 
-                    if (res.length >= 1000) {
+                    if (res.length >= 10) {
                         break out
                     }
                 } else {
@@ -691,9 +694,9 @@ function pick_piece(q: QExpansion, pieces: Pieces[]) {
             continue
         }
         let iq = { ... q.before}
-        let limit = 200
+        let limit = 3
         while (iq[p] !== undefined && iq[p].singleSquare() === undefined) {
-            if (limit--) {
+            if (limit-- === 0) {
                 break
             }
             let aq = {...iq}
@@ -1024,7 +1027,7 @@ export function mor3(text: string) {
     //q_collapse_fen(q_root.data, "q5rk/7p/8/8/8/7Q/5K2/1B6 w - - 0 1")
 
     //qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
-    qnode_expand(res.children[0], ['q', 'Q', 'R', 'b', 'b2', 'K', 'k'], [q_root], 'white')
+    qnode_expand(res.children[0], ['k', 'K', 'q', 'Q', 'R', 'b', 'b2'], [q_root], 'white')
     //qnode_expand(res.children[0], ['q', 'K', 'k'], q_root, 'white')
 
     //console.log(res.children[0])
@@ -1413,10 +1416,12 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         }
 
 
+        /*
         if (qc_fen_singles(q3, 'black').includes("6rk/7Q")) {
             console.log('ok')
             is_mate = true
         }
+            */
 
         if (is_mate) {
             if (q3['K'] === undefined) {
@@ -1664,6 +1669,31 @@ function qc_put(q: QBoard, pieces: Pieces, square: Square) {
 
 function qc_take(q: QBoard, pieces: Pieces) {
     q[pieces] = SquareSet.empty()
+}
+
+function qc_safety(q: QBoard, turn: Color) {
+
+    let occupied = q_occupied(q)
+    let k = piece2_pieces({ color: opposite(turn), role: 'king' })
+
+    let ks = q[k]?.singleSquare()
+    if (ks) {
+
+        for (let p1 of pieces_of_color(turn)) {
+            let p = parse_piece(p1)
+            if (q[p1] === undefined) {
+                continue
+            }
+            let res = q[p1]
+            for (let p1s of q[p1]) {
+
+                if (attacks(p, p1s, occupied).has(ks)) {
+                    res = res.without(p1s)
+                }
+            }
+            q[p1] = res
+        }
+    }
 }
 
 function qc_kings(q: QBoard) {
