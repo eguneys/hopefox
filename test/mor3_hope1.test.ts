@@ -32,7 +32,7 @@ E b= +Q 0-
  A
   E q=f7 +K R+ K+
    A
-    E q= =R #
+    E q= =R
 `
 
     expect(mor3(a)).toBe('')

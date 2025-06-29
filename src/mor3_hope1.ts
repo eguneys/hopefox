@@ -6,7 +6,7 @@ import { Color, Piece, Role, Square } from "./types"
 import { attacks, between, pawnAttacks } from "./attacks"
 import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
-import { chdir, execArgv, execPath } from "process"
+import { chdir, execArgv, execPath, ppid } from "process"
 import { makeSan } from "./san"
 import { spawnSync } from "child_process"
 import { opposite } from "./util"
@@ -599,6 +599,10 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                 let aq = pick_piece(eq, pieces)
                 if (aq.length === 0) {
 
+                    /*
+                    if (qc_fen_singles(eq.before, 'white').includes("8/8/8/8/8/8/8")) {
+                        console.log(qc_fen_singles(eq.before, 'white'))
+                    }
 
 
                     if (qc_fen_singles(eq.after, 'black').includes("6rk/7Q")) {
@@ -609,6 +613,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                         //console.log(Chess.fromSetup(parseFen(qc_fen_singles(eq.after)).unwrap()).unwrap().isCheckmate())
                         console.log('no')
                     }
+                        */
                     if (node.sentence.type === 'move_attack' && node.sentence.is_mate) {
 
                         if (!qcc_is_mate(eq)) {
@@ -623,7 +628,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                         turn
                     })
 
-                    if (res.length >= 10000) {
+                    if (res.length >= 1000) {
                         break out
                     }
                 } else {
@@ -639,26 +644,27 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
 
 
     if (node.sentence.precessor === 'E') {
-
-        let lqq = qq_parent
+        let lqq = res
         for (let c of node.children) {
-            let eqq = qnode_expand(c, pieces, res, opposite(turn))
+            let eqq = qnode_expand(c, pieces, lqq, opposite(turn))
 
-            lqq = lqq.filter(p => !eqq.find(_ => _.parent === p))
+            lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
         }
         if (node.children.length === 0 || lqq.length < qq_parent.length) {
             node.children_resolved = true
         }
     } else if (node.sentence.precessor === 'A') {
-        let lqq = qq_parent
+        let lqq = res
         for (let c of node.children) {
-            let eqq = qnode_expand(c, pieces, res, opposite(turn))
+            let eqq = qnode_expand(c, pieces, lqq, opposite(turn))
 
-            lqq = lqq.filter(p => !eqq.find(_ => _.parent === p))
+            lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
         }
         if (node.children.length === 0 || lqq.length === 0) {
             node.children_resolved = true
         }
+    } else if (node.sentence.precessor === '.') {
+        node.children_resolved = true
     }
 
 
@@ -685,7 +691,11 @@ function pick_piece(q: QExpansion, pieces: Pieces[]) {
             continue
         }
         let iq = { ... q.before}
+        let limit = 200
         while (iq[p] !== undefined && iq[p].singleSquare() === undefined) {
+            if (limit--) {
+                break
+            }
             let aq = {...iq}
             qc_pull1(aq, p)
 
@@ -700,13 +710,17 @@ function pick_piece(q: QExpansion, pieces: Pieces[]) {
                 after,
                 move
             })
-            iq = aq
+            qcc_exclude(iq, p, aq[p]!.singleSquare()!)
         }
         if (res.length > 0) {
             break
         }
     }
     return res
+}
+
+function qcc_exclude(q: QBoard, p: Pieces, sq: Square) {
+    q[p] = q[p]?.without(sq)
 }
 
 /*
@@ -1010,7 +1024,7 @@ export function mor3(text: string) {
     //q_collapse_fen(q_root.data, "q5rk/7p/8/8/8/7Q/5K2/1B6 w - - 0 1")
 
     //qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
-    qnode_expand(res.children[0], ['q', 'Q', 'R', 'b', 'K', 'P', 'k'], [q_root], 'white')
+    qnode_expand(res.children[0], ['q', 'Q', 'R', 'b', 'b2', 'K', 'k'], [q_root], 'white')
     //qnode_expand(res.children[0], ['q', 'K', 'k'], q_root, 'white')
 
     //console.log(res.children[0])
