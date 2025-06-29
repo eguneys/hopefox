@@ -8,6 +8,8 @@ import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
 import { chdir, execArgv, execPath } from "process"
 import { makeSan } from "./san"
+import { spawnSync } from "child_process"
+import { opposite } from "./util"
 
 enum TokenType {
     ZERO = 'ZERO',
@@ -452,9 +454,15 @@ function cc_recur(node: Line) {
 type QNode = {
     sentence: ParsedSentence
     children: QNode[]
-    res: QExpansion[]
+    res: QExpansionNode[]
     children_resolved: boolean
     line: Line
+}
+
+type QExpansionNode = {
+    parent?: QExpansionNode
+    turn: Color
+    data: QExpansion
 }
 
 function q_node(root: Line): QNode {
@@ -473,7 +481,7 @@ function q_node(root: Line): QNode {
 
 function make_cc(node: QNode, pieces: Pieces[]) {
 
-    return (qq: QExpansion[]): boolean => {
+    return (qq: QExpansionNode[]): boolean => {
 
         if (qq.length === 0) {
             return true
@@ -483,7 +491,7 @@ function make_cc(node: QNode, pieces: Pieces[]) {
             let lqq = qq
             for (let c of node.children) {
                 lqq = lqq.filter(q => {
-                    qnode_expand(c, pieces, {...q.after})
+                    qnode_expand(c, pieces, q, opposite(q.turn))
                     
                     return c.children_resolved
                 })
@@ -493,7 +501,7 @@ function make_cc(node: QNode, pieces: Pieces[]) {
             let lqq = qq
             for (let c of node.children) {
                 for (let q of lqq) {
-                    qnode_expand(c, pieces, { ...q.after })
+                    qnode_expand(c, pieces, q, opposite(q.turn))
                     
                     if (c.children_resolved) {
                         return true
@@ -510,11 +518,12 @@ function qe_id(q: QBoard): QExpansion[] {
     return [{ before: q, after: q }]
 }
 
-function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard) {
+function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, turn: Color) {
 
+    let q = q_parent.data.after
     let pcc = make_cc(node, pieces)
     let cc = resolve_cc(node.sentence)
-    let res: QExpansion[] = node.res
+    let res: QExpansionNode[] = node.res
 
     let eqq = node.sentence.precessor === 'E' ? qe_all_player(q, pieces) :
         node.sentence.precessor === 'A' ? qe_all_opponent(q, pieces) :
@@ -550,7 +559,11 @@ function qnode_expand(node: QNode, pieces: Pieces[], q: QBoard) {
         for (let eq of eqq) {
             let aq = pick_piece(eq, pieces)
             if (aq.length === 0) {
-                res.push(eq)
+                res.push({
+                    parent: q_parent,
+                    data: eq,
+                    turn
+                })
                 pick_piece(eq, pieces)
 
                 if (res.length >= 8) {
@@ -890,7 +903,14 @@ export function mor3(text: string) {
 
     //let qq = qnode_pull2o(res.children[0], ['b', 'Q', 'r', 'B'])
 
-    qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_board())
+    let q_root: QExpansionNode = {
+        data: {
+            before: q_board(),
+            after: q_board()
+        },
+        turn: 'white'
+    }
+    qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
 
     //console.log(res.children[0])
     //let qq = res.children[0].children[0].res
@@ -1623,23 +1643,52 @@ function parse_piece(pieces: Pieces): Piece {
 }
 
 
-export function print_m(e: QExpansion, turn: Color) {
+export function print_m(e: QExpansionNode, turn: Color) {
 
-    if (!e.move) {
+    if (!e.data.move) {
         return ''
     }
 
-    let fen = qc_fen_singles(e.before, turn)
+    let fen = qc_fen_singles(e.data.before, turn)
     let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
     let move = {
-        from: e.move[1],
-        to: e.move[2]
+        from: e.data.move[1],
+        to: e.data.move[2]
     }
 
     let san = makeSan(pos, move)
 
-    return `${fen} ${san}`
+    if (!e.parent) {
+        return `${fen} ${san}`
+    }
+
+
+    let sans = []
+    let i: QExpansionNode = e
+    while (i.parent !== undefined) {
+
+        if (!i.data.move) {
+            continue
+        }
+
+        fen = qc_fen_singles(i.data.before, i.turn)
+
+        let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+        let move = {
+            from: i.data.move[1],
+            to: i.data.move[2],
+        }
+
+        let san = makeSan(pos, move)
+
+        sans.push(san)
+        i = i.parent
+    }
+
+    sans.reverse()
+    return `${fen} ${sans.join(' ')}`
 }
 
 export function print_node(n: QNode): string {
