@@ -527,25 +527,29 @@ function make_cc(node: QNode, pieces: Pieces[]) {
             let lqq = qq
             for (let c of node.children) {
                 lqq = lqq.filter(q => {
-                    qnode_expand(c, pieces, q, opposite(q.turn))
-                    
-                    return c.children_resolved
+                    let resolved = qnode_expand(c, pieces, q, opposite(q.turn))
+                    return !resolved
                 })
             }
-            return lqq.length === 0
+
+            node.children_resolved = lqq.length === 0
+            return node.children_resolved
         } else if (node.sentence.precessor === 'E') {
             let lqq = qq
             for (let c of node.children) {
                 for (let q of lqq) {
-                    qnode_expand(c, pieces, q, opposite(q.turn))
+                    let resolved = qnode_expand(c, pieces, q, opposite(q.turn))
                     
-                    if (c.children_resolved) {
+                    if (resolved) {
+                        node.children_resolved = true
                         return true
                     }
                 }
             }
+            node.children_resolved = false
             return false
         }
+        node.children_resolved = false
         return false
     }
 }
@@ -621,7 +625,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
                 })
 
                 if (res.length >= 10000) {
-                    //break out
+                    break out
                 }
             } else {
                 aqq.push(...aq)
@@ -630,9 +634,12 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
         eqq = aqq
     }
 
+    return pcc(res)
+    /*
     if (!pcc(res)) {
         node.children_resolved = false
     }
+        */
 }
 
 let m = await PositionManager.make()
@@ -1896,7 +1903,9 @@ export function print_node(n: QNode): string {
         ms += '..' + m.length
     }
 
-    res += " " + l.rule + " <" + (ms ?? "?") + ">" + "\n"
+    let pass = n.children_resolved
+
+    res += " " + l.rule + (pass ? " OK" : " ?") + " <" + (ms ?? "?") + ">" + "\n"
 
     let children = n.children.map((c, i) => {
         if (i === n.children.length - 1) {
