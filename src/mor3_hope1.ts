@@ -491,7 +491,7 @@ function make_cc(node: QNode, pieces: Pieces[]) {
             let lqq = qq
             for (let c of node.children) {
                 lqq = lqq.filter(q => {
-                    qnode_expand(c, Pieces, {...q.after})
+                    qnode_expand(c, pieces, {...q.after})
                     
                     return c.children_resolved
                 })
@@ -501,7 +501,7 @@ function make_cc(node: QNode, pieces: Pieces[]) {
             let lqq = qq
             for (let c of node.children) {
                 for (let q of lqq) {
-                    qnode_expand(c, Pieces, { ...q.after })
+                    qnode_expand(c, pieces, { ...q.after })
                     
                     if (c.children_resolved) {
                         return true
@@ -589,7 +589,7 @@ function pick_piece(q: QExpansion, pieces: Pieces[]) {
             qc_pull1(aq, p)
 
             let before = aq
-            let after = q.after
+            let after = {...q.after}
 
             after[p] = before[p]
 
@@ -901,7 +901,7 @@ export function mor3(text: string) {
     qnode_expand(res.children[0], ['b', 'r', 'B', 'Q'], q_board())
 
     console.log(res.children[0])
-    let qq = res.children[0].res
+    let qq = res.children[0].children[0].res
 
     return qq.map(_ => qc_fen_singles(_.before))
 
