@@ -589,7 +589,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], q_parent: QExpansionNode, t
                 })
                 pick_piece(eq, pieces)
 
-                if (res.length >= 8) {
+                if (res.length >= 1000) {
                     break out
                 }
             } else {
@@ -933,7 +933,8 @@ export function mor3(text: string) {
         },
         turn: 'white'
     }
-    qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
+    //qnode_expand(res.children[0], ['b', 'r', 'B', 'Q', 'k', 'K'], q_root, 'white')
+    qnode_expand(res.children[0], ['q', 'K', 'R', 'b', 'Q'], q_root, 'white')
 
     //console.log(res.children[0])
     //let qq = res.children[0].children[0].res
@@ -1096,6 +1097,8 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
 
     let captured = res.captured ? parse_piece(res.captured) : undefined
 
+    let attacked_by = res.attacked_by.map(parse_piece)
+
     return (qexp: QExpansion) => {
         if (!qexp.move) {
             return false
@@ -1135,6 +1138,9 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         let res4 = unblocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
 
         let res5 = SquareSet.empty()
+
+
+        let res6 = attacked_by.map(_ => SquareSet.empty())
 
         let q_res_move = q[res.move]
 
@@ -1209,6 +1215,36 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
                 return false
             }
         }
+
+
+        for (let i = 0; i < res.attacked_by.length; i++) {
+            let a1 = res.attacked_by[i]
+            if (q[a1] === undefined) {
+                return false
+            }
+
+            let skipped = true
+            for (let a1s of q[a1]) {
+                let a3s = attacks(attacked_by[i], a1s, occupied)
+
+                if (a3s.has(m2)) {
+                    res6[i] = res6[i].set(a1s, true)
+                    skipped = false
+                }
+            }
+            if (skipped) {
+                return false
+            }
+        }
+
+
+
+        for (let i = 0; i < res.attacked_by.length; i++) {
+            q3[res.attacked_by[i]] = res6[i]
+
+            q_before[res.attacked_by[i]] = res6[i]
+        }
+
 
 
         for (let i = 0; i < res.attack.length; i++) {
@@ -1673,7 +1709,7 @@ export function print_m(e: QExpansionNode, turn: Color) {
     }
 
     let fen = qc_fen_singles(e.data.before, turn)
-    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+    let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
 
     let move = {
         from: e.data.move[1],
@@ -1697,7 +1733,7 @@ export function print_m(e: QExpansionNode, turn: Color) {
 
         fen = qc_fen_singles(i.data.before, i.turn)
 
-        let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+        let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
 
         let move = {
             from: i.data.move[1],
