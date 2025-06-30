@@ -5,8 +5,22 @@ import { a } from 'vitest/dist/chunks/suite.BMWOKiTe.js'
 
 set_m(await PositionManager.make())
 
+it('regress zero defender', () => {
 
-it('regress', () => {
+    let fen = 'br1qkb1r/p1p2ppp/4pn2/6B1/3Qn3/5NP1/P3PPBP/RN1R2K1 w k - 0 16'
+
+    let a = `
+E q= +K +B
+ A
+  G B 0-
+`
+
+    console.log(mor3(a, fen))
+    console.log(find_san_mor(fen, a))
+
+})
+
+it.skip('regress', () => {
 
     let fen = '5rk1/1p2p2p/p2p4/2pPb2R/2P1P3/1P1BKPrR/8/8 w - - 5 31'
 
