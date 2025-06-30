@@ -65,6 +65,12 @@ export function piece_c_type_of(piece: PieceC) {
     return piece & 7
 }
 
+
+export function piece_to_c(p: Piece) {
+    let r = role_to_c(p.role)
+    return p.color === 'black' ? r + 8 : r
+}
+
 export function role_to_c(r: Role) {
     switch (r) {
         case 'pawn': return PAWN

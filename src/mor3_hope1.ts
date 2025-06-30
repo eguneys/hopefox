@@ -1,9 +1,9 @@
 import { Chess } from "./chess"
 import { EMPTY_FEN, makeFen, parseFen } from "./fen"
-import { color_c_opposite, PositionManager } from "./hopefox_c"
+import { color_c_opposite, piece_c_color_of, piece_to_c, PositionManager } from "./hopefox_c"
 import { SquareSet } from "./squareSet"
 import { Color, Piece, Role, Square } from "./types"
-import { attacks, between, pawnAttacks } from "./attacks"
+import { between, pawnAttacks } from "./attacks"
 import { squareSet } from "./debug"
 import { blocks } from "./hopefox_helper"
 import { chdir, execArgv, execPath, ppid } from "process"
@@ -664,12 +664,17 @@ export function set_m(p: PositionManager) {
 
 */
 export function find_san_mor(fen: string, rule: string) {
-    let res = mor3(rule, fen)
+    let a = mor3(rule, fen)
 
-    let m = res.trim().split('\n')[1].match(/<[^\s]* [^\s]* [^\s]* [^\s]* [^\s]* [^\s]* ([^\.]*)/)
+    let m = a.trim().split('\n')[1].match(/<[^\s]* [^\s]* [^\s]* [^\s]* [^\s]* [^\s]* ([^>]*)/)
 
-    return m?.[1]
+    let res = m?.[1]
 
+    if (res?.includes('.')) {
+        return res.slice(0, res.indexOf('.'))
+    } else {
+        return res
+    }
 }
 
 function qcc_is_mate(eq: QExpansion) {
@@ -1978,7 +1983,7 @@ export function print_node(n: QNode): string {
     let ms = m.slice(0, long).map(_ => print_m(_, turn)).join(', ')
 
     if (m.length > 1) {
-        ms += '..' + m.length
+        ms += ' ..' + m.length
     }
 
     let pass = n.children_resolved
@@ -2022,3 +2027,8 @@ export function extract_pieces(text: string) {
   }
   return res
 } 
+
+
+const attacks = (piece: Piece, square: Square, occupied: SquareSet): SquareSet => {
+    return m.attacks(piece_to_c(piece), square, occupied)
+}

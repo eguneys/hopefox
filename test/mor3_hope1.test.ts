@@ -16,6 +16,7 @@ E r= =R
 `
 
     console.log(mor3(a, fen))
+    console.log(find_san_mor(fen, a))
 
 })
 
