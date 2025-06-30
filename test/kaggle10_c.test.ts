@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { tenk } from "./fixture"
-import { Chess, make_root, PositionManager, print_rules, set_debug } from "../src"
+import { make_root, print_rules, set_debug } from "../src/kaggle10_c"
 import { parseFen } from "../src/fen"
+import { Chess, PositionManager } from "../src"
 
 set_debug()
 let m = await PositionManager.make()

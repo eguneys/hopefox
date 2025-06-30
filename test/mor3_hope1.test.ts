@@ -1,7 +1,8 @@
 import { expect, it } from 'vitest'
-import { mor3 } from '../src'
+import { mor3, PositionManager, set_m } from '../src'
 import { tenk } from './fixture'
 
+set_m(await PositionManager.make())
 
 it('more forks', () => {
 

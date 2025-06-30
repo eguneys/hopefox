@@ -39,7 +39,7 @@ const OPPONENT_PIECE_NAMES = [
     'P2', 'N2', 'B2', 'R2',
 ]
 
-const PIECE_NAMES = PLAYER_PIECE_NAMES.concat(OPPONENT_PIECE_NAMES)
+export const PIECE_NAMES = PLAYER_PIECE_NAMES.concat(OPPONENT_PIECE_NAMES)
 
 const PRECESSORS = [
     'G', 'Z', 'A', 'E', '.'
@@ -687,7 +687,16 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
     return res
 }
 
-let m = await PositionManager.make()
+let m: PositionManager
+
+export function set_m(p: PositionManager) {
+    m = p
+}
+
+export function find_san_mor(fen: string, rule: string) {
+    return ''
+}
+
 function qcc_is_mate(eq: QExpansion) {
     let fen = qc_fen_singles(eq.after, 'black')
 
@@ -1050,6 +1059,7 @@ export function mor3(text: string, pieces: Pieces[], fen?: FEN) {
 
 function q_collapse_fen(q: QExpansion, fen: string) {
 
+    let twos: Record<Pieces, number> = {}
     let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
 
     for (let sq of SquareSet.full()) {
@@ -1057,6 +1067,14 @@ function q_collapse_fen(q: QExpansion, fen: string) {
         let piece = pos.board.get(sq)
         if (piece) {
             let p1 = piece2_pieces(piece)
+
+            if (twos[p1] === 1) {
+                twos[p1] = 2
+                p1 += '2'
+            } else {
+                twos[p1] = 1
+            }
+
             q.before[p1] = SquareSet.fromSquare(sq)
             q.after[p1] = SquareSet.fromSquare(sq)
         }
