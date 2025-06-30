@@ -515,40 +515,6 @@ function q_node(root: Line): QNode {
     }
 }
 
-/*
-function make_cc(node: QNode, pieces: Pieces[]) {
-
-    return (qq: QExpansionNode[]): boolean => {
-
-        if (qq.length === 0) {
-            return true
-        }
-
-        if (node.sentence.precessor === 'A') {
-            let lqq = qq
-            for (let c of node.children) {
-                lqq = lqq.filter(q => {
-                    let resolved = qnode_expand(c, pieces, q, opposite(q.turn))
-                    return !resolved
-                })
-            }
-
-            node.children_resolved = lqq.length === 0
-            return node.children_resolved
-        } else if (node.sentence.precessor === 'E') {
-            let lqq = qq
-            for (let c of node.children) {
-                qnode_expand(c, pieces, lqq, opposite(lqq[0].turn))
-            }
-            node.children_resolved = false
-            return false
-        }
-        node.children_resolved = false
-        return false
-    }
-}
-    */
-
 function qe_id(q: QExpansion): QExpansion[] {
     return [{ before: q.before, after: q.after, move: q.move }]
 }

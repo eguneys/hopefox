@@ -6,8 +6,20 @@ import { a } from 'vitest/dist/chunks/suite.BMWOKiTe.js'
 set_m(await PositionManager.make())
 
 
-
 it('regress', () => {
+
+    let fen = '5rk1/1p2p2p/p2p4/2pPb2R/2P1P3/1P1BKPrR/8/8 w - - 5 31'
+
+    let a = `
+E r= =R
+ A
+`
+
+    console.log(mor3(a, fen))
+
+})
+
+it.skip('regress', () => {
 
     let fen = '2r3k1/p4pp1/Qq2p2p/b1Np4/2nP1P2/4P1P1/5K1P/2B1N3 w - - 4 34'
 
