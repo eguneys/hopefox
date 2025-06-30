@@ -1,10 +1,28 @@
 import { expect, it } from 'vitest'
-import { mor3, PositionManager, set_m } from '../src'
+import { find_san_mor, mor3, PositionManager, set_m } from '../src'
 import { tenk } from './fixture'
+import { a } from 'vitest/dist/chunks/suite.BMWOKiTe.js'
 
 set_m(await PositionManager.make())
 
-it('more forks', () => {
+
+
+it('regress', () => {
+
+    let fen = '2r3k1/p4pp1/Qq2p2p/b1Np4/2nP1P2/4P1P1/5K1P/2B1N3 w - - 4 34'
+
+    let a = `
+E q=
+ `
+
+    console.log(mor3(a, fen))
+
+    console.log(find_san_mor(fen, a))
+
+})
+
+
+it.skip('more forks', () => {
 
     let b = `
 E b= +K +R
@@ -22,7 +40,7 @@ E b= +K +R
   G K= 5
 `
 
-    expect(mor3(a, ['k', 'K', 'b'])).toBe('')
+    expect(mor3(a)).toBe('')
     //expect(mor3(a, ['k', 'K', 'r'], '8/8/8/8/8/8/R7/k1K5 w - - 0 1')).toBe('')
 })
 
@@ -35,7 +53,7 @@ it.skip('mate finds', () => {
 E r= #
 `
 
-    expect(mor3(a, ['k', 'K', 'r'])).toBe('')
+    expect(mor3(a)).toBe('')
     //expect(mor3(a, ['k', 'K', 'r'], '8/8/8/8/8/8/R7/k1K5 w - - 0 1')).toBe('')
 })
 
@@ -64,7 +82,7 @@ E b= +Q 0-
     E q= =R #
 `
 
-    expect(mor3(a, ['k', 'K', 'b', 'Q', 'q', 'R', 'b2', 'q'])).toBe('')
+    expect(mor3(a)).toBe('')
 })
 
 
@@ -87,7 +105,7 @@ E b= +B r+|Q
   E =Q
 `
 
-    expect(mor3(a, ['k', 'K', 'b', 'B', 'r', 'Q'])).toBe('')
+    expect(mor3(a)).toBe('')
 })
 
 it.skip('works', () => {
@@ -112,5 +130,5 @@ E b=
 E b= +Q +R/Q
 `
 
-    expect(mor3(a, ['b', 'Q', 'R'])).toBe('')
+    expect(mor3(a)).toBe('')
 })

@@ -560,10 +560,6 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
             parent_turn
 
  
-    if (node.sentence.precessor === '.') {
-        console.log('yay')
-    }
-
     let sub_res: QExpansionNode[] = []
     let res: QExpansionNode[] = node.res
 
@@ -582,9 +578,11 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
             eqq = eqq.filter(cc)
 
             for (let ex of eqq) {
-                if (qc_fen_singles(ex.before) === '8/8/8/8/8/8/R7/k1K5 w - - 0 1') {
+                /*
+                if (q_fen_singles(ex.before) === '8/8/8/8/8/8/R7/k1K5 w - - 0 1') {
                     console.log('yay')
                 }
+                    */
 
                 //qc_move_cause(ex)
 
@@ -693,12 +691,23 @@ export function set_m(p: PositionManager) {
     m = p
 }
 
+/*
+
+* ? <>
+└─ E q= OK <2r3k1/5pp1/Qq6/b1N5/2nP1P2/8/5K2/2B1N3 w - - 0 1 Qxc4..8>
+
+*/
 export function find_san_mor(fen: string, rule: string) {
-    return ''
+    let res = mor3(rule, fen)
+
+    let m = res.trim().split('\n')[1].match(/<[^\s]* [^\s]* [^\s]* [^\s]* [^\s]* [^\s]* ([^\.]*)/)
+
+    return m?.[1]
+
 }
 
 function qcc_is_mate(eq: QExpansion) {
-    let fen = qc_fen_singles(eq.after, 'black')
+    let fen = q_fen_singles(eq.after, 'black')
 
     let pos = m.create_position(fen)
 
@@ -1030,7 +1039,7 @@ function q_node_pull(node: QNode, pieces: Pieces[]) {
     */
 
 export type FEN = string
-export function mor3(text: string, pieces: Pieces[], fen?: FEN) {
+export function mor3(text: string, fen?: FEN, pieces?: Pieces[]) {
 
     let root = parse_rules(text)
     root.children.forEach(parse_line_recur)
@@ -1051,9 +1060,15 @@ export function mor3(text: string, pieces: Pieces[], fen?: FEN) {
         q_collapse_fen(q_root.data, fen)
     }
 
+    //console.log(q_fen_singles(q_root.data.before))
+
+    if (pieces === undefined) {
+        pieces = extract_pieces(text)
+    }
+
     qnode_expand(res.children[0], pieces, [q_root], 'black')
 
-    console.log(print_node(res))
+    //console.log(print_node(res))
     return print_node(res)
 }
 
@@ -1082,11 +1097,24 @@ function q_collapse_fen(q: QExpansion, fen: string) {
 
 }
 
+
+
+
 function piece2_pieces(piece: Piece) {
+
+    const role_to_pieces: Record<Role, Pieces> = {
+        'knight': 'n',
+        'rook': 'r',
+        'bishop': 'b',
+        'king': 'k',
+        'queen': 'q',
+        'pawn': 'p',
+    }
+
     if (piece.color === 'white') {
-        return piece.role[0].toLowerCase()
+        return role_to_pieces[piece.role].toLowerCase()
     } else {
-        return piece.role[0].toUpperCase()
+        return role_to_pieces[piece.role].toUpperCase()
     }
 }
 
@@ -1867,7 +1895,7 @@ function qc_pull1(q: QBoard, pieces: Pieces, skip: number = 0) {
     return true
 }
 
-function qc_fen_singles(q: QBoard, turn: Color = 'white') {
+function q_fen_singles(q: QBoard, turn: Color = 'white') {
     let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
     res.turn = turn
 
@@ -1925,7 +1953,7 @@ export function print_m(e: QExpansionNode, turn: Color) {
         return ''
     }
 
-    let fen = qc_fen_singles(e.data.before, turn)
+    let fen = q_fen_singles(e.data.before, turn)
     let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
 
     let move = {
@@ -1948,7 +1976,7 @@ export function print_m(e: QExpansionNode, turn: Color) {
             continue
         }
 
-        fen = qc_fen_singles(i.data.before, i.turn)
+        fen = q_fen_singles(i.data.before, i.turn)
 
         let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
 
@@ -2013,3 +2041,18 @@ function pieces_of_color(turn: Color) {
         return OPPONENT_PIECE_NAMES
     }
 }
+
+export function extract_pieces(text: string) {
+  let res = []
+  for (let a = 0; a < text.length; a++) {
+    if (PIECE_NAMES.includes(text[a + 0] + text[a + 1])) {
+
+      res.push(text[a + 0] + text[a + 1])
+      a += 2
+    }
+    if (PIECE_NAMES.includes(text[a + 0])) {
+      res.push(text[a + 0])
+    }
+  }
+  return res
+} 
