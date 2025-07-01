@@ -6,13 +6,15 @@ import { set_m } from '../src/mor3_hope1'
 set_m(await PositionManager.make())
 it('works', () => {
 
-    let fen = '6k1/p3b2p/1p1pP3/2P3P1/2np3B/P6P/3Q3K/8 b - - 0 38'
+    let fen = 'r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25'
 
-    let a = `
-E q= =R z+
+    let b = `
+
 `
 
-
+    let a = `
+E r= =R
+`
 
     console.log(mor_nogen(a, fen))
 })

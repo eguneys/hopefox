@@ -394,7 +394,7 @@ type PrecessorSentence = {
     precessor: Precessor
 }
 
-type MoveAttackSentence = {
+export type MoveAttackSentence = {
     type: 'move_attack'
     precessor: Precessor
     move: Pieces
@@ -839,7 +839,7 @@ function q_hard_collapse_fen(q: QExpansion, fen: string) {
 
 
 
-function piece2_pieces(piece: Piece) {
+export function piece2_pieces(piece: Piece) {
 
     const role_to_pieces: Record<Role, Pieces> = {
         'knight': 'n',
@@ -1505,7 +1505,7 @@ function parse_piece_and_squares(pieces: Pieces): Piece | undefined {
     return parse_piece(pieces)
 }
 
-function parse_piece(pieces: Pieces): Piece {
+export function parse_piece(pieces: Pieces): Piece {
     const color_pieces = (p: Pieces): Color => p.toLowerCase() === p ? 'white': 'black'
 
     const pieces_to_role: Record<string, Role> = {

@@ -1,9 +1,10 @@
-import { c_to_piece, move_c_to_Move, MoveC, PositionC } from "./hopefox_c"
-import { FEN, Line, parse_line_recur, parse_rules, ParsedSentence, Pieces } from "./mor3_hope1"
+import { c_to_piece, move_c_to_Move, MoveC, NO_PIECE, PositionC } from "./hopefox_c"
+import { FEN, Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, piece2_pieces, Pieces } from "./mor3_hope1"
 import { Move, Piece, Square } from "./types"
 import { m } from './mor3_hope1'
 import { moveEquals } from "./util"
 import { makeSan } from "./san"
+import { SquareSet } from "./squareSet"
 
 
 
@@ -17,17 +18,18 @@ export function mor_nogen(text: string, fen: FEN) {
 
     let pos = m.create_position(fen)
 
-    let cxx = extract_p_context(pos)
+    let context = extract_p_context(pos)
 
-    let pos_root = cxx.map(context => ({
+    let pos_root = {
         data: {
             move: undefined,
-            context
+            before: context,
+            after: context
         }
-    }))
+    }
 
 
-    pos_node_expand(res, pos_root, pos)
+    pos_node_expand(res, [pos_root], pos)
 
 
     let res_out = print_node(res, pos)
@@ -50,7 +52,8 @@ type PosExpansionNode = {
 }
 
 type PosExpansion = {
-    context: PContext
+    before: PContext
+    after: PContext
     move?: MoveC
 }
 
@@ -120,8 +123,45 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     return res
 }
 
-function pcc_move_attack(sentence: ParsedSentence): PConstraint {
-    return (p: PosExpansion) => {
+function pcc_move_attack(res: MoveAttackSentence): PConstraint {
+
+    let move = parse_piece(res.move)
+    let attacks1 = res.attack.map(parse_piece)
+    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+
+    let captured = res.captured ? parse_piece(res.captured) : undefined
+
+    let attacked_by = res.attacked_by.map(parse_piece)
+
+    let zero_defend = res.zero_defend
+    let zero_attack = res.zero_attack
+
+    let is_mate = res.is_mate
+
+    return (pexp: PosExpansion) => {
+
+
+        if (!pexp.move) {
+            return false
+        }
+
+        let m1 = move_c_to_Move(pexp.move)
+
+        let bx = pexp.before
+        let ax = pexp.after
+
+        if (bx[res.move] !== m1.from) {
+            return false
+        }
+
+        if (res.captured) {
+            if (bx[res.captured] !== m1.to) {
+                return false
+            }
+        }
+
+
 
         return true
     }
@@ -142,11 +182,11 @@ function pe_expand_precessor(sentence: ParsedSentence, p: PosExpansionNode, pos:
         if (p.data.move) {
             m.make_move(pos, p.data.move)
             let res = m.get_legal_moves(pos)
-            let res_out = res.map(move => ({ move, context: p_context_make_move(p.data.context, pos, move) }))
+            let res_out = res.map(move => ({ move, before: p.data.before, after: p_context_make_move(p.data.before, pos, move) }))
             m.unmake_move(pos, p.data.move)
             return res_out
         } else {
-            return m.get_legal_moves(pos).map(move => ({ move, context: p_context_make_move(p.data.context, pos, move) }))
+            return m.get_legal_moves(pos).map(move => ({ move, before: p.data.before, after: p_context_make_move(p.data.before, pos, move) }))
         }
     } else {
         return [p.data]
@@ -246,11 +286,38 @@ function print_node(n: PosNode, pos: PositionC): string {
 }
 
 
-function p_context_make_move(ctx: PContext, pos: PositionC, move: MoveC): PContext {
+function p_context_make_move(ctx: PContext, pos: PositionC, move_c: MoveC): PContext {
 
+    let res: PContext = {}
+    let move = move_c_to_Move(move_c)
+
+    for (let p1 of Object.keys(ctx)) {
+
+        if (ctx[p1] === move.from) {
+            res[p1] = move.to
+        } else if (ctx[p1] === move.to) {
+        } else {
+            res[p1] = ctx[p1]
+        }
+    }
     return ctx
 }
 
-function extract_p_context(pos: PositionC): PContext[] {
-    return []
+function extract_p_context(pos: PositionC): PContext {
+    let twos: PContext = {}
+    for (let sq of SquareSet.full()) {
+        let p = m.get_at(pos, sq)
+        if (p !== undefined) {
+           let p1 = c_to_piece(p)
+           
+           let p2 = piece2_pieces(p1)
+
+           if (twos[p2] !== undefined) {
+               twos[p2 + '2'] = sq
+           } else {
+               twos[p2] = sq
+           }
+        }
+    }
+    return twos
 }
