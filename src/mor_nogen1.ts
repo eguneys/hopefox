@@ -162,7 +162,6 @@ function pcc_move_attack(res: MoveAttackSentence): PConstraint {
         }
 
 
-
         return true
     }
 }
@@ -320,4 +319,19 @@ function extract_p_context(pos: PositionC): PContext {
         }
     }
     return twos
+}
+
+export function mor_find_san(text: string, fen: FEN) {
+
+    let a = mor_nogen(text, fen)
+
+    let m = a.trim().split('\n')[1].match(/<([^>]*)/)
+
+    let res = m?.[1]
+
+    if (res?.includes('.')) {
+        return res.slice(0, res.indexOf('.'))
+    } else {
+        return res
+    }
 }

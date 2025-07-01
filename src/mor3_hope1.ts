@@ -251,7 +251,7 @@ export class Parser {
         while (true) {
             let current_token_type = this.current_token.type
             if (current_token_type === TokenType.ZERO) {
-                let is_attack = this.current_token.value === 'Z'
+                let is_attack = this.current_token.value === 'z'
                 this.eat(TokenType.ZERO)
                 this.eat(TokenType.OPERATOR_ATTACK)
                 if (is_attack) {
@@ -310,12 +310,12 @@ export class Parser {
                 this.eat(TokenType.MATE)
                 is_mate = true
             } else if (current_token_type === TokenType.ZERO) {
+                let is_attack = this.current_token.value === 'z'
                 this.eat(TokenType.ZERO)
-                if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
-                    this.eat(TokenType.OPERATOR_ATTACK)
+                this.eat(TokenType.OPERATOR_ATTACK)
+                if (is_attack) {
                     zero_attack = true
-                } else if (this.current_token.type === TokenType.OPERATOR_DEFEND) {
-                    this.eat(TokenType.OPERATOR_DEFEND)
+                } else {
                     zero_defend = true
                 }
             } else if (current_token_type === TokenType.OPERATOR_MOVE) {

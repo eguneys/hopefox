@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { mor_nogen, Position, PositionManager } from '../src'
+import { mor_find_san, mor_nogen, Position, PositionManager } from '../src'
 import { a } from 'vitest/dist/chunks/suite.BMWOKiTe.js'
 import { set_m } from '../src/mor3_hope1'
 
@@ -13,8 +13,9 @@ it('works', () => {
 `
 
     let a = `
-E r= =R
+E r= =R Z+
 `
 
     console.log(mor_nogen(a, fen))
+    console.log(mor_find_san(a, fen))
 })
