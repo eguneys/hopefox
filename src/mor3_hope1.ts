@@ -294,6 +294,8 @@ export class Parser {
 
         let attacked_by = []
 
+        let undefended_by = []
+
         let captured: Pieces | undefined
 
         let zero_attack = false,
@@ -324,7 +326,11 @@ export class Parser {
 
                 captured = piece
 
+            } else if (lookahead_token_type === TokenType.OPERATOR_DEFEND) {
+                let piece = this.piece()
+                this.eat(TokenType.OPERATOR_DEFEND)
 
+                undefended_by.push(piece)
             } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
                 let piece = this.piece()
                 this.eat(TokenType.OPERATOR_ATTACK)
@@ -367,7 +373,8 @@ export class Parser {
             zero_attack,
             zero_defend,
             attacked_by,
-            is_mate
+            is_mate,
+            undefended_by
         }
     }
 }
@@ -406,6 +413,7 @@ export type MoveAttackSentence = {
     zero_defend: boolean
     attacked_by: Pieces[]
     is_mate: boolean
+    undefended_by: Pieces[]
 }
 
 

@@ -78,7 +78,7 @@ E b= +K q+ K+
 })
 
 
-it('resolve children', () => {
+it.skip('resolve children', () => {
 
     /*
     let fen = 'r1bq3r/pp1nbkp1/2p1p2p/8/2BP4/1PN3P1/P3QP1P/3R1RK1 w - - 0 20'
@@ -106,3 +106,52 @@ E n2= +K 5
     console.log(mor_nogen_find_san(b, fen2))
 
 })
+
+
+
+it.skip('G precessor', () => {
+
+    let fen = 'rnb2r2/pp3k2/4p2p/3p4/3P4/PPqB2QP/5PP1/R4RK1 w - - 2 23'
+
+    let a = `
+G Q Z+
+ E b=
+`
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+
+    let b = `
+G Q Z+
+ E b= +K q+|Q
+`
+
+    console.log(mor_nogen(b, fen))
+    console.log(mor_nogen_find_san(b, fen))
+
+    let fen3 = 'r1bq3r/pp1nbkp1/2p1p2p/8/2BP4/1PN3P1/P3QP1P/3R1RK1 w - - 0 20'
+
+    console.log(mor_nogen(b, fen3))
+    console.log(mor_nogen_find_san(b, fen3))
+
+
+})
+
+
+
+
+it('Q- operator', () => {
+
+    let fen = 'r4rk1/pp2b1pp/2n2p2/4p3/8/2qB1QB1/P4P1P/R3R1K1 w - - 0 19'
+
+    let a = `
+G Q Z+
+ E b= +K q+|Q Q-
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+
+
+})
+

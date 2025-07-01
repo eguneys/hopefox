@@ -116,7 +116,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
 
 
 
-    if (node.sentence.precessor === 'E' || node.sentence.precessor === '.') {
+    if (node.sentence.precessor === 'E' || node.sentence.precessor === '.' || node.sentence.precessor === 'G') {
 
         for (let [mm, lqq] of mls) {
             let yes_qq = []
@@ -193,6 +193,9 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
     let captured = res.captured ? parse_piece(res.captured) : undefined
 
     let attacked_by = res.attacked_by.map(parse_piece)
+
+
+    let undefended_by = res.undefended_by.map(parse_piece)
 
     let zero_defend = res.zero_defend
     let zero_attack = res.zero_attack
@@ -289,6 +292,46 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
             }
 
             m.unmake_move(pos, move_c)
+        }
+
+        if (res.unblocked.length > 0) {
+
+            for (let i = 0; i < res.unblocked.length; i++) {
+                let [u3, u2] = res.unblocked[i]
+
+                let u3s = ax[u3]
+                let u2s = ax[u2]
+
+                if (m.pos_attacks(pos, u3s).has(u2s)) {
+                    return false
+                }
+            }
+
+            m.make_move(pos, move_c)
+
+            for (let i = 0; i < res.unblocked.length; i++) {
+                let [u3, u2] = res.unblocked[i]
+
+                let u3s = bx[u3]
+                let u2s = bx[u2]
+
+                if (!m.pos_attacks(pos, u3s).has(u2s)) {
+                    m.unmake_move(pos, move_c)
+                    return false
+                }
+            }
+
+            m.unmake_move(pos, move_c)
+        }
+
+        if (res.undefended_by.length > 0) {
+            for (let i = 0; i < res.undefended_by.length; i++) {
+                let u1 = res.undefended_by[i]
+
+                if (m.pos_attacks(pos, bx[u1]).has(m1.to)) {
+                    return false
+                }
+            }
         }
 
         return true
@@ -445,7 +488,9 @@ export function mor_nogen_find_san(text: string, fen: FEN) {
 
     let a = mor_nogen(text, fen)
 
-    let m = a.trim().split('\n')[1].match(/OK <([^>]+)/)
+    let m = 
+    a.trim().split('\n')[1].match(/OK <([^>]+)/) ??
+    a.trim().split('\n')[2].match(/OK <([^>]+)/) 
 
     let res = m?.[1]
 
