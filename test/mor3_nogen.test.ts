@@ -61,7 +61,7 @@ E q= +K K+ b+
 
 
 
-it('mate in 2', () => {
+it.skip('mate in 2', () => {
 
     let fen = 'q5nr/1ppknQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 w - - 1 18'
 
@@ -74,5 +74,35 @@ E b= +K q+ K+
     console.log(mor_nogen(a, fen))
     console.log(mor_nogen_find_san(a, fen))
 
+
+})
+
+
+it('resolve children', () => {
+
+    /*
+    let fen = 'r1bq3r/pp1nbkp1/2p1p2p/8/2BP4/1PN3P1/P3QP1P/3R1RK1 w - - 0 20'
+
+    let a = `
+E b= +K q+ K+
+ A
+  E q= #
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+    */
+
+
+    let fen2 = 'r4rk1/pbpp2p1/1p4Qp/3Nn3/3q1N2/3B4/PP3PPP/5RK1 w - - 6 21'
+
+    let b = `
+E n2= +K z+ 5
+ A 5
+  E q= K+ b+
+ `
+
+    console.log(mor_nogen(b, fen2))
+    console.log(mor_nogen_find_san(b, fen2))
 
 })

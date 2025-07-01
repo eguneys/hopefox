@@ -105,7 +105,9 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         for (let c of node.children) {
             let eqq = pos_node_expand(c, lqq, pos)
 
-            lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+            if (c.children_resolved) {
+                lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+            }
         }
         if (mm) {
             m.unmake_move(pos, mm)
@@ -122,7 +124,9 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         for (let c of node.children) {
             let eqq = pos_node_expand(c, lqq, pos)
 
-            lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+            if (c.children_resolved) {
+                lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+            }
         }
         if (mm) {
             m.unmake_move(pos, mm)
@@ -196,7 +200,7 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
         }
 
 
-        if (res.attack) {
+        if (res.attack.length > 0) {
 
             m.make_move(pos, move_c)
             for (let i = 0; i < res.attack.length; i++) {
@@ -215,7 +219,7 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
             m.unmake_move(pos, move_c)
         }
 
-        if (res.attacked_by) {
+        if (res.attacked_by.length > 0) {
             m.make_move(pos, move_c)
             for (let i = 0; i < res.attacked_by.length; i++) {
                 let a1s = bx[res.attacked_by[i]]
@@ -380,7 +384,7 @@ function p_context_make_move(ctx: PContext, pos: PositionC, move_c: MoveC): PCon
             res[p1] = ctx[p1]
         }
     }
-    return ctx
+    return res
 }
 
 function extract_p_context(pos: PositionC): PContext {
@@ -406,7 +410,7 @@ export function mor_nogen_find_san(text: string, fen: FEN) {
 
     let a = mor_nogen(text, fen)
 
-    let m = a.trim().split('\n')[1].match(/<([^>]+)/)
+    let m = a.trim().split('\n')[1].match(/OK <([^>]+)/)
 
     let res = m?.[1]
 
