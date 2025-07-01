@@ -1,5 +1,5 @@
 import { c_to_piece, move_c_to_Move, MoveC, PositionC } from "./hopefox_c"
-import { FEN, Line, parse_line_recur, parse_rules, ParsedSentence } from "./mor3_hope1"
+import { FEN, Line, parse_line_recur, parse_rules, ParsedSentence, Pieces } from "./mor3_hope1"
 import { Move, Piece, Square } from "./types"
 import { m } from './mor3_hope1'
 import { moveEquals } from "./util"
@@ -16,13 +16,18 @@ export function mor_nogen(text: string, fen: FEN) {
     let res = pos_node(root)
 
     let pos = m.create_position(fen)
-    let pos_root: PosExpansionNode = {
-        data: {
-            move: undefined
-        }
-    }
 
-    pos_node_expand(res, [pos_root], pos)
+    let cxx = extract_p_context(pos)
+
+    let pos_root = cxx.map(context => ({
+        data: {
+            move: undefined,
+            context
+        }
+    }))
+
+
+    pos_node_expand(res, pos_root, pos)
 
 
     let res_out = print_node(res, pos)
@@ -31,9 +36,7 @@ export function mor_nogen(text: string, fen: FEN) {
     return res_out
 }
 
-
 type PosNode = {
-
     sentence: ParsedSentence
     children: PosNode[]
     res: PosExpansionNode[]
@@ -47,9 +50,11 @@ type PosExpansionNode = {
 }
 
 type PosExpansion = {
+    context: PContext
     move?: MoveC
 }
 
+type PContext = Record<Pieces, Square>
 
 type PConstraint = (pex: PosExpansion) => boolean
 
@@ -82,10 +87,10 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         eqq = eqq.filter(cc)
 
         for (let eq of eqq)
-        res.push({
-            parent: p_parent,
-            data: eq
-        })
+            res.push({
+                parent: p_parent,
+                data: eq
+            })
     }
 
     if (node.sentence.precessor === 'E' || node.sentence.precessor === '.') {
@@ -137,10 +142,11 @@ function pe_expand_precessor(sentence: ParsedSentence, p: PosExpansionNode, pos:
         if (p.data.move) {
             m.make_move(pos, p.data.move)
             let res = m.get_legal_moves(pos)
+            let res_out = res.map(move => ({ move, context: p_context_make_move(p.data.context, pos, move) }))
             m.unmake_move(pos, p.data.move)
-            return res.map(move => ({ move }))
+            return res_out
         } else {
-            return m.get_legal_moves(pos).map(move => ({ move }))
+            return m.get_legal_moves(pos).map(move => ({ move, context: p_context_make_move(p.data.context, pos, move) }))
         }
     } else {
         return [p.data]
@@ -239,3 +245,12 @@ function print_node(n: PosNode, pos: PositionC): string {
     return res
 }
 
+
+function p_context_make_move(ctx: PContext, pos: PositionC, move: MoveC): PContext {
+
+    return ctx
+}
+
+function extract_p_context(pos: PositionC): PContext[] {
+    return []
+}
