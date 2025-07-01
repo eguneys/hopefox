@@ -10,7 +10,7 @@ import { makeSan } from "./san"
 export function mor_nogen(text: string, fen: FEN) {
 
     let root = parse_rules(text)
-    root.children.forEach(parse_line_recur)
+    parse_line_recur(root)
 
 
     let res = pos_node(root)
@@ -88,7 +88,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         })
     }
 
-    if (node.sentence.precessor === 'E') {
+    if (node.sentence.precessor === 'E' || node.sentence.precessor === '.') {
         let lqq = res
         for (let c of node.children) {
             let eqq = pos_node_expand(c, lqq, pos)
@@ -118,7 +118,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
 function pcc_move_attack(sentence: ParsedSentence): PConstraint {
     return (p: PosExpansion) => {
 
-        return false
+        return true
     }
 }
 
@@ -133,13 +133,17 @@ function resolve_cc(sentence: ParsedSentence): PConstraint {
 }
 
 function pe_expand_precessor(sentence: ParsedSentence, p: PosExpansionNode, pos: PositionC): PosExpansion[] {
-    if (p.data.move) {
-        m.make_move(pos, p.data.move)
-        let res = m.get_legal_moves(pos)
-        m.unmake_move(pos, p.data.move)
-        return res.map(move => ({ move }))
+    if (['E', 'A', '*'].includes(sentence.precessor)) {
+        if (p.data.move) {
+            m.make_move(pos, p.data.move)
+            let res = m.get_legal_moves(pos)
+            m.unmake_move(pos, p.data.move)
+            return res.map(move => ({ move }))
+        } else {
+            return m.get_legal_moves(pos).map(move => ({ move }))
+        }
     } else {
-        return m.get_legal_moves(pos).map(move => ({ move }))
+        return [p.data]
     }
 }
 
@@ -172,6 +176,7 @@ function print_m(e: PosExpansionNode, pos_c: PositionC) {
     while (i.parent !== undefined) {
 
         if (!i.data.move) {
+            i = i.parent
             continue
         }
 
@@ -179,13 +184,14 @@ function print_m(e: PosExpansionNode, pos_c: PositionC) {
 
         i = i.parent
     }
+    moves.reverse()
 
     for (let move of moves) {
-        m.make_move(pos_c, move)
 
         let pos = m.get_pos_read_fen(pos_c)
         let san = makeSan(pos, move_c_to_Move(move))
 
+        m.make_move(pos_c, move)
         sans.push(san)
     }
     moves.reverse()
@@ -193,7 +199,6 @@ function print_m(e: PosExpansionNode, pos_c: PositionC) {
         m.unmake_move(pos_c, move)
     }
 
-    sans.reverse()
     return `${sans.join(' ')}`
 }
 
