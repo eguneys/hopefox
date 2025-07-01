@@ -119,7 +119,8 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     if (node.sentence.precessor === 'E' || node.sentence.precessor === '.') {
 
         for (let [mm, lqq] of mls) {
-            let aqq = lqq
+            let yes_qq = []
+            let no_qq = []
             if (mm !== 0) {
                 m.make_move(pos, mm)
             }
@@ -127,13 +128,25 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                 let eqq = pos_node_expand(c, lqq, pos)
 
                 if (c.children_resolved) {
-                    lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+                    for (let p of lqq) {
+                        if (eqq.find(_ => _ === p || _.parent === p)) {
+                            yes_qq.push(p)
+                        } else {
+                            no_qq.push(p)
+                        }
+                    }
+                    lqq = no_qq
                 }
             }
             if (mm !== 0) {
                 m.unmake_move(pos, mm)
             }
-            if (node.children.length === 0 || lqq.length < aqq.length) {
+            if (node.children.length === 0) {
+                node.children_resolved = true
+                break
+            }
+            if (yes_qq.length > 0) {
+                node.res = yes_qq
                 node.children_resolved = true
                 break
             }
