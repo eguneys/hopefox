@@ -42,7 +42,7 @@ const OPPONENT_PIECE_NAMES = [
 export const PIECE_NAMES = PLAYER_PIECE_NAMES.concat(OPPONENT_PIECE_NAMES)
 
 const PRECESSORS = [
-    'G', 'Z', 'A', 'E', '.'
+    'G', 'A', 'E', '.'
 ]
 
 const SQUARE_NAMES = [
@@ -115,6 +115,14 @@ export class Lexer {
             if (this.current_char === '0') {
                 this.advance()
                 return { type: TokenType.ZERO, value: '0' }
+            }
+            if (this.current_char === 'z') {
+                this.advance()
+                return { type: TokenType.ZERO, value: 'z' }
+            }
+            if (this.current_char === 'Z') {
+                this.advance()
+                return { type: TokenType.ZERO, value: 'Z' }
             }
 
             if (this.current_char === '.') {
@@ -243,12 +251,12 @@ export class Parser {
         while (true) {
             let current_token_type = this.current_token.type
             if (current_token_type === TokenType.ZERO) {
+                let is_attack = this.current_token.value === 'Z'
                 this.eat(TokenType.ZERO)
-                if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
-                    this.eat(TokenType.OPERATOR_ATTACK)
+                this.eat(TokenType.OPERATOR_ATTACK)
+                if (is_attack) {
                     zero_attack = true
-                } else if (this.current_token.type === TokenType.OPERATOR_DEFEND) {
-                    this.eat(TokenType.OPERATOR_DEFEND)
+                } else {
                     zero_defend = true
                 }
             } else {
@@ -940,6 +948,7 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
     let attacked_by = res.attacked_by.map(parse_piece)
 
     let zero_defend = res.zero_defend
+    let zero_attack = res.zero_attack
 
     let is_mate = res.is_mate
 
@@ -978,6 +987,23 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
 
         let occupied = q_occupied(q)
 
+
+        if (zero_attack) {
+            for (let d1 of pieces_of_color(opposite(move.color))) {
+                if (q[d1] === undefined) {
+                    continue
+                }
+                let res = SquareSet.empty()
+
+                let pd1 = parse_piece(d1)
+                for (let d1s of q[d1]) {
+                    if (!attacks(pd1 ,d1s, occupied).has(m2)) {
+                        res = res.set(d1s, true)
+                    }
+                }
+                q[d1] = res
+            }
+        }
 
         if (zero_defend) {
             for (let d1 of pieces_of_color(move.color)) {

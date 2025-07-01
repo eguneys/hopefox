@@ -7,12 +7,10 @@ set_m(await PositionManager.make())
 
 it('regress zero defender', () => {
 
-    let fen = 'br1qkb1r/p1p2ppp/4pn2/6B1/3Qn3/5NP1/P3PPBP/RN1R2K1 w k - 0 16'
+    let fen = '8/8/kp6/p4pQp/q7/7P/3r2P1/4R2K w - - 0 49'
 
     let a = `
-E q= +K +B
- A
-  G B 0-
+E q= =R z+
 `
 
     console.log(mor3(a, fen))
