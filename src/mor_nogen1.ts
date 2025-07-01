@@ -1,5 +1,5 @@
 import { c_to_piece, move_c_to_Move, MoveC, NO_PIECE, PositionC } from "./hopefox_c"
-import { FEN, Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, piece2_pieces, Pieces } from "./mor3_hope1"
+import { FEN, Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, piece2_pieces, Pieces, pieces_of_color } from "./mor3_hope1"
 import { Move, Piece, Square } from "./types"
 import { m } from './mor3_hope1'
 import { moveEquals } from "./util"
@@ -81,7 +81,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     let sub_res: PosExpansionNode[] = []
     let res: PosExpansionNode[] = node.res
 
-    let cc = resolve_cc(node.sentence)
+    let cc = resolve_cc(node.sentence, pos)
 
     for (let p_parent of pp_parent) {
 
@@ -123,7 +123,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     return res
 }
 
-function pcc_move_attack(res: MoveAttackSentence): PConstraint {
+function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
 
     let move = parse_piece(res.move)
     let attacks1 = res.attack.map(parse_piece)
@@ -161,6 +161,13 @@ function pcc_move_attack(res: MoveAttackSentence): PConstraint {
             }
         }
 
+        if (res.zero_defend) {
+            for (let p1 of get_Pieces(ax)) {
+                if (m.pos_attacks(pos, ax[p1]).has(m1.to)) {
+                    return false
+                }
+            }
+        }
 
         return true
     }
@@ -168,10 +175,10 @@ function pcc_move_attack(res: MoveAttackSentence): PConstraint {
 
 const pcc_no_constraint = () => true
 
-function resolve_cc(sentence: ParsedSentence): PConstraint {
+function resolve_cc(sentence: ParsedSentence, pos: PositionC): PConstraint {
 
     if (sentence.type === 'move_attack') {
-        return pcc_move_attack(sentence)
+        return pcc_move_attack(sentence, pos)
     }
     return pcc_no_constraint
 }
@@ -321,11 +328,11 @@ function extract_p_context(pos: PositionC): PContext {
     return twos
 }
 
-export function mor_find_san(text: string, fen: FEN) {
+export function mor_nogen_find_san(text: string, fen: FEN) {
 
     let a = mor_nogen(text, fen)
 
-    let m = a.trim().split('\n')[1].match(/<([^>]*)/)
+    let m = a.trim().split('\n')[1].match(/<([^>]+)/)
 
     let res = m?.[1]
 
@@ -334,4 +341,9 @@ export function mor_find_san(text: string, fen: FEN) {
     } else {
         return res
     }
+}
+
+
+function get_Pieces(ax: PContext) {
+    return Object.keys(ax).filter(_ => _[0].toLowerCase() !== _[0])
 }

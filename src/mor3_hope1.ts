@@ -1619,7 +1619,7 @@ export function print_node(n: QNode): string {
 }
 
 
-function pieces_of_color(turn: Color) {
+export function pieces_of_color(turn: Color) {
     if (turn === 'white') {
         return PLAYER_PIECE_NAMES
     } else {
