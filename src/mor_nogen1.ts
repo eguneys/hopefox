@@ -98,20 +98,34 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
 
     if (node.sentence.precessor === 'E' || node.sentence.precessor === '.') {
         let lqq = res
+        let mm = lqq[0]?.data.move
+        if (mm) {
+            m.make_move(pos, mm)
+        }
         for (let c of node.children) {
             let eqq = pos_node_expand(c, lqq, pos)
 
             lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+        }
+        if (mm) {
+            m.unmake_move(pos, mm)
         }
         if (node.children.length === 0 || lqq.length < pp_parent.length) {
             node.children_resolved = true
         }
     } else if (node.sentence.precessor === 'A') {
         let lqq = res
+        let mm = lqq[0]?.data.move
+        if (mm) {
+            m.make_move(pos, mm)
+        }
         for (let c of node.children) {
             let eqq = pos_node_expand(c, lqq, pos)
 
             lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+        }
+        if (mm) {
+            m.unmake_move(pos, mm)
         }
         if (node.children.length === 0 || lqq.length === 0) {
             node.children_resolved = true
@@ -146,10 +160,22 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
             return false
         }
 
+        let move_c = pexp.move
         let m1 = move_c_to_Move(pexp.move)
 
         let bx = pexp.before
         let ax = pexp.after
+
+        if (is_mate) {
+            m.make_move(pos, move_c)
+
+            if (!m.is_checkmate(pos)) {
+                m.unmake_move(pos, move_c)
+                return false
+            }
+
+            m.unmake_move(pos, move_c)
+        }
 
         if (bx[res.move] !== m1.from) {
             return false
@@ -169,6 +195,56 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
             }
         }
 
+
+        if (res.attack) {
+
+            m.make_move(pos, move_c)
+            for (let i = 0; i < res.attack.length; i++) {
+                let a1s = bx[res.attack[i]]
+                if (a1s === undefined) {
+                    m.unmake_move(pos, move_c)
+                    return false
+                }
+
+                if (!m.pos_attacks(pos, m1.to).has(a1s)) {
+                    m.unmake_move(pos, move_c)
+                    return false
+                }
+
+            }
+            m.unmake_move(pos, move_c)
+        }
+
+        if (res.attacked_by) {
+            m.make_move(pos, move_c)
+            for (let i = 0; i < res.attacked_by.length; i++) {
+                let a1s = bx[res.attacked_by[i]]
+                if (a1s === undefined) {
+                    m.unmake_move(pos, move_c)
+                    return false
+                }
+
+                if (!m.pos_attacks(pos, a1s).has(m1.to)) {
+                    m.unmake_move(pos, move_c)
+                    return false
+                }
+            }
+
+
+            for (let b1 of Object.keys(bx)) {
+                if (!res.attacked_by.includes(b1)) {
+                    let b1s = bx[b1]
+
+                    if (m.pos_attacks(pos, b1s).has(m1.to)) {
+                        m.unmake_move(pos, move_c)
+                        return false
+                    }
+                }
+            }
+
+            m.unmake_move(pos, move_c)
+        }
+
         return true
     }
 }
@@ -186,10 +262,8 @@ function resolve_cc(sentence: ParsedSentence, pos: PositionC): PConstraint {
 function pe_expand_precessor(sentence: ParsedSentence, p: PosExpansionNode, pos: PositionC): PosExpansion[] {
     if (['E', 'A', '*'].includes(sentence.precessor)) {
         if (p.data.move) {
-            m.make_move(pos, p.data.move)
             let res = m.get_legal_moves(pos)
             let res_out = res.map(move => ({ move, before: p.data.before, after: p_context_make_move(p.data.before, pos, move) }))
-            m.unmake_move(pos, p.data.move)
             return res_out
         } else {
             return m.get_legal_moves(pos).map(move => ({ move, before: p.data.before, after: p_context_make_move(p.data.before, pos, move) }))
