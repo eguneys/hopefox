@@ -97,9 +97,9 @@ E b= +K q+ K+
     let fen2 = 'r4rk1/pbpp2p1/1p4Qp/3Nn3/3q1N2/3B4/PP3PPP/5RK1 w - - 6 21'
 
     let b = `
-E n2= +K z+ 5
+E n2= +K 5
  A 5
-  E q= K+ b+
+  E q= K+ b+ #
  `
 
     console.log(mor_nogen(b, fen2))

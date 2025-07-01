@@ -5,6 +5,7 @@ import { m } from './mor3_hope1'
 import { moveEquals } from "./util"
 import { makeSan } from "./san"
 import { SquareSet } from "./squareSet"
+import { moveCursor } from "readline"
 
 
 
@@ -96,49 +97,77 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
             })
     }
 
+    let lqq = res
+    let mls: Map<MoveC, PosExpansionNode[]> = new Map()
+
+    for (let lq of lqq) {
+        if (lq.data.move) {
+            if (!mls.has(lq.data.move)) {
+                mls.set(lq.data.move, [])
+            }
+            mls.get(lq.data.move)!.push(lq)
+        } else {
+            if (!mls.has(0)) {
+                mls.set(0, [])
+            }
+            mls.get(0)!.push(lq)
+        }
+    }
+
+
+
     if (node.sentence.precessor === 'E' || node.sentence.precessor === '.') {
-        let lqq = res
-        let mm = lqq[0]?.data.move
-        if (mm) {
-            m.make_move(pos, mm)
-        }
-        for (let c of node.children) {
-            let eqq = pos_node_expand(c, lqq, pos)
 
-            if (c.children_resolved) {
-                lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+        for (let [mm, lqq] of mls) {
+            let aqq = lqq
+            if (mm !== 0) {
+                m.make_move(pos, mm)
+            }
+            for (let c of node.children) {
+                let eqq = pos_node_expand(c, lqq, pos)
+
+                if (c.children_resolved) {
+                    lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+                }
+            }
+            if (mm !== 0) {
+                m.unmake_move(pos, mm)
+            }
+            if (node.children.length === 0 || lqq.length < aqq.length) {
+                node.children_resolved = true
+                break
             }
         }
-        if (mm) {
-            m.unmake_move(pos, mm)
-        }
-        if (node.children.length === 0 || lqq.length < pp_parent.length) {
-            node.children_resolved = true
-        }
+
     } else if (node.sentence.precessor === 'A') {
-        let lqq = res
-        let mm = lqq[0]?.data.move
-        if (mm) {
-            m.make_move(pos, mm)
-        }
-        for (let c of node.children) {
-            let eqq = pos_node_expand(c, lqq, pos)
 
-            if (c.children_resolved) {
-                lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+        node.res = []
+        for (let [mm, lqq] of mls) {
+            let aqq = lqq
+            if (mm !== 0) {
+                m.make_move(pos, mm)
             }
-        }
-        if (mm) {
-            m.unmake_move(pos, mm)
-        }
-        if (node.children.length === 0 || lqq.length === 0) {
-            node.children_resolved = true
+            for (let c of node.children) {
+                let eqq = pos_node_expand(c, lqq, pos)
+
+                if (c.children_resolved) {
+                    lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+                }
+            }
+            if (mm !== 0) {
+                m.unmake_move(pos, mm)
+            }
+            if (node.children.length === 0 || lqq.length === 0) {
+                node.res = aqq
+                node.children_resolved = true
+                break
+            }
         }
     } else {
         node.children_resolved = true
     }
 
-    return res
+    return node.res
 }
 
 function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
@@ -265,13 +294,7 @@ function resolve_cc(sentence: ParsedSentence, pos: PositionC): PConstraint {
 
 function pe_expand_precessor(sentence: ParsedSentence, p: PosExpansionNode, pos: PositionC): PosExpansion[] {
     if (['E', 'A', '*'].includes(sentence.precessor)) {
-        if (p.data.move) {
-            let res = m.get_legal_moves(pos)
-            let res_out = res.map(move => ({ move, before: p.data.before, after: p_context_make_move(p.data.before, pos, move) }))
-            return res_out
-        } else {
-            return m.get_legal_moves(pos).map(move => ({ move, before: p.data.before, after: p_context_make_move(p.data.before, pos, move) }))
-        }
+        return m.get_legal_moves(pos).map(move => ({ move, before: p.data.after, after: p_context_make_move(p.data.after, pos, move) }))
     } else {
         return [p.data]
     }
@@ -376,7 +399,6 @@ function p_context_make_move(ctx: PContext, pos: PositionC, move_c: MoveC): PCon
     let move = move_c_to_Move(move_c)
 
     for (let p1 of Object.keys(ctx)) {
-
         if (ctx[p1] === move.from) {
             res[p1] = move.to
         } else if (ctx[p1] === move.to) {
