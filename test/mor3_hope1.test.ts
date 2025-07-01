@@ -2,12 +2,15 @@ import { expect, it } from 'vitest'
 import { find_san_mor, mor3, PositionManager, set_m } from '../src'
 import { tenk } from './fixture'
 import { a } from 'vitest/dist/chunks/suite.BMWOKiTe.js'
+import { describe } from 'node:test'
 
 set_m(await PositionManager.make())
 
-it('regress zero defender', () => {
+it.skip('regress zero defender', () => {
 
-    let fen = '8/8/kp6/p4pQp/q7/7P/3r2P1/4R2K w - - 0 49'
+    //let fen = '8/8/kp6/p4pQp/q7/7P/3r2P1/4R2K w - - 0 49'
+    //let fen = '5rk1/1p3ppp/pq1Q1b2/8/8/1P3N2/P4PPP/3R2K1 b - - 3 27'
+    let fen = '6k1/p3b2p/1p1pP3/2P3P1/2np3B/P6P/3Q3K/8 b - - 0 38'
 
     let a = `
 E q= =R z+

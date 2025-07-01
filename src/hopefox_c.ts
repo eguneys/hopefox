@@ -65,6 +65,17 @@ export function piece_c_type_of(piece: PieceC) {
     return piece & 7
 }
 
+export function c_to_piece(c: PieceC): Piece {
+    let color = piece_c_color_of(c)
+    let role = piece_c_type_of(c)
+
+
+    return {
+        color: c_to_color(color),
+        role: c_to_role(role)
+    }
+
+}
 
 export function piece_to_c(p: Piece) {
     let r = role_to_c(p.role)
@@ -92,6 +103,14 @@ function c_to_role(p: PieceTypeC): Role {
         case KING: return 'king'
     }
     throw 'No Piece Type'
+}
+
+function c_to_color(c: ColorC): Color {
+    if (c === WHITE) {
+        return 'white'
+    } else {
+        return 'black'
+    }
 }
 
 function make_move(move: Move, castling?: boolean, en_passant?: boolean): MoveC {

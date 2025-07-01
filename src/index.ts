@@ -81,3 +81,4 @@ export * from './hopefox_c'
 //export * from './mor2'
 
 export * from './mor3_hope1'
+export * from './mor_nogen1'

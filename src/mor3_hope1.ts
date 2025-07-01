@@ -374,7 +374,7 @@ export class Parser {
 
 type UndefinedSentence = { type: 'undefined', precessor: 'E' }
 
-type ParsedSentence = 
+export type ParsedSentence = 
 UndefinedSentence
 | MoveAttackSentence
 | AttackSentence
@@ -436,7 +436,7 @@ export type M = {
 export function parse_rules(str: string): Line {
     let ss = str.trim().split('\n')
 
-    let root: Line = { depth: -1, rule: '*', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined', precessor: 'E' } }
+    let root: Line = { depth: -1, rule: '.', children: [], m: [], long: false, no_c: false, sentence: { type: 'undefined', precessor: 'E' } }
     const stack: Line[] = [root]
 
     for (let i = 0; i < ss.length; i++) {
@@ -472,7 +472,7 @@ export function parse_rules(str: string): Line {
     return root
 }
 
-function parse_line_recur(node: Line) {
+export function parse_line_recur(node: Line) {
     let p = new Parser(new Lexer(node.rule))
 
     let res = p.parse_sentence()
@@ -566,7 +566,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
                 //qc_safety(ex.after, opposite(turn))
             }
 
-            for (let piece of pieces) {
+            for (let piece of Pieces) {
                 eqq = eqq.filter(_ => {
                     return (_.after[piece] === undefined || !_.after[piece].isEmpty()) &&
                         (_.before[piece] === undefined || !_.before[piece].isEmpty())
@@ -659,7 +659,7 @@ function qnode_expand(node: QNode, pieces: Pieces[], qq_parent: QExpansionNode[]
     return res
 }
 
-let m: PositionManager
+export let m: PositionManager
 
 export function set_m(p: PositionManager) {
     m = p
@@ -754,14 +754,12 @@ export function mor3(text: string, fen?: FEN, pieces?: Pieces[]) {
         turn: 'white'
     }
 
-    if (fen) {
-        q_collapse_fen(q_root.data, fen)
-    }
-
-    //console.log(q_fen_singles(q_root.data.before))
-
     if (pieces === undefined) {
         pieces = extract_pieces(text)
+    }
+
+    if (fen) {
+        pieces = q_collapse_fen(q_root.data, fen)
     }
 
     qnode_expand(res.children[0], pieces, [q_root], 'black')
@@ -790,6 +788,49 @@ function q_collapse_fen(q: QExpansion, fen: string) {
 
             q.before[p1] = SquareSet.fromSquare(sq)
             q.after[p1] = SquareSet.fromSquare(sq)
+        }
+    }
+
+
+    for (let p1 of Pieces) {
+        if (twos[p1] === undefined) {
+            q.before[p1] = undefined
+            q.after[p1] = undefined
+        }
+    }
+
+    return Object.keys(twos)
+
+}
+
+
+function q_hard_collapse_fen(q: QExpansion, fen: string) {
+
+    let twos: Record<Pieces, number> = {}
+    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+
+    for (let sq of SquareSet.full()) {
+
+        let piece = pos.board.get(sq)
+        if (piece) {
+            let p1 = piece2_pieces(piece)
+
+            if (twos[p1] === 1) {
+                twos[p1] = 2
+                p1 += '2'
+            } else {
+                twos[p1] = 1
+            }
+
+            q.before[p1] = SquareSet.fromSquare(sq)
+            q.after[p1] = SquareSet.fromSquare(sq)
+        }
+    }
+
+    for (let p1 of Pieces) {
+        if (twos[p1] === undefined) {
+            q.before[p1] = SquareSet.empty()
+            q.after[p1] = SquareSet.empty()
         }
     }
 
@@ -1190,178 +1231,6 @@ function qcc_move_attack(res: MoveAttackSentence): QConstraint {
         return true
     }
 }
-
-
-/*
-function move_attack_constraint(res: MoveAttackSentence): QConstraint {
-
-    let move = parse_piece(res.move)
-    let attacks1 = res.attack.map(parse_piece)
-    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
-    let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
-
-    let captured = res.captured ? parse_piece(res.captured) : undefined
-
-    return (q: QBoard) => {
-
-        let q_captured = q_board_zero()
-        let q2 = { ... q }
-        let q3 = { ... q }
-
-        let occupied = q_occupied(q)
-
-        let res1_before = SquareSet.empty()
-        let res1_after = SquareSet.empty()
-        let res2 = attacks1.map(_ => SquareSet.empty())
-        let res3 = blocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
-        let res4 = unblocked.map(_ => [SquareSet.empty(), SquareSet.empty()])
-
-        let res5 = SquareSet.empty()
-
-        for (let m1 of q[res.move]) {
-            let m1_valid = false
-            let res1_after_m1 = SquareSet.empty()
-            move: for (let m2 of attacks(move, m1, occupied)) {
-
-
-                let a2s = attacks(move, m2, occupied.without(m1))
-
-
-                if (res.captured) {
-                    res5 = res5.union(a2s.intersect(q[res.captured]))
-                    if (res5.isEmpty()) {
-                        continue move
-                    }
-                }
-
-                for (let i =0; i < res.attack.length; i++) {
-                    let a1 = res.attack[i]
-
-                    //let ayay = squareSet(a2s.intersect(q[a1]))
-                    let skipped = true
-                    for (let aa1 of a2s.intersect(q[a1])) {
-                        res2[i] = res2[i].set(aa1, true)
-                        skipped = false
-                    }
-
-                    if (skipped) {
-                        continue move
-                    }
-                }
-
-
-
-                for (let i =0; i < res.blocked.length; i++) {
-                    let [a3, a2] = res.blocked[i]
-
-                    let skipped = true
-                    for (let aa2 of a2s.intersect(q[a2])) {
-
-                        let a3s = attacks(move, m2, occupied.without(m1).without(aa2))
-                        for (let aa3 of a3s.intersect(q[a3])) {
-                            if (!between(m2, aa3).has(aa2)) {
-                                continue
-                            }
-                            res3[i][0] = res3[i][0].set(aa3, true)
-                            res3[i][1] = res3[i][1].set(aa2, true)
-                            skipped = false
-                        }
-                    }
-
-                    if (skipped) {
-                        continue move
-                    }
-                }
-
-                for (let i =0; i < res.unblocked.length; i++) {
-                    let [u3, u2] = res.unblocked[i]
-
-                    let skipped = true
-                    for (let u3s of q[u3]) {
-                        let a3s = attacks(unblocked[i][0], u3s, occupied.without(m1))
-
-                        for (let u2s of q[u2]) {
-                            if (a3s.has(u2s) && between(u3s, u2s).has(m1)) {
-                                res4[i][0] = res4[i][0].set(u3s, true)
-                                res4[i][1] = res4[i][1].set(u2s, true)
-                                skipped = false
-                            }
-                        }
-                    }
-                    if (skipped) {
-                        continue move
-                    }
-                }
-
-                res1_after_m1 = res1_after_m1.set(m2, true)
-            }
-
-            if (!res1_after_m1.isEmpty()) {
-                res1_before = res1_before.set(m1, true)
-                res1_after = res1_after.union(res1_after_m1)
-            }
-        }
-
-        if (res.captured) {
-            //q2[res.captured] = res5
-            //q3[res.captured] = res5
-
-            q2[res.captured] = SquareSet.empty()
-            q3[res.captured] = SquareSet.empty()
-
-            q_captured[res.captured] = res5
-        }
-
-        q2[res.move] = res1_before
-        q3[res.move] = res1_after
-
-        for (let i = 0; i < res.attack.length; i++) {
-            q2[res.attack[i]] = res2[i]
-            q3[res.attack[i]] = res2[i]
-        }
-
-        for (let i = 0; i < res.blocked.length; i++) {
-            q2[res.blocked[i][0]] = res3[i][0]
-            q2[res.blocked[i][1]] = res3[i][1]
-
-
-            q3[res.blocked[i][0]] = res3[i][0]
-            q3[res.blocked[i][1]] = res3[i][1]
-        }
-
-
-        for (let i = 0; i < res.unblocked.length; i++) {
-            q2[res.unblocked[i][0]] = res4[i][0]
-            q2[res.unblocked[i][1]] = res4[i][1]
-
-            q3[res.unblocked[i][0]] = res4[i][0]
-            q3[res.unblocked[i][1]] = res4[i][1]
-        }
-
-        return {
-            before: q2,
-            after: q3,
-            captured: q_captured
-        }
-    }
-}
-    */
-
-
-
-/*
-function move_A_legals(q: QBoard) {
-
-    let occupied = q_occupied(q)
-    for (let p of Pieces) {
-        for (let p1 of q[p]) {
-            for (let a1 of attacks(parse_piece(p), p1, occupied)) {
-                q[p].set(a1, true)
-            }
-        }
-    }
-}
-    */
 
 
 type QConstraint = (q: QExpansion) => boolean
