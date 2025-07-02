@@ -159,7 +159,7 @@ it('q+/a q+/b/n', () => {
     let fen = 'r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11'
 
     let a = `
-G B2 N+ N2+ b+/n q+/b/n
+G B N+ N2+ b2+/n2 q+/b2/n2
  `
 
     console.log(mor_nogen(a, fen))

@@ -6,6 +6,7 @@ import { moveEquals } from "./util"
 import { makeSan } from "./san"
 import { SquareSet } from "./squareSet"
 import { moveCursor } from "readline"
+import { attacks } from "./attacks"
 
 
 
@@ -268,6 +269,49 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
                 if (m.pos_attacks(pos, ax[u1]).has(p1s)) {
                     return false
                 }
+            }
+        }
+
+        if (res.blocked.length > 0) {
+            for (let i = 0; i < res.blocked.length; i++) {
+                let [u2, u3] = res.blocked[i]
+                let u2s = ax[u2]
+                let u3s = ax[u3]
+
+                if (u2s === undefined || u3s === undefined) {
+                    return false
+                }
+
+                if (
+                    attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u3s)).has(p1s) &&
+                    !attacks(parse_piece(u2), u2s, m.pos_occupied(pos)).has(p1s)
+                ) {
+                    continue
+                }
+                return false
+            }
+        }
+
+
+        if (res.double_blocked.length > 0) {
+            for (let i = 0; i < res.double_blocked.length; i++) {
+                let [u2, u3, u4] = res.double_blocked[i]
+                let u2s = ax[u2]
+                let u3s = ax[u3]
+                let u4s = ax[u4]
+
+                if (u2s === undefined || u3s === undefined || u4s === undefined) {
+                    return false
+                }
+
+                if (
+                    attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u3s).without(u4s)).has(p1s) &&
+                    !attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u3s)).has(p1s) &&
+                    !attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u4s)).has(p1s)
+                ) {
+                    continue
+                }
+                return false
             }
         }
 
