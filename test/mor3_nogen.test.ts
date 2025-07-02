@@ -304,7 +304,8 @@ G N q+ Q+ r+/q
 
 })
 
-it.only('+Q/K regression', () => {
+
+it.skip('+Q/K regression', () => {
 
     let fen3 = '8/7Q/3p1kp1/1p6/2b5/2q4P/5PPK/8 w - - 0 37'
 
@@ -317,4 +318,36 @@ G Q Z+
     console.log(mor_nogen_find_san(c, fen3))
 })
 
+
+
+
+it.skip('Q # regression', () => {
+
+    let fen3 = '4r3/5Q1p/p5pk/8/6P1/6KP/P1P1r3/8 w - - 0 35'
+
+    let c = `
+E q= +K
+ A 5
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
+})
+
+
+
+it.only('A children regression', () => {
+
+    let fen3 = '1r3k2/5p1p/2p1pp2/P2n4/r3N3/P4PK1/2R2P1P/2R5 w - - 10 30'
+
+    let c = `
+E n= +R
+ A
+  E n= +K +R2
+  E n= =R
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
+})
 

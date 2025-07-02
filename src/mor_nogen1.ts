@@ -192,7 +192,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
             if (mm !== 0) {
                 m.unmake_move(pos, mm)
             }
-            if (node.children.length === 0 || lqq.length !== 0) {
+            if (node.children.length > 0 && lqq.length !== 0) {
                 coverage_broken = true
             }
         }
