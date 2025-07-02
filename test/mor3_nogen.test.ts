@@ -195,18 +195,34 @@ G B N+ b+, K b2+/N, P +q
 
 
 
-it.only('nested regression', () => {
+it.skip('nested regression', () => {
     let fen = 'r2qk1nr/ppp3pp/2n5/1B1p4/1b1Pp3/5Q1P/PP1B1PP1/RN2K2R w KQkq - 0 12'
 
     let a = `
 G B N+ b+, K b2+/N, P +q
-  E b= =B
-   A
-    G P= =q
+ E b= =B
+  A
+   G P= =q
+   .
  `
 
     console.log(mor_nogen(a, fen))
     console.log(mor_nogen_find_san(a, fen))
 })
+
+
+
+it.only('+Q/K', () => {
+    let fen = '8/7Q/3p1kp1/1p6/2b5/2q4P/5PPK/8 w - - 0 37'
+
+    let a = `
+G Q Z+
+ E q= +K +Q/K
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
 
 

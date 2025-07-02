@@ -158,6 +158,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     } else if (node.sentence.precessor === 'A') {
 
         node.res = []
+        let coverage_broken = false
         for (let [mm, lqq] of mls) {
             let aqq = lqq
             if (mm !== 0) {
@@ -174,10 +175,12 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                 m.unmake_move(pos, mm)
             }
             if (node.children.length === 0 || lqq.length === 0) {
-                node.res = aqq
-                node.children_resolved = true
-                break
+                coverage_broken = true
             }
+        }
+        if (!coverage_broken) {
+            node.res = [...mls.values()][0]
+            node.children_resolved = true
         }
     } else {
         node.children_resolved = true
@@ -275,6 +278,7 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
         }
 
         if (res.blocked.length > 0) {
+            let pos_occupied = m.pos_occupied(pos)
             for (let i = 0; i < res.blocked.length; i++) {
                 let [u2, u3] = res.blocked[i]
                 let u2s = ax[u2]
@@ -285,8 +289,8 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
                 }
 
                 if (
-                    attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u3s)).has(p1s) &&
-                    !attacks(parse_piece(u2), u2s, m.pos_occupied(pos)).has(p1s)
+                    attacks(parse_piece(u2), u2s, pos_occupied.without(u3s)).has(p1s) &&
+                    !attacks(parse_piece(u2), u2s, pos_occupied).has(p1s)
                 ) {
                     continue
                 }
@@ -296,6 +300,7 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
 
 
         if (res.double_blocked.length > 0) {
+            let pos_occupied = m.pos_occupied(pos)
             for (let i = 0; i < res.double_blocked.length; i++) {
                 let [u2, u3, u4] = res.double_blocked[i]
                 let u2s = ax[u2]
@@ -307,9 +312,9 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
                 }
 
                 if (
-                    attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u3s).without(u4s)).has(p1s) &&
-                    !attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u3s)).has(p1s) &&
-                    !attacks(parse_piece(u2), u2s, m.pos_occupied(pos).without(u4s)).has(p1s)
+                    attacks(parse_piece(u2), u2s, pos_occupied.without(u3s).without(u4s)).has(p1s) &&
+                    !attacks(parse_piece(u2), u2s, pos_occupied.without(u3s)).has(p1s) &&
+                    !attacks(parse_piece(u2), u2s, pos_occupied.without(u4s)).has(p1s)
                 ) {
                     continue
                 }
@@ -473,6 +478,36 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
                 }
             }
         }
+
+
+        if (res.blocked.length > 0) {
+            let pos_occupied = m.pos_occupied(pos)
+            m.make_move(pos, move_c)
+            for (let i = 0; i < res.blocked.length; i++) {
+                let [u2, u3] = res.blocked[i]
+
+                let u2s = bx[u2]
+                let u3s = bx[u3]
+
+                if (u2s === undefined || u3s === undefined) {
+                    m.unmake_move(pos, move_c)
+                    return false
+                }
+
+                if (attacks(move, m1.to, pos_occupied.without(u3s)).has(u2s) &&
+                    !attacks(move, m1.to, pos_occupied).has(u2s)
+                ) {
+                    continue
+                }
+                m.unmake_move(pos, move_c)
+                return false
+
+            }
+            m.unmake_move(pos, move_c)
+        }
+
+
+
 
         return true
     }
