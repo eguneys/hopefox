@@ -695,8 +695,8 @@ export function mor_nogen_find_san(text: string, fen: FEN) {
     let a = mor_nogen(text, fen)
 
     let m = 
-    a.trim().split('\n')[1]?.match(/OK <([^>]+)/) ??
-    a.trim().split('\n')[2]?.match(/OK <([^>]+)/) 
+    a.trim().split('\n')[1]?.match(/E [^O]*OK <([^>]+)/) ??
+    a.trim().split('\n')[2]?.match(/E [^O]*OK <([^>]+)/) 
 
     let res = m?.[1]
 

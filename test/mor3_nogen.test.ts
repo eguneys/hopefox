@@ -252,15 +252,27 @@ E q= +K +Q r+
     console.log(mor_nogen_find_san(a, fen))
 })
 
-
-
-it.only('q # regression', () => {
+it.skip('q # regression', () => {
     let fen = '8/5p2/pq5p/1p6/6k1/6P1/P6P/2Q4K w - - 0 37'
 
     let a = `
 E q= +K
  A
   E q= #
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
+
+
+it.only('G b+/n regression', () => {
+    let fen = 'r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11'
+
+    let a = `
+G B N+ N2+ b2+/n2 q+/b2/n2
+ E n2= =N
  `
 
     console.log(mor_nogen(a, fen))
