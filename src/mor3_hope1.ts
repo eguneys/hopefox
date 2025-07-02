@@ -295,7 +295,7 @@ export class Parser {
             let piece = this.piece()
 
             let attack: Pieces[] = []
-            let blocked: [Pieces, Pieces][] = []
+            let blocked: [Pieces, Pieces, Pieces][] = []
             let unblocked: [Pieces, Pieces][] = []
 
             let attacked_by: Pieces[] = []
@@ -331,10 +331,18 @@ export class Parser {
                     let piece = this.piece()
                     this.eat(TokenType.OPERATOR_DEFEND)
                     undefended_by.push(piece)
-                } else if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
+                } else if (current_token_type === TokenType.OPERATOR_ATTACK) {
                     this.eat(TokenType.OPERATOR_ATTACK)
-                    let piece = this.piece()
-                    attack.push(piece)
+                    let attack1 = this.piece()
+                    current_token_type = this.current_token.type
+                    if (current_token_type === TokenType.OPERATOR_BLOCK) {
+                        this.eat(TokenType.OPERATOR_BLOCK)
+                        let blocked1 = this.piece()
+
+                        blocked.push([piece, attack1, blocked1])
+                        continue
+                    }
+                    attack.push(attack1)
                 } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
                     let attack1 = this.piece()
                     this.eat(TokenType.OPERATOR_ATTACK)
@@ -349,7 +357,7 @@ export class Parser {
 
                             double_blocked.push([attack1, blocked1, blocked2])
                         } else {
-                            blocked.push([attack1, blocked1])
+                            blocked.push([attack1, piece, blocked1])
                         }
                     } else {
                         attacked_by.push(attack1)
@@ -403,7 +411,7 @@ export class Parser {
         }
 
         let attack = []
-        let blocked: [Pieces, Pieces][] = []
+        let blocked: [Pieces, Pieces, Pieces][] = []
         let unblocked: [Pieces, Pieces][] = []
 
         let attacked_by = []
@@ -467,7 +475,7 @@ export class Parser {
                     this.eat(TokenType.OPERATOR_BLOCK)
                     let blocked1 = this.piece()
 
-                    blocked.push([attack1, blocked1])
+                    blocked.push([move, attack1, blocked1])
                     continue
                 }
                 attack.push(attack1)
@@ -523,7 +531,7 @@ export type MoveAttackSentence = {
     move: Pieces
     captured: Pieces | undefined
     attack: Pieces[]
-    blocked: [Pieces, Pieces][]
+    blocked: [Pieces, Pieces, Pieces][]
     unblocked: [Pieces, Pieces][]
     zero_attack: boolean
     zero_defend: boolean
@@ -538,7 +546,7 @@ export type StillAttackSentence = {
     precessor: Precessor
     piece: Pieces
     attack: Pieces[]
-    blocked: [Pieces, Pieces][]
+    blocked: [Pieces, Pieces, Pieces][]
     unblocked: [Pieces, Pieces][]
     zero_attack: boolean
     zero_defend: boolean

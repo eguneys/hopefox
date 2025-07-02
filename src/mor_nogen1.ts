@@ -213,7 +213,7 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
 
     let piece = parse_piece(res.piece)
     let attacks1 = res.attack.map(parse_piece)
-    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let blocked = res.blocked.map(([a, b, c]) => [parse_piece(a), parse_piece(b), parse_piece(c)])
     let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
 
     let attacked_by = res.attacked_by.map(parse_piece)
@@ -299,20 +299,22 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
         if (res.blocked.length > 0) {
             let pos_occupied = m.pos_occupied(pos)
             for (let i = 0; i < res.blocked.length; i++) {
-                let [u2, u3] = res.blocked[i]
+                let pu1 = blocked[i][0]
+                let [u1, u2, u3] = res.blocked[i]
+
+                let u1s = ax[u1]
                 let u2s = ax[u2]
                 let u3s = ax[u3]
 
-                if (u2s === undefined || u3s === undefined) {
+                if (u1s === undefined || u2s === undefined || u3s === undefined) {
                     return false
                 }
 
-                if (
-                    attacks(parse_piece(u2), u2s, pos_occupied.without(u3s)).has(p1s) &&
-                    !attacks(parse_piece(u2), u2s, pos_occupied).has(p1s)
-                ) {
-                    continue
-                }
+                if (attacks(pu1, u1s, pos_occupied.without(u3s)).has(u2s) &&
+                    !attacks(pu1, u1s, pos_occupied).has(u2s)) {
+                        continue
+                    }
+
                 return false
             }
         }
@@ -351,7 +353,7 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
 
     let move = parse_piece(res.move)
     let attacks1 = res.attack.map(parse_piece)
-    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let blocked = res.blocked.map(([a, b, c]) => [parse_piece(a), parse_piece(b), parse_piece(c)])
     let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
 
     let captured = res.captured ? parse_piece(res.captured) : undefined
@@ -503,18 +505,20 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
             let pos_occupied = m.pos_occupied(pos)
             m.make_move(pos, move_c)
             for (let i = 0; i < res.blocked.length; i++) {
-                let [u2, u3] = res.blocked[i]
+                let pu1 = blocked[i][0]
+                let [u1, u2, u3] = res.blocked[i]
 
-                let u2s = bx[u2]
-                let u3s = bx[u3]
+                let u1s = ax[u1]
+                let u2s = ax[u2]
+                let u3s = ax[u3]
 
-                if (u2s === undefined || u3s === undefined) {
+                if (u1s === undefined || u2s === undefined || u3s === undefined) {
                     m.unmake_move(pos, move_c)
                     return false
                 }
 
-                if (attacks(move, m1.to, pos_occupied.without(u3s)).has(u2s) &&
-                    !attacks(move, m1.to, pos_occupied).has(u2s)
+                if (attacks(pu1, u1s, pos_occupied.without(u3s)).has(u2s) &&
+                    !attacks(pu1, u1s, pos_occupied).has(u2s)
                 ) {
                     continue
                 }

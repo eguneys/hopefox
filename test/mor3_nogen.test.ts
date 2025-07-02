@@ -265,9 +265,7 @@ E q= +K
     console.log(mor_nogen_find_san(a, fen))
 })
 
-
-
-it.only('G b+/n regression', () => {
+it.skip('G b+/n regression', () => {
     let fen = 'r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11'
 
     let a = `
@@ -277,6 +275,46 @@ G B N+ N2+ b2+/n2 q+/b2/n2
 
     console.log(mor_nogen(a, fen))
     console.log(mor_nogen_find_san(a, fen))
+})
+
+
+
+
+it.skip('G +K/b regression', () => {
+    let fen = 'r1b2rk1/5p1p/p3pP2/1p1p4/5q1n/1P5P/P1P1QPB1/1K1R2R1 b - - 2 21'
+
+    let a = `
+G r2 +K/b
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+
+
+    let fen2 = '3r1rk1/pp2n1pp/3q4/8/N7/1PB5/P3QPPP/4R1K1 w - - 2 26'
+
+    let b = `
+G N q+ Q+ r+/q
+ E q= =N
+`
+
+    console.log(mor_nogen(b, fen2))
+    console.log(mor_nogen_find_san(b, fen2))
+
+
+})
+
+it.only('+Q/K regression', () => {
+
+    let fen3 = '8/7Q/3p1kp1/1p6/2b5/2q4P/5PPK/8 w - - 0 37'
+
+    let c = `
+G Q Z+
+ E q= +K +Q/K Z+
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
 })
 
 
