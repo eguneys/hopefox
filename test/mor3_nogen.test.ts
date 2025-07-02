@@ -212,7 +212,7 @@ G B N+ b+, K b2+/N, P +q
 
 
 
-it.only('+Q/K', () => {
+it.skip('+Q/K', () => {
     let fen = '8/7Q/3p1kp1/1p6/2b5/2q4P/5PPK/8 w - - 0 37'
 
     let a = `
@@ -224,5 +224,47 @@ G Q Z+
     console.log(mor_nogen_find_san(a, fen))
 })
 
+
+
+it('A regression', () => {
+    let fen = 'r1b3k1/pp3Rpp/3p1b2/2pN4/2P5/5Q1P/PPP3P1/4qNK1 w - - 1 22'
+
+    let a = `
+E n2= +K
+ A
+  E q= K+ b+ #
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
+
+
+it.skip('r+ regression', () => {
+    let fen = '3k2q1/p2p3p/1p1P4/2p5/2P2Q1K/8/P5b1/5R2 w - - 3 37'
+
+    let a = `
+E q= +K +Q r+
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
+
+
+it.only('q # regression', () => {
+    let fen = '8/5p2/pq5p/1p6/6k1/6P1/P6P/2Q4K w - - 0 37'
+
+    let a = `
+E q= +K
+ A
+  E q= #
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
 
 

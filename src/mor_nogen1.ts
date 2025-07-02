@@ -82,7 +82,7 @@ function pos_node(root: Line): PosNode {
 function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: PositionC): PosExpansionNode[] {
 
     let sub_res: PosExpansionNode[] = []
-    let res: PosExpansionNode[] = node.res
+    let res: PosExpansionNode[] = []
 
     let cc = resolve_cc(node.sentence, pos)
 
@@ -123,10 +123,20 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         for (let [mm, lqq] of mls) {
             let yes_qq = []
             let no_qq = []
-            let fp = m.get_pos_read_fen(pos)
+            /*
+            let fp2 = m.get_pos_read_fen(pos)
+            console.log(makeFen(fp2.toSetup()), move_c_to_Move(mm), mm)
+            */
             if (node.sentence.precessor === 'E' && mm !== 0) {
                 m.make_move(pos, mm)
             }
+            /*
+            let fp = m.get_pos_read_fen(pos)
+            console.log(makeFen(fp.toSetup()), move_c_to_Move(mm))
+            if (mm === 154) {
+                debugger
+            }
+                */
             for (let c of node.children) {
                 let eqq = pos_node_expand(c, lqq, pos)
 
@@ -164,6 +174,14 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
             if (mm !== 0) {
                 m.make_move(pos, mm)
             }
+
+            /*
+            let fp2 = m.get_pos_read_fen(pos)
+            console.log('A', makeFen(fp2.toSetup()), move_c_to_Move(mm), mm)
+            if (mm === 2138) {
+                debugger
+            }
+                */
             for (let c of node.children) {
                 let eqq = pos_node_expand(c, lqq, pos)
 
@@ -174,7 +192,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
             if (mm !== 0) {
                 m.unmake_move(pos, mm)
             }
-            if (node.children.length === 0 || lqq.length === 0) {
+            if (node.children.length === 0 || lqq.length !== 0) {
                 coverage_broken = true
             }
         }
@@ -186,6 +204,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         node.children_resolved = true
     }
 
+    node.res.push(...res)
     return node.res
 }
 
