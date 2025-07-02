@@ -12,6 +12,7 @@ import { spawnSync } from "child_process"
 import { opposite } from "./util"
 
 enum TokenType {
+    COMMA = 'COMMA',
     MATE = 'MATE',
     ZERO = 'ZERO',
     PIECE_NAME = 'PIECE_NAME',
@@ -33,10 +34,12 @@ interface Token {
 const PLAYER_PIECE_NAMES = [
     'p', 'n', 'q', 'b', 'k', 'r',
     'p2', 'n2', 'b2', 'r2',
+    'p3', 'p4', 'p5', 'p6', 'p7', 'p8',
 ]
 const OPPONENT_PIECE_NAMES = [
     'P', 'N', 'Q', 'B', 'K', 'R',
     'P2', 'N2', 'B2', 'R2',
+    'P3', 'P4', 'P5', 'P6', 'P7', 'P8',
 ]
 
 export const PIECE_NAMES = PLAYER_PIECE_NAMES.concat(OPPONENT_PIECE_NAMES)
@@ -128,6 +131,10 @@ export class Lexer {
             if (this.current_char === '.') {
                 this.advance()
                 return { type: TokenType.PRECESSOR, value: '.' }
+            }
+            if (this.current_char === ',') {
+                this.advance()
+                return { type: TokenType.COMMA, value: ',' }
             }
 
             const word_str = this.word()
@@ -278,84 +285,102 @@ export class Parser {
 
 
     // E b= +Q +R/Q
-    parse_still_attack(precessor: Precessor): StillAttackSentence {
+    parse_still_attack(precessor: Precessor): GStillAttackSentence {
 
-        let piece = this.piece()
+        let res: StillAttackSentence[] = []
 
-        let attack: Pieces[] = []
-        let blocked: [Pieces, Pieces][] = []
-        let unblocked: [Pieces, Pieces][] = []
-
-        let attacked_by: Pieces[] = []
-
-        let undefended_by = []
-
-        let zero_attack = false,
-        zero_defend = false
-
-        let is_mate = false
-
-
-        let double_blocked: [Pieces, Pieces, Pieces][] = []
 
         while (true) {
 
-            let current_token_type = this.current_token.type
-            let lookahead_token_type = this.lookahead_token.type
+            let piece = this.piece()
 
-            if (current_token_type === TokenType.MATE) {
-                this.eat(TokenType.MATE)
-                is_mate = true
-            } else if (current_token_type === TokenType.ZERO) {
-                let is_attack = this.current_token.value === 'z'
-                this.eat(TokenType.ZERO)
-                this.eat(TokenType.OPERATOR_ATTACK)
-                if (is_attack) {
-                    zero_attack = true
-                } else {
-                    zero_defend = true
-                }
-            } else if (lookahead_token_type === TokenType.OPERATOR_DEFEND) {
-                let piece = this.piece()
-                this.eat(TokenType.OPERATOR_DEFEND)
-                undefended_by.push(piece)
-            } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
-                let attack1 = this.piece()
-                this.eat(TokenType.OPERATOR_ATTACK)
-                current_token_type = this.current_token.type
-                if (current_token_type === TokenType.OPERATOR_BLOCK) {
-                    this.eat(TokenType.OPERATOR_BLOCK)
-                    let blocked1 = this.piece()
+            let attack: Pieces[] = []
+            let blocked: [Pieces, Pieces][] = []
+            let unblocked: [Pieces, Pieces][] = []
 
-                    if (this.current_token.type === TokenType.OPERATOR_BLOCK) {
-                        this.eat(TokenType.OPERATOR_BLOCK)
-                        let blocked2 = this.piece()
+            let attacked_by: Pieces[] = []
 
-                        double_blocked.push([attack1, blocked1, blocked2])
+            let undefended_by = []
+
+            let zero_attack = false,
+                zero_defend = false
+
+            let is_mate = false
+
+
+            let double_blocked: [Pieces, Pieces, Pieces][] = []
+
+            while (true) {
+
+                let current_token_type = this.current_token.type
+                let lookahead_token_type = this.lookahead_token.type
+
+                if (current_token_type === TokenType.MATE) {
+                    this.eat(TokenType.MATE)
+                    is_mate = true
+                } else if (current_token_type === TokenType.ZERO) {
+                    let is_attack = this.current_token.value === 'z'
+                    this.eat(TokenType.ZERO)
+                    this.eat(TokenType.OPERATOR_ATTACK)
+                    if (is_attack) {
+                        zero_attack = true
                     } else {
-                        blocked.push([attack1, blocked1])
+                        zero_defend = true
+                    }
+                } else if (lookahead_token_type === TokenType.OPERATOR_DEFEND) {
+                    let piece = this.piece()
+                    this.eat(TokenType.OPERATOR_DEFEND)
+                    undefended_by.push(piece)
+                } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
+                    let attack1 = this.piece()
+                    this.eat(TokenType.OPERATOR_ATTACK)
+                    current_token_type = this.current_token.type
+                    if (current_token_type === TokenType.OPERATOR_BLOCK) {
+                        this.eat(TokenType.OPERATOR_BLOCK)
+                        let blocked1 = this.piece()
+
+                        if (this.current_token.type === TokenType.OPERATOR_BLOCK) {
+                            this.eat(TokenType.OPERATOR_BLOCK)
+                            let blocked2 = this.piece()
+
+                            double_blocked.push([attack1, blocked1, blocked2])
+                        } else {
+                            blocked.push([attack1, blocked1])
+                        }
+                    } else {
+                        attacked_by.push(attack1)
                     }
                 } else {
-                    attacked_by.push(attack1)
+                    break
                 }
-            } else {
-                break
             }
+
+            res.push({
+                type: 'still_attack',
+                precessor,
+                piece,
+                attack,
+                blocked,
+                unblocked,
+                zero_attack,
+                zero_defend,
+                attacked_by,
+                is_mate,
+                undefended_by,
+                double_blocked
+            })
+
+            if (this.current_token.type === TokenType.COMMA) {
+                this.eat(TokenType.COMMA)
+                continue
+            }
+            break
         }
 
         return {
-            type: 'still_attack',
-            precessor,
-            piece,
-            attack,
-            blocked,
-            unblocked,
-            zero_attack,
-            zero_defend,
-            attacked_by,
-            is_mate,
-            undefended_by,
-            double_blocked
+            type: 'g_still_attack',
+            precessor: 'G',
+            attacks: res
         }
     }
 
@@ -473,6 +498,7 @@ UndefinedSentence
 | AttackSentence
 | PrecessorSentence
 | CaptureSentence
+| GStillAttackSentence
 
 
 
@@ -518,6 +544,11 @@ export type StillAttackSentence = {
     double_blocked: [Pieces, Pieces, Pieces][]
 }
 
+export type GStillAttackSentence = {
+    type: 'g_still_attack',
+    precessor: Precessor,
+    attacks: StillAttackSentence[]
+}
 
 
 

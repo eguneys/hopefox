@@ -484,6 +484,11 @@ function resolve_cc(sentence: ParsedSentence, pos: PositionC): PConstraint {
         return pcc_move_attack(sentence, pos)
     } else if (sentence.type === 'still_attack') {
         return pcc_still_attack(sentence, pos)
+    } else if (sentence.type === 'g_still_attack') {
+        let aa = sentence.attacks.map(_ => pcc_still_attack(_, pos))
+        return (exp: PosExpansion) => {
+            return aa.every(_ => _(exp))
+        }
     }
     return pcc_no_constraint
 }
@@ -615,7 +620,12 @@ function extract_p_context(pos: PositionC): PContext {
            let p2 = piece2_pieces(p1)
 
            if (twos[p2] !== undefined) {
-               twos[p2 + '2'] = sq
+               for (let i = 2; i <= 8; i++) {
+                   if (twos[p2 + i] === undefined) {
+                       twos[p2 + i] = sq
+                       break
+                   }
+               }
            } else {
                twos[p2] = sq
            }

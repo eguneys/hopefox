@@ -155,7 +155,7 @@ G Q Z+
 
 })
 
-it.only('q+/a q+/b/n', () => {
+it.skip('q+/a q+/b/n', () => {
     let fen = 'r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11'
 
     let a = `
@@ -165,3 +165,32 @@ G B N+ N2+ b2+/n2 q+/b2/n2
     console.log(mor_nogen(a, fen))
     console.log(mor_nogen_find_san(a, fen))
 })
+
+it.skip('more pawns', () => {
+    let fen = '7Q/2p5/1p2prp1/p4k1p/q4p1P/8/6RK/8 w - - 0 38'
+
+    let a = `
+E q= +K Z+
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
+
+
+
+
+it.only('more G comma', () => {
+    let fen = 'r2qk1nr/ppp3pp/2n5/1B1p4/1b1Pp3/5Q1P/PP1B1PP1/RN2K2R w KQkq - 0 12'
+
+    let a = `
+G B N+ b+, K b2+/N
+ E b= =B
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
+
