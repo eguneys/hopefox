@@ -1,5 +1,5 @@
 import { c_to_piece, move_c_to_Move, MoveC, NO_PIECE, PositionC } from "./hopefox_c"
-import { FEN, Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, piece2_pieces, Pieces, pieces_of_color } from "./mor3_hope1"
+import { FEN, Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, piece2_pieces, Pieces, pieces_of_color, StillAttackSentence } from "./mor3_hope1"
 import { Move, Piece, Square } from "./types"
 import { m } from './mor3_hope1'
 import { moveEquals } from "./util"
@@ -183,6 +183,100 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     return node.res
 }
 
+
+function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint {
+
+    let piece = parse_piece(res.piece)
+    let attacks1 = res.attack.map(parse_piece)
+    let blocked = res.blocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+    let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+
+    let attacked_by = res.attacked_by.map(parse_piece)
+
+    let double_blocked = res.double_blocked.map(([a, b, c]) => [parse_piece(a), parse_piece(b), parse_piece(c)])
+
+    let undefended_by = res.undefended_by.map(parse_piece)
+
+    let zero_defend = res.zero_defend
+    let zero_attack = res.zero_attack
+
+    let is_mate = res.is_mate
+
+    return (pexp: PosExpansion) => {
+
+        let p1s = pexp.after[res.piece]
+        let ax = pexp.after
+
+        if (is_mate) {
+            if (!m.is_checkmate(pos)) {
+                return false
+            }
+        }
+
+        if (res.zero_defend) {
+            for (let p1 of get_Pieces(ax)) {
+                if (m.pos_attacks(pos, ax[p1]).has(p1s)) {
+                    return false
+                }
+            }
+        }
+
+
+        if (res.attack.length > 0) {
+
+            for (let i = 0; i < res.attack.length; i++) {
+                let a1s = ax[res.attack[i]]
+                if (a1s === undefined) {
+                    return false
+                }
+
+                if (!m.pos_attacks(pos, p1s).has(a1s)) {
+                    return false
+                }
+
+            }
+        }
+
+        if (res.attacked_by.length > 0) {
+            for (let i = 0; i < res.attacked_by.length; i++) {
+                let a1s = ax[res.attacked_by[i]]
+                if (a1s === undefined) {
+                    return false
+                }
+
+                if (!m.pos_attacks(pos, a1s).has(p1s)) {
+                    return false
+                }
+            }
+
+
+            for (let b1 of Object.keys(ax)) {
+                if (!res.attacked_by.includes(b1)) {
+                    let b1s = ax[b1]
+
+                    if (m.pos_attacks(pos, b1s).has(p1s)) {
+                        return false
+                    }
+                }
+            }
+        }
+
+        if (res.undefended_by.length > 0) {
+            for (let i = 0; i < res.undefended_by.length; i++) {
+                let u1 = res.undefended_by[i]
+
+                if (m.pos_attacks(pos, ax[u1]).has(p1s)) {
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+}
+
+
+
 function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
 
     let move = parse_piece(res.move)
@@ -344,6 +438,8 @@ function resolve_cc(sentence: ParsedSentence, pos: PositionC): PConstraint {
 
     if (sentence.type === 'move_attack') {
         return pcc_move_attack(sentence, pos)
+    } else if (sentence.type === 'still_attack') {
+        return pcc_still_attack(sentence, pos)
     }
     return pcc_no_constraint
 }
@@ -489,8 +585,8 @@ export function mor_nogen_find_san(text: string, fen: FEN) {
     let a = mor_nogen(text, fen)
 
     let m = 
-    a.trim().split('\n')[1].match(/OK <([^>]+)/) ??
-    a.trim().split('\n')[2].match(/OK <([^>]+)/) 
+    a.trim().split('\n')[1]?.match(/OK <([^>]+)/) ??
+    a.trim().split('\n')[2]?.match(/OK <([^>]+)/) 
 
     let res = m?.[1]
 

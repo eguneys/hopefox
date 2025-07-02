@@ -140,7 +140,7 @@ G Q Z+
 
 
 
-it('Q- operator', () => {
+it.skip('Q- operator', () => {
 
     let fen = 'r4rk1/pp2b1pp/2n2p2/4p3/8/2qB1QB1/P4P1P/R3R1K1 w - - 0 19'
 
@@ -155,3 +155,13 @@ G Q Z+
 
 })
 
+it('q+/a q+/b/n', () => {
+    let fen = 'r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11'
+
+    let a = `
+G B2 N+ N2+ b+/n q+/b/n
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})

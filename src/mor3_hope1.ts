@@ -212,6 +212,7 @@ export class Parser {
 
         const precessor = this.precessor()
 
+
         if (this.current_token.type === TokenType.EOF) {
             return { type: 'precessor', precessor }
         }
@@ -224,8 +225,11 @@ export class Parser {
             const result = this.parse_move_attack(precessor)
             this.eat(TokenType.EOF)
             return result
-        } else {
-            const result = this.parse_attack(precessor)
+        } else if (
+            this.lookahead_token.type === TokenType.PIECE_NAME &&
+            this.current_token.type === TokenType.PIECE_NAME
+        ) {
+            const result = this.parse_still_attack(precessor)
             this.eat(TokenType.EOF)
             return result
         }
@@ -274,6 +278,90 @@ export class Parser {
             zero_defend
         }
     }
+
+
+    // E b= +Q +R/Q
+    parse_still_attack(precessor: Precessor): StillAttackSentence {
+
+        let piece = this.piece()
+
+        let attack: Pieces[] = []
+        let blocked: [Pieces, Pieces][] = []
+        let unblocked: [Pieces, Pieces][] = []
+
+        let attacked_by: Pieces[] = []
+
+        let undefended_by = []
+
+        let zero_attack = false,
+        zero_defend = false
+
+        let is_mate = false
+
+
+        let double_blocked: [Pieces, Pieces, Pieces][] = []
+
+        while (true) {
+
+            let current_token_type = this.current_token.type
+            let lookahead_token_type = this.lookahead_token.type
+
+            if (current_token_type === TokenType.MATE) {
+                this.eat(TokenType.MATE)
+                is_mate = true
+            } else if (current_token_type === TokenType.ZERO) {
+                let is_attack = this.current_token.value === 'z'
+                this.eat(TokenType.ZERO)
+                this.eat(TokenType.OPERATOR_ATTACK)
+                if (is_attack) {
+                    zero_attack = true
+                } else {
+                    zero_defend = true
+                }
+            } else if (lookahead_token_type === TokenType.OPERATOR_DEFEND) {
+                let piece = this.piece()
+                this.eat(TokenType.OPERATOR_DEFEND)
+                undefended_by.push(piece)
+            } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
+                let attack1 = this.piece()
+                this.eat(TokenType.OPERATOR_ATTACK)
+                current_token_type = this.current_token.type
+                if (current_token_type === TokenType.OPERATOR_BLOCK) {
+                    this.eat(TokenType.OPERATOR_BLOCK)
+                    let blocked1 = this.piece()
+
+                    if (this.current_token.type === TokenType.OPERATOR_BLOCK) {
+                        this.eat(TokenType.OPERATOR_BLOCK)
+                        let blocked2 = this.piece()
+
+                        double_blocked.push([attack1, blocked1, blocked2])
+                    } else {
+                        blocked.push([attack1, blocked1])
+                    }
+                } else {
+                    attacked_by.push(attack1)
+                }
+            } else {
+                break
+            }
+        }
+
+        return {
+            type: 'still_attack',
+            precessor,
+            piece,
+            attack,
+            blocked,
+            unblocked,
+            zero_attack,
+            zero_defend,
+            attacked_by,
+            is_mate,
+            undefended_by,
+            double_blocked
+        }
+    }
+
 
     // E b= +Q +R/Q
     parse_move_attack(precessor: Precessor): MoveAttackSentence {
@@ -384,6 +472,7 @@ type UndefinedSentence = { type: 'undefined', precessor: 'E' }
 export type ParsedSentence = 
 UndefinedSentence
 | MoveAttackSentence
+| StillAttackSentence
 | AttackSentence
 | PrecessorSentence
 | CaptureSentence
@@ -415,6 +504,24 @@ export type MoveAttackSentence = {
     is_mate: boolean
     undefended_by: Pieces[]
 }
+
+
+export type StillAttackSentence = {
+    type: 'still_attack'
+    precessor: Precessor
+    piece: Pieces
+    attack: Pieces[]
+    blocked: [Pieces, Pieces][]
+    unblocked: [Pieces, Pieces][]
+    zero_attack: boolean
+    zero_defend: boolean
+    attacked_by: Pieces[]
+    is_mate: boolean
+    undefended_by: Pieces[]
+    double_blocked: [Pieces, Pieces, Pieces][]
+}
+
+
 
 
 type AttackSentence = {
