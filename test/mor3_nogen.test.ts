@@ -155,7 +155,7 @@ G Q Z+
 
 })
 
-it('q+/a q+/b/n', () => {
+it.only('q+/a q+/b/n', () => {
     let fen = 'r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11'
 
     let a = `

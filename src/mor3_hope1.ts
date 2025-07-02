@@ -225,10 +225,7 @@ export class Parser {
             const result = this.parse_move_attack(precessor)
             this.eat(TokenType.EOF)
             return result
-        } else if (
-            this.lookahead_token.type === TokenType.PIECE_NAME &&
-            this.current_token.type === TokenType.PIECE_NAME
-        ) {
+        } else {
             const result = this.parse_still_attack(precessor)
             this.eat(TokenType.EOF)
             return result
