@@ -180,13 +180,29 @@ E q= +K Z+
 
 
 
-
-it.only('more G comma', () => {
+it.skip('more G comma', () => {
     let fen = 'r2qk1nr/ppp3pp/2n5/1B1p4/1b1Pp3/5Q1P/PP1B1PP1/RN2K2R w KQkq - 0 12'
 
     let a = `
-G B N+ b+, K b2+/N
+G B N+ b+, K b2+/N, P +q
  E b= =B
+ `
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+})
+
+
+
+
+it.only('nested regression', () => {
+    let fen = 'r2qk1nr/ppp3pp/2n5/1B1p4/1b1Pp3/5Q1P/PP1B1PP1/RN2K2R w KQkq - 0 12'
+
+    let a = `
+G B N+ b+, K b2+/N, P +q
+  E b= =B
+   A
+    G P= =q
  `
 
     console.log(mor_nogen(a, fen))

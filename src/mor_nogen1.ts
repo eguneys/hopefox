@@ -7,6 +7,7 @@ import { makeSan } from "./san"
 import { SquareSet } from "./squareSet"
 import { moveCursor } from "readline"
 import { attacks } from "./attacks"
+import { makeFen } from "./fen"
 
 
 
@@ -122,7 +123,8 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         for (let [mm, lqq] of mls) {
             let yes_qq = []
             let no_qq = []
-            if (mm !== 0) {
+            let fp = m.get_pos_read_fen(pos)
+            if (node.sentence.precessor === 'E' && mm !== 0) {
                 m.make_move(pos, mm)
             }
             for (let c of node.children) {
@@ -139,7 +141,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                     lqq = no_qq
                 }
             }
-            if (mm !== 0) {
+            if (node.sentence.precessor === 'E' && mm !== 0) {
                 m.unmake_move(pos, mm)
             }
             if (node.children.length === 0) {
@@ -529,7 +531,7 @@ function print_m(e: PosExpansionNode, pos_c: PositionC) {
     let i: PosExpansionNode = e
     while (i.parent !== undefined) {
 
-        if (!i.data.move) {
+        if (!i.data.move || i.data === i.parent.data) {
             i = i.parent
             continue
         }
@@ -654,4 +656,19 @@ export function mor_nogen_find_san(text: string, fen: FEN) {
 
 function get_Pieces(ax: PContext) {
     return Object.keys(ax).filter(_ => _[0].toLowerCase() !== _[0])
+}
+
+
+function ctx_equals(a: PContext, b: PContext) {
+    for (let aa of Object.keys(a)) {
+        if (a[aa] !== b[aa]) {
+            return false
+        }
+    }
+    for (let aa of Object.keys(b)) {
+        if (a[aa] !== b[aa]) {
+            return false
+        }
+    }
+    return true
 }

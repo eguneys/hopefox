@@ -331,6 +331,10 @@ export class Parser {
                     let piece = this.piece()
                     this.eat(TokenType.OPERATOR_DEFEND)
                     undefended_by.push(piece)
+                } else if (this.current_token.type === TokenType.OPERATOR_ATTACK) {
+                    this.eat(TokenType.OPERATOR_ATTACK)
+                    let piece = this.piece()
+                    attack.push(piece)
                 } else if (lookahead_token_type === TokenType.OPERATOR_ATTACK) {
                     let attack1 = this.piece()
                     this.eat(TokenType.OPERATOR_ATTACK)
