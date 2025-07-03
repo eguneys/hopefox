@@ -25,6 +25,7 @@ export function mor_nogen(text: string, fen: FEN) {
 
     let pos_root = {
         data: {
+            path: [],
             move: undefined,
             before: context,
             after: context
@@ -57,6 +58,7 @@ type PosExpansionNode = {
 type PosExpansion = {
     before: PContext
     after: PContext
+    path: MoveC[]
     move?: MoveC
 }
 
@@ -88,7 +90,16 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
 
     for (let p_parent of pp_parent) {
 
+
+        for (let mc of p_parent.data.path) {
+            m.make_move(pos, mc)
+        }
+
+        if (['E', 'A'].includes(node.sentence.precessor) && p_parent.data.move)
+            m.make_move(pos, p_parent.data.move)
+
         let eqq = pe_expand_precessor(node.sentence, p_parent, pos)
+
 
         eqq = eqq.filter(cc)
 
@@ -97,46 +108,44 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                 parent: p_parent,
                 data: eq
             })
+
+        if (['E', 'A'].includes(node.sentence.precessor) && p_parent.data.move)
+            m.unmake_move(pos, p_parent.data.move)
+
+        for (let i = p_parent.data.path.length - 1; i >= 0; i--) {
+            let mc = p_parent.data.path[i]
+            m.unmake_move(pos, mc)
+        }
+
+
     }
 
+    if (res.length === 0) {
+        node.children_resolved = true
+        node.res = []
+        return node.res
+    }
+
+
     let lqq = res
-    let mls: Map<MoveC, PosExpansionNode[]> = new Map()
+    let mls: Map<string, PosExpansionNode[]> = new Map()
 
     for (let lq of lqq) {
-        if (lq.data.move) {
-            if (!mls.has(lq.data.move)) {
-                mls.set(lq.data.move, [])
-            }
-            mls.get(lq.data.move)!.push(lq)
-        } else {
-            if (!mls.has(0)) {
-                mls.set(0, [])
-            }
-            mls.get(0)!.push(lq)
+        let m = lq.data.path.join(' ')
+        if (!mls.has(m)) {
+            mls.set(m, [])
         }
+        mls.get(m)!.push(lq)
     }
 
 
 
     if (node.sentence.precessor === 'E' || node.sentence.precessor === '.' || node.sentence.precessor === 'G') {
 
-        for (let [mm, lqq] of mls) {
+        for (let [ms, lqq] of mls) {
+            let aqq = lqq
             let yes_qq = []
             let no_qq = []
-            /*
-            let fp2 = m.get_pos_read_fen(pos)
-            console.log(makeFen(fp2.toSetup()), move_c_to_Move(mm), mm)
-            */
-            if (node.sentence.precessor === 'E' && mm !== 0) {
-                m.make_move(pos, mm)
-            }
-            /*
-            let fp = m.get_pos_read_fen(pos)
-            console.log(makeFen(fp.toSetup()), move_c_to_Move(mm))
-            if (mm === 154) {
-                debugger
-            }
-                */
             for (let c of node.children) {
                 let eqq = pos_node_expand(c, lqq, pos)
 
@@ -151,13 +160,13 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                     lqq = no_qq
                 }
             }
-            if (node.sentence.precessor === 'E' && mm !== 0) {
-                m.unmake_move(pos, mm)
-            }
+
             if (node.children.length === 0) {
+                node.res = res
                 node.children_resolved = true
                 break
             }
+
             if (yes_qq.length > 0) {
                 node.res = yes_qq
                 node.children_resolved = true
@@ -168,20 +177,11 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     } else if (node.sentence.precessor === 'A') {
 
         node.res = []
-        let coverage_broken = false
-        for (let [mm, lqq] of mls) {
-            let aqq = lqq
-            if (mm !== 0) {
-                m.make_move(pos, mm)
-            }
+        let coverage_done = []
 
-            /*
-            let fp2 = m.get_pos_read_fen(pos)
-            console.log('A', makeFen(fp2.toSetup()), move_c_to_Move(mm), mm)
-            if (mm === 2138) {
-                debugger
-            }
-                */
+        for (let [ms, lqq] of mls) {
+
+            let aqq = lqq
             for (let c of node.children) {
                 let eqq = pos_node_expand(c, lqq, pos)
 
@@ -189,25 +189,26 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                     lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
                 }
             }
-            if (mm !== 0) {
-                m.unmake_move(pos, mm)
-            }
+
             if (node.children.length > 0 && lqq.length !== 0) {
-                coverage_broken = true
+            } else {
+                coverage_done.push(aqq)
             }
         }
-        if (!coverage_broken) {
-            node.res = [...mls.values()][0]
+
+
+
+        if (coverage_done.length > 0) {
+            node.res = coverage_done.flat()
             node.children_resolved = true
         }
     } else {
         node.children_resolved = true
     }
 
-    node.res.push(...res)
+    //node.res.push(...res)
     return node.res
 }
-
 
 function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint {
 
@@ -555,7 +556,16 @@ function resolve_cc(sentence: ParsedSentence, pos: PositionC): PConstraint {
 
 function pe_expand_precessor(sentence: ParsedSentence, p: PosExpansionNode, pos: PositionC): PosExpansion[] {
     if (['E', 'A', '*'].includes(sentence.precessor)) {
-        return m.get_legal_moves(pos).map(move => ({ move, before: p.data.after, after: p_context_make_move(p.data.after, pos, move) }))
+        let path = p.data.path.slice(0)
+        if (p.data.move) {
+            path.push(p.data.move)
+        }
+        return m.get_legal_moves(pos).map(move => ({ 
+            path,
+            move, 
+            before: p.data.after, 
+            after: p_context_make_move(p.data.after, pos, move) 
+        }))
     } else {
         return [p.data]
     }
@@ -584,22 +594,9 @@ function print_m(e: PosExpansionNode, pos_c: PositionC) {
     }
 
 
-    let moves = []
+    let moves = e.data.path.slice(0)
+    moves.push(e.data.move)
     let sans = []
-    let i: PosExpansionNode = e
-    while (i.parent !== undefined) {
-
-        if (!i.data.move || i.data === i.parent.data) {
-            i = i.parent
-            continue
-        }
-
-        moves.push(i.data.move)
-
-        i = i.parent
-    }
-    moves.reverse()
-
     for (let move of moves) {
 
         let pos = m.get_pos_read_fen(pos_c)

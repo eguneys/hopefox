@@ -338,13 +338,21 @@ E q= +K
 
 it.only('A children regression', () => {
 
+    // id_006om
     let fen3 = '1r3k2/5p1p/2p1pp2/P2n4/r3N3/P4PK1/2R2P1P/2R5 w - - 10 30'
 
-    let c = `
-E n= +R
+    let d = `
+E n= +R 5
  A
   E n= +K +R2
   E n= =R
+`
+    let c = `
+E n= +R 5
+ A
+  E n= +K +R2
+  E n= =R
+  G R= +k
 `
 
     console.log(mor_nogen(c, fen3))
