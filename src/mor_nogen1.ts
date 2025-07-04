@@ -121,7 +121,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     }
 
     if (res.length === 0) {
-        node.children_resolved = true
+        node.children_resolved = false
         node.res = []
         return node.res
     }
@@ -147,6 +147,11 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
             let yes_qq = []
             let no_qq = []
             for (let c of node.children) {
+
+                let resolved = c.children_resolved
+                let res = c.res
+                c.res = []
+
                 let eqq = pos_node_expand(c, lqq, pos)
 
                 if (c.children_resolved) {
@@ -159,10 +164,17 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
                     }
                     lqq = no_qq
                 }
+
+                c.res.push(...res)
+                if (resolved) {
+                    c.children_resolved = true
+                }
+
+
             }
 
             if (node.children.length === 0) {
-                node.res = res
+                node.res.push(...res)
                 node.children_resolved = true
                 break
             }
@@ -178,16 +190,34 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
 
         node.res = []
         let coverage_done = []
-
+        //console.log('in')
         for (let [ms, lqq] of mls) {
+            /*
+            let rr = lqq[0].data.path.map(move_c_to_Move)
+            if (rr[rr.length - 1].to === 38) {
+                console.log(rr)
+            }
+                */
 
             let aqq = lqq
             for (let c of node.children) {
+
+                let resolved = c.children_resolved
+                let res = c.res
+                c.res = []
+
                 let eqq = pos_node_expand(c, lqq, pos)
 
                 if (c.children_resolved) {
                     lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
                 }
+
+                c.res.push(...res)
+                if (resolved) {
+                    c.children_resolved = true
+                }
+
+
             }
 
             if (node.children.length > 0 && lqq.length !== 0) {
@@ -206,7 +236,6 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         node.children_resolved = true
     }
 
-    //node.res.push(...res)
     return node.res
 }
 

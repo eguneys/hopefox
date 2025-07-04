@@ -336,7 +336,7 @@ E q= +K
 
 
 
-it.only('A children regression', () => {
+it.skip('A children regression', () => {
 
     // id_006om
     let fen3 = '1r3k2/5p1p/2p1pp2/P2n4/r3N3/P4PK1/2R2P1P/2R5 w - - 10 30'
@@ -358,4 +358,47 @@ E n= +R 5
     console.log(mor_nogen(c, fen3))
     console.log(mor_nogen_find_san(c, fen3))
 })
+
+it.only('G regression', () => {
+
+    let fen3 = 'r2qr1k1/b1p2ppp/p5n1/P1p1p3/4P1n1/B2P2Pb/3NBP1P/RN1QR1K1 w - - 0 17'
+
+    let c = `
+G N b+ B+ q+/b
+ E b= =N
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
+})
+
+it.skip('+K/Q regression', () => {
+
+    let fen3 = '2kr1b1r/pbp5/1pn1q2p/3p1pp1/3P4/P1P1BQ1B/1P3P1P/R3K1R1 w Q - 0 19'
+
+    let c = `
+E b= 
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
+})
+
+it.only('A E regression', () => {
+
+    let fen3 = '2r4r/6b1/8/1b1pPQ2/2p2P1k/4P3/PP1B3q/2K5 w - - 8 34'
+
+    let c = `
+E b= +K
+ A
+  E b= #
+  E q= +K
+   A
+    E q= #
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
+})
+
 
