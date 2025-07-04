@@ -143,6 +143,14 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
     if (node.sentence.precessor === 'E' || node.sentence.precessor === '.' || node.sentence.precessor === 'G') {
 
         for (let [ms, lqq] of mls) {
+
+            let rr = lqq[0].data.path.map(move_c_to_Move)
+            if (rr[rr.length - 1]?.to === 52) {
+                console.log(rr)
+            }
+
+
+
             let aqq = lqq
             let yes_qq = []
             let no_qq = []
@@ -180,9 +188,9 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
             }
 
             if (yes_qq.length > 0) {
-                node.res = yes_qq
+                node.res.push(...yes_qq)
                 node.children_resolved = true
-                break
+                //break
             }
         }
 
@@ -194,7 +202,7 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
         for (let [ms, lqq] of mls) {
             /*
             let rr = lqq[0].data.path.map(move_c_to_Move)
-            if (rr[rr.length - 1].to === 38) {
+            if (rr[rr.length - 1].to === 52) {
                 console.log(rr)
             }
                 */
