@@ -603,7 +603,7 @@ export function parse_rules(str: string): Line {
 
         let no_c = false
         let long = false
-        if (rule[rule.length - 1] === '5') {
+        if (rule[rule.length - 1] === '9') {
             long = true
             rule = rule.slice(0, -1).trim()
         }
