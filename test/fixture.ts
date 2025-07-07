@@ -3,6 +3,8 @@ import { Chess, parseUci } from '../src'
 import { makeFen, parseFen } from '../src/fen'
 import { makeSan } from '../src/san'
 
+export const a_hundred = parse_puzzles(fs.readFileSync('data/a_hundred_puzzles.csv').toString())
+
 export const puzzles = parse_puzzles(fs.readFileSync('data/athousand_sorted.csv').toString())
 
 export const tenk = parse_puzzles(fs.readFileSync('data/tenk_puzzle.csv').toString())

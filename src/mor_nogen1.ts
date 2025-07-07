@@ -270,6 +270,11 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
         let p1s = pexp.after[res.piece]
         let ax = pexp.after
 
+
+        if (p1s === undefined) {
+          //  return false
+        }
+
         if (is_mate) {
             if (!m.is_checkmate(pos)) {
                 return false
@@ -441,7 +446,15 @@ function pcc_move_attack(res: MoveAttackSentence, pos: PositionC): PConstraint {
         }
 
         if (res.zero_defend) {
-            for (let p1 of get_Pieces(ax)) {
+            for (let p1 of get_Upper(ax)) {
+                if (m.pos_attacks(pos, ax[p1]).has(m1.to)) {
+                    return false
+                }
+            }
+        }
+
+        if (res.zero_attack) {
+            for (let p1 of get_Lower(ax)) {
                 if (m.pos_attacks(pos, ax[p1]).has(m1.to)) {
                     return false
                 }
@@ -746,9 +759,14 @@ export function mor_nogen_find_san(text: string, fen: FEN) {
 }
 
 
-function get_Pieces(ax: PContext) {
+function get_Upper(ax: PContext) {
     return Object.keys(ax).filter(_ => _[0].toLowerCase() !== _[0])
 }
+function get_Lower(ax: PContext) {
+    return Object.keys(ax).filter(_ => _[0].toLowerCase() === _[0])
+}
+
+
 
 
 function ctx_equals(a: PContext, b: PContext) {

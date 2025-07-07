@@ -403,7 +403,7 @@ E b= +K
 
 
 
-it.only('A E regression', () => {
+it.skip('A E regression', () => {
 
     let fen3 = '3r2k1/pp3ppp/1b4b1/3N1N2/6P1/P2QPPK1/1q5P/2rR4 w - - 0 25'
 
@@ -417,6 +417,27 @@ E n= +K
 
     console.log(mor_nogen(c, fen3))
     console.log(mor_nogen_find_san(c, fen3))
+})
+
+
+
+it.only('large regression', () => {
+
+    let fen1 = '3r1k2/p6p/1p1q4/4pr2/P1P1p2Q/1PB1P3/6PP/R5K1 w - - 2 27'
+
+    let fen3 = '2r5/1p1b2kp/p3p3/3pq3/Pn6/1P2B3/5PPP/3Q1RK1 w - - 0 25'
+
+    let c = `
+G R2 Q+ q+
+ E b= +K/Q z+
+`
+
+    console.log(mor_nogen(c, fen3))
+    console.log(mor_nogen_find_san(c, fen3))
+
+
+    console.log(mor_nogen(c, fen1))
+    console.log(mor_nogen_find_san(c, fen1))
 })
 
 
