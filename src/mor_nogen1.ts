@@ -282,8 +282,16 @@ function pcc_still_attack(res: StillAttackSentence, pos: PositionC): PConstraint
         }
 
         if (res.zero_defend) {
-            for (let p1 of get_Pieces(ax)) {
+            for (let p1 of get_Upper(ax)) {
                 if (m.pos_attacks(pos, ax[p1]).has(p1s)) {
+                    return false
+                }
+            }
+        }
+
+        if (res.zero_attack) {
+            for (let p1 of get_Lower(ax)) {
+                if (m.pos_attacks(pos, ax[p1]).has(m1.to)) {
                     return false
                 }
             }
