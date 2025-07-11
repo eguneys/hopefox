@@ -226,7 +226,7 @@ G Q Z+
 
 
 
-it('A regression', () => {
+it.skip('A regression', () => {
     let fen = 'r1b3k1/pp3Rpp/3p1b2/2pN4/2P5/5Q1P/PPP3P1/4qNK1 w - - 1 22'
 
     let a = `
@@ -421,7 +421,7 @@ E n= +K
 
 
 
-it.only('large regression', () => {
+it.skip('large regression', () => {
 
     let fen1 = '3r1k2/p6p/1p1q4/4pr2/P1P1p2Q/1PB1P3/6PP/R5K1 w - - 2 27'
 

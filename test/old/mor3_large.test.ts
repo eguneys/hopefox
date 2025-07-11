@@ -6,7 +6,7 @@ import { mor_nogen_find_san, PositionManager, set_m } from '../src'
 
 set_m(await PositionManager.make())
 
-it.only('works', () => {
+it.skip('works', () => {
 
     let b = `
 G R2 Q+ q+

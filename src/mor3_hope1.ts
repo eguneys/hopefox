@@ -31,12 +31,12 @@ interface Token {
     value: string
 }
 
-const PLAYER_PIECE_NAMES = [
+export const PLAYER_PIECE_NAMES = [
     'p', 'n', 'q', 'b', 'k', 'r',
     'p2', 'n2', 'b2', 'r2',
     'p3', 'p4', 'p5', 'p6', 'p7', 'p8',
 ]
-const OPPONENT_PIECE_NAMES = [
+export const OPPONENT_PIECE_NAMES = [
     'P', 'N', 'Q', 'B', 'K', 'R',
     'P2', 'N2', 'B2', 'R2',
     'P3', 'P4', 'P5', 'P6', 'P7', 'P8',

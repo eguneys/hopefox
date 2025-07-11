@@ -1,0 +1,507 @@
+import { Board } from "./board";
+import { Chess } from "./chess";
+import { EMPTY_FEN, makeFen, parseFen } from "./fen";
+import { MoveC, piece_to_c, PieceC, W_PIECES } from "./hopefox_c";
+import { extract_pieces, FEN, Line, OPPONENT_PIECE_NAMES, parse_line_recur, parse_piece, parse_rules, ParsedSentence, PIECE_NAMES, Pieces, PLAYER_PIECE_NAMES, StillAttackSentence } from "./mor3_hope1";
+import { m } from './mor3_hope1'
+import { SquareSet } from "./squareSet";
+import { Color, Move, Piece, Square } from "./types";
+
+export function mor_gen2(text: string, fen?: FEN) {
+
+    let root = parse_rules(text)
+    parse_line_recur(root)
+
+
+    let res = gen_node(root)
+
+    let gboard = extract_g_board(text)
+
+
+    let gen_root = {
+        data: {
+            path: [],
+            move: undefined,
+            before: gboard,
+            after: gboard
+        }
+    }
+
+    gen_node_expand(res, [gen_root])
+
+    let bb = gen_node_collapse_board(res)
+
+    let res_out = bb.map(_ => g_fen_singles(_))
+
+    return res_out
+}
+
+function node_leaves(res: GenNode): GenNode[] {
+    if (res.children.length === 0) {
+        return [res]
+    }
+    return res.children.flatMap(node_leaves)
+}
+
+function gen_node_collapse_board(res: GenNode) {
+    function step(res: GenExpansionNode[]) {
+        return res.map(gen_node_collapse_board2)
+    }
+
+    let cc = node_leaves(res).flatMap(_ => step(_.res))
+
+    return cc
+}
+
+function gen_node_collapse_board2(res: GenExpansionNode) {
+
+    let ib = res.data.after
+    let e = res.parent
+    while (e !== undefined) {
+        ib = gboard_compose2(ib, e.data.after)
+        e = e.parent
+    }
+    return ib
+}
+
+function gen_node(root: Line): GenNode {
+    let sentence = root.sentence
+    let children = root.children.map(gen_node)
+
+    return {
+        sentence,
+        children,
+        res: [],
+        children_resolved: false,
+        line: root
+    }
+}
+
+
+type GenNode = {
+    sentence: ParsedSentence
+    children: GenNode[]
+    res: GenExpansionNode[]
+    children_resolved: boolean
+    line: Line
+}
+
+type GenExpansionNode = {
+    parent?: GenExpansionNode
+    data: GenExpansion
+}
+
+type GenExpansion = {
+    before: GBoard
+    after: GBoard
+    path: FromMove[]
+    move?: FromMove
+}
+
+type FromMove = Square
+
+type GConstraint = (pex: GenExpansion) => GenExpansion[]
+
+export type GenSquareSet = SquareSet | undefined
+export type GBoard = Record<Pieces, GenSquareSet>
+
+
+export function extract_g_board(text: string) {
+    let pieces = extract_pieces(text)
+
+    let res: GBoard = {}
+    
+    for (let key of PIECE_NAMES) {
+        if (pieces.includes(key)) {
+            res[key] = SquareSet.full()
+        } else {
+            //res[key] = undefined
+        }
+    }
+
+    return res
+}
+
+
+
+function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpansionNode[] {
+
+    let res: GenExpansionNode[] = []
+
+    let cc = resolve_cc(node.sentence)
+
+    for (let p_parent of pp_parent) {
+
+        let eqq = ge_expand_precessor(node.sentence, p_parent)
+
+        eqq = eqq.flatMap(cc)
+
+        for (let eq of eqq)
+            res.push({
+                parent: p_parent,
+                data: eq
+            })
+    }
+
+    if (res.length === 0) {
+        node.children_resolved = false
+        node.res = []
+        return node.res
+    }
+
+    let lqq = res
+    let mls: Map<string, GenExpansionNode[]> = new Map()
+
+    for (let lq of lqq) {
+        let m = lq.data.path.join(' ')
+        if (!mls.has(m)) {
+            mls.set(m, [])
+        }
+        mls.get(m)!.push(lq)
+    }
+
+    if (node.sentence.precessor === 'E' || node.sentence.precessor === '.' || node.sentence.precessor === 'G') {
+
+        for (let [ms, lqq] of mls) {
+
+            let aqq = lqq
+            let yes_qq = []
+            let no_qq = []
+            for (let c of node.children) {
+
+                let resolved = c.children_resolved
+                let res = c.res
+                c.res = []
+
+                let eqq = gen_node_expand(c, lqq)
+
+                if (c.children_resolved) {
+                    for (let p of lqq) {
+                        if (eqq.find(_ => _ === p || _.parent === p)) {
+                            yes_qq.push(p)
+                        } else {
+                            no_qq.push(p)
+                        }
+                    }
+                    lqq = no_qq
+                }
+
+                c.res.push(...res)
+                if (resolved) {
+                    c.children_resolved = true
+                }
+
+
+            }
+
+            if (node.children.length === 0) {
+                node.res.push(...res)
+                node.children_resolved = true
+                break
+            }
+
+            if (yes_qq.length > 0) {
+                node.res.push(...yes_qq)
+                node.children_resolved = true
+                //break
+            }
+        }
+
+    } else if (node.sentence.precessor === 'A') {
+
+        node.res = []
+        let coverage_done = []
+        for (let [ms, lqq] of mls) {
+            let aqq = lqq
+            for (let c of node.children) {
+
+                let resolved = c.children_resolved
+                let res = c.res
+                c.res = []
+
+                let eqq = gen_node_expand(c, lqq)
+
+                if (c.children_resolved) {
+                    lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
+                }
+
+                c.res.push(...res)
+                if (resolved) {
+                    c.children_resolved = true
+                }
+
+
+            }
+
+            if (node.children.length > 0 && lqq.length !== 0) {
+            } else {
+                coverage_done.push(aqq)
+            }
+        }
+
+
+
+        if (coverage_done.length > 0) {
+            node.res = coverage_done.flat()
+            node.children_resolved = true
+        }
+    } else {
+        node.children_resolved = true
+    }
+
+    return node.res
+}
+
+
+function ge_expand_precessor(sentence: ParsedSentence, p: GenExpansionNode): GenExpansion[] {
+    if (['E', 'A', '*'].includes(sentence.precessor)) {
+        let path = p.data.path.slice(0)
+        if (p.data.move) {
+            path.push(p.data.move)
+        }
+
+        let ee: [FromMove, GBoard][]
+        if (sentence.precessor === 'E') {
+             ee = ge_legal_moves_for_pieces(p.data.after, PLAYER_PIECE_NAMES)
+        } else {
+            ee = ge_legal_moves_for_pieces(p.data.after, OPPONENT_PIECE_NAMES)
+        }
+
+        return ee.map(([move, after]) => ({
+            path,
+            move,
+            before: p.data.after,
+            after
+        }))
+
+    } else {
+        return [p.data]
+    }
+}
+
+function ge_legal_moves_for_pieces(board: GBoard, pieces: Pieces[]) {
+
+    let res: [FromMove, GBoard][] = []
+    for (let p of pieces) {
+        let p1 = piece_to_c(parse_piece(p))
+        if (board[p] !== undefined) {
+
+            for (let sq of board[p]) {
+
+                let tos = m.attacks(p1, sq, SquareSet.empty())
+
+                let after = {...board}
+                after[p] = tos
+                res.push([sq, after])
+            }
+        }
+    }
+
+    return res
+}
+
+function ge_make_move(board: GBoard, move: Move) {
+    for (let p of Object.keys(board)) {
+        if (board[p] === undefined) {
+            continue
+        }
+        let sq = board[p].singleSquare()
+        if (sq === undefined) {
+            if (board[p].has(move.from)) {
+                board[p] = board[p].with(move.to)
+            }
+            board[p] = board[p].without(move.from)
+        } else if (sq === move.to) {
+            board[p] = undefined
+        } else if (sq === move.from) {
+            board[p] = SquareSet.fromSquare(move.to)
+        }
+    }
+    return board
+}
+
+
+const pcc_no_constraint = (exp: GenExpansion) => [exp]
+
+function resolve_cc(sentence: ParsedSentence): GConstraint {
+
+    if (sentence.type === 'move_attack') {
+        //return pcc_move_attack(sentence, pos)
+    } else if (sentence.type === 'still_attack') {
+        return pcc_still_attack(sentence)
+    } else if (sentence.type === 'g_still_attack') {
+        let aa = sentence.attacks.map(_ => pcc_still_attack(_))
+        return (exp: GenExpansion) => {
+            return gexp_compose_maps(aa.map(_ => _(exp)))
+        }
+    }
+    return pcc_no_constraint
+}
+
+function gexp_compose_maps(aas: GenExpansion[][]) {
+    let res = []
+
+    while (true) {
+        let aa1 = aas.pop()
+        let aa2 = aas.pop()
+
+        if (!aa1) {
+            break
+        } else if (!aa2) {
+            res.push(...aa1)
+        } else {
+            res.push(...gexp_compose(aa1, aa2))
+        }
+    }
+    return res
+}
+
+function gexp_compose(a: GenExpansion[], b: GenExpansion[]) {
+    let res: GenExpansion[] = []
+
+    for (let a1 of a) {
+        for (let b1 of b) {
+
+            let c1 = gexp_compose2(a1, b1)
+            if (c1) {
+                res.push(c1)
+            }
+        }
+    }
+
+    return res
+}
+
+function gexp_compose2(a: GenExpansion, b: GenExpansion): GenExpansion | undefined {
+
+    let res: GBoard = {}
+    for (let key of Object.keys(a.after)) {
+        let aa = a.after[key]
+        let bb = b.after[key]
+
+        if (aa === undefined || bb === undefined) {
+            continue
+        }
+
+        let cc = aa.intersect(bb)
+
+        if (cc.isEmpty()) {
+            return undefined
+        }
+
+        res[key] = cc
+
+    }
+
+    return {
+        before: a.before,
+        after: res,
+        path: a.path
+    }
+}
+
+function gboard_compose2(a: GBoard, b: GBoard) {
+
+    let res: GBoard = {}
+    for (let key of Object.keys(a)) {
+        if (a[key] !== undefined && b[key] !== undefined) {
+
+                res[key] = a[key].intersect(b[key])
+        } else if (a[key] !== undefined) {
+            res[key] = a[key]
+        } else if (b[key] !== undefined) {
+            res[key] = b[key]
+        }
+    }
+
+    return res
+}
+
+function pcc_still_attack(res: StillAttackSentence) {
+
+    let piece = parse_piece(res.piece)
+    let attacks1 = res.attack.map(parse_piece)
+    let blocked = res.blocked.map(([a, b, c]) => [parse_piece(a), parse_piece(b), parse_piece(c)])
+    let unblocked = res.unblocked.map(([a, b]) => [parse_piece(a), parse_piece(b)])
+
+    let attacked_by = res.attacked_by.map(parse_piece)
+
+    let double_blocked = res.double_blocked.map(([a, b, c]) => [parse_piece(a), parse_piece(b), parse_piece(c)])
+
+    let undefended_by = res.undefended_by.map(parse_piece)
+
+    let zero_defend = res.zero_defend
+    let zero_attack = res.zero_attack
+
+    let is_mate = res.is_mate
+
+
+    return (gexp: GenExpansion) => {
+
+        let p1ss = gexp.after[res.piece]
+
+
+        if (p1ss === undefined) {
+            return []
+        }
+
+        let rexx: GenExpansion[] = []
+
+        outer: for (let p1s of p1ss) {
+
+            let before = gexp.before
+            let ax = {...gexp.after}
+            ax[res.piece] = SquareSet.fromSquare(p1s)
+
+            for (let i = 0; i < res.attacked_by.length; i++) {
+                let a1 = piece_to_c(parse_piece(res.attacked_by[i]))
+                let a1ss = ax[res.attacked_by[i]]
+                if (a1ss === undefined) {
+                    continue outer
+                }
+
+                let new_a1s = SquareSet.empty()
+
+                for (let a1s of a1ss) {
+                    if (attacks(a1, a1s).has(p1s)) {
+                        new_a1s = new_a1s.set(a1s, true)
+                    }
+                }
+
+                if (new_a1s.isEmpty()) {
+                    continue outer
+                }
+
+                ax[res.attacked_by[i]] = new_a1s
+            }
+
+            rexx.push({
+                before,
+                after: ax,
+                path: gexp.path
+            })
+        }
+
+
+        return rexx
+    }
+}
+
+function attacks(pc: PieceC, s: Square) {
+    return m.attacks(pc, s, SquareSet.empty())
+}
+
+
+function g_fen_singles(q: GBoard, turn: Color = 'white') {
+    let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
+    res.turn = turn
+
+    for (let p of Object.keys(q)) {
+        let sq = q[p]?.first()
+        if (sq !== undefined) {
+            res.board.set(sq, parse_piece(p))
+        }
+    }
+    return makeFen(res.toSetup())
+}
+
