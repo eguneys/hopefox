@@ -1,7 +1,9 @@
+import { attacks } from "./attacks";
 import { Board } from "./board";
 import { Chess } from "./chess";
+import { squareSet } from "./debug";
 import { EMPTY_FEN, makeFen, parseFen } from "./fen";
-import { MoveC, piece_to_c, PieceC, W_PIECES } from "./hopefox_c";
+import { c_to_piece, MoveC, piece_to_c, PieceC, W_PIECES } from "./hopefox_c";
 import { extract_pieces, FEN, Line, MoveAttackSentence, OPPONENT_PIECE_NAMES, parse_line_recur, parse_piece, parse_rules, ParsedSentence, PIECE_NAMES, Pieces, PLAYER_PIECE_NAMES, StillAttackSentence } from "./mor3_hope1";
 import { m } from './mor3_hope1'
 import { SquareSet } from "./squareSet";
@@ -509,7 +511,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
             let new_a1s = SquareSet.empty()
 
             for (let a1s of a1ss) {
-                if (attacks(a1, a1s).has(p1s)) {
+                if (attacks_c(a1, a1s).has(p1s)) {
                     new_a1s = new_a1s.set(a1s, true)
                 }
             }
@@ -532,7 +534,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
 
             let new_a1s = SquareSet.empty()
             for (let a1s of a1ss) {
-                if (attacks(p1, p1s).has(a1s)) {
+                if (attacks_c(p1, p1s).has(a1s)) {
                     new_a1s = new_a1s.set(a1s, true)
                 }
             }
@@ -557,7 +559,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
 
                 let new_d1s = SquareSet.empty()
                 for (let d1s of ax[d1]) {
-                    if (!attacks(d1c, d1s).has(p1s)) {
+                    if (!attacks_c(d1c, d1s).has(p1s)) {
                         new_d1s = new_d1s.set(d1s, true)
                     }
                 }
@@ -582,7 +584,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
 
                 let new_a1s = SquareSet.empty()
                 for (let a1s of ax[a1]) {
-                    if (!attacks(p1, p1s).has(a1s)) {
+                    if (!attacks_c(p1, p1s).has(a1s)) {
                         new_a1s = new_a1s.set(a1s, true)
                     }
                 }
@@ -650,8 +652,8 @@ function pcc_move_attack(res: MoveAttackSentence) {
                             occupied = occupied.set(u2s, true)
                             occupied = occupied.set(u3s, true)
 
-                            if (attacks(pu1, u1s, occupied.without(u3s)).has(u2s) &&
-                                !attacks(pu1, u1s, occupied).has(u2s)) {
+                            if (attacks_c(pu1, u1s, occupied.without(u3s)).has(u2s) &&
+                                !attacks_c(pu1, u1s, occupied).has(u2s)) {
 
                                 rexx.push({
                                     before,
@@ -729,7 +731,7 @@ function pcc_still_attack(res: StillAttackSentence) {
                 let new_a1s = SquareSet.empty()
 
                 for (let a1s of a1ss) {
-                    if (attacks(a1, a1s).has(p1s)) {
+                    if (attacks_c(a1, a1s).has(p1s)) {
                         new_a1s = new_a1s.set(a1s, true)
                     }
                 }
@@ -752,7 +754,7 @@ function pcc_still_attack(res: StillAttackSentence) {
 
                 let new_a1s = SquareSet.empty()
                 for (let a1s of a1ss) {
-                    if (attacks(p1, p1s).has(a1s)) {
+                    if (attacks_c(p1, p1s).has(a1s)) {
                         new_a1s = new_a1s.set(a1s, true)
                     }
                 }
@@ -777,7 +779,7 @@ function pcc_still_attack(res: StillAttackSentence) {
 
                     let new_d1s = SquareSet.empty()
                     for (let d1s of ax[d1]) {
-                        if (!attacks(d1c, d1s).has(p1s)) {
+                        if (!attacks_c(d1c, d1s).has(p1s)) {
                             new_d1s = new_d1s.set(d1s, true)
                         }
                     }
@@ -802,7 +804,7 @@ function pcc_still_attack(res: StillAttackSentence) {
 
                     let new_a1s = SquareSet.empty()
                     for (let a1s of ax[a1]) {
-                        if (!attacks(p1, p1s).has(a1s)) {
+                        if (!attacks_c(p1, p1s).has(a1s)) {
                             new_a1s = new_a1s.set(a1s, true)
                         }
                     }
@@ -872,19 +874,27 @@ function pcc_still_attack(res: StillAttackSentence) {
                                 occupied = occupied.set(u2s, true)
                                 occupied = occupied.set(u3s, true)
 
-                                if (attacks(pu1, u1s, occupied.without(u3s)).has(u2s) &&
-                                    !attacks(pu1, u1s, occupied).has(u2s)) {
+                                if (attacks_c(pu1, u1s, occupied.without(u3s)).has(u2s) &&
+                                    !attacks_c(pu1, u1s, occupied).has(u2s)) {
+
+                                        /*
+                                        if (g_fen_singles(ax3) === "8/7q/8/8/7b/8/B7/1n6 w - - 0 1") {
+                                            console.log('yay')
+                                            console.log(attacks_c(pu1, u1s, occupied).has(u2s))
+                                            console.log(squareSet(occupied))
+                                            console.log(squareSet(attacks_c(pu1, u1s, occupied)))
+                                            console.log('hard', squareSet(attacks_c(13, 55, occupied)))
+                                            console.log('no', squareSet(attacks_c(13, 55)))
+                                            console.log(squareSet(attacks(blocked[i][0], 55, occupied)))
+                                        }
+                                            */
 
                                     rexx.push({
                                         before,
                                         after: ax3,
                                         path: gexp.path
                                     })
-
-                                    continue
                                 }
-
-                                return []
                             }
                         }
                     }
@@ -899,8 +909,9 @@ function pcc_still_attack(res: StillAttackSentence) {
     }
 }
 
-function attacks(pc: PieceC, s: Square, occupied = SquareSet.empty()) {
-    return m.attacks(pc, s, occupied)
+function attacks_c(pc: PieceC, s: Square, occupied = SquareSet.empty()) {
+    //return m.attacks(pc, s, occupied)
+    return attacks(c_to_piece(pc), s, occupied)
 }
 
 
