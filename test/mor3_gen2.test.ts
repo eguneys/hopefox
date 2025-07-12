@@ -92,6 +92,27 @@ G N Q+/B b2+
     console.log(mor_gen2(a))
 })
 
+it.skip('another example', () => {
+    let b = `
+G R2 Q+ q+
+ E b= +K/Q z+
+  A
+   G R= r+ k+ +k
+   E b= =Q
+   G Q= =b
+    E q= =R2 Z+
+ `
+
+ let a = `
+G K Q+, k b+
+ E b=
+ `
+
+    console.log(mor_gen2(a))
+})
+
+
+
 
 it.only('another example', () => {
     let b = `

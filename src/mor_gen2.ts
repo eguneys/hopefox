@@ -9,6 +9,7 @@ import { extract_pieces, FEN, Line, MoveAttackSentence, OPPONENT_PIECE_NAMES, pa
 import { m } from './mor3_hope1'
 import { SquareSet } from "./squareSet";
 import { Color, Move, Piece, Square } from "./types";
+import { mor_nogen, mor_nogen_find_san } from "./mor_nogen1";
 
 export function mor_gen2(text: string, fen?: FEN) {
 
@@ -35,6 +36,15 @@ export function mor_gen2(text: string, fen?: FEN) {
     let bb = gen_node_collapse_board(res)
 
     let res_out = bb.map(_ => g_fen_singles(_))
+
+    let [a, b, c] = [0, 0, 0]
+    a = res_out.length
+    res_out = res_out.filter(valid_fen)
+    b = res_out.length
+    res_out = res_out.filter(_ => mor_nogen_find_san(text, _))
+    c = res_out.length
+
+    console.log(a, b, c)
 
     return res_out
 }
@@ -155,7 +165,7 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
         return node.res
     }
 
-    res = res.slice(0, 100)
+    res = arr_shuffle(res).slice(0, 10000)
 
     let lqq = res
     let mls: Map<string, GenExpansionNode[]> = new Map()
@@ -1085,4 +1095,29 @@ function get_Upper(ax: GBoard) {
 function get_Lower(ax: GBoard) {
     return Object.keys(ax).filter(_ => _[0].toLowerCase() === _[0])
 }
+
+
+function valid_fen(fen: string) {
+    return parseFen(fen).chain(_ => Chess.fromSetup(_)).isOk
+}
+
+
+export function arr_shuffle<A>(array: Array<A>) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+  return array
+}
+
+
 
