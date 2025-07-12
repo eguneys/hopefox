@@ -1679,7 +1679,15 @@ export function parse_piece(pieces: Pieces): Piece {
         return { color: 'white', role: 'pawn' }
     }
     let color = color_pieces(pieces)
-    let role = pieces_to_role[pieces.replace(/2/, '').toLowerCase()]
+    let role = pieces_to_role[pieces
+        .replace(/2/, '')
+        .replace(/3/, '')
+        .replace(/4/, '')
+        .replace(/5/, '')
+        .replace(/6/, '')
+        .replace(/7/, '')
+        .replace(/8/, '')
+        .toLowerCase()]
     return {
         color,
         role

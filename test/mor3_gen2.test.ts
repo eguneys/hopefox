@@ -62,10 +62,58 @@ G Q Z+
 })
 
 
-it.only('Q+/E', () => {
+it.skip('Q+/B', () => {
     let a = `
 G N Q+/B b2+
  `
 
     console.log(mor_gen2(a))
 })
+
+it.skip('regression', () => {
+    let b = `
+G N Q+/B b2+
+ E b2= =N
+  A
+   G B= +k Q+|b2
+    E p3= +B
+   G b2
+ `
+
+ let a = `
+G N Q+/B b2+
+ E b2= =N
+  A
+   G B= +k Q+|b2
+    E p3= +B
+   G b2
+ `
+
+    console.log(mor_gen2(a))
+})
+
+
+it.only('another example', () => {
+    let b = `
+G R2 Q+ q+
+ E b= +K/Q z+
+  A
+   G R= r+ k+ +k
+   E b= =Q
+   G Q= =b
+    E q= =R2 Z+
+ `
+
+ let a = `
+G R2 Q+ q+
+ E b= +K/Q z+
+  A
+   G R= r+ k+ +k
+   E b= =Q
+   G Q= =b
+    E q= =R2 Z+
+ `
+
+    console.log(mor_gen2(a))
+})
+

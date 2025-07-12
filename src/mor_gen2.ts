@@ -1,4 +1,5 @@
-import { attacks } from "./attacks";
+import { setUncaughtExceptionCaptureCallback } from "process";
+import { attacks, between } from "./attacks";
 import { Board } from "./board";
 import { Chess } from "./chess";
 import { squareSet } from "./debug";
@@ -60,7 +61,7 @@ function gen_node_collapse_board2(res: GenExpansionNode) {
     let ress: GenExpansionNode[] = [res]
     let e = res.parent
     while (e !== undefined) {
-        ress.unshift(e)
+        ress.push(e)
         e = e.parent
     }
 
@@ -101,7 +102,10 @@ type GenExpansion = {
     move?: FromMove
 }
 
-type FromMove = Square
+type FromMove = {
+    from: Square
+    piece: Pieces
+}
 
 type GConstraint = (pex: GenExpansion) => GenExpansion[]
 
@@ -138,7 +142,6 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
         let eqq = ge_expand_precessor(node.sentence, p_parent)
 
         eqq = eqq.flatMap(cc)
-
         for (let eq of eqq)
             res.push({
                 parent: p_parent,
@@ -151,6 +154,8 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
         node.res = []
         return node.res
     }
+
+    res = res.slice(0, 100)
 
     let lqq = res
     let mls: Map<string, GenExpansionNode[]> = new Map()
@@ -189,7 +194,9 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
                     lqq = no_qq
                 }
 
-                c.res.push(...res)
+                c.res = c.res.concat(res)
+                //c.res.push(...res)
+
                 if (resolved) {
                     c.children_resolved = true
                 }
@@ -198,13 +205,15 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
             }
 
             if (node.children.length === 0) {
-                node.res.push(...res)
+                //node.res.push(...res)
+                node.res = node.res.concat(res)
                 node.children_resolved = true
                 break
             }
 
             if (yes_qq.length > 0) {
-                node.res.push(...yes_qq)
+                //node.res.push(...yes_qq)
+                node.res = node.res.concat(yes_qq)
                 node.children_resolved = true
                 //break
             }
@@ -228,7 +237,8 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
                     lqq = lqq.filter(p => !eqq.find(_ => _ === p || _.parent === p))
                 }
 
-                c.res.push(...res)
+                //c.res.push(...res)
+                c.res = c.res.concat(res)
                 if (resolved) {
                     c.children_resolved = true
                 }
@@ -295,7 +305,7 @@ function ge_legal_moves_for_pieces(board: GBoard, pieces: Pieces[]) {
 
                 let after = {...board}
                 after[p] = tos
-                res.push([sq, after])
+                res.push([{ from: sq, piece: p }, after])
             }
         }
     }
@@ -423,16 +433,27 @@ function gboard_compose2(a: GBoard, b: GBoard) {
 function gboard_compose_move(a: GBoard, b: GBoard, move?: FromMove) {
 
     let res: GBoard = {}
-    for (let key of Object.keys(a)) {
+    for (let key of Object.keys(b)) {
 
-        if (move && a[key]?.singleSquare() === move) {
-            res[key] = SquareSet.fromSquare(move)
+        if (move && key === move.piece) {
+            res[key] = SquareSet.fromSquare(move.from)
+            //res[key] = b[key]
         } else if (a[key] !== undefined && b[key] !== undefined) {
             res[key] = a[key].intersect(b[key])
-        } else if (a[key] !== undefined) {
-            res[key] = a[key]
-        //} else if (b[key] !== undefined) {
-            //res[key] = b[key]
+        //} else if (a[key] !== undefined) {
+            //res[key] = a[key]
+        } else if (b[key] !== undefined) {
+            res[key] = b[key]
+        }
+    }
+
+
+    // capture
+    if (move) {
+        for (let key of Object.keys(a)) {
+            if (b[key] === undefined && a[key] !== undefined) {
+                res[key] = a[key]
+            }
         }
     }
 
@@ -444,15 +465,25 @@ function place_piece(ax: GBoard, p1: Pieces, p1s: Square) {
         ax[key] = ax[key]?.without(p1s)
         if (ax[key]?.isEmpty()) {
             if (key !== p1) {
-                return false
+                delete ax[key]
             }
         }
     }
 
     ax[p1] = SquareSet.fromSquare(p1s)
     return true
+}
 
-
+function g_occupied(ax: GBoard) {
+    let res = SquareSet.empty()
+    
+    for (let key of Object.keys(ax)) {
+        let sq = ax[key]?.singleSquare()
+        if (sq !== undefined) {
+            res = res.set(sq, true)
+        }
+    }
+    return res
 }
 
 
@@ -480,134 +511,168 @@ function pcc_move_attack(res: MoveAttackSentence) {
             return []
         }
 
-        let p1ss = gexp.before[res.move]
+        let p1ss = gexp.after[res.move]
 
+        const move = gexp.move
 
         if (p1ss === undefined) {
             return []
         }
 
-        if (!p1ss.has(gexp.move)) {
+        if (gexp.move.piece !== res.move) {
             return []
         }
 
-        let p1s = gexp.move
-
+        if (!gexp.before[res.move]?.has(gexp.move.from)) {
+            return []
+        }
 
         let rexx: GenExpansion[] = []
 
-        let before = gexp.before
-        let ax = { ...gexp.after }
 
-        place_piece(ax, res.move, p1s)
+        let abx = { ...gexp.after }
 
-        for (let i = 0; i < res.attacked_by.length; i++) {
-            let a1 = piece_to_c(parse_piece(res.attacked_by[i]))
-            let a1ss = ax[res.attacked_by[i]]
-            if (a1ss === undefined) {
-                return []
-            }
+        place_piece(abx, res.move, move.from)
 
-            let new_a1s = SquareSet.empty()
 
-            for (let a1s of a1ss) {
-                if (attacks_c(a1, a1s).has(p1s)) {
-                    new_a1s = new_a1s.set(a1s, true)
-                }
-            }
-
-            if (new_a1s.isEmpty()) {
-                return []
-            }
-
-            ax[res.attacked_by[i]] = new_a1s
-        }
+        outer: for (let p1s of p1ss) {
 
 
 
-        for (let i = 0; i < res.attack.length; i++) {
-            let a1 = piece_to_c(parse_piece(res.attack[i]))
-            let a1ss = ax[res.attack[i]]
-            if (a1ss === undefined) {
-                return []
-            }
+            let before = gexp.before
+            let ax = { ...abx }
 
-            let new_a1s = SquareSet.empty()
-            for (let a1s of a1ss) {
-                if (attacks_c(p1, p1s).has(a1s)) {
-                    new_a1s = new_a1s.set(a1s, true)
-                }
-            }
+            let occupied = g_occupied(ax)
 
-            if (new_a1s.isEmpty()) {
-                return []
-            }
+            place_piece(ax, res.move, p1s)
 
 
-            ax[res.attack[i]] = new_a1s
-        }
-
-
-        if (res.zero_defend) {
-            for (let d1 of get_Upper(ax)) {
-
-                let d1c = piece_to_c(parse_piece(d1))
-
-                if (ax[d1] === undefined) {
-                    continue
-                }
-
-                let new_d1s = SquareSet.empty()
-                for (let d1s of ax[d1]) {
-                    if (!attacks_c(d1c, d1s).has(p1s)) {
-                        new_d1s = new_d1s.set(d1s, true)
-                    }
-                }
-
-                if (new_d1s.isEmpty()) {
-                    return []
-                }
-
-
-                ax[d1] = new_d1s
-            }
-        }
-
-        if (res.zero_attack) {
-            for (let a1 of get_Lower(ax)) {
-
-                let a1c = piece_to_c(parse_piece(a1))
-
-                if (ax[a1] === undefined) {
-                    continue
+            for (let i = 0; i < res.attacked_by.length; i++) {
+                let a1 = piece_to_c(parse_piece(res.attacked_by[i]))
+                let a1ss = ax[res.attacked_by[i]]
+                if (a1ss === undefined) {
+                    continue outer
                 }
 
                 let new_a1s = SquareSet.empty()
-                for (let a1s of ax[a1]) {
-                    if (!attacks_c(p1, p1s).has(a1s)) {
+
+                for (let a1s of a1ss) {
+                    if (attacks_c(a1, a1s, occupied).has(p1s)) {
                         new_a1s = new_a1s.set(a1s, true)
                     }
                 }
 
                 if (new_a1s.isEmpty()) {
-                    return []
+                    continue outer
                 }
 
-
-                ax[a1] = new_a1s
+                ax[res.attacked_by[i]] = new_a1s
             }
+
+
+            for (let i = 0; i < res.attack.length; i++) {
+                let a1p = res.attack[i]
+                let a1 = piece_to_c(parse_piece(res.attack[i]))
+                let a1ss = ax[res.attack[i]]
+
+                if (a1ss === undefined) {
+                    continue outer
+                }
+
+                let a1ss_s = a1ss.singleSquare()
+                if (a1ss_s !== undefined) {
+
+                    if (attacks_c(p1, p1s, occupied).has(a1ss_s)) {
+                        if (!(move.from === a1ss_s)) {
+                            continue
+                        }
+                    }
+
+                    continue outer
+                }
+
+                let new_a1s = SquareSet.empty()
+                for (let a1s of a1ss) {
+                    if (attacks_c(p1, p1s, occupied).has(a1s)) {
+                        if (!occupied.has(a1s)) {
+                            if (!(move.from === a1s)) {
+                                new_a1s = new_a1s.set(a1s, true)
+                            }
+                        }
+                    }
+                }
+
+                if (new_a1s.isEmpty()) {
+                    continue outer
+                }
+
+                ax[res.attack[i]] = new_a1s
+            }
+
+            if (res.zero_defend) {
+                for (let d1 of get_Upper(ax)) {
+
+                    let d1c = piece_to_c(parse_piece(d1))
+
+                    if (ax[d1] === undefined) {
+                        continue
+                    }
+
+                    let new_d1s = SquareSet.empty()
+                    for (let d1s of ax[d1]) {
+                        if (!attacks_c(d1c, d1s, occupied).has(p1s)) {
+                            new_d1s = new_d1s.set(d1s, true)
+                        }
+                    }
+
+                    if (new_d1s.isEmpty()) {
+                        continue outer
+                    }
+
+
+                    ax[d1] = new_d1s
+                }
+            }
+
+            if (res.zero_attack) {
+
+                for (let a1 of get_Lower(ax)) {
+
+                    let a1c = piece_to_c(parse_piece(a1))
+
+                    if (ax[a1] === undefined) {
+                        continue
+                    }
+
+                    let new_a1s = SquareSet.empty()
+                    for (let a1s of ax[a1]) {
+                        if (!attacks_c(a1c, a1s, occupied).has(p1s)) {
+                            new_a1s = new_a1s.set(a1s, true)
+                        }
+                    }
+
+                    if (new_a1s.isEmpty()) {
+                        continue outer
+                    }
+
+
+                    ax[a1] = new_a1s
+                }
+            }
+
+            rexx.push({
+                before,
+                after: ax,
+                path: gexp.path,
+                move: gexp.move
+            })
         }
 
-        rexx.push({
-            before,
-            after: ax,
-            path: gexp.path
-        })
 
         for (let i = 0; i < res.blocked.length; i++) {
             let rexx2 = rexx
             rexx = []
-            for (let gexp of rexx2) {
+            outer: for (let gexp of rexx2) {
 
                 let before = gexp.before
                 let ax = { ...gexp.after }
@@ -622,7 +687,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
                 let u3ss = ax[u3]
 
                 if (u1ss === undefined || u2ss === undefined || u3ss === undefined) {
-                    return []
+                    continue outer
                 }
 
 
@@ -639,6 +704,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
                             continue
                         }
 
+                        let new_u3s = SquareSet.empty()
 
                         for (let u3s of u3ss) {
 
@@ -655,17 +721,94 @@ function pcc_move_attack(res: MoveAttackSentence) {
                             if (attacks_c(pu1, u1s, occupied.without(u3s)).has(u2s) &&
                                 !attacks_c(pu1, u1s, occupied).has(u2s)) {
 
-                                rexx.push({
-                                    before,
-                                    after: ax3,
-                                    path: gexp.path
-                                })
+                                new_u3s = new_u3s.set(u3s, true)
+
                             }
                         }
+
+                        if (new_u3s.isEmpty()) {
+                            continue outer
+                        }
+
+                        let u3s_s = new_u3s.singleSquare()
+
+                        if (u3s_s !== undefined) {
+                            place_piece(ax2, u3, u3s_s)
+                        } else {
+                            ax2[u3] = new_u3s
+                        }
+
+
+                        rexx.push({
+                            before,
+                            after: ax2,
+                            path: gexp.path
+                        })
                     }
                 }
             }
         }
+
+
+
+
+        for (let i = 0; i < res.unblocked.length; i++) {
+
+            let [u3, u2] = res.unblocked[i]
+            let u3p = unblocked[i][0]
+            let u2p = unblocked[i][1]
+
+            let rexx2 = rexx
+            rexx = []
+            outer: for (let gexp of rexx2) {
+
+                let before = gexp.before
+                let ax = { ...gexp.after }
+                let occupied = g_occupied(ax)
+
+                let u3ss = ax[u3]
+                let u2ss = ax[u2]
+
+                if (u2ss === undefined || u3ss === undefined) {
+                    continue outer
+                }
+
+                for (let u2s of u2ss) {
+
+                    let ax2 = { ...ax }
+                    if (!place_piece(ax2, u2, u2s)) {
+                        continue
+                    }
+
+                    let new_u3s = SquareSet.empty()
+
+                    for (let u3s of u3ss) {
+
+                        let ax3 = { ...ax2 }
+                        if (!place_piece(ax3, u3, u3s)) {
+                            continue
+                        }
+
+                        if (attacks(u3p, u3s, occupied).has(u2s) &&
+                            between(u3s, u2s).has(move.from)) {
+                            new_u3s = new_u3s.set(u3s, true)
+                        }
+                    }
+                    if (new_u3s.isEmpty()) {
+                        continue outer
+                    }
+
+                    ax2[u3] = new_u3s
+
+                    rexx.push({
+                        before,
+                        after: ax2,
+                        path: gexp.path
+                    })
+                }
+            }
+        }
+
 
 
         return rexx
@@ -709,6 +852,8 @@ function pcc_still_attack(res: StillAttackSentence) {
             let before = gexp.before
             let ax = {...gexp.after}
 
+            let occupied = g_occupied(ax)
+
             for (let key of Object.keys(ax)) {
                 ax[key] = ax[key]?.without(p1s)
                 if (ax[key]?.isEmpty()) {
@@ -731,7 +876,7 @@ function pcc_still_attack(res: StillAttackSentence) {
                 let new_a1s = SquareSet.empty()
 
                 for (let a1s of a1ss) {
-                    if (attacks_c(a1, a1s).has(p1s)) {
+                    if (attacks_c(a1, a1s, occupied).has(p1s)) {
                         new_a1s = new_a1s.set(a1s, true)
                     }
                 }
@@ -754,8 +899,10 @@ function pcc_still_attack(res: StillAttackSentence) {
 
                 let new_a1s = SquareSet.empty()
                 for (let a1s of a1ss) {
-                    if (attacks_c(p1, p1s).has(a1s)) {
-                        new_a1s = new_a1s.set(a1s, true)
+                    if (attacks_c(p1, p1s, occupied).has(a1s)) {
+                        if (!occupied.has(a1s)) {
+                            new_a1s = new_a1s.set(a1s, true)
+                        }
                     }
                 }
 
@@ -779,7 +926,7 @@ function pcc_still_attack(res: StillAttackSentence) {
 
                     let new_d1s = SquareSet.empty()
                     for (let d1s of ax[d1]) {
-                        if (!attacks_c(d1c, d1s).has(p1s)) {
+                        if (!attacks_c(d1c, d1s, occupied).has(p1s)) {
                             new_d1s = new_d1s.set(d1s, true)
                         }
                     }
@@ -804,7 +951,7 @@ function pcc_still_attack(res: StillAttackSentence) {
 
                     let new_a1s = SquareSet.empty()
                     for (let a1s of ax[a1]) {
-                        if (!attacks_c(p1, p1s).has(a1s)) {
+                        if (!attacks_c(p1, p1s, occupied).has(a1s)) {
                             new_a1s = new_a1s.set(a1s, true)
                         }
                     }
@@ -829,7 +976,7 @@ function pcc_still_attack(res: StillAttackSentence) {
             for (let i = 0; i < res.blocked.length; i++) {
                 let rexx2 = rexx
                 rexx = []
-                for (let gexp of rexx2) {
+                outer: for (let gexp of rexx2) {
 
                     let before = gexp.before
                     let ax = { ...gexp.after }
@@ -844,7 +991,7 @@ function pcc_still_attack(res: StillAttackSentence) {
                     let u3ss = ax[u3]
 
                     if (u1ss === undefined || u2ss === undefined || u3ss === undefined) {
-                        return []
+                        continue outer
                     }
 
 
@@ -861,6 +1008,7 @@ function pcc_still_attack(res: StillAttackSentence) {
                                 continue
                             }
 
+                            let new_u3s = SquareSet.empty()
 
                             for (let u3s of u3ss) {
 
@@ -877,25 +1025,23 @@ function pcc_still_attack(res: StillAttackSentence) {
                                 if (attacks_c(pu1, u1s, occupied.without(u3s)).has(u2s) &&
                                     !attacks_c(pu1, u1s, occupied).has(u2s)) {
 
-                                        /*
-                                        if (g_fen_singles(ax3) === "8/7q/8/8/7b/8/B7/1n6 w - - 0 1") {
-                                            console.log('yay')
-                                            console.log(attacks_c(pu1, u1s, occupied).has(u2s))
-                                            console.log(squareSet(occupied))
-                                            console.log(squareSet(attacks_c(pu1, u1s, occupied)))
-                                            console.log('hard', squareSet(attacks_c(13, 55, occupied)))
-                                            console.log('no', squareSet(attacks_c(13, 55)))
-                                            console.log(squareSet(attacks(blocked[i][0], 55, occupied)))
-                                        }
-                                            */
+                                        new_u3s = new_u3s.set(u3s, true)
 
-                                    rexx.push({
-                                        before,
-                                        after: ax3,
-                                        path: gexp.path
-                                    })
                                 }
                             }
+
+                            if (new_u3s.isEmpty()) {
+                                continue outer
+                            }
+
+                            ax2[u3] = new_u3s
+
+
+                            rexx.push({
+                                before,
+                                after: ax2,
+                                path: gexp.path
+                            })
                         }
                     }
                 }
@@ -903,17 +1049,16 @@ function pcc_still_attack(res: StillAttackSentence) {
 
 
 
-
-
         return rexx
     }
 }
 
-function attacks_c(pc: PieceC, s: Square, occupied = SquareSet.empty()) {
+function attacks_c(pc: PieceC, s: Square, occupied: SquareSet) {
     //return m.attacks(pc, s, occupied)
     return attacks(c_to_piece(pc), s, occupied)
 }
 
+let KSquare = new SquareSet(67239938, 1075843080)
 
 function g_fen_singles(q: GBoard, turn: Color = 'white') {
     let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
@@ -928,6 +1073,7 @@ function g_fen_singles(q: GBoard, turn: Color = 'white') {
             res.board.set(sq, parse_piece(p))
         }
     }
+
     return makeFen(res.toSetup())
 }
 
