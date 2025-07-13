@@ -144,13 +144,6 @@ function pos_node_expand(node: PosNode, pp_parent: PosExpansionNode[], pos: Posi
 
         for (let [ms, lqq] of mls) {
 
-            let rr = lqq[0].data.path.map(move_c_to_Move)
-            if (rr[rr.length - 1]?.to === 52) {
-                console.log(rr)
-            }
-
-
-
             let aqq = lqq
             let yes_qq = []
             let no_qq = []

@@ -1,5 +1,5 @@
 import { setUncaughtExceptionCaptureCallback } from "process";
-import { attacks, between } from "./attacks";
+import { attacks, between, queenAttacks } from "./attacks";
 import { Board } from "./board";
 import { Chess } from "./chess";
 import { squareSet } from "./debug";
@@ -10,6 +10,7 @@ import { m } from './mor3_hope1'
 import { SquareSet } from "./squareSet";
 import { Color, Move, Piece, Square } from "./types";
 import { mor_nogen, mor_nogen_find_san } from "./mor_nogen1";
+import { arr_shuffle, rnd_int } from "./random";
 
 export function mor_gen2(text: string, fen?: FEN) {
 
@@ -35,7 +36,17 @@ export function mor_gen2(text: string, fen?: FEN) {
 
     let bb = gen_node_collapse_board(res)
 
+    //bb = arr_shuffle(bb)
+    bb = bb.slice(0, 100)
+    bb = bb.flatMap(gboard_collapse_many)
+    //bb = arr_shuffle(bb)
+    bb = bb.slice(0, 10000)
+
     let res_out = bb.map(_ => g_fen_singles(_))
+
+    console.log(res_out.slice(0, 10))
+    console.log('is ok', res_out.includes("8/5k2/4q3/8/8/8/r7/Q1KB4 w - - 0 1"))
+    console.log('nogenfindsan', mor_nogen_find_san(text, "8/5k2/4q3/8/8/8/r7/Q1KB4 w - - 0 1"))
 
     let [a, b, c] = [0, 0, 0]
     a = res_out.length
@@ -165,7 +176,18 @@ function gen_node_expand(node: GenNode, pp_parent: GenExpansionNode[]): GenExpan
         return node.res
     }
 
-    res = arr_shuffle(res).slice(0, 10000)
+    //res = arr_shuffle(res)
+    console.log(node.sentence.type, res.length)
+    /*
+    if (res.length > 30000) {
+        res = res.slice(0, 1000)
+    } else if (res.length > 20000) {
+        res = res.slice(0, 5000)
+    } else if (res.length > 5000) {
+        res = res.slice(0, 8000)
+    }
+        */
+    res = res.slice(0, 50000)
 
     let lqq = res
     let mls: Map<string, GenExpansionNode[]> = new Map()
@@ -620,7 +642,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
             }
 
             if (res.zero_defend) {
-                for (let d1 of get_Upper(ax)) {
+                for (let d1 of get_Lower(ax)) {
 
                     let d1c = piece_to_c(parse_piece(d1))
 
@@ -646,7 +668,7 @@ function pcc_move_attack(res: MoveAttackSentence) {
 
             if (res.zero_attack) {
 
-                for (let a1 of get_Lower(ax)) {
+                for (let a1 of get_Upper(ax)) {
 
                     let a1c = piece_to_c(parse_piece(a1))
 
@@ -752,7 +774,8 @@ function pcc_move_attack(res: MoveAttackSentence) {
                         rexx.push({
                             before,
                             after: ax2,
-                            path: gexp.path
+                            path: gexp.path,
+                            move: move
                         })
                     }
                 }
@@ -813,7 +836,8 @@ function pcc_move_attack(res: MoveAttackSentence) {
                     rexx.push({
                         before,
                         after: ax2,
-                        path: gexp.path
+                        path: gexp.path,
+                        move: move
                     })
                 }
             }
@@ -1068,10 +1092,10 @@ function attacks_c(pc: PieceC, s: Square, occupied: SquareSet) {
     return attacks(c_to_piece(pc), s, occupied)
 }
 
-let KSquare = new SquareSet(67239938, 1075843080)
 
+let empty_board = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
 function g_fen_singles(q: GBoard, turn: Color = 'white') {
-    let res = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
+    let res = empty_board.clone()
     res.turn = turn
 
     for (let p of Object.keys(q)) {
@@ -1087,6 +1111,120 @@ function g_fen_singles(q: GBoard, turn: Color = 'white') {
     return makeFen(res.toSetup())
 }
 
+export function gboard_collapse_many(q: GBoard): GBoard[] {
+    const queue: GBoard[] = [q]
+    const res: GBoard[] = []
+
+    outer: while (queue.length && res.length < 30000) {
+
+        const board = queue.shift()!
+
+        const piece = arr_shuffle(Object.keys(board)).find(
+            (p) => board[p] !== undefined && board[p].singleSquare() === undefined
+        );
+
+        if (!piece) {
+            res.push(board);
+            continue;
+        }
+
+
+
+
+        let limit = 64
+        let iq = { ...board}
+        let p = piece
+        while (true) {
+            if (--limit === 0) {
+                break
+            }
+            let aq = { ...iq }
+            let br = g_pull1(aq, p, rnd_int(0, aq[p]!.size() - 1))
+
+            if (!br) {
+                break
+            }
+            if (queue.length > 100000) {
+                console.log(queue.length, 'noope')
+                break
+            }
+
+            queue.push(aq)
+
+            gboard_exclude(iq, p, aq[p]!.singleSquare()!)
+
+            for (let p of Object.keys(iq)) {
+                if (iq[p]?.isEmpty()) {
+                    continue outer
+                }
+            }
+
+        }
+
+
+    }
+
+    console.log(res.length)
+    return res
+}
+
+/*
+function gboard_collapse_many(q: GBoard): GBoard[] {
+    function deep(res: GBoard[]): GBoard[] {
+        if (res.length > 80) {
+            return res
+        }
+        let aa: GBoard[] = []
+        for (let q of res) {
+            for (let p of Object.keys(q)) {
+                let iq = { ...q }
+
+                let limit = 2
+                while (iq[p] !== undefined && iq[p].singleSquare() === undefined) {
+
+                    if (limit-- === 0) {
+                        break
+                    }
+
+                    let aq = { ...iq }
+                    g_pull1(aq, p, rnd_int(0, aq[p]!.size() - 1))
+
+                    aa.push(aq)
+
+                    gboard_exclude(iq, p, aq[p]!.singleSquare()!)
+                }
+            }
+        }
+        return deep(aa)
+    }
+
+    return deep([q])
+}
+    */
+
+function gboard_exclude(q: GBoard, p: Pieces, sq: Square) {
+    q[p] = q[p]?.without(sq)
+}
+
+
+function g_pull1(q: GBoard, p1: Pieces, skip: number = 0) {
+    if (q[p1] === undefined) {
+        return false
+    }
+    for (let i = 0; i < skip; i++) {
+        q[p1] = q[p1].withoutFirst()
+    }
+
+    let f = q[p1].first()
+    if (f === undefined) {
+        return false
+    }
+    q[p1] = SquareSet.fromSquare(f)
+
+    return true
+}
+
+
 
 
 function get_Upper(ax: GBoard) {
@@ -1100,24 +1238,3 @@ function get_Lower(ax: GBoard) {
 function valid_fen(fen: string) {
     return parseFen(fen).chain(_ => Chess.fromSetup(_)).isOk
 }
-
-
-export function arr_shuffle<A>(array: Array<A>) {
-  let currentIndex = array.length;
-
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-
-    // Pick a remaining element...
-    let randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
-  }
-  return array
-}
-
-
-
