@@ -1,6 +1,6 @@
 import { validateHeaderName } from "http"
 import { attacks } from "./attacks"
-import { Line, parse_line_recur, parse_piece, parse_rules, ParsedSentence, Pieces, StillAttackSentence } from "./mor3_hope1"
+import { Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, Pieces, StillAttackSentence } from "./mor3_hope1"
 import { extract_g_board, g_fen_singles, g_pull1, GBoard, gboard_exclude } from "./mor_gen2"
 import { SquareSet } from "./squareSet"
 import { Square } from "./types"
@@ -11,11 +11,12 @@ export function mor_gen3(text: string) {
     parse_line_recur(root)
 
     let res = gen_cc(root)
-
+    //console.log(res)
 
     let b = extract_g_board(text)
-    let gg = res.flatMap(ggc_all)
-    let rr = g_collapse(b, gg)
+    let gg = res
+
+    let rr = g_collapse2(b, gg)
 
     rr = rr.slice(0, 10)
 
@@ -25,6 +26,16 @@ export function mor_gen3(text: string) {
     return res_out
 }
 
+type CCaptures = {
+    type: 'captures',
+    piece: Pieces
+    captures: Pieces
+}
+
+type CMoves = {
+    type: 'moves'
+    piece: Pieces
+}
 
 type CAttackThrough = {
     type: 'attack_through',
@@ -46,25 +57,91 @@ type CZeroAttack = {
 }
 
 type CConstraints = CAttacks | CAttackThrough | CZeroAttack
+| CMoves | CCaptures
 
 
-function gen_cc(root: Line): CConstraints[] {
+type GGBoard = {
+    piece: Pieces
+    gg: GBoard[]
+    is_move?: boolean
+}
 
-    let res: CConstraints[] = []
+type GGBoardNode = {
+    boards: GGBoard[],
+    children: GGBoardNode[]
+}
 
-    if (root.sentence.precessor === '.') {
-        return root.children.flatMap(gen_cc)
+
+function gen_cc(root: Line): GGBoardNode {
+
+    let res: GGBoard[] = []
+    let children: GGBoardNode[] = []
+
+    if (root.sentence.precessor === 'E') {
+        if (root.sentence.type === 'move_attack') {
+            let cc = make_e_move(root.sentence)
+            res.push(cc)
+        }
     }
 
     if (root.sentence.type === 'g_still_attack') {
         for (let attack of root.sentence.attacks) {
-            res = res.concat(resolve_still_attack(attack))
+            let cc = resolve_still_attack(attack)
+            let gg = cc.map(make_a_gg)
+            res = res.concat(gg)
         }
     }
 
-    return res
+    if (root.sentence.type === 'move_attack') {
+        let cc = resolve_move_attack(root.sentence)
+        let gg = cc.map(make_a_gg)
+        res = res.concat(gg)
+    }
+
+    children = root.children.flatMap(gen_cc)
+
+    return {
+        boards: res,
+        children
+    }
 }
 
+function resolve_move_e(e: ParsedSentence): CConstraints | undefined {
+    if (e.type === 'move_attack') {
+        if (e.captured) {
+            return {
+                type: 'captures',
+                piece: e.move,
+                captures: e.captured
+            }
+        } else {
+            return {
+                type: 'moves',
+                piece: e.move
+            }
+        }
+    }
+}
+
+function resolve_move_attack(e: MoveAttackSentence): CConstraints[] {
+
+    let res: CConstraints[] = []
+
+
+    if (e.attack) {
+        for (let a of e.attack) {
+            res.push({
+                type: 'attacks',
+                piece: e.move,
+                attacks: a
+            })
+        }
+    }
+
+
+
+    return res
+}
 
 function resolve_still_attack(e: StillAttackSentence): CConstraints[] {
 
@@ -91,18 +168,49 @@ function resolve_still_attack(e: StillAttackSentence): CConstraints[] {
         }
     }
 
-
-
     return res
 }
 
-function ggc_all(a: CConstraints) {
-    if (a.type === 'attacks') {
-        return ggc_board(a)
+
+function make_e_move(c: MoveAttackSentence) {
+
+    let res: GBoard[] = []
+    let piece = c.move
+    let p1 = parse_piece(piece)
+
+    for (let sq of SQ_FULL) {
+        let a1s = attacks(p1, sq, SquareSet.empty())
+        res[sq] = {
+            [piece]: a1s
+        }
     }
-    return []
+
+    return {
+        piece,
+        gg: res,
+        is_move: true
+    }
 }
 
+function make_a_gg(a: CConstraints): GGBoard {
+    let piece = a.piece
+
+    if (a.type === 'attacks') {
+        return ggc_board(a)
+    } else if (a.type === 'attack_through') {
+        return {
+            piece,
+            gg: []
+        }
+    } else if (a.type === 'zero_attack') {
+        return {
+            piece,
+            gg: []
+        }
+    }
+
+    throw 'Bad Constraints'
+}
 
 const SQ_FULL = SquareSet.full()
 
@@ -122,13 +230,39 @@ function ggc_board(a: CAttacks) {
     }
 }
 
-type GGBoard = {
-    piece: Pieces,
-    gg: GBoard[]
+function ggc_moves(a: CMoves) {
+    let p1 = parse_piece(a.piece)
+    let res: GBoard[] = []
+    for (let sq of SQ_FULL) {
+        let a1s = attacks(p1, sq, SquareSet.empty())
+        res[sq] = {
+            [a.piece]: a1s
+        }
+    }
+    return {
+        piece: a.piece,
+        gg: res
+    }
+
+}
+
+function ggc_captures(a: CCaptures) {
+    let p1 = parse_piece(a.piece)
+    let res: GBoard[] = []
+    for (let sq of SQ_FULL) {
+        let a1s = attacks(p1, sq, SquareSet.empty())
+        res[sq] = {
+            [a.piece]: a1s
+        }
+    }
+    return {
+        piece: a.piece,
+        gg: res
+    }
 }
 
 
-function g_collapse(q: GBoard, gg: GGBoard[]) {
+function g_collapse2(q: GBoard, gg: GGBoardNode) {
     const queue: GBoard[] = [q]
     const res: GBoard[] = []
 
@@ -144,7 +278,6 @@ function g_collapse(q: GBoard, gg: GGBoard[]) {
             res.push(board);
             continue;
         }
-
 
         let limit = 64
         let iq = { ...board}
@@ -164,13 +297,16 @@ function g_collapse(q: GBoard, gg: GGBoard[]) {
                 break
             }
 
-            gboard_exclude(iq, p, aq[p]!.singleSquare()!)
-
-            for (let p of Object.keys(iq)) {
-                if (iq[p]?.isEmpty()) {
+            for (let p of Object.keys(aq)) {
+                let ss = aq[p]?.singleSquare()
+                if (ss !== undefined && Object.keys(aq).find(_ => _ !== p && aq[_]?.singleSquare() ===  ss)) {
                     continue outer
                 }
             }
+
+
+
+            gboard_exclude(iq, p, aq[p]!.singleSquare()!)
 
             if (!g_validate(aq, gg)) {
                 continue
@@ -178,6 +314,11 @@ function g_collapse(q: GBoard, gg: GGBoard[]) {
 
             queue.push(aq)
 
+            for (let p of Object.keys(iq)) {
+                if (iq[p]?.isEmpty()) {
+                    continue outer
+                }
+            }
         }
 
 
@@ -186,7 +327,7 @@ function g_collapse(q: GBoard, gg: GGBoard[]) {
     return res
 }
 
-function g_validate(aq: GBoard, cc: GGBoard[]) {
+function g_validate(aq: GBoard, cc: GGBoardNode) {
 
     let iq = {...aq}
     for (let p1 of Object.keys(iq)) {
@@ -194,13 +335,23 @@ function g_validate(aq: GBoard, cc: GGBoard[]) {
         let p1s = aq[p1]?.singleSquare()
         if (p1s !== undefined) {
 
-            for (let c of cc) {
+            for (let c of cc.boards) {
                 if (c.piece === p1) {
-                    let rok = g_reduce(iq, c.gg[p1s])
+                    if (c.is_move) {
+                        g_reduce_move(iq, c.gg[p1s], p1)
+                    } else {
+                        let rok = g_reduce(iq, c.gg[p1s])
 
-                    if (!rok || g_board_invalid(iq)) {
-                        return false
+                        if (!rok || g_board_invalid(iq)) {
+                            return false
+                        }
                     }
+                }
+            }
+
+            for (let c of cc.children) {
+                if (!g_validate(iq, c)) {
+                    return false
                 }
             }
         }
@@ -209,6 +360,10 @@ function g_validate(aq: GBoard, cc: GGBoard[]) {
 
 
     return true
+}
+
+function g_reduce_move(a: GBoard, b: GBoard, piece: Pieces) {
+    a[piece] = b[piece]
 }
 
 function g_reduce(a: GBoard, b: GBoard) {

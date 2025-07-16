@@ -1159,6 +1159,8 @@ export function gboard_collapse_many(q: GBoard): GBoard[] {
                 }
             }
 
+
+
         }
 
 
