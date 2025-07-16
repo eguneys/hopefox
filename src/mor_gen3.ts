@@ -1,6 +1,6 @@
 import { validateHeaderName } from "http"
 import { attacks, between } from "./attacks"
-import { Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, Pieces, StillAttackSentence } from "./mor3_hope1"
+import { Line, MoveAttackSentence, OPPONENT_PIECE_NAMES, parse_line_recur, parse_piece, parse_rules, ParsedSentence, Pieces, PLAYER_PIECE_NAMES, StillAttackSentence } from "./mor3_hope1"
 import { extract_g_board, g_fen_singles, g_pull1, GBoard, gboard_exclude } from "./mor_gen2"
 import { SquareSet } from "./squareSet"
 import { Square } from "./types"
@@ -200,6 +200,24 @@ function resolve_still_attack(e: StillAttackSentence): CConstraints[] {
         }
     }
 
+    if (e.zero_attack) {
+        res.push({
+            type: 'zero_attack',
+            piece: e.piece,
+            is_lower: true
+        })
+    }
+
+    if (e.zero_defend) {
+        res.push({
+            type: 'zero_attack',
+            piece: e.piece,
+            is_lower: false
+        })
+    }
+
+
+
     return res
 }
 
@@ -233,6 +251,7 @@ function make_a_gg(a: CConstraints): GXBoard {
     } else if (a.type === 'attack_through') {
         return ggc_attacks_through(a)
     } else if (a.type === 'zero_attack') {
+        return ggc_zero_attack(a)
     }
 
     throw 'Bad Constraints'
@@ -281,6 +300,32 @@ function ggc_attacks(a: CAttacks): GGBoard {
     }
 }
 
+function ggc_zero_attack(a: CZeroAttack): GGBoard {
+    let p1 = parse_piece(a.piece)
+    let res: GBoard[] = []
+    for (let sq of SQ_FULL) {
+        res[sq] = { }
+        let pieces = a.is_lower ? PLAYER_PIECE_NAMES : OPPONENT_PIECE_NAMES
+        for (let a1 of pieces) {
+            let a1_piece = parse_piece(a1)
+            res[sq][a1] = SquareSet.empty()
+
+            for (let a1s of SQ_FULL) {
+                let a2s = attacks(a1_piece, a1s, SquareSet.empty())
+                if (!a2s.has(sq)) {
+                    res[sq][a1] = res[sq][a1]!.set(a1s, true)
+                }
+            }
+        }
+    }
+
+    return {
+        type: 'gg',
+        piece: a.piece,
+        gg: res
+    }
+}
+
 function ggc_moves(a: CMoves) {
     let p1 = parse_piece(a.piece)
     let res: GBoard[] = []
@@ -317,7 +362,7 @@ function g_collapse2(q: GBoard, gg: GGBoardNode) {
     const queue: GBoard[] = [q]
     const res: GBoard[] = []
 
-    outer: while (queue.length && res.length < 30000) {
+    outer: while (queue.length && res.length < 1000) {
 
         const board = queue.shift()!
 
@@ -380,8 +425,7 @@ function g_collapse2(q: GBoard, gg: GGBoardNode) {
 
 function g_validate(aq: GBoard, cc: GGBoardNode): GBoard[] {
 
-    let res: GBoard[] = [aq]
-    let iq = { ...aq }
+    let res: GBoard[] = [{...aq}]
     for (let c of cc.boards) {
         let res2 = res
         res = []
@@ -416,6 +460,7 @@ function g_validate(aq: GBoard, cc: GGBoardNode): GBoard[] {
                     let iiq = { ...iq }
                     let gg = c.ggg[p1s]
 
+                    let f = false
                     for (let p2s of iqp2) {
 
                         if (gg[p2s] === undefined) {
@@ -427,13 +472,18 @@ function g_validate(aq: GBoard, cc: GGBoardNode): GBoard[] {
                         if (!rok || g_board_invalid(iiq)) {
                             continue
                         }
+                        f = true
+                        break
+                    }
+
+                    if (f) {
                         res.push(iiq)
                     }
                 }
 
             }
         }
-}
+    }
 
     for (let c of cc.children) {
         res = res.flatMap(iq => g_validate(iq, c))
@@ -452,7 +502,8 @@ function g_reduce(a: GBoard, b: GBoard) {
             continue
         }
         if (a[key] === undefined) {
-            return false
+            continue
+            //return false
         }
         a[key] = a[key]?.intersect(b[key])
     }

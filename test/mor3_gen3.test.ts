@@ -36,7 +36,7 @@ G Q n+, b +Q
     console.log(mor_gen3(c))
 })
 
-it.only('G E', () => {
+it.skip('G E', () => {
     let b = `
 G Q Z+
  E q= +K +Q/K
@@ -45,6 +45,21 @@ G Q Z+
     let a = `
 G Q K+
  E b= +K +Q/K
+`
+
+    console.log(mor_gen3(a))
+})
+
+
+it.only('G Z+ E', () => {
+    let b = `
+G Q Z+
+ E q= +K +Q/K
+ `
+
+    let a = `
+G Q Z+ z+
+ E q= +K +Q/K
 `
 
     console.log(mor_gen3(a))
