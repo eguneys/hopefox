@@ -1094,7 +1094,7 @@ function attacks_c(pc: PieceC, s: Square, occupied: SquareSet) {
 
 
 let empty_board = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
-function g_fen_singles(q: GBoard, turn: Color = 'white') {
+export function g_fen_singles(q: GBoard, turn: Color = 'white') {
     let res = empty_board.clone()
     res.turn = turn
 
@@ -1164,7 +1164,7 @@ export function gboard_collapse_many(q: GBoard): GBoard[] {
 
     }
 
-    console.log(res.length)
+    //console.log(res.length)
     return res
 }
 
@@ -1202,12 +1202,12 @@ function gboard_collapse_many(q: GBoard): GBoard[] {
 }
     */
 
-function gboard_exclude(q: GBoard, p: Pieces, sq: Square) {
+export function gboard_exclude(q: GBoard, p: Pieces, sq: Square) {
     q[p] = q[p]?.without(sq)
 }
 
 
-function g_pull1(q: GBoard, p1: Pieces, skip: number = 0) {
+export function g_pull1(q: GBoard, p1: Pieces, skip: number = 0) {
     if (q[p1] === undefined) {
         return false
     }

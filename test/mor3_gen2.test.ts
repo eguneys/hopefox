@@ -115,7 +115,7 @@ G K Q+, k b+
 
 
 
-it.only('another example 2', () => {
+it.skip('another example 2', () => {
     let b = `
 G R2 Q+ q+
  E b= +K/Q z+
