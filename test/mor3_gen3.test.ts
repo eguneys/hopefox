@@ -15,7 +15,7 @@ G Q n+
 })
 
 
-it.skip('+ ,', () => {
+it.skip('G + ,', () => {
     let b = `
 G Q Z+
  E q= +K +Q/K
@@ -25,7 +25,7 @@ G Q Z+
 G Q n+, b +Q +n
 `
 
-    console.log(mor_gen3(a))
+    //console.log(mor_gen3(a))
 
 
 

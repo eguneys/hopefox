@@ -1,5 +1,5 @@
 import { validateHeaderName } from "http"
-import { attacks } from "./attacks"
+import { attacks, between } from "./attacks"
 import { Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, Pieces, StillAttackSentence } from "./mor3_hope1"
 import { extract_g_board, g_fen_singles, g_pull1, GBoard, gboard_exclude } from "./mor_gen2"
 import { SquareSet } from "./squareSet"
@@ -61,20 +61,30 @@ type CConstraints = CAttacks | CAttackThrough | CZeroAttack
 
 
 type GGBoard = {
+    type: 'gg'
     piece: Pieces
     gg: GBoard[]
     is_move?: boolean
 }
 
+type GGGBoard = {
+    type: 'ggg'
+    piece1: Pieces
+    piece2: Pieces
+    ggg: GBoard[][]
+}
+
+type GXBoard = GGBoard | GGGBoard
+
 type GGBoardNode = {
-    boards: GGBoard[],
+    boards: GXBoard[],
     children: GGBoardNode[]
 }
 
 
 function gen_cc(root: Line): GGBoardNode {
 
-    let res: GGBoard[] = []
+    let res: GXBoard[] = []
     let children: GGBoardNode[] = []
 
     if (root.sentence.precessor === 'E') {
@@ -139,6 +149,17 @@ function resolve_move_attack(e: MoveAttackSentence): CConstraints[] {
     }
 
 
+    if (e.blocked) {
+        for (let b of e.blocked) {
+            res.push({
+                type: 'attack_through',
+                piece: b[0],
+                attacks: b[1],
+                through: b[2]
+            })
+        }
+    }
+
 
     return res
 }
@@ -168,11 +189,22 @@ function resolve_still_attack(e: StillAttackSentence): CConstraints[] {
         }
     }
 
+    if (e.blocked) {
+        for (let b of e.blocked) {
+            res.push({
+                type: 'attack_through',
+                piece: e.piece,
+                attacks: b[0],
+                through: b[1]
+            })
+        }
+    }
+
     return res
 }
 
 
-function make_e_move(c: MoveAttackSentence) {
+function make_e_move(c: MoveAttackSentence): GGBoard {
 
     let res: GBoard[] = []
     let piece = c.move
@@ -186,27 +218,21 @@ function make_e_move(c: MoveAttackSentence) {
     }
 
     return {
+        type: 'gg',
         piece,
         gg: res,
         is_move: true
     }
 }
 
-function make_a_gg(a: CConstraints): GGBoard {
+function make_a_gg(a: CConstraints): GXBoard {
     let piece = a.piece
 
     if (a.type === 'attacks') {
-        return ggc_board(a)
+        return ggc_attacks(a)
     } else if (a.type === 'attack_through') {
-        return {
-            piece,
-            gg: []
-        }
+        return ggc_attacks_through(a)
     } else if (a.type === 'zero_attack') {
-        return {
-            piece,
-            gg: []
-        }
     }
 
     throw 'Bad Constraints'
@@ -214,7 +240,31 @@ function make_a_gg(a: CConstraints): GGBoard {
 
 const SQ_FULL = SquareSet.full()
 
-function ggc_board(a: CAttacks) {
+function ggc_attacks_through(a: CAttackThrough): GGGBoard {
+    let p1 = parse_piece(a.piece)
+    let res: GBoard[][] = []
+    for (let sq of SQ_FULL) {
+        let a1s = attacks(p1, sq, SquareSet.empty())
+
+        let rr: GBoard[] = []
+
+        for (let sq2 of a1s) {
+            rr[sq2] = {
+                [a.through]: between(sq, sq2)
+            }
+        }
+
+        res.push(rr)
+    }
+    return {
+        type: 'ggg',
+        piece1: a.piece,
+        piece2: a.attacks,
+        ggg: res
+    }
+}
+
+function ggc_attacks(a: CAttacks): GGBoard {
 
     let p1 = parse_piece(a.piece)
     let res: GBoard[] = []
@@ -225,6 +275,7 @@ function ggc_board(a: CAttacks) {
         }
     }
     return {
+        type: 'gg',
         piece: a.piece,
         gg: res
     }
@@ -308,11 +359,11 @@ function g_collapse2(q: GBoard, gg: GGBoardNode) {
 
             gboard_exclude(iq, p, aq[p]!.singleSquare()!)
 
-            if (!g_validate(aq, gg)) {
-                continue
-            }
+            let vvq = g_validate(aq, gg)
 
-            queue.push(aq)
+            if (vvq.length > 0) {
+                queue.push(aq)
+            }
 
             for (let p of Object.keys(iq)) {
                 if (iq[p]?.isEmpty()) {
@@ -327,39 +378,68 @@ function g_collapse2(q: GBoard, gg: GGBoardNode) {
     return res
 }
 
-function g_validate(aq: GBoard, cc: GGBoardNode) {
+function g_validate(aq: GBoard, cc: GGBoardNode): GBoard[] {
 
-    let iq = {...aq}
-    for (let p1 of Object.keys(iq)) {
-
-        let p1s = aq[p1]?.singleSquare()
-        if (p1s !== undefined) {
-
-            for (let c of cc.boards) {
-                if (c.piece === p1) {
+    let res: GBoard[] = [aq]
+    let iq = { ...aq }
+    for (let c of cc.boards) {
+        let res2 = res
+        res = []
+        for (let iq of res2) {
+            if (c.type === 'gg') {
+                let iqp = iq[c.piece]
+                if (iqp === undefined) {
+                    return []
+                }
+                for (let p1s of iqp) {
+                    let iiq = { ...iq }
                     if (c.is_move) {
-                        g_reduce_move(iq, c.gg[p1s], p1)
+                        g_reduce_move(iiq, c.gg[p1s], c.piece)
                     } else {
-                        let rok = g_reduce(iq, c.gg[p1s])
+                        let rok = g_reduce(iiq, c.gg[p1s])
 
-                        if (!rok || g_board_invalid(iq)) {
-                            return false
+                        if (!rok || g_board_invalid(iiq)) {
+                            continue
                         }
                     }
+                    res.push(iiq)
                 }
-            }
+            } else if (c.type === 'ggg') {
+                let iqp = iq[c.piece1]
+                let iqp2 = iq[c.piece2]
 
-            for (let c of cc.children) {
-                if (!g_validate(iq, c)) {
-                    return false
+                if (iqp === undefined || iqp2 === undefined) {
+                    return []
                 }
+
+                for (let p1s of iqp) {
+                    let iiq = { ...iq }
+                    let gg = c.ggg[p1s]
+
+                    for (let p2s of iqp2) {
+
+                        if (gg[p2s] === undefined) {
+                            continue
+                        }
+
+                        let rok = g_reduce(iiq, gg[p2s])
+
+                        if (!rok || g_board_invalid(iiq)) {
+                            continue
+                        }
+                        res.push(iiq)
+                    }
+                }
+
             }
         }
+}
 
+    for (let c of cc.children) {
+        res = res.flatMap(iq => g_validate(iq, c))
     }
 
-
-    return true
+    return res
 }
 
 function g_reduce_move(a: GBoard, b: GBoard, piece: Pieces) {
