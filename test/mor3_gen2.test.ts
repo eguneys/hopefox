@@ -180,7 +180,7 @@ G R Q+ q+, K, k, b Z+
  E b= +K/Q z+
 `
    a = `
-G K z+, k Z+, b Z+, Q
+G K z+, k Z+, b Z+
  E b= +K/Q z+
 `
 

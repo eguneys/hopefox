@@ -160,6 +160,19 @@ function resolve_move_attack(e: MoveAttackSentence): CConstraints[] {
         }
     }
 
+    if (e.unblocked) {
+        for (let b of e.unblocked) {
+            /*
+            res.push({
+                type: 'attack_through',
+                piece: b[0],
+                attacks: b[1],
+            })
+                */
+        }
+    }
+
+
 
     return res
 }
@@ -193,9 +206,9 @@ function resolve_still_attack(e: StillAttackSentence): CConstraints[] {
         for (let b of e.blocked) {
             res.push({
                 type: 'attack_through',
-                piece: e.piece,
-                attacks: b[0],
-                through: b[1]
+                piece: b[0],
+                attacks: b[1],
+                through: b[2]
             })
         }
     }
@@ -407,7 +420,7 @@ function g_collapse2(q: GBoard, gg: GGBoardNode) {
             let vvq = g_validate(aq, gg)
 
             if (vvq.length > 0) {
-                queue.push(aq)
+                queue.push(...vvq)
             }
 
             for (let p of Object.keys(iq)) {
@@ -419,6 +432,16 @@ function g_collapse2(q: GBoard, gg: GGBoardNode) {
 
 
     }
+
+    return res
+}
+
+
+function g_validate2(aq: GBoard, cc: GGBoardNode): GBoard[] {
+    let res: GBoard[] = []
+
+
+
 
     return res
 }
@@ -435,11 +458,13 @@ function g_validate(aq: GBoard, cc: GGBoardNode): GBoard[] {
                 if (iqp === undefined) {
                     return []
                 }
+
                 for (let p1s of iqp) {
                     let iiq = { ...iq }
                     if (c.is_move) {
                         g_reduce_move(iiq, c.gg[p1s], c.piece)
                     } else {
+                        iiq[c.piece] = SquareSet.fromSquare(p1s)
                         let rok = g_reduce(iiq, c.gg[p1s])
 
                         if (!rok || g_board_invalid(iiq)) {
@@ -460,25 +485,27 @@ function g_validate(aq: GBoard, cc: GGBoardNode): GBoard[] {
                     let iiq = { ...iq }
                     let gg = c.ggg[p1s]
 
-                    let f = false
+                    iiq[c.piece1] = SquareSet.fromSquare(p1s)
                     for (let p2s of iqp2) {
 
+                        let iiq2 = { ...iiq }
                         if (gg[p2s] === undefined) {
                             continue
                         }
 
-                        let rok = g_reduce(iiq, gg[p2s])
+                        if (p1s === 18 && p2s === 4) {
+                            console.log('yay')
+                        }
+                        iiq2[c.piece2] = SquareSet.fromSquare(p2s)
+                        let rok = g_reduce(iiq2, gg[p2s])
 
-                        if (!rok || g_board_invalid(iiq)) {
+                        if (!rok || g_board_invalid(iiq2)) {
                             continue
                         }
-                        f = true
-                        break
+                        res.push(iiq2)
+                        //break
                     }
 
-                    if (f) {
-                        res.push(iiq)
-                    }
                 }
 
             }
