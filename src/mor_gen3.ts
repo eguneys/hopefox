@@ -82,7 +82,7 @@ type GGBoardNode = {
 }
 
 
-function gen_cc(root: Line): GGBoardNode {
+export function gen_cc(root: Line): GGBoardNode {
 
     let res: GXBoard[] = []
     let children: GGBoardNode[] = []

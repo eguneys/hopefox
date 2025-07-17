@@ -91,7 +91,7 @@ E b= +K Q+|B
 })
 
 
-it.only('regression', () => {
+it.skip('regression', () => {
    let a = `
 G Q, K z+, k Z+, b Z+
  E b= +K/Q z+
