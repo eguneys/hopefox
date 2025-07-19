@@ -52,6 +52,14 @@ function gen_cc(line: Line): CCNode {
 
                 let res = gen_cc_move(sentence.move)(q)
 
+                if (res === 'ok') {
+                    throw 'gen_cc_move should return a list not ok'
+                }
+                if (res === 'fail') {
+                    return 'fail'
+                } 
+
+                for (let q of res)
                 for (let r of rr) {
                     let res = r(q)
                     if (res === 'fail') {
@@ -111,11 +119,14 @@ function gen_cc_move(piece: Pieces): Constraint {
 
             let a1s = attacks(p1, p1s, occupied)
 
+            let move: [Pieces, Square] = [piece, p1s]
             let gg2: GGBoard = {
-                before: gg,
-                after: gg.after,
-                move: [piece, p1s]
+                before: gg_deep_clone(gg),
+                after: {...gg.after},
+                move
             }
+
+            gg_place_piece(gg2.before!, piece, p1s)
 
             gg_place_set(gg2, piece, a1s)
 
@@ -254,6 +265,7 @@ function gg_zero(g: GGBoard) {
     while (g.before !== undefined) {
         g = g.before
     }
+
     return g
 }
 
@@ -312,7 +324,7 @@ function gg_deep_clone(gg: GGBoard): GGBoard {
     return {
         after: { ...gg.after },
         move: gg.move,
-        before: gg.before ? gg_deep_clone(gg.before) : undefined
+        before: gg.before ? gg_deep_clone(gg.before) : undefined,
     }
 }
 
