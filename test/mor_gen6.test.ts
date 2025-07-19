@@ -170,10 +170,9 @@ G R2 Q+ q+
  `
 
  let a = `
-G R2 Q+ q+
- E b= +K/Q z+
-  A
-   G R= r+ k+ +k
+E b= +K/Q
+ A
+  E b= =Q
 `
 
     console.log(mor_gen6(a))

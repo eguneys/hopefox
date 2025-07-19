@@ -81,7 +81,11 @@ function gen_cc(line: Line): CCNode {
         }
     }
 
-    if (line.sentence.type === 'move_attack') {
+    if (line.sentence.precessor === 'E') {
+
+        if (line.sentence.type !== 'move_attack') {
+            throw 'E has to be move attack'
+        }
 
         let sentence = line.sentence
         let rr = gen_cc_move_attack(line.sentence)
@@ -124,11 +128,16 @@ function gen_cc(line: Line): CCNode {
                     }
                     if (rr_out.length === 0) {
                         has_ok = true
+                        res_out.push(...res)
                     }
                     res_out.push(...rr_out)
                 }
                 if (res_out.length === 0) {
                     return has_ok ? 'ok' : 'fail'
+                }
+                // TODO might need to return a tuple
+                if (has_ok) {
+                    return { type: 'skip_reset', gg: res_out }
                 }
                 return res_out
 
@@ -156,6 +165,19 @@ function gen_cc(line: Line): CCNode {
             children: line.children.map(gen_cc),
         }
     }
+
+    // G R= 
+    if (line.sentence.type === 'move_attack') {
+        let rr = gen_cc_move_attack(line.sentence)[0]
+        return {
+            cc: (q: GGBoard) => {
+                return rr(q)
+            },
+            children: line.children.map(gen_cc),
+        }
+    }
+
+
 
     throw 'No CCNode for Line'
 }
@@ -210,7 +232,6 @@ function gen_cc_move(piece: Pieces): Constraint {
             let path = gg_move_path(gg2).join(' ')
 
             let record = gg_zero(gg2).record
-
             if (record && record[path]) {
                 gg_place_set(gg2, piece, record[path])
             } else {
@@ -230,6 +251,9 @@ function gen_cc_move_attack(sentence: MoveAttackSentence) {
     let res: Constraint[] = []
 
     let p1 = sentence.move
+
+    res.push(vae_moves(p1))
+
     for (let a1 of sentence.attacked_by) {
         res.push(vae_attacks(a1, p1))
     }
@@ -245,6 +269,17 @@ function gen_cc_move_attack(sentence: MoveAttackSentence) {
     return res
 }
 
+function vae_moves(p1: Pieces) {
+    return (gg: GGBoard) => {
+        if (gg.move === undefined) {
+            return 'fail'
+        }
+        if (gg.move[0] !== p1) {
+            return 'fail'
+        }
+        return 'ok'
+    }
+}
 
 
 function gen_cc_still_attack(sentence: StillAttackSentence) {
@@ -705,6 +740,13 @@ function gg_place_piece(g: GGBoard, p1: Pieces, sq: Square) {
 
     while (true) {
         g.after[p1] = sqs
+
+        for (let key of Object.keys(g.after)) {
+            if (key !== p1) {
+                g.after[key] = g.after[key]!.without(sq)
+            }
+        }
+
         if (g.move) {
             if (g.move[0] === p1) {
 
@@ -739,6 +781,9 @@ function* solve_gen(gg: GGBoard, ic: CCNode, rootC: CCNode): Generator<GGBoard> 
             }
         }
     } else if (is_skip_reset(ok)) {
+        if (ic.children.length === 0) {
+            yield* ok.gg
+        }
         for (const next of ok.gg) {
             for (const child of ic.children) {
                 yield* solve_gen(next, child, rootC)
