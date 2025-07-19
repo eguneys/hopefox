@@ -506,7 +506,7 @@ function place_piece(ax: GBoard, p1: Pieces, p1s: Square) {
     return true
 }
 
-function g_occupied(ax: GBoard) {
+export function g_occupied(ax: GBoard) {
     let res = SquareSet.empty()
     
     for (let key of Object.keys(ax)) {

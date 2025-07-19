@@ -1,11 +1,11 @@
 import { it } from 'vitest'
-import { mor_gen4 } from '../src'
+import { mor_gen5 } from '../src'
 
 it.skip('works', () => {
     let a = `
 G Q n+
 `
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 
@@ -13,7 +13,7 @@ it.skip('G + ,', () => {
     let a = `
 G b +Q +n
 `
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 it.skip('G + ,', () => {
@@ -21,7 +21,7 @@ it.skip('G + ,', () => {
     let c = `
 G Q n+, b +Q
 `
-    console.log(mor_gen4(c))
+    console.log(mor_gen5(c))
 })
 
 it.skip('G + impossible', () => {
@@ -34,7 +34,7 @@ G Q Z+
 G Q n+, b +Q +n
 `
 
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 
 })
 
@@ -53,10 +53,10 @@ G Q Z+
 
     let a = `
 G Q K+
- E b= +K
+ E n= +K
 `
 
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 
@@ -70,7 +70,7 @@ G Q Z+
 G Q Z+ z+, q Z+, K
 `
 
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 
@@ -79,7 +79,7 @@ it.skip('Q+/B', () => {
 G N Q+/B b2+
  `
 
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 it.skip('regression', () => {
@@ -96,7 +96,7 @@ G N Q+/B b2+
 E b= +K Q+|B
  `
 
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 
@@ -107,7 +107,7 @@ G Q, K z+, k Z+, b Z+
 `
 
 
-    console.log(mor_gen4(a))
+    console.log(mor_gen5(a))
 })
 
 
