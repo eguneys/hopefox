@@ -1,7 +1,7 @@
 import { it } from 'vitest'
 import { mor_gen6 } from '../src'
 
-it.only('works', () => {
+it.skip('works', () => {
     let a = `
 G Q n+
 `
@@ -45,7 +45,7 @@ G Q n+, b +Q +n
 
 
 
-it.skip('G E', () => {
+it.only('G E', () => {
     let b = `
 G Q Z+
  E q= +K +Q/K

@@ -15,7 +15,6 @@ export function mor_gen6(text: string) {
     let res = solve({
         after: board,
     }, constraints, constraints)
-
     let res_out = res.map(_ => g_fen_singles(_.after))
 
     res_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
@@ -194,8 +193,8 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
                     for (let a1s of a1ss) {
 
                         let gg2 = {
-                            before: gg,
-                            after: gg.after
+                            before: gg_deep_clone(gg),
+                            after: {...gg.after}
                         }
 
                         gg_place_piece(gg2, a1, a1s)
@@ -213,11 +212,11 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
                 }
 
                 let gg2 = {
-                    before: gg,
-                    after: gg.after
+                    before: gg_deep_clone(gg),
+                    after: {...gg.after}
                 }
 
-                gg_place_set(gg2, a1, a1ss)
+                gg_place_set(gg2, a1, new_a1ss)
 
                 return [gg2]
             }
@@ -230,12 +229,12 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
                 let a1ss2 = attacks(p1p, p1s, occupied).intersect(a1ss)
 
                 let gg2 = {
-                    before: gg,
-                    after: gg.after
+                    before: gg_deep_clone(gg),
+                    after: {...gg.after}
                 }
 
                 gg_place_piece(gg2, p1, p1s)
-                gg_place_set(gg2, a1, a1ss)
+                gg_place_set(gg2, a1, a1ss2)
 
                 res.push(gg2)
             }
@@ -307,6 +306,14 @@ function solve(gg: GGBoard, ic: CCNode, rootC: CCNode): GGBoard[] {
     }
 
     return res
+}
+
+function gg_deep_clone(gg: GGBoard): GGBoard {
+    return {
+        after: { ...gg.after },
+        move: gg.move,
+        before: gg.before ? gg_deep_clone(gg.before) : undefined
+    }
 }
 
 function gg_equals(ok: GGBoard, cok: GGBoard) {
