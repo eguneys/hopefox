@@ -1,5 +1,5 @@
 import { attacks } from "./attacks"
-import { Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, Pieces, StillAttackSentence } from "./mor3_hope1"
+import { Line, MoveAttackSentence, OPPONENT_PIECE_NAMES, parse_line_recur, parse_piece, parse_rules, Pieces, PLAYER_PIECE_NAMES, StillAttackSentence } from "./mor3_hope1"
 import { extract_g_board, g_fen_singles, g_occupied, GBoard, gboard_exclude } from "./mor_gen2"
 import { SquareSet } from "./squareSet"
 import { Square } from "./types"
@@ -12,11 +12,18 @@ export function mor_gen6(text: string) {
     let constraints = gen_cc(root)
     let board = extract_g_board(text)
 
+    /*
     let res = solve({
         after: board,
     }, constraints, constraints)
     let res_out = res.map(_ => g_fen_singles(_.after))
+    */
 
+    let gg = { after: board }
+
+    let res = solve_gen(gg, constraints, constraints)
+
+    let res_out = [...res.take(100).map(_ => g_fen_singles(_.after))]
     res_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
 
     return res_out
@@ -25,7 +32,20 @@ export function mor_gen6(text: string) {
 
 const no_constraint: Constraint = (q: GGBoard) => 'ok'
 
-type Constraint = (q: GGBoard) => GGBoard[] | 'ok' | 'fail'
+type CRSkipReset =  { type: 'skip_reset', gg: GGBoard[] }
+type CResult = GGBoard[] | 'ok' | 'fail' | CRSkipReset
+
+type Constraint = (q: GGBoard) => CResult
+
+function is_skip_reset(c: CResult): c is CRSkipReset {
+    if (Array.isArray(c)) {
+        return false
+    }
+    if (c === 'ok' || c === 'fail') {
+        return false
+    }
+    return true
+}
 
 type CCNode = {
     cc: Constraint,
@@ -42,6 +62,25 @@ function gen_cc(line: Line): CCNode {
         }
     }
 
+    if (line.sentence.precessor === 'A') {
+
+        let sentence = line.sentence
+
+        return {
+            cc: (q: GGBoard) => {
+
+                let res = gen_cc_move_a()(q)
+
+                if (Array.isArray(res)) {
+                    return { type: 'skip_reset', gg: res }
+                }
+                return 'fail'
+
+            },
+            children: line.children.map(gen_cc)
+        }
+    }
+
     if (line.sentence.type === 'move_attack') {
 
         let sentence = line.sentence
@@ -52,13 +91,15 @@ function gen_cc(line: Line): CCNode {
 
                 let res = gen_cc_move(sentence.move)(q)
 
+                /*
                 if (q.after['Q']?.singleSquare() === 34) {
                     if (q.after['K']?.singleSquare() === 27) {
                         console.log('yay')
                     }
                 }
+                    */
 
-                if (res === 'ok') {
+                if (res === 'ok' || is_skip_reset(res)) {
                     throw 'gen_cc_move should return a list not ok'
                 }
                 if (res === 'fail') {
@@ -74,6 +115,8 @@ function gen_cc(line: Line): CCNode {
                         if (res === 'fail') {
                             continue outer
                         } else if (res === 'ok') {
+                            continue
+                        } else if (is_skip_reset(res)) {
                             continue
                         } else {
                             rr_out.push(...res)
@@ -115,6 +158,23 @@ function gen_cc(line: Line): CCNode {
     }
 
     throw 'No CCNode for Line'
+}
+
+function gen_cc_move_a(): Constraint {
+
+    let opp = OPPONENT_PIECE_NAMES
+    return (gg: GGBoard) => {
+
+        let res: GGBoard[] = []
+        for (let p1 of opp) {
+            let rr = gen_cc_move(p1)(gg)
+            if (rr === 'fail' || rr === 'ok' || is_skip_reset(rr)) {
+                continue
+            }
+            res.push(...rr)
+        }
+        return res
+    }
 }
 
 function gen_cc_move(piece: Pieces): Constraint {
@@ -176,6 +236,11 @@ function gen_cc_move_attack(sentence: MoveAttackSentence) {
     for (let a1 of sentence.attack) {
         res.push(vae_attacks(p1, a1))
     }
+    for (let a1 of sentence.blocked) {
+        res.push(vae_blocks(...a1))
+    }
+
+
 
     return res
 }
@@ -196,11 +261,122 @@ function gen_cc_still_attack(sentence: StillAttackSentence) {
         res.push(vae_blocks(...a1))
     }
 
+    if (sentence.zero_attack) {
+        res.push(vae_zero_attack(p1, PLAYER_PIECE_NAMES))
+    }
+
+    if (sentence.zero_defend) {
+        res.push(vae_zero_attack(p1, OPPONENT_PIECE_NAMES))
+    }
 
     return res
 }
 
-function vae_blocks(p1: Pieces, t1: Pieces, a1: Pieces): Constraint {
+function vae_zero_attack(p1: Pieces, pieces: Pieces[]): Constraint {
+
+    return (gg: GGBoard) => {
+
+        let q = gg.after
+
+        let occupied = g_occupied(q)
+
+
+        let p1ss = q[p1]
+        if (p1ss === undefined) {
+            return 'fail'
+        }
+
+        let p1s = p1ss.singleSquare()
+
+        for (let a1 of pieces) {
+            if (a1 === p1) {
+                continue
+            }
+
+            let a1ss = q[a1]
+
+            if (a1ss === undefined) {
+                continue
+            }
+            let a1p = parse_piece(a1)
+            let a1s = a1ss.singleSquare()
+
+            if (p1s !== undefined) {
+
+                if (a1s !== undefined) {
+                    if (attacks(a1p, a1s, occupied).has(p1s)) {
+                        return 'fail'
+                    }
+                } else {
+                    let new_a1ss = SquareSet.empty()
+
+                    for (let a1s of a1ss) {
+                        if (!attacks(a1p, a1s, occupied).has(p1s)) {
+                            new_a1ss = new_a1ss.set(a1s, true)
+                        }
+                    }
+
+                    if (new_a1ss.isEmpty()) {
+                        return 'fail'
+                    }
+
+                    if (new_a1ss.equals(a1ss)) {
+
+                        let res: GGBoard[] = []
+                        for (let a1s of new_a1ss) {
+
+                            let gg2 = {
+                                before: gg_deep_clone(gg),
+                                after: { ...gg.after }
+                            }
+
+                            gg_place_piece(gg2, a1, a1s)
+
+                            res.push(gg2)
+
+                        }
+
+                        return res
+                    }
+
+
+                    let gg2 = {
+                        before: gg_deep_clone(gg),
+                        after: { ...gg.after }
+                    }
+
+                    gg_place_set(gg2, a1, new_a1ss)
+
+                    return [gg2]
+
+                }
+            } else {
+
+                let res: GGBoard[] = []
+                for (let p1s of p1ss) {
+
+                    let gg2 = {
+                        before: gg_deep_clone(gg),
+                        after: { ...gg.after }
+                    }
+
+                    gg_place_piece(gg2, p1, p1s)
+
+                    res.push(gg2)
+                }
+
+                if (res.length === 0) {
+                    return 'fail'
+                }
+                return res
+            }
+    }
+
+        return 'ok'
+    }
+}
+
+function vae_blocks(p1: Pieces, a1: Pieces, t1: Pieces): Constraint {
     let p1p = parse_piece(p1)
     let t1p = parse_piece(t1)
     let a1p = parse_piece(a1)
@@ -245,7 +421,7 @@ function vae_blocks(p1: Pieces, t1: Pieces, a1: Pieces): Constraint {
                     if (a1sstt1.equals(new_a1ss)) {
 
                         let res: GGBoard[] = []
-                        for (let a1s of a1ss) {
+                        for (let a1s of a1sstt1) {
 
                             let gg2 = {
                                 before: gg_deep_clone(gg),
@@ -506,7 +682,7 @@ function gg_place_set(g: GGBoard, p1: Pieces, sqs: SquareSet) {
         g.after[p1] = sqs
         if (g.move) {
             if (g.move[0] === p1) {
-                let record = { ...g.record }
+                let record = { ...gg_zero(g).record }
                 let path = gg_move_path(g)
 
                 record[path.join(' ')] = sqs
@@ -532,7 +708,7 @@ function gg_place_piece(g: GGBoard, p1: Pieces, sq: Square) {
         if (g.move) {
             if (g.move[0] === p1) {
 
-                let record = { ...g.record }
+                let record = { ...gg_zero(g).record }
                 let path = gg_move_path(g)
 
                 record[path.join(' ')] = sqs
@@ -549,6 +725,35 @@ function gg_place_piece(g: GGBoard, p1: Pieces, sq: Square) {
     }
 }
 
+
+function* solve_gen(gg: GGBoard, ic: CCNode, rootC: CCNode): Generator<GGBoard> {
+    let ok = ic.cc(gg)
+    if (ok === 'fail') {
+        return
+    } else if (ok === 'ok') {
+        if (ic.children.length === 0) {
+            yield gg
+        } else {
+            for (const child of ic.children) {
+                yield * solve_gen(gg, child, rootC)
+            }
+        }
+    } else if (is_skip_reset(ok)) {
+        for (const next of ok.gg) {
+            for (const child of ic.children) {
+                yield* solve_gen(next, child, rootC)
+            }
+        }
+    } else {
+        for (const next of ok) {
+            yield * solve_gen(gg_zero(next), rootC, rootC)
+        }
+    }
+}
+
+
+
+/*
 function solve(gg: GGBoard, ic: CCNode, rootC: CCNode): GGBoard[] {
     let res: GGBoard[] = []
 
@@ -566,6 +771,7 @@ function solve(gg: GGBoard, ic: CCNode, rootC: CCNode): GGBoard[] {
 
     return res
 }
+    */
 
 function gg_deep_clone(gg: GGBoard): GGBoard {
     return {
