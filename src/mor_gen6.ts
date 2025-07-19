@@ -192,8 +192,182 @@ function gen_cc_still_attack(sentence: StillAttackSentence) {
     for (let a1 of sentence.attack) {
         res.push(vae_attacks(p1, a1))
     }
+    for (let a1 of sentence.blocked) {
+        res.push(vae_blocks(...a1))
+    }
+
 
     return res
+}
+
+function vae_blocks(p1: Pieces, t1: Pieces, a1: Pieces): Constraint {
+    let p1p = parse_piece(p1)
+    let t1p = parse_piece(t1)
+    let a1p = parse_piece(a1)
+
+    return (gg: GGBoard) => {
+
+        let q = gg.after
+
+        if (q[p1] === undefined || q[a1] === undefined || q[t1] === undefined) {
+            return 'fail'
+        }
+
+        let p1ss = q[p1]
+        let a1ss = q[a1]
+        let t1ss = q[a1]
+
+        let p1s = q[p1].singleSquare()
+        let a1s = q[a1].singleSquare()
+        let t1s = q[t1].singleSquare()
+        let occupied = g_occupied(q)
+
+        if (p1s !== undefined) {
+            if (t1s !== undefined) {
+
+                let a1sstt1 = attacks(p1p, p1s, occupied.without(t1s)).diff(attacks(p1p, p1s, occupied.with(t1s)))
+
+                if (a1s !== undefined) {
+                    if (a1sstt1.has(a1s)) {
+                        return 'ok'
+                    } else {
+                        return 'fail'
+                    }
+                } else {
+
+                    if (a1sstt1.isEmpty()) {
+                        return 'fail'
+                    }
+
+
+                    let new_a1ss = a1sstt1.intersect(a1ss)
+
+                    if (a1sstt1.equals(new_a1ss)) {
+
+                        let res: GGBoard[] = []
+                        for (let a1s of a1ss) {
+
+                            let gg2 = {
+                                before: gg_deep_clone(gg),
+                                after: { ...gg.after }
+                            }
+
+                            gg_place_piece(gg2, a1, a1s)
+
+                            res.push(gg2)
+
+                        }
+
+                        return res
+
+                    }
+
+                    let gg2 = {
+                        before: gg_deep_clone(gg),
+                        after: { ...gg.after }
+                    }
+
+                    gg_place_set(gg2, a1, new_a1ss)
+
+                    return [gg2]
+                }
+            } else {
+
+                let res: GGBoard[] = []
+                for (let t1s of t1ss) {
+
+                    let a1sstt1 = attacks(p1p, p1s, occupied.without(t1s)).diff(attacks(p1p, p1s, occupied.with(t1s)))
+                    
+                    a1sstt1 = a1sstt1.intersect(a1sstt1)
+
+                    if (a1sstt1.isEmpty()) {
+                        continue
+                    }
+
+                    let gg2 = {
+                        before: gg_deep_clone(gg),
+                        after: { ...gg.after }
+                    }
+
+                    gg_place_piece(gg2, t1, t1s)
+                    gg_place_set(gg2, a1, a1sstt1)
+
+                    res.push(gg2)
+                }
+
+                if (res.length === 0) {
+                    return 'fail'
+                }
+                return res
+            }
+        } else {
+
+            if (t1s !== undefined) {
+
+                let res: GGBoard[] = []
+                for (let p1s of p1ss) {
+
+                    let a1sstt1 = attacks(p1p, p1s, occupied.without(t1s)).diff(attacks(p1p, p1s, occupied.with(t1s)))
+                    
+                    a1sstt1 = a1sstt1.intersect(a1sstt1)
+
+                    if (a1sstt1.isEmpty()) {
+                        continue
+                    }
+
+                    let gg2 = {
+                        before: gg_deep_clone(gg),
+                        after: { ...gg.after }
+                    }
+
+                    gg_place_piece(gg2, p1, p1s)
+                    gg_place_set(gg2, a1, a1sstt1)
+
+                    res.push(gg2)
+                }
+
+                if (res.length === 0) {
+                    return 'fail'
+                }
+                return res
+            } else {
+
+                let res: GGBoard[] = []
+                for (let p1s of p1ss)
+                    for (let t1s of t1ss) {
+
+                        let a1sstt1 = attacks(p1p, p1s, occupied.without(t1s)).diff(attacks(p1p, p1s, occupied.with(t1s)))
+
+                        a1sstt1 = a1sstt1.intersect(a1sstt1)
+
+                        if (a1sstt1.isEmpty()) {
+                            continue
+                        }
+
+                        let gg2 = {
+                            before: gg_deep_clone(gg),
+                            after: { ...gg.after }
+                        }
+
+                        gg_place_piece(gg2, p1, p1s)
+                        gg_place_piece(gg2, t1, t1s)
+                        gg_place_set(gg2, a1, a1sstt1)
+
+                        res.push(gg2)
+                    }
+
+                if (res.length === 0) {
+                    return 'fail'
+                }
+                return res
+            }
+
+
+        }
+
+
+    }
+
 }
 
 function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
@@ -224,6 +398,11 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
                     return 'fail'
                 }
             } else {
+
+                if (a1ss.isEmpty()) {
+                    return 'fail'
+                }
+
                 let new_a1ss = attacks(p1p, p1s, occupied).intersect(a1ss)
 
                 if (a1ss.equals(new_a1ss)) {
@@ -244,10 +423,6 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
 
                     return res
 
-                }
-
-                if (a1ss.isEmpty()) {
-                    return 'fail'
                 }
 
                 let gg2 = {
