@@ -52,6 +52,12 @@ function gen_cc(line: Line): CCNode {
 
                 let res = gen_cc_move(sentence.move)(q)
 
+                if (q.after['Q']?.singleSquare() === 34) {
+                    if (q.after['K']?.singleSquare() === 27) {
+                        console.log('yay')
+                    }
+                }
+
                 if (res === 'ok') {
                     throw 'gen_cc_move should return a list not ok'
                 }
@@ -59,18 +65,29 @@ function gen_cc(line: Line): CCNode {
                     return 'fail'
                 } 
 
-                for (let q of res)
-                for (let r of rr) {
-                    let res = r(q)
-                    if (res === 'fail') {
-                        return 'fail'
-                    } else if (res === 'ok') {
-                        continue
-                    } else {
-                        return res
+                let has_ok = false
+                let res_out: GGBoard[] = []
+                outer: for (let q of res) {
+                    let rr_out = []
+                    for (let r of rr) {
+                        let res = r(q)
+                        if (res === 'fail') {
+                            continue outer
+                        } else if (res === 'ok') {
+                            continue
+                        } else {
+                            rr_out.push(...res)
+                        }
                     }
+                    if (rr_out.length === 0) {
+                        has_ok = true
+                    }
+                    res_out.push(...rr_out)
                 }
-                return 'ok'
+                if (res_out.length === 0) {
+                    return has_ok ? 'ok' : 'fail'
+                }
+                return res_out
 
             },
             children: line.children.map(gen_cc)
@@ -119,7 +136,9 @@ function gen_cc_move(piece: Pieces): Constraint {
 
             let a1s = attacks(p1, p1s, occupied)
 
+
             let move: [Pieces, Square] = [piece, p1s]
+
             let gg2: GGBoard = {
                 before: gg_deep_clone(gg),
                 after: {...gg.after},
@@ -128,7 +147,16 @@ function gen_cc_move(piece: Pieces): Constraint {
 
             gg_place_piece(gg2.before!, piece, p1s)
 
-            gg_place_set(gg2, piece, a1s)
+            let path = gg_move_path(gg2).join(' ')
+
+            let record = gg_zero(gg2).record
+
+            if (record && record[path]) {
+                gg_place_set(gg2, piece, record[path])
+            } else {
+                gg_place_set(gg2, piece, a1s)
+            }
+
 
             res.push(gg2)
         }
@@ -239,6 +267,10 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
 
                 let a1ss2 = attacks(p1p, p1s, occupied).intersect(a1ss)
 
+                if (a1ss2.isEmpty()) {
+                    continue
+                }
+
                 let gg2 = {
                     before: gg_deep_clone(gg),
                     after: {...gg.after}
@@ -250,15 +282,35 @@ function vae_attacks(p1: Pieces, a1: Pieces): Constraint {
                 res.push(gg2)
             }
 
+            if (res.length === 0) {
+                return 'fail'
+            }
             return res
         }
     }
 }
 
+type GPath = string // Pieces[].join(' ')
+
+type GMoveRecord = Record<GPath, SquareSet>
+
 type GGBoard = {
+    record?: GMoveRecord
     before?: GGBoard
     after: GBoard
     move?: [Pieces, Square]
+}
+
+function gg_move_path(g: GGBoard) {
+    let res = []
+
+    while (g.before !== undefined) {
+        if (g.move) {
+            res.unshift(g.move[0])
+        }
+        g = g.before
+    }
+    return res
 }
 
 function gg_zero(g: GGBoard) {
@@ -270,11 +322,23 @@ function gg_zero(g: GGBoard) {
 }
 
 
+function gg_set_record(g: GGBoard, record: GMoveRecord) {
+    gg_zero(g).record = record
+}
+
 function gg_place_set(g: GGBoard, p1: Pieces, sqs: SquareSet) {
     while (true) {
         g.after[p1] = sqs
         if (g.move) {
             if (g.move[0] === p1) {
+                let record = { ...g.record }
+                let path = gg_move_path(g)
+
+                record[path.join(' ')] = sqs
+
+                gg_set_record(g, record)
+
+
                 break
             }
         }
@@ -292,6 +356,14 @@ function gg_place_piece(g: GGBoard, p1: Pieces, sq: Square) {
         g.after[p1] = sqs
         if (g.move) {
             if (g.move[0] === p1) {
+
+                let record = { ...g.record }
+                let path = gg_move_path(g)
+
+                record[path.join(' ')] = sqs
+
+                gg_set_record(g, record)
+
                 break
             }
         }
@@ -322,6 +394,7 @@ function solve(gg: GGBoard, ic: CCNode, rootC: CCNode): GGBoard[] {
 
 function gg_deep_clone(gg: GGBoard): GGBoard {
     return {
+        record: gg.record ? { ... gg.record } : undefined,
         after: { ...gg.after },
         move: gg.move,
         before: gg.before ? gg_deep_clone(gg.before) : undefined,

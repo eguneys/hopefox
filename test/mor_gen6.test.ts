@@ -53,7 +53,7 @@ G Q Z+
 
     let a = `
 G Q K+
- E n= +K
+ E n= +K +Q
 `
 
     console.log(mor_gen6(a))
