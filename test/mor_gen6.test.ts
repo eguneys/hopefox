@@ -1,5 +1,7 @@
 import { it } from 'vitest'
-import { mor_gen6 } from '../src'
+import { mor_gen6, PositionManager, set_m } from '../src'
+
+set_m(await PositionManager.make())
 
 it.skip('works', () => {
     let a = `
@@ -158,7 +160,7 @@ G Q, K z+, k Z+, b Z+
 
 
 
-it.only('A', () => {
+it.skip('A', () => {
     let b = `
 G R2 Q+ q+
  E b= +K/Q z+
@@ -253,7 +255,7 @@ G k, K
 `
 */
 
-   let z = `
+    let z = `
 G R k+ B+
  E q= =B Z+
   A
@@ -273,7 +275,7 @@ G R k+ B+
        E q= =R2 Z+
    `
 
-   let z2 = `
+    let z2 = `
 G R2 Q+ q+
  E b= +K/Q z+
   A
@@ -285,20 +287,33 @@ G R2 Q+ q+
     E q= =R2 Z+  
    `
 
-   let apre = `
+    let apre = `
 G R Q+ q+, K, k, b Z+
  E b= +K/Q z+
 `
-   a = `
+    a = `
 G K z+, k Z+, b Z+
  E b= +K/Q z+
 `
 
 
 
-   //a = z
+    a = `
+G k Z+, R k+ B+
+ E q= =B Z+
+` 
 
     console.log(mor_gen6(a))
 
     //console.log(mor_nogen_find_san(a, "8/5k2/4q3/8/8/8/r7/Q1KB4 w - - 0 1"))
 })
+
+
+it.only('works', () => {
+    let a = `
+G K z+, k Z+
+ E n= =B Z+
+`
+    console.log(mor_gen6(a))
+})
+

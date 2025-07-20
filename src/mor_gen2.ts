@@ -1237,6 +1237,6 @@ function get_Lower(ax: GBoard) {
 }
 
 
-function valid_fen(fen: string) {
+export function valid_fen(fen: string) {
     return parseFen(fen).chain(_ => Chess.fromSetup(_)).isOk
 }

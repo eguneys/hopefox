@@ -1,6 +1,7 @@
 import { attacks } from "./attacks"
 import { Line, MoveAttackSentence, OPPONENT_PIECE_NAMES, parse_line_recur, parse_piece, parse_rules, Pieces, PLAYER_PIECE_NAMES, StillAttackSentence } from "./mor3_hope1"
-import { extract_g_board, g_fen_singles, g_occupied, GBoard, gboard_exclude } from "./mor_gen2"
+import { extract_g_board, g_fen_singles, g_occupied, GBoard, gboard_exclude, valid_fen } from "./mor_gen2"
+import { mor_nogen_find_san } from "./mor_nogen1"
 import { SquareSet } from "./squareSet"
 import { Square } from "./types"
 
@@ -23,8 +24,28 @@ export function mor_gen6(text: string) {
 
     let res = solve_gen(gg, constraints, constraints)
 
-    let res_out = [...res.take(100).map(_ => g_fen_singles(_.after))]
+    let res_out = [...res.take(100).map(_ => g_fen_singles(gg_zero(_).after))]
+
+    let nb_all = res_out.length
+
+    let v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
+    console.log(v_out.slice(0, 10))
+
+    res_out = res_out.filter(valid_fen)
+
+    let nb_valid = res_out.length
+
+
+    v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
+    //console.log(v_out.slice(0, 10))
+
+    res_out = res_out.filter(_ => mor_nogen_find_san(text, _) !== undefined)
+
+    let nb_found = res_out.length
+
     res_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
+
+    console.log(nb_all, nb_valid, nb_found)
 
     return res_out
 
@@ -252,7 +273,7 @@ function gen_cc_move_attack(sentence: MoveAttackSentence) {
 
     let p1 = sentence.move
 
-    res.push(vae_moves(p1))
+    res.push(vae_moves(p1, sentence.captured))
 
     for (let a1 of sentence.attacked_by) {
         res.push(vae_attacks(a1, p1))
@@ -269,7 +290,7 @@ function gen_cc_move_attack(sentence: MoveAttackSentence) {
     return res
 }
 
-function vae_moves(p1: Pieces) {
+function vae_moves(p1: Pieces, captured?: Pieces) {
     return (gg: GGBoard) => {
         if (gg.move === undefined) {
             return 'fail'
@@ -277,6 +298,62 @@ function vae_moves(p1: Pieces) {
         if (gg.move[0] !== p1) {
             return 'fail'
         }
+
+        if (captured) {
+            let q = gg.after
+
+            let c1ss = q[captured]
+            let p1ss = q[p1]
+
+            if (c1ss === undefined || p1ss === undefined) {
+                return 'fail'
+            }
+
+            let c1s = c1ss.singleSquare()
+            let p1s = p1ss.singleSquare()
+
+            if (c1s !== undefined) {
+
+                if (p1s !== undefined) {
+                    if (c1s !== p1s) {
+                        return 'fail'
+                    }
+                    return 'ok'
+                }
+
+
+                if (!p1ss.has(c1s)) {
+                    return 'fail'
+                }
+
+                let res: GGBoard[] = []
+
+                let gg2 = {
+                    before: gg_deep_clone(gg),
+                    after: { ...gg.after }
+                }
+
+                gg_place_piece(gg2, p1, c1s)
+                res.push(gg2)
+
+                return res
+            } else {
+                let new_c1ss = c1ss.intersect(p1ss)
+
+
+                let gg2 = {
+                    before: gg_deep_clone(gg),
+                    after: { ...gg.after }
+                }
+
+                gg_place_set(gg2, captured, new_c1ss)
+                gg_place_set(gg2, p1, new_c1ss)
+
+                return [gg2]
+            }
+
+        }
+
         return 'ok'
     }
 }
