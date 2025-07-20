@@ -742,6 +742,19 @@ function extract_p_context(pos: PositionC): PContext {
     return twos
 }
 
+export function mor_nogen_find_lines(text: string, fen: FEN) {
+
+    let a = mor_nogen(text, fen)
+
+    let res = a.split('\n')
+
+    let res2 = res.map(_ => _.match(/<([^>]*)>/)?.[1])
+
+    let res3 = res2.map(_ => _?.split(' ').filter(_ => !_.startsWith('.'))).filter(Boolean)
+
+    return res3
+}
+
 export function mor_nogen_find_san(text: string, fen: FEN) {
 
     let a = mor_nogen(text, fen)

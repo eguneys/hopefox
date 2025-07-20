@@ -1,9 +1,50 @@
 import { it } from 'vitest'
-import { mor_nogen, mor_nogen_find_san, Position, PositionManager } from '../src'
+import { mor_nogen, mor_nogen_find_lines, mor_nogen_find_san, Position, PositionManager } from '../src'
 import { a } from 'vitest/dist/chunks/suite.BMWOKiTe.js'
 import { set_m } from '../src/mor3_hope1'
 
 set_m(await PositionManager.make())
+
+
+it.only('extract moves', () => {
+
+    // 0D2Yq
+    let fen = 'r6r/pp2k2p/3b1pp1/2p1p3/2P1P3/4BP1P/nP1RBP2/2K3R1 w - - 0 18'
+
+    let a = `
+E k= +N
+ A
+  E k= =N
+  E p= =N
+  G B r2+ K+, N P+
+   E r= +B/r2
+    A
+     G B=
+      E b2= =P +K +N
+     E r2= =B K+ r+
+     E r2= =B Z+
+     E r2= =N Z+
+     E r2= =B
+      A
+       G R2= =r2
+        E b2= =P +K/R2 +N
+       E r2=
+     E r2= =B
+      A
+       G R= =r2
+        E b2= =P +K/R +N
+       E r2=
+`
+
+    console.log(mor_nogen(a, fen))
+    console.log(mor_nogen_find_san(a, fen))
+    console.log(mor_nogen_find_lines(a, fen))
+
+})
+
+
+
+
 it.skip('works', () => {
 
     let fen = 'r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25'
