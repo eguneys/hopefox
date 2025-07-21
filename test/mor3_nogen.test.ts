@@ -33,7 +33,7 @@ E k= +N
       A
        G R= =r2
         E b2= =P +K/R +N
-       E r2=
+       E r2= 9
 `
 
     console.log(mor_nogen(a, fen))
