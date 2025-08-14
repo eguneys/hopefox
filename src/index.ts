@@ -87,3 +87,5 @@ export * from './mor_gen3'
 export * from './mor_gen4'
 export * from './mor_gen5'
 export * from './mor_gen6'
+
+export * from './short/mor_short'

@@ -1,122 +1,124 @@
-import { it } from 'vitest'
+import { describe, it } from 'vitest'
 import { mor_gen6, PositionManager, set_m } from '../src'
 
 set_m(await PositionManager.make())
 
-it.skip('works', () => {
-    let a = `
+describe.skip('mor gen 6', () => {
+
+    it.skip('works', () => {
+        let a = `
 G Q n+
 `
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
-it.skip('G + ,', () => {
-    let a = `
+    it.skip('G + ,', () => {
+        let a = `
 G b +Q +n
 `
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
-it.skip('G + ,', () => {
+    it.skip('G + ,', () => {
 
-    let c = `
+        let c = `
 G Q n+, b +Q
 `
-    console.log(mor_gen6(c))
-})
+        console.log(mor_gen6(c))
+    })
 
-it.skip('G + impossible', () => {
-    let b = `
+    it.skip('G + impossible', () => {
+        let b = `
 G Q Z+
  E q= +K +Q/K
  `
 
-    let a = `
+        let a = `
 G Q n+, b +Q +n
 `
 
-    console.log(mor_gen6(a))
+        console.log(mor_gen6(a))
 
-})
+    })
 
 
 
-it.skip('G Z+', () => {
-    let b = `
+    it.skip('G Z+', () => {
+        let b = `
 G K, Q Z+
  `
 
-    console.log(mor_gen6(b))
-})
+        console.log(mor_gen6(b))
+    })
 
 
 
 
 
-it.skip('G E', () => {
-    let b = `
+    it.skip('G E', () => {
+        let b = `
 G Q Z+
  E q= +K +Q/K
  `
 
-    let a = `
+        let a = `
 G Q K+
  E n= +K +Q
 `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
 
 
-it.skip('E +Q/K', () => {
-    let b = `
+    it.skip('E +Q/K', () => {
+        let b = `
 G Q Z+
  E q= +K +Q/K
  `
-    console.log(mor_gen6(b))
+        console.log(mor_gen6(b))
 
-    let a = `
+        let a = `
 G b +Q/K
 `
 
-    //console.log(mor_gen6(a))
+        //console.log(mor_gen6(a))
 
 
-    let c = `
+        let c = `
 E q= +K +Q/K
  `
 
 
 
-    //console.log(mor_gen6(c))
+        //console.log(mor_gen6(c))
 
-})
+    })
 
 
-it.skip('G Z+ E', () => {
-    let b = `
+    it.skip('G Z+ E', () => {
+        let b = `
 G Q Z+
  E q= +K +Q/K
  `
 
-    let a = `
+        let a = `
 G Q Z+ z+, q Z+, K
 `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
-it.skip('Q+/B', () => {
-    let a = `
+    it.skip('Q+/B', () => {
+        let a = `
 G N Q+/B b2+
  `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
 
@@ -128,8 +130,8 @@ G N Q+/B b2+
 
 
 
-it.skip('regression', () => {
-    let b = `
+    it.skip('regression', () => {
+        let b = `
 G N Q+/B b2+
  E b2= =N
   A
@@ -138,30 +140,30 @@ G N Q+/B b2+
    G b2
  `
 
- let a = `
+        let a = `
 E b= +K Q+|B
  `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
-it.skip('regression', () => {
-   let a = `
+    it.skip('regression', () => {
+        let a = `
 G Q, K z+, k Z+, b Z+
  E b= +K/Q z+
 `
 
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
 
 
 
-it.skip('A', () => {
-    let b = `
+    it.skip('A', () => {
+        let b = `
 G R2 Q+ q+
  E b= +K/Q z+
   A
@@ -171,20 +173,20 @@ G R2 Q+ q+
     E q= =R2 Z+
  `
 
- let a = `
+        let a = `
 E b= +K/Q
  A
   E b= =Q
 `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
 
 
-it.skip('regression', () => {
-    let b = `
+    it.skip('regression', () => {
+        let b = `
 G N Q+/B b2+
  E b2= =N
   A
@@ -193,7 +195,7 @@ G N Q+/B b2+
    G b2
  `
 
- let a = `
+        let a = `
 G N Q+/B b2+
  E b2= =N
   A
@@ -202,11 +204,11 @@ G N Q+/B b2+
    G b2
  `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
-it.skip('another example', () => {
-    let b = `
+    it.skip('another example', () => {
+        let b = `
 G R2 Q+ q+
  E b= +K/Q z+
   A
@@ -216,19 +218,19 @@ G R2 Q+ q+
     E q= =R2 Z+
  `
 
- let a = `
+        let a = `
 G K Q+, k b+
  E b=
  `
 
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
 
 
 
-it.skip('another example 2', () => {
-    let b = `
+    it.skip('another example 2', () => {
+        let b = `
 G R2 Q+ q+
  E b= +K/Q z+
   A
@@ -238,7 +240,7 @@ G R2 Q+ q+
     E q= =R2 Z+
  `
 
-    let a = `
+        let a = `
 G R2 Q+ q+
  E b= +K/Q z+
   A
@@ -248,14 +250,14 @@ G R2 Q+ q+
     E q= =R2 Z+
  `
 
- /*
-    a = `
-G k, K
- E b= =Q
-`
-*/
+        /*
+           a = `
+       G k, K
+        E b= =Q
+       `
+       */
 
-    let z = `
+        let z = `
 G R k+ B+
  E q= =B Z+
   A
@@ -275,7 +277,7 @@ G R k+ B+
        E q= =R2 Z+
    `
 
-    let z2 = `
+        let z2 = `
 G R2 Q+ q+
  E b= +K/Q z+
   A
@@ -287,33 +289,35 @@ G R2 Q+ q+
     E q= =R2 Z+  
    `
 
-    let apre = `
+        let apre = `
 G R Q+ q+, K, k, b Z+
  E b= +K/Q z+
 `
-    a = `
+        a = `
 G K z+, k Z+, b Z+
  E b= +K/Q z+
 `
 
 
 
-    a = `
+        a = `
 G k Z+, R k+ B+
  E q= =B Z+
-` 
+`
 
-    console.log(mor_gen6(a))
+        console.log(mor_gen6(a))
 
-    //console.log(mor_nogen_find_san(a, "8/5k2/4q3/8/8/8/r7/Q1KB4 w - - 0 1"))
-})
+        //console.log(mor_nogen_find_san(a, "8/5k2/4q3/8/8/8/r7/Q1KB4 w - - 0 1"))
+    })
 
 
-it.only('works', () => {
-    let a = `
+    it.only('works', () => {
+        let a = `
 G K z+, k Z+
  E n= =B Z+
 `
-    console.log(mor_gen6(a))
-})
+        console.log(mor_gen6(a))
+    })
 
+
+})

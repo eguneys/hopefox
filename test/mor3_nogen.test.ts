@@ -6,7 +6,7 @@ import { set_m } from '../src/mor3_hope1'
 set_m(await PositionManager.make())
 
 
-it.only('extract moves', () => {
+it.skip('extract moves', () => {
 
     // 0D2Yq
     let fen = 'r6r/pp2k2p/3b1pp1/2p1p3/2P1P3/4BP1P/nP1RBP2/2K3R1 w - - 0 18'
