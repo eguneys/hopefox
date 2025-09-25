@@ -1,8 +1,395 @@
 import { attacks } from "../attacks";
+import { Chess } from "../chess";
+import { EMPTY_FEN, makeFen, parseFen } from "../fen";
 import { type FEN, type Pieces } from "../mor3_hope1";
 import { SquareSet } from "../squareSet";
 import { Color, Piece, Role, Square } from "../types";
 import { squareFromCoords } from "../util";
+
+
+type QContext = Record<Pieces, SquareSet>
+
+export function l_attack_pieces(l: AttackPiece[]) {
+    let q = l_qcontext(l)
+
+    let L = l.flatMap(l_attack_lines)
+
+    let res = l_solve(q, 0, L)
+
+    let res_out =  [...res.take(10).map(_ => q_fen_singles(_))]
+
+    let v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
+
+    return v_out
+}
+
+function q_occupied(q: QContext) {
+    let res = SquareSet.empty()
+    for (let key of Object.keys(q)) {
+
+        let qq = q[key].singleSquare()
+        if (qq !== undefined) {
+            res = res.with(qq)
+        }
+    }
+    return res
+}
+
+function l_attack_lines(l: AttackPiece) {
+
+    let res: AttackLine[] = []
+
+    let {
+        p1,
+        attacks,
+        blocked_attacks } = l
+
+    if (attacks.length === 0 && blocked_attacks.length === 0) {
+        res.push([p1])
+    }
+
+    for (let aa of attacks) {
+        res.push([p1, aa])
+    }
+
+    for (let bb of blocked_attacks) {
+        res.push([p1, bb[0], bb[1]])
+    }
+    return res
+}
+
+function l_cc0(q: QContext, p: Pieces): LCC {
+
+
+    return 'ok'
+}
+
+type LCC = 'ok' | QContext[] | 'fail'
+
+function l_cc(q: QContext, l: AttackLine): LCC {
+
+    if (l.length === 1) {
+        return l_cc0(q, l[0])
+    }
+
+    let [p1, a1] = l
+
+    let p1p = parse_piece(p1)
+
+    if (q[p1] === undefined || q[a1] === undefined) {
+        return 'fail'
+    }
+
+    let p1ss = q[p1]
+    let a1ss = q[a1]
+
+    let p1s = q[p1].singleSquare()
+    let a1s = q[a1].singleSquare()
+    let occupied = q_occupied(q)
+
+    if (p1s !== undefined) {
+        if (a1s !== undefined) {
+            if (attacks(p1p, p1s, occupied).has(a1s)) {
+                return 'ok'
+            } else {
+                return 'fail'
+            }
+        } else {
+
+            if (a1ss.isEmpty()) {
+                return 'fail'
+            }
+
+            let new_a1ss = attacks(p1p, p1s, occupied).intersect(a1ss)
+
+            if (a1ss.equals(new_a1ss)) {
+
+                let res: QContext[] = []
+                for (let a1s of a1ss) {
+
+                    let q2 = {...q}
+                    q_place_piece(q2, a1, a1s)
+
+                    res.push(q2)
+
+                }
+
+                return res
+
+            }
+
+            let q2 = {...q}
+            q_place_set(q2, a1, new_a1ss)
+
+            return [q2]
+        }
+    } else {
+
+
+        let res: QContext[] = []
+        for (let p1s of p1ss) {
+
+            let a1ss2 = attacks(p1p, p1s, occupied).intersect(a1ss)
+
+            if (a1ss2.isEmpty()) {
+                continue
+            }
+
+            let q2 = { ... q}
+            q_place_piece(q2, p1, p1s)
+            q_place_set(q2, a1, a1ss2)
+
+            res.push(q2)
+        }
+
+        if (res.length === 0) {
+            return 'fail'
+        }
+        return res
+    }
+}
+
+
+function q_place_set(q: QContext, p1: Pieces, sqs: SquareSet) {
+    q[p1] = sqs
+}
+
+function l_cc2(q: QContext, l: AttackLine, ls: AttackLine[]): LCC {
+
+    let [p1] = l
+     
+    let p1p = parse_piece(p1)
+
+    let p1s = q[p1].singleSquare()
+
+    if (p1s === undefined) {
+        return 'ok'
+    }
+
+    let occupied = q_occupied(q)
+
+    let aa = attacks(p1p, p1s, occupied)
+
+    let all = ls.filter(_ => _[0] === p1)
+
+    for (let a1s of aa) {
+        let a1p = q_find_sq(q, a1s)
+
+        if (a1p) {
+            if (!all.some(_ => _[1] === a1p)) {
+                return 'fail'
+            }
+        }
+    }
+
+    return 'ok'
+}
+
+function q_find_sq(q: QContext, sq: Square) {
+    for (let p of Object.keys(q)) {
+        if (q[p].singleSquare() === sq) {
+            return p
+        }
+    }
+}
+
+function q_place_piece(q: QContext, p1: Pieces, sq: Square) {
+    let sqs = SquareSet.fromSquare(sq)
+
+    q[p1] = sqs
+
+    for (let key of Object.keys(q)) {
+        if (key !== p1) {
+            q[key] = q[key]!.without(sq)
+        }
+    }
+}
+
+
+
+
+function* l_solve(q: QContext, i: number, L: AttackLine[]): Generator<QContext> {
+    if (i >= L.length) {
+        yield q
+        return
+    }
+
+    let ok = l_cc(q, L[i])
+
+    if (ok === 'fail') {
+        return
+    }
+    if (ok === 'ok') {
+
+        let ok2 = l_cc2(q, L[i], L)
+
+        if (ok2 === 'fail') {
+            return
+        }
+
+        yield * l_solve(q, i + 1, L)
+    } else {
+        for (const next of ok) {
+            yield* l_solve(next, 0, L)
+        }
+    }
+}
+
+
+function l_expand_q(ll: AttackPiece[], q: QContext) {
+    let lines = ll.flatMap(l_attack_lines)
+
+    let occupied = q_occupied(q)
+
+    let res: QContext[] = [q]
+
+    for (let line of lines) {
+        if (line.length === 2) {
+
+            let [p1, p2] = line
+
+
+            for (let sq of q[p1]) {
+
+                let qq: QContext = {...q}
+
+                let aa = attacks(parse_piece(p1), sq, occupied)
+
+                qq[p1] = SquareSet.fromSquare(sq)
+                qq[p2] = qq[p2].intersect(aa)
+            }
+        }
+    }
+}
+
+function l_qcontext(l: AttackPiece[]) {
+    let res: QContext = {}
+
+    l.forEach(l => {
+        res[l.p1] = SquareSet.full()
+    })
+    return res
+}
+
+export function mor_long(rules: string) {
+    return rules.split('\n').map(parse_attack_piece)
+}
+
+function match_attacks(rule: string) {
+
+    let res = rule.match(/^\+(\w*)$/)
+
+    if (res) {
+        if (res[1] === 'Z' || res[1] === 'z') {
+            return undefined
+        }
+        return res[1]
+    }
+
+}
+
+function match_attacked_by(rule: string) {
+
+    let res = rule.match(/^(\w*)\+$/)
+
+    if (res) {
+        if (res[1] === 'Z' || res[1] === 'z') {
+            return undefined
+        }
+        return res[1]
+    }
+
+
+}
+
+function match_blocks(rule: string): [Pieces, Pieces] | undefined {
+
+    let res = rule.match(/^(\w*)\+\|(\w*)$/)
+
+    if (res) {
+        return [res[1], res[2]]
+    }
+
+
+}
+function match_blocked_attacks(rule: string): [Pieces, Pieces] | undefined {
+
+    let res = rule.match(/^\+(\w*)\/(\w*)$/)
+
+    if (res) {
+        return [res[1], res[2]]
+    }
+
+
+}
+
+function match_blocked_attacked_by(rule: string): [Pieces, Pieces] | undefined {
+
+    let res = rule.match(/^(\w*)\+\/(\w*)$/)
+
+    if (res) {
+        return [res[1], res[2]]
+    }
+
+
+}
+
+function parse_attack_piece(rule: string) {
+
+    let [p1, ...res] = rule.split(' ')
+
+    let attacks: Pieces[] = []
+    let attacked_by: Pieces[] = []
+    let blocks: [Pieces, Pieces][] = []
+    let blocked_attacks: [Pieces, Pieces][] = []
+    let blocked_attacked_by: [Pieces, Pieces][] = []
+
+    res.forEach(rule => {
+        let aa = match_attacks(rule)
+
+        if (aa) {
+            attacks.push(aa)
+            return
+        }
+        let bb = match_attacked_by(rule)
+
+        if (bb) {
+            attacked_by.push(bb)
+            return
+        }
+
+        let cc = match_blocks(rule)
+
+        if (cc) {
+            blocks.push(cc)
+            return
+        }
+
+
+        let dd = match_blocked_attacks(rule)
+
+        if (dd) {
+            blocked_attacks.push(dd)
+            return
+        }
+
+        let ee = match_blocked_attacked_by(rule)
+
+        if (ee) {
+            blocked_attacked_by.push(ee)
+            return
+        }
+    })
+
+    return {
+        p1,
+        attacks,
+        attacked_by,
+        blocks,
+        blocked_attacks,
+        blocked_attacked_by
+    }
+}
 
 type SContext = Record<Pieces, Square>
 
@@ -65,12 +452,10 @@ export function print_a_piece(a: AttackPiece) {
         res.push(blocked_attacked_by)
     }
 
-
-
     return res.join(' ')
 }
 
-type AttackLine = [Pieces, Pieces] | [Pieces, Pieces, Pieces]
+type AttackLine = [Pieces] | [Pieces, Pieces] | [Pieces, Pieces, Pieces]
 
 type AttackPiece = {
     p1: Pieces
@@ -94,17 +479,19 @@ function s_attack_pieces(s: SContext) {
 
 
         for (let line of lines) {
-            if (line[0] === p1) {
+            if (line[1] === undefined) {
+
+            } else if (line[0] === p1) {
                 if (line.length === 2) {
                     attacks.push(line[1])
                 } else {
-                    blocked_attacks.push([line[1], line[2]])
+                    blocked_attacks.push([line[1], line[2]!])
                 }
             } else if (line[1] === p1) {
                 if (line.length === 2) {
                     attacked_by.push(line[0])
                 } else {
-                    blocks.push([line[0], line[2]])
+                    blocks.push([line[0], line[2]!])
                 }
             } else if (line[2] === p1) {
                 blocked_attacked_by.push([line[0], line[1]])
@@ -231,5 +618,25 @@ export function parse_piece(pieces: Pieces): Piece {
         color,
         role
     }
+}
+
+
+
+let empty_board = Chess.fromSetupUnchecked(parseFen(EMPTY_FEN).unwrap())
+export function q_fen_singles(q: QContext, turn: Color = 'white') {
+    let res = empty_board.clone()
+    res.turn = turn
+
+    for (let p of Object.keys(q)) {
+        let sq = q[p]?.first()
+        if (sq !== undefined) {
+            for (let k of Object.keys(q)) {
+                q[k] = q[k]?.without(sq)
+            }
+            res.board.set(sq, parse_piece(p))
+        }
+    }
+
+    return makeFen(res.toSetup())
 }
 
