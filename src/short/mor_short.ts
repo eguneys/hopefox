@@ -2,21 +2,25 @@ import { attacks } from "../attacks";
 import { Chess } from "../chess";
 import { EMPTY_FEN, makeFen, parseFen } from "../fen";
 import { type FEN, type Pieces } from "../mor3_hope1";
+import { arr_shuffle } from "../random";
 import { SquareSet } from "../squareSet";
 import { Color, Piece, Role, Square } from "../types";
 import { squareFromCoords } from "../util";
-
 
 type QContext = Record<Pieces, SquareSet>
 
 export function l_attack_pieces(l: AttackPiece[]) {
     let q = l_qcontext(l)
 
+    //q = fen_to_qcontext("3r4/p1p2kpp/4rn2/1p6/2N1P3/3n1P2/PB4PP/R2R2K1")
+
     let L = l.flatMap(l_attack_lines)
+
+    L = L.sort((a, b) => b.length - a.length)
 
     let res = l_solve(q, 0, L)
 
-    let res_out =  [...res.take(10).map(_ => q_fen_singles(_))]
+    let res_out =  [...res.take(1).map(_ => q_fen_singles(_))]
 
     let v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
 
@@ -58,21 +62,88 @@ function l_attack_lines(l: AttackPiece) {
     return res
 }
 
-function l_cc0(q: QContext, p: Pieces): LCC {
-
-
-    return 'ok'
-}
-
 type LCC = 'ok' | QContext[] | 'fail'
+
+function l_cc3(q: QContext, l: AttackLine): LCC {
+
+
+    let l0 = l_cc(q, l)
+
+    if (l0 !== 'ok') {
+        return l0
+    }
+
+
+
+    let [p1, a1, a2] = l
+
+    if (a1 === undefined || a2 === undefined) {
+        return 'fail'
+    }
+
+    let p1p = parse_piece(p1)
+
+    if (q[p1] === undefined || q[a1] === undefined) {
+        return 'fail'
+    }
+
+    let p1ss = q[p1]
+    let a1ss = q[a1]
+    let a2ss = q[a2]
+
+    let p1s = q[p1].singleSquare()!
+    let a1s = q[a1].singleSquare()!
+    let a2s = q[a2].singleSquare()
+    let occupied = q_occupied(q)
+
+    if (a2s !== undefined) {
+        if (attacks(p1p, p1s, occupied.without(a1s)).has(a2s)) {
+            return 'ok'
+        } else {
+            return 'fail'
+        }
+    } else {
+        if (a2ss.isEmpty()) {
+            return 'fail'
+        }
+
+        let new_a2ss = 
+            attacks(p1p, p1s, occupied.without(a1s)).diff(
+                attacks(p1p, p1s, occupied))
+                .intersect(a2ss)
+
+
+        if (a2ss.equals(new_a2ss)) {
+
+            let res: QContext[] = []
+            for (let a2s of a2ss) {
+
+                let q2 = { ...q }
+                q_place_piece(q2, a2, a2s)
+
+                res.push(q2)
+
+            }
+
+            return res
+
+        }
+
+        let q2 = { ...q }
+        q_place_set(q2, a2, new_a2ss)
+
+        return [q2]
+    }
+
+}
 
 function l_cc(q: QContext, l: AttackLine): LCC {
 
-    if (l.length === 1) {
-        return l_cc0(q, l[0])
-    }
-
     let [p1, a1] = l
+
+    if (a1 === undefined) {
+        return 'fail'
+    }
 
     let p1p = parse_piece(p1)
 
@@ -154,7 +225,7 @@ function q_place_set(q: QContext, p1: Pieces, sqs: SquareSet) {
     q[p1] = sqs
 }
 
-function l_cc2(q: QContext, l: AttackLine, ls: AttackLine[]): LCC {
+function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[]): LCC {
 
     let [p1] = l
      
@@ -205,32 +276,63 @@ function q_place_piece(q: QContext, p1: Pieces, sq: Square) {
     }
 }
 
+function l_cc1(q: QContext, p1: Pieces): LCC {
+
+    if (q[p1] === undefined) {
+        return 'fail'
+    }
+
+    let p1s = q[p1].singleSquare()
+
+    if (p1s) {
+        return 'ok'
+    }
+
+    let res: QContext[] = []
+    for (let p1s of q[p1]) {
+        let q2 = { ...q }
+        q_place_piece(q2, p1, p1s)
+
+        res.push(q2)
+    }
+    return res
+}
 
 
 
-function* l_solve(q: QContext, i: number, L: AttackLine[]): Generator<QContext> {
-    if (i >= L.length) {
+function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Generator<QContext> {
+    if (i >= i_cap) {
         yield q
         return
     }
 
-    let ok = l_cc(q, L[i])
+    let ok: LCC = 'fail'
+    let l = L[i]
+    if (l.length === 1) {
+        ok = l_cc1(q, l[0])
+    } else if (l.length === 2) {
+        ok = l_cc(q, l)
+    } else {
+        ok = l_cc3(q, l)
+    }
 
     if (ok === 'fail') {
         return
     }
     if (ok === 'ok') {
 
-        let ok2 = l_cc2(q, L[i], L)
+        let ok2 = l_cc0(q, L[i], L)
 
         if (ok2 === 'fail') {
             return
         }
 
+        console.log(i)
         yield * l_solve(q, i + 1, L)
     } else {
+        ok = arr_shuffle(ok).slice(0, 8)
         for (const next of ok) {
-            yield* l_solve(next, 0, L)
+            yield * l_solve(next, i, L)
         }
     }
 }
@@ -262,11 +364,48 @@ function l_expand_q(ll: AttackPiece[], q: QContext) {
     }
 }
 
+function fen_to_qcontext(fen: FEN) {
+    fen = fen.split(' ')[0]
+
+    let res: QContext = {}
+    let rank = 7
+    for (let line of fen.split('/')) {
+        let file = 0
+        for (let ch of line) {
+            if (is_pieces(ch)) {
+            let p1 = parse_piece(ch)
+
+            let sq = squareFromCoords(file, rank)
+            if (sq !== undefined) {
+
+                let chi = ch
+                let i = 2
+                while (res[chi] !== undefined) {
+                    chi = ch + i
+                    i++
+                }
+                res[chi] = SquareSet.fromSquare(sq)
+            }
+            file+= 1
+            } else {
+                file += parseInt(ch)
+                continue
+            }
+        }
+        rank -= 1
+    }
+    return res
+}
+
 function l_qcontext(l: AttackPiece[]) {
     let res: QContext = {}
 
     l.forEach(l => {
         res[l.p1] = SquareSet.full()
+
+        if (l.p1[0] === 'p' || l.p1[0] === 'P') {
+            res[l.p1] = SquareSet.full().diff(SquareSet.backranks())
+        }
     })
     return res
 }

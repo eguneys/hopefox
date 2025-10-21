@@ -21,7 +21,10 @@ n=e5 +K +N b+ R2+
 //fen = "8/4k3/8/8/8/8/8/4K3 w - - 0 1"
 //fen = "8/4k3/8/8/8/5N2/8/4K3 w - - 0 1"
 //fen = "8/4k3/8/5n2/3N4/8/2K5/8 w - - 0 1"
-fen = "3r4/5k2/4rn2/8/2N5/3n4/1B6/R2R2K1 w - - 0 1"
+//fen = "3r4/8/8/8/3n4/8/8/3R4 w - - 0 1"
+//fen = "3r4/8/8/8/2N5/3n4/8/3R4 w - - 0 1"
+
+//fen = "3r4/5k2/4rn2/8/2N5/3n4/1B6/R2R2K1 w - - 0 1"
 
     console.log(mor_short(fen).map(print_a_piece))
     let res = mor_short(fen).map(print_a_piece).join('\n')
