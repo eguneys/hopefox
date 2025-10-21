@@ -1,11 +1,18 @@
-import { attacks } from "../attacks";
+//import { attacks } from "../attacks";
 import { Chess } from "../chess";
 import { EMPTY_FEN, makeFen, parseFen } from "../fen";
+import { piece_to_c, PositionManager } from "../hopefox_c";
 import { type FEN, type Pieces } from "../mor3_hope1";
 import { arr_shuffle } from "../random";
 import { SquareSet } from "../squareSet";
 import { Color, Piece, Role, Square } from "../types";
 import { squareFromCoords } from "../util";
+
+let m = await PositionManager.make()
+
+const attacks = (p: Piece, sq: Square, occupied: SquareSet) => {
+    return m.attacks(piece_to_c(p), sq, occupied)
+}
 
 type QContext = Record<Pieces, SquareSet>
 
@@ -327,12 +334,11 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
             return
         }
 
-        console.log(i)
         yield * l_solve(q, i + 1, L)
     } else {
-        ok = arr_shuffle(ok).slice(0, 8)
+        ok = arr_shuffle(ok).slice(0, 18)
         for (const next of ok) {
-            yield * l_solve(next, i, L)
+            yield * l_solve(next, 0, L)
         }
     }
 }
