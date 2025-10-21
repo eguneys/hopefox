@@ -1,4 +1,5 @@
-//import { attacks } from "../attacks";
+import { attacks as js_attacks } from "../attacks";
+import { between } from "../attacks";
 import { Chess } from "../chess";
 import { EMPTY_FEN, makeFen, parseFen } from "../fen";
 import { piece_to_c, PositionManager } from "../hopefox_c";
@@ -11,7 +12,8 @@ import { squareFromCoords } from "../util";
 let m = await PositionManager.make()
 
 const attacks = (p: Piece, sq: Square, occupied: SquareSet) => {
-    return m.attacks(piece_to_c(p), sq, occupied)
+    //return m.attacks(piece_to_c(p), sq, occupied)
+    return js_attacks(p, sq, occupied)
 }
 
 type QContext = Record<Pieces, SquareSet>
@@ -128,6 +130,9 @@ function l_cc3(q: QContext, l: AttackLine): LCC {
                 let q2 = { ...q }
                 q_place_piece(q2, a2, a2s)
 
+                let a_lines = between(p1s, a2s)
+                q_empty_lines(q2, a_lines)
+
                 res.push(q2)
 
             }
@@ -188,6 +193,10 @@ function l_cc(q: QContext, l: AttackLine): LCC {
                     let q2 = {...q}
                     q_place_piece(q2, a1, a1s)
 
+
+                    let a_lines = between(p1s, a1s)
+                    q_empty_lines(q2, a_lines)
+
                     res.push(q2)
 
                 }
@@ -227,6 +236,12 @@ function l_cc(q: QContext, l: AttackLine): LCC {
     }
 }
 
+function q_empty_lines(q: QContext, lines: SquareSet) {
+    for (let key of Object.keys(q)) {
+        for (let sq of lines)
+            q[key] = q[key]!.without(sq)
+    }
+}
 
 function q_place_set(q: QContext, p1: Pieces, sqs: SquareSet) {
     q[p1] = sqs
@@ -258,6 +273,7 @@ function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[]): LCC {
                 return 'fail'
             }
         }
+
     }
 
     return 'ok'
@@ -306,6 +322,9 @@ function l_cc1(q: QContext, p1: Pieces): LCC {
 }
 
 
+const xx_r = 59
+const xx_n2 = 19
+const xx_R = 3
 
 function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Generator<QContext> {
     if (i >= i_cap) {
@@ -323,9 +342,14 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
         ok = l_cc3(q, l)
     }
 
+    if (q['r'].has(xx_r) && q['n2'].has(xx_n2) && q['R'].has(xx_R)) {
+        console.log('yes')
+    }
+
     if (ok === 'fail') {
         return
     }
+
     if (ok === 'ok') {
 
         let ok2 = l_cc0(q, L[i], L)
@@ -336,7 +360,6 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
 
         yield * l_solve(q, i + 1, L)
     } else {
-        ok = arr_shuffle(ok).slice(0, 18)
         for (const next of ok) {
             yield * l_solve(next, 0, L)
         }
