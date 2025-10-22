@@ -29,7 +29,7 @@ export function l_attack_pieces(l: AttackPiece[]) {
 
     let res = l_solve(q, 0, L)
 
-    let res_out =  [...res.take(100000000).flatMap(_ => l_solve(_, 0, L)).take(1).map(_ => q_fen_singles(_))]
+    let res_out =  [...res.take(30000000).flatMap(_ => l_solve(_, 0, L)).take(1).map(_ => q_fen_singles(_))]
 
     let v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
 
