@@ -29,7 +29,7 @@ export function l_attack_pieces(l: AttackPiece[]) {
 
     let res = l_solve(q, 0, L)
 
-    let res_out =  [...res.take(1).map(_ => q_fen_singles(_))]
+    let res_out =  [...res.take(100000000).flatMap(_ => l_solve(_, 0, L)).take(1).map(_ => q_fen_singles(_))]
 
     let v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
 
@@ -238,8 +238,7 @@ function l_cc(q: QContext, l: AttackLine): LCC {
 
 function q_empty_lines(q: QContext, lines: SquareSet) {
     for (let key of Object.keys(q)) {
-        for (let sq of lines)
-            q[key] = q[key]!.without(sq)
+        q[key] = q[key].diff(lines)
     }
 }
 
@@ -363,10 +362,10 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
         yield * l_solve(q, i + 1, L)
     } else {
         if (ok.length > 40) {
-            ok = arr_shuffle(ok).slice(0, 8)
+            //ok = arr_shuffle(ok).slice(0, 8)
         }
         for (const next of ok) {
-            yield * l_solve(next, 0, L)
+            yield * l_solve(next, i + 1, L)
         }
     }
 }
