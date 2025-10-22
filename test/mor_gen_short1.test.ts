@@ -24,12 +24,23 @@ n=e5 +K +N b+ R2+
 //fen = "3r4/8/8/8/3n4/8/8/3R4 w - - 0 1"
 //fen = "3r4/8/8/8/2N5/3n4/8/3R4 w - - 0 1"
 
-//fen = "3r4/5k2/4rn2/8/2N5/3n4/1B6/R2R2K1 w - - 0 1"
+// fen = "3r4/5k2/4rn2/8/2N5/3n4/1B6/R2R2K1 w - - 0 1"
 
 //fen = "5Q2/3Q4/6Q1/Q7/7Q/1Q6/4Q3/2Q5 w - - 0 1"
 //fen = "8/8/6Q1/Q7/7Q/1Q6/4Q3/2Q5 w - - 0 1"
 //fen = "8/8/8/8/8/8/4Q3/2Q5 w - - 0 1"
 
+fen = "r1r2k2/ppq3bQ/4p2p/4n3/3p4/2P5/PBB2PPP/4R1K1 w - - 3 25"
+fen = "5k2/6bQ/4p2p/4n3/3p4/2P5/PBB5/4R3 w - - 3 25"
+fen = "5k2/6bQ/4p2p/4n3/8/2P5/PBB5/4R3 w - - 3 25"
+
+fen = "5k2/8/8/8/3p4/2P5/1B6/8 w - - 3 25"
+/*
+fen = "5k2/6bQ/4p2p/4n3/8/8/8/8 w - - 3 25"
+fen = "5k2/6b1/7p/8/8/8/8/8 w - - 3 25"
+fen = "5k2/8/7p/8/8/8/8/8 w - - 3 25"
+fen = "5k2/8/8/8/8/8/8/8 w - - 3 25"
+*/
 
     console.log(mor_short(fen).map(print_a_piece))
     let res = mor_short(fen).map(print_a_piece).join('\n')

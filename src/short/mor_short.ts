@@ -23,6 +23,7 @@ export function l_attack_pieces(l: AttackPiece[]) {
     let q = l_qcontext(l)
 
     //q = fen_to_qcontext("3r4/p1p2kpp/4rn2/1p6/2N1P3/3n1P2/PB4PP/R2R2K1")
+    //q = fen_to_qcontext("2r4k/1p3pR1/p1q1pN1p/3pPn1P/P2P4/1P1Q3R/1r1B1P2/7K b - - 0 30")
 
     let L = l.flatMap(l_attack_lines)
 
@@ -398,7 +399,19 @@ function q_place_piece_exclude_bys(q: QContext, p1: Pieces, L: AttackLine[]) {
     let nn = attacks(parse_piece('n'), p1s, occupied)
     let rr = attacks(parse_piece('r'), p1s, occupied)
 
+    let pp = attacks(parse_piece('p'), p1s, occupied)
+    let PP = attacks(parse_piece('P'), p1s, occupied)
+
     for (let free of frees) {
+
+        /*
+        if (free[0] === 'p') {
+            q[free] = q[free].diff(PP)
+        }
+        if (free[0] === 'P') {
+            q[free] = q[free].diff(pp)
+        }
+            */
 
         if (free[0].toLowerCase() === 'q') {
             q[free] = q[free].diff(qq)
@@ -464,16 +477,11 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
 
     if (ok === 'ok') {
 
-        if (q['r'].singleSquare() === x_r && q['R2'].singleSquare() === x_R2 && q['n2'].singleSquare() === x_n2) {
-            //console.log('yes')
-        }
         let ok2 = l_cc0(q, L[i], L)
 
         if (ok2 === 'fail') {
             return
         }
-
-        if (q['R'])
 
         yield * l_solve(q, i + 1, L)
     } else {
