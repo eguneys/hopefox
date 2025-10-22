@@ -12,8 +12,8 @@ import { squareFromCoords } from "../util";
 let m = await PositionManager.make()
 
 const attacks = (p: Piece, sq: Square, occupied: SquareSet) => {
-    //return m.attacks(piece_to_c(p), sq, occupied)
-    return js_attacks(p, sq, occupied)
+    return m.attacks(piece_to_c(p), sq, occupied)
+    //return js_attacks(p, sq, occupied)
 }
 
 type QContext = Record<Pieces, SquareSet>
@@ -130,7 +130,7 @@ function l_cc3(q: QContext, l: AttackLine): LCC {
                 let q2 = { ...q }
                 q_place_piece(q2, a2, a2s)
 
-                let a_lines = between(p1s, a2s)
+                let a_lines = between(p1s, a2s).without(a1s)
                 q_empty_lines(q2, a_lines)
 
                 res.push(q2)
@@ -342,9 +342,11 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
         ok = l_cc3(q, l)
     }
 
+    /*
     if (q['r'].has(xx_r) && q['n2'].has(xx_n2) && q['R'].has(xx_R)) {
         console.log('yes')
     }
+        */
 
     if (ok === 'fail') {
         return
@@ -360,6 +362,9 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
 
         yield * l_solve(q, i + 1, L)
     } else {
+        if (ok.length > 40) {
+            ok = arr_shuffle(ok).slice(0, 8)
+        }
         for (const next of ok) {
             yield * l_solve(next, 0, L)
         }
