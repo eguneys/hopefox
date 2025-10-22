@@ -1,13 +1,14 @@
 import { attacks as js_attacks } from "../attacks";
 import { between } from "../attacks";
 import { Chess } from "../chess";
+import { squareSet } from "../debug";
 import { EMPTY_FEN, makeFen, parseFen } from "../fen";
 import { piece_to_c, PositionManager } from "../hopefox_c";
 import { type FEN, type Pieces } from "../mor3_hope1";
 import { arr_shuffle } from "../random";
 import { SquareSet } from "../squareSet";
 import { Color, Piece, Role, Square } from "../types";
-import { squareFromCoords } from "../util";
+import { squareFile, squareFromCoords, squareRank } from "../util";
 
 let m = await PositionManager.make()
 
@@ -29,7 +30,7 @@ export function l_attack_pieces(l: AttackPiece[]) {
 
     let res = l_solve(q, 0, L)
 
-    let res_out =  [...res.take(30000000).flatMap(_ => l_solve(_, 0, L)).take(1).map(_ => q_fen_singles(_))]
+    let res_out =  [...res.map(_ => q_fen_singles(_))]
 
     let v_out = res_out.map(_ => `https://lichess.org/editor/${_.split(' ')[0]}`)
 
@@ -73,10 +74,10 @@ function l_attack_lines(l: AttackPiece) {
 
 type LCC = 'ok' | QContext[] | 'fail'
 
-function l_cc3(q: QContext, l: AttackLine): LCC {
+function l_cc3(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
 
 
-    let l0 = l_cc(q, l)
+    let l0 = l_cc(q, l, L)
 
     if (l0 !== 'ok') {
         return l0
@@ -133,6 +134,10 @@ function l_cc3(q: QContext, l: AttackLine): LCC {
                 let a_lines = between(p1s, a2s).without(a1s)
                 q_empty_lines(q2, a_lines)
 
+                q_place_piece_exclude_bys(q2, a2, L)
+
+                q_place_piece_exclude_orders(q2, a2)
+
                 res.push(q2)
 
             }
@@ -149,7 +154,7 @@ function l_cc3(q: QContext, l: AttackLine): LCC {
 
 }
 
-function l_cc(q: QContext, l: AttackLine): LCC {
+function l_cc(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
 
     let [p1, a1] = l
 
@@ -197,6 +202,10 @@ function l_cc(q: QContext, l: AttackLine): LCC {
                     let a_lines = between(p1s, a1s)
                     q_empty_lines(q2, a_lines)
 
+                    q_place_piece_exclude_bys(q2, a1, L)
+
+                    q_place_piece_exclude_orders(q2, a1)
+
                     res.push(q2)
 
                 }
@@ -225,6 +234,11 @@ function l_cc(q: QContext, l: AttackLine): LCC {
             let q2 = { ... q}
             q_place_piece(q2, p1, p1s)
             q_place_set(q2, a1, a1ss2)
+
+
+            q_place_piece_exclude_bys(q2, p1, L)
+
+            q_place_piece_exclude_orders(q2, p1)
 
             res.push(q2)
         }
@@ -272,7 +286,6 @@ function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[]): LCC {
                 return 'fail'
             }
         }
-
     }
 
     return 'ok'
@@ -298,7 +311,7 @@ function q_place_piece(q: QContext, p1: Pieces, sq: Square) {
     }
 }
 
-function l_cc1(q: QContext, p1: Pieces): LCC {
+function l_cc1(q: QContext, p1: Pieces, L: AttackLine[]): LCC {
 
     if (q[p1] === undefined) {
         return 'fail'
@@ -306,7 +319,7 @@ function l_cc1(q: QContext, p1: Pieces): LCC {
 
     let p1s = q[p1].singleSquare()
 
-    if (p1s) {
+    if (p1s !== undefined) {
         return 'ok'
     }
 
@@ -315,18 +328,122 @@ function l_cc1(q: QContext, p1: Pieces): LCC {
         let q2 = { ...q }
         q_place_piece(q2, p1, p1s)
 
+
+        q_place_piece_exclude_bys(q2, p1, L)
+
+        q_place_piece_exclude_orders(q2, p1)
+
         res.push(q2)
     }
     return res
 }
 
+function q_place_piece_exclude_orders(q: QContext, p1: Pieces) {
+    let p = p1[0]
+    let n = parseInt(p1[1] ?? '0')
 
-const xx_r = 59
-const xx_n2 = 19
-const xx_R = 3
+    let pp = Object.keys(q).filter(_ => _ !== p1 && _[0] === p)
 
+    let sq = q[p1].singleSquare()!
+
+    let sq_file = squareFile(sq)
+    let sq_rank = squareRank(sq)
+
+    let rr = SquareSet.empty()
+
+    /*
+    for (let i = 0; i < sq; i++) {
+        rr = rr.union(SquareSet.fromSquare(i))
+    }
+        */
+
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if (i < sq_rank || (i === sq_rank &&  j >= sq_file)) {
+                rr = rr.union(SquareSet.fromSquare(squareFromCoords(j, i)!))
+            }
+
+        }
+    }
+    rr = rr.without(sq)
+
+    let rr2 = rr.complement().without(sq)
+
+    for (let p2 of pp) {
+
+        let n2 = parseInt(p2[1] ?? '0')
+
+        if (n2 < n) {
+            q[p2] = q[p2].intersect(rr2)
+        } else {
+            q[p2] = q[p2].intersect(rr)
+        }
+    }
+}
+
+function q_place_piece_exclude_bys(q: QContext, p1: Pieces, L: AttackLine[]) {
+
+    let attacked_by = L.filter(_ =>
+        _.length === 1 ? false : _.length === 2 ? _[1] === p1 : (_[1] === p1 || _[2] === p1)
+    )
+
+    let frees = Object.keys(q).filter(_ => _ !== p1 && !attacked_by.find(a => a[0] === _))
+
+    let occupied = q_occupied(q)
+
+    let p1s = q[p1].singleSquare()!
+
+    let qq = attacks(parse_piece('q'), p1s, occupied)
+    let bb = attacks(parse_piece('b'), p1s, occupied)
+    let nn = attacks(parse_piece('n'), p1s, occupied)
+    let rr = attacks(parse_piece('r'), p1s, occupied)
+
+    for (let free of frees) {
+
+        if (free[0].toLowerCase() === 'q') {
+            q[free] = q[free].diff(qq)
+        }
+
+        if (free[0].toLowerCase() === 'r') {
+            q[free] = q[free].diff(rr)
+        }
+
+        if (free[0].toLowerCase() === 'n') {
+            q[free] = q[free].diff(nn)
+        }
+
+        if (free[0].toLowerCase() === 'b') {
+            q[free] = q[free].diff(bb)
+        }
+    }
+}
+
+function q_duplicate_check(q: QContext) {
+    for (let p1 of Object.keys(q)) {
+        for (let p2 of Object.keys(q)) {
+            if (p1 !== p2) {
+                if (q[p1].singleSquare() !== undefined) {
+                    if (q[p1].equals(q[p2])) {
+                        return true
+                    }
+                }
+            }
+        }
+    }
+    return false
+}
+
+const x_r = 59
+const x_n2 = 19
+const x_R2 = 3
+const x_R = 0
 function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Generator<QContext> {
     if (i >= i_cap) {
+
+        if (q_duplicate_check(q)) {
+            return
+        }
+
         yield q
         return
     }
@@ -334,18 +451,12 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
     let ok: LCC = 'fail'
     let l = L[i]
     if (l.length === 1) {
-        ok = l_cc1(q, l[0])
+        ok = l_cc1(q, l[0], L)
     } else if (l.length === 2) {
-        ok = l_cc(q, l)
+        ok = l_cc(q, l, L)
     } else {
-        ok = l_cc3(q, l)
+        ok = l_cc3(q, l, L)
     }
-
-    /*
-    if (q['r'].has(xx_r) && q['n2'].has(xx_n2) && q['R'].has(xx_R)) {
-        console.log('yes')
-    }
-        */
 
     if (ok === 'fail') {
         return
@@ -353,19 +464,21 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
 
     if (ok === 'ok') {
 
+        if (q['r'].singleSquare() === x_r && q['R2'].singleSquare() === x_R2 && q['n2'].singleSquare() === x_n2) {
+            //console.log('yes')
+        }
         let ok2 = l_cc0(q, L[i], L)
 
         if (ok2 === 'fail') {
             return
         }
 
+        if (q['R'])
+
         yield * l_solve(q, i + 1, L)
     } else {
-        if (ok.length > 40) {
-            //ok = arr_shuffle(ok).slice(0, 8)
-        }
         for (const next of ok) {
-            yield * l_solve(next, i + 1, L)
+            yield * l_solve(next, 0, L)
         }
     }
 }
