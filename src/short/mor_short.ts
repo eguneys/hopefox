@@ -25,11 +25,12 @@ export function l_attack_pieces(l: AttackPiece[]) {
     //q = fen_to_qcontext("3r4/p1p2kpp/4rn2/1p6/2N1P3/3n1P2/PB4PP/R2R2K1")
     //q = fen_to_qcontext("2r4k/1p3pR1/p1q1pN1p/3pPn1P/P2P4/1P1Q3R/1r1B1P2/7K b - - 0 30")
 
+    let R = l.map(_ => [_.p1, ..._.raycast])
     let L = l.flatMap(l_attack_lines)
 
     L = L.sort((a, b) => b.length - a.length)
 
-    let res = l_solve(q, 0, L)
+    let res = l_solve(q, 0, L, R)
 
     let res_out =  [...res.map(_ => q_fen_singles(_))]
 
@@ -75,10 +76,10 @@ function l_attack_lines(l: AttackPiece) {
 
 type LCC = 'ok' | QContext[] | 'fail'
 
-function l_cc3(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
+function l_cc3(q: QContext, l: AttackLine, L: AttackLine[], R: Raycast[]): LCC {
 
 
-    let l0 = l_cc(q, l, L)
+    let l0 = l_cc(q, l, L, R)
 
     if (l0 !== 'ok') {
         return l0
@@ -135,7 +136,7 @@ function l_cc3(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
                 let a_lines = between(p1s, a2s).without(a1s)
                 q_empty_lines(q2, a_lines)
 
-                q_place_piece_exclude_bys(q2, a2, L)
+                q_place_piece_exclude_bys(q2, a2, L, R)
 
                 q_place_piece_exclude_orders(q2, a2)
 
@@ -155,7 +156,7 @@ function l_cc3(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
 
 }
 
-function l_cc(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
+function l_cc(q: QContext, l: AttackLine, L: AttackLine[], R: Raycast[]): LCC {
 
     let [p1, a1] = l
 
@@ -203,7 +204,7 @@ function l_cc(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
                     let a_lines = between(p1s, a1s)
                     q_empty_lines(q2, a_lines)
 
-                    q_place_piece_exclude_bys(q2, a1, L)
+                    q_place_piece_exclude_bys(q2, a1, L, R)
 
                     q_place_piece_exclude_orders(q2, a1)
 
@@ -237,7 +238,7 @@ function l_cc(q: QContext, l: AttackLine, L: AttackLine[]): LCC {
             q_place_set(q2, a1, a1ss2)
 
 
-            q_place_piece_exclude_bys(q2, p1, L)
+            q_place_piece_exclude_bys(q2, p1, L, R)
 
             q_place_piece_exclude_orders(q2, p1)
 
@@ -261,7 +262,7 @@ function q_place_set(q: QContext, p1: Pieces, sqs: SquareSet) {
     q[p1] = sqs
 }
 
-function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[]): LCC {
+function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[], R: Raycast[]): LCC {
 
     let [p1] = l
      
@@ -312,7 +313,7 @@ function q_place_piece(q: QContext, p1: Pieces, sq: Square) {
     }
 }
 
-function l_cc1(q: QContext, p1: Pieces, L: AttackLine[]): LCC {
+function l_cc1(q: QContext, p1: Pieces, L: AttackLine[], R: Raycast[]): LCC {
 
     if (q[p1] === undefined) {
         return 'fail'
@@ -330,7 +331,7 @@ function l_cc1(q: QContext, p1: Pieces, L: AttackLine[]): LCC {
         q_place_piece(q2, p1, p1s)
 
 
-        q_place_piece_exclude_bys(q2, p1, L)
+        q_place_piece_exclude_bys(q2, p1, L, R)
 
         q_place_piece_exclude_orders(q2, p1)
 
@@ -382,13 +383,15 @@ function q_place_piece_exclude_orders(q: QContext, p1: Pieces) {
     }
 }
 
-function q_place_piece_exclude_bys(q: QContext, p1: Pieces, L: AttackLine[]) {
+function q_place_piece_exclude_bys(q: QContext, p1: Pieces, L: AttackLine[], R: Raycast[]) {
+
+    let raycasted_by = R.filter(_ => _[0] !== p1 && _.includes(p1))
 
     let attacked_by = L.filter(_ =>
         _.length === 1 ? false : _.length === 2 ? _[1] === p1 : (_[1] === p1 || _[2] === p1)
     )
 
-    let frees = Object.keys(q).filter(_ => _ !== p1 && !attacked_by.find(a => a[0] === _))
+    let frees = Object.keys(q).filter(_ => _ !== p1 && !attacked_by.find(a => a[0] === _) && !raycasted_by.find(a => a[0] === _))
 
     let occupied = q_occupied(q)
 
@@ -404,14 +407,12 @@ function q_place_piece_exclude_bys(q: QContext, p1: Pieces, L: AttackLine[]) {
 
     for (let free of frees) {
 
-        /*
         if (free[0] === 'p') {
             q[free] = q[free].diff(PP)
         }
         if (free[0] === 'P') {
             q[free] = q[free].diff(pp)
         }
-            */
 
         if (free[0].toLowerCase() === 'q') {
             q[free] = q[free].diff(qq)
@@ -450,7 +451,7 @@ const x_r = 59
 const x_n2 = 19
 const x_R2 = 3
 const x_R = 0
-function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Generator<QContext> {
+function* l_solve(q: QContext, i: number, L: AttackLine[], R: Raycast[], i_cap = L.length): Generator<QContext> {
     if (i >= i_cap) {
 
         if (q_duplicate_check(q)) {
@@ -464,11 +465,11 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
     let ok: LCC = 'fail'
     let l = L[i]
     if (l.length === 1) {
-        ok = l_cc1(q, l[0], L)
+        ok = l_cc1(q, l[0], L, R)
     } else if (l.length === 2) {
-        ok = l_cc(q, l, L)
+        ok = l_cc(q, l, L, R)
     } else {
-        ok = l_cc3(q, l, L)
+        ok = l_cc3(q, l, L, R)
     }
 
     if (ok === 'fail') {
@@ -477,16 +478,16 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], i_cap = L.length): Ge
 
     if (ok === 'ok') {
 
-        let ok2 = l_cc0(q, L[i], L)
+        let ok2 = l_cc0(q, L[i], L, R)
 
         if (ok2 === 'fail') {
             return
         }
 
-        yield * l_solve(q, i + 1, L)
+        yield * l_solve(q, i + 1, L, R)
     } else {
         for (const next of ok) {
-            yield * l_solve(next, 0, L)
+            yield * l_solve(next, 0, L, R)
         }
     }
 }
@@ -568,6 +569,18 @@ export function mor_long(rules: string) {
     return rules.split('\n').map(parse_attack_piece)
 }
 
+function match_raycast(rule: string) {
+
+    let res = rule.match(/^\>(\w*)$/)
+
+    if (res) {
+        return res[1]
+    }
+
+}
+
+
+
 function match_attacks(rule: string) {
 
     let res = rule.match(/^\+(\w*)$/)
@@ -627,7 +640,7 @@ function match_blocked_attacked_by(rule: string): [Pieces, Pieces] | undefined {
 
 }
 
-function parse_attack_piece(rule: string) {
+function parse_attack_piece(rule: string): AttackPiece {
 
     let [p1, ...res] = rule.split(' ')
 
@@ -636,6 +649,7 @@ function parse_attack_piece(rule: string) {
     let blocks: [Pieces, Pieces][] = []
     let blocked_attacks: [Pieces, Pieces][] = []
     let blocked_attacked_by: [Pieces, Pieces][] = []
+    let raycast: Pieces[] = []
 
     res.forEach(rule => {
         let aa = match_attacks(rule)
@@ -672,6 +686,14 @@ function parse_attack_piece(rule: string) {
             blocked_attacked_by.push(ee)
             return
         }
+
+
+        let rr = match_raycast(rule)
+
+        if (rr) {
+            raycast.push(rr)
+            return
+        }
     })
 
     return {
@@ -680,7 +702,8 @@ function parse_attack_piece(rule: string) {
         attacked_by,
         blocks,
         blocked_attacks,
-        blocked_attacked_by
+        blocked_attacked_by,
+        raycast
     }
 }
 
@@ -701,6 +724,8 @@ export function print_a_piece(a: AttackPiece) {
     const blocked_attacks_str = (s: [Pieces, Pieces]) => `+${s[0]}/${s[1]}`
     const blocked_attacked_by_str = (s: [Pieces, Pieces]) => `${s[0]}+/${s[1]}`
 
+    const raycast_str = (s: Pieces) => `>${s}`
+
     let p1 = a.p1
 
     let zero_attacked_by_lower = !a.attacked_by.find(_ => _.toLowerCase() === _)
@@ -715,6 +740,7 @@ export function print_a_piece(a: AttackPiece) {
     let blocks = a.blocks.map(blocks_str).join(' ')
     let blocked_attacks = a.blocked_attacks.map(blocked_attacks_str).join(' ')
     let blocked_attacked_by = a.blocked_attacked_by.map(blocked_attacked_by_str).join(' ')
+    let raycast = a.raycast.map(raycast_str).join(' ')
 
     let res = [p1]
 
@@ -745,9 +771,14 @@ export function print_a_piece(a: AttackPiece) {
         res.push(blocked_attacked_by)
     }
 
+    if (raycast !== '') {
+        res.push(raycast)
+    }
+
     return res.join(' ')
 }
 
+type Raycast = Pieces[]
 type AttackLine = [Pieces] | [Pieces, Pieces] | [Pieces, Pieces, Pieces]
 
 type AttackPiece = {
@@ -757,9 +788,11 @@ type AttackPiece = {
     blocks: [Pieces, Pieces][]
     blocked_attacks: [Pieces, Pieces][]
     blocked_attacked_by: [Pieces, Pieces][]
+    raycast: Pieces[]
 }
 
 function s_attack_pieces(s: SContext) {
+    let fn_attacks = attacks
     let res: AttackPiece[] = []
     let lines = s_attacks(s)
 
@@ -790,13 +823,40 @@ function s_attack_pieces(s: SContext) {
                 blocked_attacked_by.push([line[0], line[1]])
             }
         }
+
+        let ll = lines.filter(_ => _[0] === p1)
+
+        let raycast: Pieces[] = []
+
+        let sq = s[p1]
+        let aa = fn_attacks(parse_piece(p1), sq, SquareSet.empty())
+
+        for (let p2 of Object.keys(s)) {
+            if (p1 === p2) {
+                continue
+            }
+
+            let sq2 = s[p2]
+
+            if (aa.has(sq2)) {
+
+                let has_in_line = ll.find(_ => _.includes(p2))
+
+                if (!has_in_line) {
+                    raycast.push(p2)
+                }
+            }
+        }
+
+
         res.push({
             p1,
             attacks,
             attacked_by,
             blocks,
             blocked_attacks,
-            blocked_attacked_by
+            blocked_attacked_by,
+            raycast
         })
     }
 

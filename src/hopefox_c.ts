@@ -150,6 +150,7 @@ export class PositionManager {
 
     static async make(locateFile?: (file: string) => string) {
         let m = await HM({locateFile})
+        // @ts-ignore
         m._init()
         return new PositionManager(m)
     }
@@ -216,7 +217,7 @@ export class PositionManager {
     attacks(pc: PieceC, s: SquareC, bb: SquareSet): SquareSet {
         const bbPtr = this.m._malloc(4 * 2)
 
-        this.m._get_attacks(piece_c_type_of(pc), piece_c_color_of(pc), s, bb.lo, bb.hi, bbPtr)
+        this.m._attacks(pc, s, bb.lo, bb.hi, bbPtr)
 
         const lo = this.m.getValue(bbPtr, 'i32')
         const hi = this.m.getValue(bbPtr + 4, 'i32')
