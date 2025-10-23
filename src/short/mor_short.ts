@@ -280,12 +280,16 @@ function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[], R: Raycast[]): LCC 
 
     let all = ls.filter(_ => _[0] === p1)
 
+    let rr = R.flatMap(_ => _[0] === p1 ? _.slice(1) : [])
+
     for (let a1s of aa) {
         let a1p = q_find_sq(q, a1s)
 
         if (a1p) {
-            if (!all.some(_ => _[1] === a1p)) {
-                return 'fail'
+            if (!all.some(_ => _.includes(a1p))) {
+                if (!rr.some(_ => _.includes(a1p))) {
+                    return 'fail'
+                }
             }
         }
     }
@@ -447,10 +451,24 @@ function q_duplicate_check(q: QContext) {
     return false
 }
 
-const x_r = 59
-const x_n2 = 19
-const x_R2 = 3
-const x_R = 0
+const x_p = 54
+const x_p2 = 55
+const x_r = 50
+const x_b = 38
+const x_Q = 30
+const x_R = 22
+const x_P = 14
+
+const xxx: Record<Pieces, Square> = {
+    'p': x_p,
+    'p2': x_p2,
+    'r': x_r,
+    'b': x_b,
+    'Q': x_Q,
+    'R': x_R,
+    'P': x_P,
+}
+
 function* l_solve(q: QContext, i: number, L: AttackLine[], R: Raycast[], i_cap = L.length): Generator<QContext> {
     if (i >= i_cap) {
 
@@ -460,6 +478,20 @@ function* l_solve(q: QContext, i: number, L: AttackLine[], R: Raycast[], i_cap =
 
         yield q
         return
+    }
+
+    let a = Object.keys(xxx).filter(_ => q[_].singleSquare() === xxx[_])
+
+    if (a.length > 5) {
+        console.log("yay", a)
+
+        let b = Object.keys(xxx).filter(_ => !a.includes(_))
+
+        let has = b.filter(_ => q[_].has(xxx[_]))
+
+        if (has.length > 0) {
+            console.log(has)
+        }
     }
 
     let ok: LCC = 'fail'

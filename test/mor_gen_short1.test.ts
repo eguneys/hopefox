@@ -79,7 +79,20 @@ n=e5 +K +N b+ R2+
 
 
     /* 002LW */
-    //fen = "3r1rk1/1b3pp1/3p4/p3nPPQ/4P3/3q1BN1/8/2R2RK1 w - - 2 29"
+    fen = "3r1rk1/1b3pp1/3p4/p3nPPQ/4P3/3q1BN1/8/2R2RK1 w - - 2 29"
+    /* 004Ys */
+    fen = "r4rk1/5pbp/p1n1p1p1/2p3NP/1p1q1B2/3P3Q/PPP3P1/R3R1K1 w - - 3 20"
+    /* 0FfNo */
+    fen = "1rb2rk1/1p3p1p/pN2qbp1/3Rp3/1P2P3/P7/2Q1BPPP/R5K1 w - - 1 21"
+
+    //fen = "8/2r3pp/8/6b1/6Q1/6R1/6P1/8 w - - 4 26" // no -queen -king
+
+
+    /* 003jb */
+    fen = "r3kb1r/p4ppp/b3p3/2pq4/3Q4/4BN2/PPP2PPP/R3K2R w KQkq - 0 12"
+
+    /* 00Ec4 */
+    fen = "3q1r1k/p1r3pp/8/1p1BpPb1/2Pp2Q1/P2P2R1/6PP/R5K1 w - - 4 26"
 
     console.log(mor_short(fen).map(print_a_piece))
     let res = mor_short(fen).map(print_a_piece).join('\n')
