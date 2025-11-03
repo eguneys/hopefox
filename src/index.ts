@@ -80,7 +80,7 @@ export * from './hopefox_c'
 //export * from './mor1'
 //export * from './mor2'
 
-export * from './mor3_hope1'
+//export * from './mor3_hope1'
 export * from './mor_nogen1'
 export * from './mor_gen2'
 export * from './mor_gen3'
@@ -89,3 +89,6 @@ export * from './mor_gen5'
 export * from './mor_gen6'
 
 export * from './short/mor_short'
+
+
+export * from './features/king'

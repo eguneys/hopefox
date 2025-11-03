@@ -297,6 +297,14 @@ function l_cc0(q: QContext, l: AttackLine, ls: AttackLine[], R: Raycast[]): LCC 
     return 'ok'
 }
 
+export function s_find_sq(q: SContext, sq: Square) {
+    for (let p of Object.keys(q)) {
+        if (q[p] === sq) {
+            return p
+        }
+    }
+}
+
 function q_find_sq(q: QContext, sq: Square) {
     for (let p of Object.keys(q)) {
         if (q[p].singleSquare() === sq) {
@@ -739,7 +747,7 @@ function parse_attack_piece(rule: string): AttackPiece {
     }
 }
 
-type SContext = Record<Pieces, Square>
+export type SContext = Record<Pieces, Square>
 
 export function mor_short(fen: FEN) {
 
@@ -811,9 +819,9 @@ export function print_a_piece(a: AttackPiece) {
 }
 
 type Raycast = Pieces[]
-type AttackLine = [Pieces] | [Pieces, Pieces] | [Pieces, Pieces, Pieces]
+export type AttackLine = [Pieces] | [Pieces, Pieces] | [Pieces, Pieces, Pieces]
 
-type AttackPiece = {
+export type AttackPiece = {
     p1: Pieces
     attacks: Pieces[]
     attacked_by: Pieces[]
@@ -823,7 +831,7 @@ type AttackPiece = {
     raycast: Pieces[]
 }
 
-function s_attack_pieces(s: SContext) {
+export function s_attack_pieces(s: SContext) {
     let fn_attacks = attacks
     let res: AttackPiece[] = []
     let lines = s_attacks(s)
@@ -936,7 +944,7 @@ function s_attacks(s: SContext) {
     return res
 }
 
-function s_occupied(s: SContext) {
+export function s_occupied(s: SContext) {
     let res = SquareSet.empty()
 
     for (let key of Object.keys(s)) {
@@ -945,7 +953,7 @@ function s_occupied(s: SContext) {
     return res
 }
 
-function fen_to_scontext(fen: FEN) {
+export function fen_to_scontext(fen: FEN) {
     fen = fen.split(' ')[0]
 
     let res: SContext = {}

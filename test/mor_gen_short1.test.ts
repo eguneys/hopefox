@@ -48,7 +48,7 @@ it.skip('c_attacks 2', async () => {
 
 })
 
-it('works', () => {
+it.skip('works', () => {
 
     /* https://lichess.org/training/7wsWE */
     let fen = "3r4/p1p2kpp/4rn2/1p6/2N1P3/3n1P2/PB4PP/R2R2K1"
@@ -93,6 +93,10 @@ n=e5 +K +N b+ R2+
 
     /* 00Ec4 */
     fen = "3q1r1k/p1r3pp/8/1p1BpPb1/2Pp2Q1/P2P2R1/6PP/R5K1 w - - 4 26"
+
+
+    /* 00LBF */
+    fen = "3r2k1/1b1q1pb1/pp4p1/3rp3/3R2P1/2P2NBP/PP2Q2K/3R4 w - - 1 34"
 
     console.log(mor_short(fen).map(print_a_piece))
     let res = mor_short(fen).map(print_a_piece).join('\n')

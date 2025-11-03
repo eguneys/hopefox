@@ -1,7 +1,5 @@
 import { describe, it } from 'vitest'
-import { mor_gen6, PositionManager, set_m } from '../src'
-
-set_m(await PositionManager.make())
+import { mor_gen6, PositionManager } from '../src'
 
 describe.skip('mor gen 6', () => {
 
