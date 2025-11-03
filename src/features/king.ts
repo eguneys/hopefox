@@ -7,7 +7,7 @@ import { parse_piece, Pieces } from "../mor3_hope1"
 import { makeSan } from "../san"
 import { AttackPiece, fen_to_scontext, s_attack_pieces, s_find_sq, s_occupied, SContext } from "../short/mor_short"
 import { get_king_squares, SquareSet } from "../squareSet"
-import { Square } from "../types"
+import { Move, Square } from "../types"
 
 export type FEN = string
 
@@ -40,223 +40,14 @@ export function king(fen: FEN) {
 
     let occupied = s_occupied(s).without(s['k'])
 
-    if (ee.length === 3) {
-        let e_sq = ee[0].sq
+    type SAN = string
 
+    let res: Record<Square, SAN[]> = {}
 
-        if (s['Q']) {
-            let qqq = attacks(piece_queen, e_sq, occupied)
-            qqq = qqq.intersect(attacks(piece_queen, s['Q'], occupied))
-            let qq3 = SquareSet.empty()
-            for (let qq of qqq) {
-                let qq2 = SquareSet.empty()
-                let capturing = sin[qq].attacked_by.filter(_ => is_black(_[0]))
-                if (capturing.length === 0) {
-                    qq2 = qq2.set(qq, true)
-                }
-                if (capturing.length === 1 && capturing[0][0] === 'k') {
-                    let defending = sin[qq].attacked_by.filter(_ => is_white(_[0]))
-                    if (defending.length > 1) {
-                        qq2 = qq2.set(qq, true)
-                    }
-                }
+    for (let e of ee) {
+        let e_sq = e.sq
 
-                outer: for (let qq2_i of qq2) {
-                    for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => is_black(_[0]))
-
-                        if (interposing.length > 0) {
-                            continue outer
-                        }
-                    }
-                    qq3 = qq3.set(qq2_i, true)
-                }
-            }
-
-            let f_sq = qq3.singleSquare()
-
-            if (f_sq) {
-                return makeSan(pos, { from: s['Q'], to: f_sq })
-            }
-        }
-
-
-
-
-        for (let R of ['R', 'R2'])
-        if (s[R]) {
-            let qqq = attacks(piece_rook, e_sq, occupied)
-            qqq = qqq.intersect(attacks(piece_rook, s[R], occupied))
-            let qq3 = SquareSet.empty()
-            for (let qq of qqq) {
-                let qq2 = SquareSet.empty()
-                let capturing = sin[qq].attacked_by.filter(_ => _.length === 1 && is_black(_[0]))
-                if (capturing.length === 0) {
-                    qq2 = qq2.set(qq, true)
-                }
-                if (capturing.length === 1 && capturing[0][0] === 'k') {
-                    let defending = sin[qq].attacked_by.filter(_ => is_white(_[0]))
-                    if (defending.length > 1) {
-                        qq2 = qq2.set(qq, true)
-                    }
-                }
-
-
-                outer: for (let qq2_i of qq2) {
-                    for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => _[0] !== 'k' && _[0][0] !== 'p' && is_black(_[0]))
-
-                        if (interposing.length > 0) {
-                            if (s[interposing[0][0]] !== qq2_i) {
-                                continue outer
-                            }
-                        }
-                    }
-                    qq3 = qq3.set(qq2_i, true)
-                }
-            }
-
-
-            let f_sq = qq3.singleSquare()
-
-            if (f_sq) {
-                return makeSan(pos, { from: s[R], to: f_sq })
-            }
-        }
-
-    }
-
-    if (ee.length === 4) {
-
-        let e_sq = ee[0].sq
-        if (s['Q']) {
-            let qqq = attacks(piece_queen, e_sq, occupied)
-            qqq = qqq.intersect(attacks(piece_queen, s['Q'], occupied))
-            let qq3 = SquareSet.empty()
-            for (let qq of qqq) {
-                let qq2 = SquareSet.empty()
-                let capturing = sin[qq].attacked_by.filter(_ => _.length === 1 && is_black(_[0]))
-                if (capturing.length === 0) {
-                    qq2 = qq2.set(qq, true)
-                }
-                if (capturing.length === 1 && capturing[0][0] === 'k') {
-                    let defending = sin[qq].attacked_by.filter(_ => is_white(_[0]))
-                    if (defending.length > 1) {
-                        qq2 = qq2.set(qq, true)
-                    }
-                }
-
-                outer: for (let qq2_i of qq2) {
-                    for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => is_black(_[0]))
-
-                        if (interposing.length > 0) {
-                            if (s[interposing[0][0]] !== qq2_i) {
-                                continue outer
-                            }
-                        }
-                    }
-                    qq3 = qq3.set(qq2_i, true)
-                }
-            }
-
-            console.log(squareSet(qq3))
-            let f_sq = qq3.singleSquare()
-
-            if (f_sq) {
-                return makeSan(pos, { from: s['Q'], to: f_sq })
-            }
-        }
-
-
-
-    }
-
-    if (ee.length === 2) {
-        let e_sq = ee[0].sq
-
-        if (s['Q']) {
-            let qqq = attacks(piece_queen, e_sq, occupied)
-            qqq = qqq.intersect(attacks(piece_queen, s['Q'], occupied))
-            let qq3 = SquareSet.empty()
-            for (let qq of qqq) {
-                let qq2 = SquareSet.empty()
-                let capturing = sin[qq].attacked_by.filter(_ => _.length === 1 && is_black(_[0]))
-                if (capturing.length === 0) {
-                    qq2 = qq2.set(qq, true)
-                }
-                if (capturing.length === 1 && capturing[0][0] === 'k') {
-                    let defending = sin[qq].attacked_by.filter(_ => is_white(_[0]))
-                    if (defending.length > 1) {
-                        qq2 = qq2.set(qq, true)
-                    }
-                }
-
-                outer: for (let qq2_i of qq2) {
-                    for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => is_black(_[0]))
-
-                        if (interposing.length > 0) {
-                            continue outer
-                        }
-                    }
-                    qq3 = qq3.set(qq2_i, true)
-                }
-            }
-
-            let f_sq = qq3.singleSquare()
-
-            if (f_sq) {
-                return makeSan(pos, { from: s['Q'], to: f_sq })
-            }
-        }
-
-
-
-        for (let R of ['R', 'R2'])
-        if (s[R]) {
-            let qqq = attacks(piece_rook, e_sq, occupied)
-            qqq = qqq.intersect(attacks(piece_rook, s[R], occupied))
-            let qq3 = SquareSet.empty()
-            for (let qq of qqq) {
-                let qq2 = SquareSet.empty()
-                let capturing = sin[qq].attacked_by.filter(_ => _.length === 1 && is_black(_[0]))
-                if (capturing.length === 0) {
-                    qq2 = qq2.set(qq, true)
-                }
-                if (capturing.length === 1 && capturing[0][0] === 'k') {
-                    let defending = sin[qq].attacked_by.filter(_ => is_white(_[0]))
-                    if (defending.length > 1) {
-                        qq2 = qq2.set(qq, true)
-                    }
-                }
-
-                outer: for (let qq2_i of qq2) {
-                    for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => _.length === 1 && (_[0] !== 'k' && _[0][0] !== 'p') && is_black(_[0]))
-
-                        if (interposing.length > 0) {
-                            if (s[interposing[0][0]] !== qq2_i) {
-                                continue outer
-                            }
-                        }
-                    }
-                    qq3 = qq3.set(qq2_i, true)
-                }
-
-            }
-
-            let f_sq = qq3.singleSquare()
-
-            if (f_sq) {
-                return makeSan(pos, { from: s[R], to: f_sq })
-            }
-        }
-
-    }
-
-    if (ee.length === 1) {
-        let e_sq = ee[0].sq
+        let ll: SAN[] = []
 
         if (s['N']) {
             let qqq = attacks(piece_knight, e_sq, occupied)
@@ -274,7 +65,7 @@ export function king(fen: FEN) {
             let f_sq = qq3.singleSquare()
 
             if (f_sq) {
-                return makeSan(pos, { from: s['N'], to: f_sq })
+                 ll.push(makeSan(pos, { from: s['N'], to: f_sq }))
             }
         }
 
@@ -297,10 +88,12 @@ export function king(fen: FEN) {
 
                 outer: for (let qq2_i of qq2) {
                     for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => is_black(_[0]))
+                        let interposing = sin[qq_interposing].attacked_by.filter(_ => _.length === 1 &&_[0][0] !== 'p' && _[0] !== 'k' && is_black(_[0]))
 
                         if (interposing.length > 0) {
+                            if (s[interposing[0][0]] !== qq2_i) {
                             continue outer
+                            }
                         }
                     }
                     qq3 = qq3.set(qq2_i, true)
@@ -310,7 +103,7 @@ export function king(fen: FEN) {
             let f_sq = qq3.singleSquare()
 
             if (f_sq) {
-                return makeSan(pos, { from: s['Q'], to: f_sq })
+                ll.push(makeSan(pos, { from: s['Q'], to: f_sq }))
             }
         }
 
@@ -336,7 +129,7 @@ export function king(fen: FEN) {
 
                 outer: for (let qq2_i of qq2) {
                     for (let qq_interposing of between(qq2_i, e_sq)) {
-                        let interposing = sin[qq_interposing].attacked_by.filter(_ => is_black(_[0]))
+                        let interposing = sin[qq_interposing].attacked_by.filter(_ => _.length === 1 &&_[0][0] !== 'p' && _[0] !== 'k' && is_black(_[0]))
 
                         if (interposing.length > 0) {
                             if (s[interposing[0][0]] !== qq2_i) {
@@ -351,11 +144,37 @@ export function king(fen: FEN) {
             let f_sq = qq3.singleSquare()
 
             if (f_sq) {
-                return makeSan(pos, { from: s[R], to: f_sq })
+                ll.push(makeSan(pos, { from: s[R], to: f_sq }))
             }
         }
-
+ 
+        res[e_sq] = ll
     }
+
+
+    let by_san: Record<SAN, Square[]> = {}
+
+    for (let i_sq of Object.keys(res)) {
+        let sq = parseInt(i_sq)
+        res[sq].forEach(_ => by_san[_] = [...(by_san[_] ?? []), sq])
+    }
+
+    if (Object.keys(by_san).length === 0) {
+        return undefined
+    }
+
+    //console.log(by_san, res)
+    let key = Object.keys(by_san)[0]
+    let max_nb = by_san[key].length
+
+    for (let san of Object.keys(by_san)) {
+
+        if (by_san[san].length > max_nb) {
+            key = san
+            max_nb = by_san[key].length
+        }
+    }
+    return key
 }
 
 export function gaps(s: SContext, sin: SIN) {

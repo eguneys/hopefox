@@ -21,7 +21,8 @@ it('filters fixture for mate in 1', () => {
     res = tenk.filter(_ => _.tags.includes('mateIn1'))
     res = res.filter(_ => fen_pos(_.fen).turn === 'black')
 
-    res = res.filter(_ => _.id === '00fXd')
+    //res = res.filter(_ => _.id === '00IaZ')
+    res = res.filter(_ => _.id === '00HoG')
 
     let solved = res.filter(_ => {
 
