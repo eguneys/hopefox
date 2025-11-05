@@ -12,8 +12,37 @@ it('works', () => {
     console.log(soup(fen))
 })
 
+it.only('ranks', () => {
 
-it.only('tests', () => {
+    let r = puzzles.find(_ => _.id === '00WcO')!
+
+    let fen = r.move_fens[0]
+    let s = digest(fen)
+    if (s.length === 0) {
+        console.log('No Digest :)')
+    } else {
+        let pot = s[0][1]
+
+        if (match_only_my_moves(r.sans[0], pot)) {
+            console.log('Solved, Well done.')
+        } else {
+            console.log('Unsolved.')
+
+            let pot = s[0][1]
+
+            console.log(s)
+            console.log(pot)
+            console.log(' !== ')
+            console.log(r.sans.join(' '))
+            console.log('Unsolved.')
+
+        }
+    }
+
+
+})
+
+it.skip('tests', () => {
 
     let res = puzzles
 
@@ -87,6 +116,7 @@ it.only('tests', () => {
             console.log(`Solved ${solved.length}, Unsolved: ${unsolved.length}`)
             return
         }
+
         let pot = s[0][1]
 
         console.log(unsolved[0])

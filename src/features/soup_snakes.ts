@@ -31,6 +31,7 @@ export type Snake =
     | 'hangingRookAfterQueenExchange'
     | 'queenCheck'
     | 'queenGobblesBishop'
+    | 'queenForksKingAndRook'
     | 'bishopForksKingAndRook'
     | 'bishopCheck'
     | 'bishopPinQueenToKing'
@@ -306,6 +307,47 @@ export const knightGobblesQueen: MakeSnakes = (pos: Position) => {
         }
     }
 }
+
+
+export const queenForksKingAndRook: MakeSnakes = (pos: Position) => {
+    
+    let mm = pos_moves(pos)
+
+    for (let move of mm) {
+        if (pos.board.get(move.from)!.role === 'queen') {
+            let p2 = pos.clone()
+            p2.play(move)
+
+            if (p2.isCheck()) {
+
+                let mm2 = pos_moves(p2)
+
+                if (mm2.every(move2 => {
+                    let p3 = p2.clone()
+                    p3.play(move2)
+
+                    let mm3 = pos_moves(p3)
+
+                    if (mm3.find(m3 =>
+                        m3.to === move2.to ||
+                        (m3.from === move.to &&
+                            pos.board.get(m3.to)?.role === 'rook')
+                    )) {
+                        return true
+                    } else {
+                        //console.log(mm2, mm3)
+                    }
+
+
+                })) {
+                    return ['queenForksKingAndRook', [makeUci(move)]]
+                }
+            }
+        }
+    }
+}
+
+
 
 export const bishopForksKingAndRook: MakeSnakes = (pos: Position) => {
     
@@ -785,6 +827,7 @@ let make_snakes: MakeSnakes[] = [
     hangingRookAfterQueenExchange,
     queenCheck,
     queenGobblesBishop,
+    queenForksKingAndRook,
     bishopForksKingAndRook,
     bishopCheck,
     bishopPinQueenToKing,
