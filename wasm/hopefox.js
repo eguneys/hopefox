@@ -3968,6 +3968,7 @@ async function createWasm() {
 
 
 
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.preloadFile = FS_preloadFile;
   FS.staticInit();;
@@ -4239,7 +4240,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'PATH_FS',
   'UTF8Decoder',
   'UTF8ArrayToString',
-  'UTF8ToString',
   'stringToUTF8Array',
   'lengthBytesUTF8',
   'intArrayFromString',
@@ -4425,6 +4425,7 @@ unexportedSymbols.forEach(unexportedRuntimeSymbol);
   // End runtime exports
   // Begin JS library exports
   Module['getValue'] = getValue;
+  Module['UTF8ToString'] = UTF8ToString;
   Module['stringToUTF8'] = stringToUTF8;
   // End JS library exports
 
@@ -4448,6 +4449,7 @@ var _pos_attacks = Module['_pos_attacks'] = makeInvalidEarlyAccess('_pos_attacks
 var _get_turn = Module['_get_turn'] = makeInvalidEarlyAccess('_get_turn');
 var _get_at = Module['_get_at'] = makeInvalidEarlyAccess('_get_at');
 var _is_checkmate = Module['_is_checkmate'] = makeInvalidEarlyAccess('_is_checkmate');
+var _get_fen = Module['_get_fen'] = makeInvalidEarlyAccess('_get_fen');
 var _init = Module['_init'] = makeInvalidEarlyAccess('_init');
 var _main = makeInvalidEarlyAccess('_main');
 var _fflush = makeInvalidEarlyAccess('_fflush');
@@ -4490,6 +4492,8 @@ function assignWasmExports(wasmExports) {
   _get_at = Module['_get_at'] = createExportWrapper('get_at', 2);
   assert(wasmExports['is_checkmate'], 'missing Wasm export: is_checkmate');
   _is_checkmate = Module['_is_checkmate'] = createExportWrapper('is_checkmate', 1);
+  assert(wasmExports['get_fen'], 'missing Wasm export: get_fen');
+  _get_fen = Module['_get_fen'] = createExportWrapper('get_fen', 1);
   assert(wasmExports['init'], 'missing Wasm export: init');
   _init = Module['_init'] = createExportWrapper('init', 0);
   assert(wasmExports['main'], 'missing Wasm export: main');

@@ -112,7 +112,7 @@ export function tactics(fen: string) {
 }
 
 export function matein1(pos: Position) {
-    let res = turn_moves(pos).flatMap(mmate => {
+    let res = pos_moves(pos).flatMap(mmate => {
         let [smate, p2] = make_san_and_play(pos, mmate)
 
         if (p2.isCheckmate()) {
@@ -131,7 +131,7 @@ export function xdefenderqueen(pos: Position) {
     return xdefenders(pos).filter(_ => _[0].role === 'queen' && _[2].length === 1).flatMap(_ => {
         let [_a, xqueen, [defender]] = _
 
-        return turn_moves(pos)
+        return pos_moves(pos)
         .filter(_ => _.to === defender[1].from)
         .flatMap(xdef => {
             let [sxdef, p2] = make_san_and_play(pos, xdef)
@@ -140,12 +140,12 @@ export function xdefenderqueen(pos: Position) {
                 return []
             }
 
-            return turn_moves(p2)
+            return pos_moves(p2)
             .filter(_ => _.to === xdef.to)
             .flatMap(xxdef => {
                 let [sxxdef, p3] = make_san_and_play(p2, xxdef)
 
-                return turn_moves(p3)
+                return pos_moves(p3)
                 .filter(_ => _.to === xqueen.to)
                 .map(xqueen => {
                     let [sxqueen, p4] = make_san_and_play(p3, xqueen)
@@ -185,7 +185,7 @@ export function cookqueen(pos: Position) {
                 let squeen = makeSan(p3, mqueen)
                 p4.play(mqueen)
 
-                let recapture = turn_moves(p4)
+                let recapture = pos_moves(p4)
                 .filter(_ => _.to === mqueen.to)
 
 
@@ -214,7 +214,7 @@ export function cookqueen(pos: Position) {
 
 function turn_captures(pos: Position): [Piece, NormalMove][] {
 
-    return turn_moves(pos).flatMap(xqueen => {
+    return pos_moves(pos).flatMap(xqueen => {
 
         let [sxqueen, p2] = make_san_and_play(pos, xqueen)
 
@@ -228,7 +228,7 @@ function turn_captures(pos: Position): [Piece, NormalMove][] {
     })
 }
 
-function turn_moves(pos: Position) {
+export function pos_moves(pos: Position) {
     let res = []
     let turn = pos.turn
 

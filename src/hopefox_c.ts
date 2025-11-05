@@ -1,6 +1,8 @@
 import HM from '../wasm/hopefox.js'
 import { Chess, Position } from './chess.js'
 import { parseCastlingFen, parseFen } from './fen.js'
+import { fen_pos } from './hopefox.js'
+import { FEN } from './mor3_hope1.js'
 import { makeSan } from './san.js'
 import { SquareSet } from './squareSet.js'
 import { Color, Move, Piece, Role, Square } from './types.js'
@@ -300,10 +302,14 @@ export class PositionManager {
         return this.m._is_checkmate(pos)
     }
 
-    get_pos_read_fen(pos: PositionC): Position {
+    get_fen(pos: PositionC): FEN {
         let fen = this.wasmToStringAndFree(this.m._get_fen(pos))
 
-        return Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+        return fen
+    }
+
+    get_pos_read_fen(id: PositionC): Position {
+        return fen_pos(this.get_fen(id))
     }
 
     make_san(id: PositionC, move: MoveC) {
