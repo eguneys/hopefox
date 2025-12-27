@@ -67,7 +67,7 @@ export function piece_c_type_of(piece: PieceC) {
     return piece & 7
 }
 
-export function c_to_piece(c: PieceC): Piece {
+export function piece_c_to_piece(c: PieceC): Piece {
     let color = piece_c_color_of(c)
     let role = piece_c_type_of(c)
 
@@ -301,6 +301,21 @@ export class PositionManager {
     is_checkmate(pos: number) {
         return this.m._is_checkmate(pos)
     }
+
+    checkers(pos: number) {
+        const bbPtr = this.m._malloc(4 * 2)
+
+        this.m._checkers(pos, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+
+        return new SquareSet(lo, hi)
+    }
+
+
 
     get_fen(pos: PositionC): FEN {
         let fen = this.wasmToStringAndFree(this.m._get_fen(pos))

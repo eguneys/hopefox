@@ -1,9 +1,9 @@
-import { it } from 'vitest'
-import { digest, drink, fen_snakes, soup } from '../src'
+import { describe, it } from 'vitest'
+import { digest, drink, fen_snakes, grade, soup } from '../src'
 import { puzzles } from './fixture'
 
-
-it('works', () => {
+describe.skip(() => {
+it.skip('works', () => {
 
 
     let fen = "4rr2/1ppq1pk1/p1n2R2/5b2/3p1Q2/1B3N2/PPP2PPP/4R1K1 b - - 0 21"
@@ -12,12 +12,12 @@ it('works', () => {
     console.log(soup(fen))
 })
 
-it.only('ranks', () => {
+it('grades', () => {
 
-    let r = puzzles.find(_ => _.id === '00WcO')!
+    let r = puzzles.find(_ => _.id === '00DPQ')!
 
     let fen = r.move_fens[0]
-    let s = digest(fen)
+    let s = grade(fen)
     if (s.length === 0) {
         console.log('No Digest :)')
     } else {
@@ -89,7 +89,8 @@ it.skip('tests', () => {
         //console.log(r.id)
         let fen = r.move_fens[0]
         //let s = drink(fen)
-        let s = digest(fen)
+        //let s = digest(fen)
+        let s = grade(fen)
         if (s.length === 0) {
             unsolved.push(r)
             continue
@@ -108,7 +109,7 @@ it.skip('tests', () => {
     if (unsolved.length === 0) {
         console.log('Congratz, Bye.')
     } else {
-        let s = digest(unsolved[0].move_fens[0])
+        let s = grade(unsolved[0].move_fens[0])
         if (s.length === 0) {
             console.log(unsolved[0])
             console.log('Unmatched digest :(')
@@ -119,10 +120,15 @@ it.skip('tests', () => {
 
         let pot = s[0][1]
 
-        console.log(unsolved[0])
-        console.log(pot)
+
         console.log(s)
-        console.log(unsolved[0])
+        console.log(unsolved[0].link)
+        console.log(pot)
+        console.log(' !== ')
+        console.log(unsolved[0].sans.join(' '))
+        console.log('Unsolved.')
+
+        console.log(`Solved ${solved.length}, Unsolved: ${unsolved.length}`)
 
     }
 })
@@ -139,3 +145,4 @@ function match_only_my_moves(sans: string, sans2: string) {
 
     return true
 }
+})

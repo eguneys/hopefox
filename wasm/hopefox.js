@@ -4449,6 +4449,7 @@ var _pos_attacks = Module['_pos_attacks'] = makeInvalidEarlyAccess('_pos_attacks
 var _get_turn = Module['_get_turn'] = makeInvalidEarlyAccess('_get_turn');
 var _get_at = Module['_get_at'] = makeInvalidEarlyAccess('_get_at');
 var _is_checkmate = Module['_is_checkmate'] = makeInvalidEarlyAccess('_is_checkmate');
+var _checkers = Module['_checkers'] = makeInvalidEarlyAccess('_checkers');
 var _get_fen = Module['_get_fen'] = makeInvalidEarlyAccess('_get_fen');
 var _init = Module['_init'] = makeInvalidEarlyAccess('_init');
 var _main = makeInvalidEarlyAccess('_main');
@@ -4492,6 +4493,8 @@ function assignWasmExports(wasmExports) {
   _get_at = Module['_get_at'] = createExportWrapper('get_at', 2);
   assert(wasmExports['is_checkmate'], 'missing Wasm export: is_checkmate');
   _is_checkmate = Module['_is_checkmate'] = createExportWrapper('is_checkmate', 1);
+  assert(wasmExports['checkers'], 'missing Wasm export: checkers');
+  _checkers = Module['_checkers'] = createExportWrapper('checkers', 2);
   assert(wasmExports['get_fen'], 'missing Wasm export: get_fen');
   _get_fen = Module['_get_fen'] = createExportWrapper('get_fen', 1);
   assert(wasmExports['init'], 'missing Wasm export: init');

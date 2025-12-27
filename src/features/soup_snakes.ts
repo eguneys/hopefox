@@ -42,6 +42,65 @@ export type Snakes = [Snake, UCI[]]
 export type SoupSnake = Snakes[]
 export type SoupSnakes = SoupSnake[]
 
+function grade_snake(snake: Snake) {
+    switch (snake) {
+        case 'mateIn1': return 100000
+        case 'rookExchange': return 900
+        case 'hangingRook': return 800
+        case 'rookCheck': return 700
+        case 'bishopGobblesQueen': return 500
+        case 'bishopGobblesRook': return 400
+        case 'onlyMove': return 300
+        case 'knightForksKingAndQueen': return 200
+        case 'knightGobblesQueen': return 100
+        case 'knightGobblesKnight': return 50
+        case 'liquidateQueensAndRooks': return 40
+        case 'knightForksKingAndRook': return 30
+        case 'knightGobblesRook': return 20
+        case 'knightForksKingAndBishop': return 10
+        case 'knightGobblesBishop': return 5
+        case 'hangingRookOnQueenExchange': return 4
+        case 'hangingRookAfterQueenExchange': return 3
+        case 'queenCheck': return 2
+        case 'queenGobblesBishop': return 1
+        case 'queenForksKingAndRook': return 0
+        case 'bishopForksKingAndRook': return -1
+        case 'bishopCheck': return -2
+        case 'bishopPinQueenToKing': return -3
+        case 'kingGobblesKnight': return -4
+        case 'firstMove': return -600
+        default: return 0
+    }
+}
+
+export function grade(fen: FEN) {
+    let res = digest(fen)
+
+    function grade_line(line: SnakeLine) {
+        let snake = line.split(" ")
+
+        let res = 0
+        for (let i = 0; i < snake.length; i++) {
+            let s = snake[i] as Snake
+
+            let score = grade_snake(s)
+
+            if (score % 2 === 1) {
+                score = -score
+            }
+
+            res += score
+        }
+
+        return res
+    }
+
+    res.sort((a, b) => grade_line(b[0]) - grade_line(a[0]))
+    console.log(res)
+
+    return res.slice(0, 1)
+}
+
 export function digest(fen: FEN) {
     let dd = drink(fen)
 
