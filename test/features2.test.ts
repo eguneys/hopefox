@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Chess, Exchange, ExchangeAndGobble, fen_pos, MateIn1, play_and_sans, RookMate, TacticalFind } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Chess, Exchange, ExchangeAndGobble, fen_pos, Liquidation, MateIn1, play_and_sans, RookMate, TacticalFind } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -78,15 +78,32 @@ it.skip('puzzles 12', () => {
     let pos = fen_pos(fen)
 
     //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    let res = Adventure2(pos).map(_ => play_and_sans(_, pos).join(' '))
+    //let res = Adventure2(pos).map(_ => play_and_sans(_, pos).join(' '))
+    let res = Liquidation(pos).map(_ => play_and_sans(_, pos).join(' '))
     console.log(link)
     console.log(res)
 })
 
-let skips = ['00MWz']
+
+it.skip('puzzles 30', () => {
+    let link = puzzles[30].link
+    let fen = puzzles[30].move_fens[0]
+
+    let pos = fen_pos(fen)
+
+    //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
+    //let res = Adventure2(pos).map(_ => play_and_sans(_, pos).join(' '))
+    let res = Backrank5(pos).map(_ => play_and_sans(_, pos).join(' '))
+    console.log(link)
+    console.log(res)
+})
+
+
+
+let skips = ['00MWz', '00Rlv']
 it.only('puzzles n', () => {
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 160; i++) {
         let res = TacticalFindSans(i)
         if (!res) {
             break
@@ -105,10 +122,11 @@ function TacticalFindSans(n: number) {
     let pos = fen_pos(fen)
 
     let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    if (res.length === 0) {
+    let a = res.find(_ => _ === puzzles[n].sans.join(' '))
+    if (!a) {
         console.log(n)
         console.log(link)
-        console.log(res)
+        console.log(puzzles[n].sans, '\nexpected but found\n', res)
         return false
     }
     return true

@@ -22,14 +22,17 @@
 import { attacks } from "../attacks"
 import { Position } from "../chess"
 import { fen_pos, pos_moves } from "../hopefox"
+import { blocks } from "../hopefox_helper"
 import { FEN } from "../mor3_hope1"
 import { makeSan } from "../san"
 import { Move, Role } from "../types"
+import { opposite } from "../util"
 import { onlyMove } from "./soup_snakes"
 
 export const Liquidation = Bind([
     Check('queen'),
     Exchange('queen'),
+    Gobbles('king', 'rook'),
     Traps('bishop', 'rook'),
     FirstMove,
     Gobbles('bishop', 'rook')
@@ -42,6 +45,22 @@ export const Adventure2 = Either([
     Forks('bishop', 'king', 'rook'),
     Forks('rook', 'king', 'knight'),
     Forks('queen', 'king', 'bishop')
+])
+
+export const AdventureAndFinish = Bind([
+    Adventure2,
+    Either([
+        KingRuns,
+        AllMoves,
+    ]),
+    Either([
+        Gobbles('knight', 'queen'),
+        Gobbles('knight', 'rook'),
+        Gobbles('knight', 'bishop'),
+        Gobbles('bishop', 'rook'),
+        Gobbles('rook', 'knight'),
+        Gobbles('queen', 'bishop'),
+    ])
 ])
 
 export const UnpinGobble = Bind([
@@ -76,7 +95,7 @@ export const Backrank2 = Bind([
 ])
 
 export const Backrank3 = Bind([
-    Sacrifice('queen'),
+    Check('queen'),
     Gobbles('bishop', 'queen'),
     Check('rook'),
     OnlyMove,
@@ -91,7 +110,16 @@ export const Backrank4 = Bind([
 
 export const Backrank5 = Bind([
     Check('queen'),
-    FirstMove,
+    AllMoves,
+    MateIn1('queen')
+])
+
+
+export const Backrank6 = Bind([
+    Check('queen'),
+    BlocksCheck('bishop'),
+    Gobbles('queen', 'bishop'),
+    OnlyMove,
     MateIn1('queen')
 ])
 
@@ -102,7 +130,8 @@ export const Backranks = Either([
     Backrank2,
     Backrank3,
     Backrank4,
-    Backrank5
+    Backrank5,
+    Backrank6
 ])
 
 
@@ -121,9 +150,14 @@ export const ExchangeAndGobble = Bind([
 
 export const GobbleAndExchange = Bind([
     Captures('queen', 'bishop'),
-    Exchange('queen')
+    Forks('queen', 'queen', 'king'),
+    Captures('queen', 'queen')
 ])
 
+export const GobbleAndExchange2 = Bind([
+    Captures('queen', 'bishop'),
+    Exchange('queen')
+])
 
 
 export const Skewer = Bind([
@@ -154,8 +188,10 @@ export const TacticalFind = Either([
     Skewer,
     ExchangeAndWin,
     GobbleAndExchange,
+    GobbleAndExchange2,
     GobblesSome,
-    UnpinGobble
+    UnpinGobble,
+    AdventureAndFinish
 ])
 
 function Either(ss: PosMove[]) {
@@ -258,6 +294,14 @@ function FirstMove(pos: Position) {
     return pos_moves(pos).slice(0, 1).map(_ => [_])
 }
 
+function AllMoves(pos: Position) {
+    let m = pos_moves(pos)
+    if (m.length > 10) {
+        return []
+    }
+    return m.slice(0, 10).map(_ => [_])
+}
+
 function Hanging(a: Role) {
     return (pos: Position) => {
         let res = []
@@ -273,6 +317,37 @@ function Hanging(a: Role) {
         return res
     }
 }
+
+
+function BlocksCheck(a: Role) {
+    return (pos: Position) => {
+
+        let res: Move[][] = []
+        let mm = pos_moves(pos)
+
+        let king = pos.board.kingOf(pos.turn)!
+
+        for (let sq of pos.board[opposite(pos.turn)]) {
+
+            let piece = pos.board.get(sq)!
+
+            let aa = attacks(piece, sq, pos.board.occupied)
+
+            if (!aa.has(king)) {
+                continue
+            }
+
+            for (let m of mm) {
+                if (aa.has(m.to)) {
+
+                    res.push([m])
+                }
+            }
+        }
+        return res
+    }
+}
+
 
 
 function Traps(a: Role, b: Role) {
@@ -337,10 +412,14 @@ function Forks(a: Role, b: Role, c: Role) {
         let b_found = false,
             c_found = false
         for (let a of aa) {
-            if (p2.board.get(a)?.role === b) {
+            let piece2 = p2.board.get(a)
+            if (!piece2 || piece2.color === pos.turn) {
+                continue
+            }
+            if (piece2.role === b) {
                 b_found = true
             }
-            if (p2.board.get(a)?.role === c) {
+            if (piece2.role === c) {
                 c_found = true
             }
         }
@@ -372,6 +451,21 @@ function Captures(a: Role, b: Role) {
     return res
 }
 }
+
+function KingRuns(pos: Position) {
+    let mm = pos_moves(pos)
+
+    let res: Move[][] = []
+    for (let move of mm) {
+        if (pos.board.get(move.from)!.role !== 'king') {
+            continue
+        }
+        res.push([move])
+    }
+    return res
+}
+
+
 
 function Gobbles(a: Role, b: Role) {
     return (pos: Position) => {
