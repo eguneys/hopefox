@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, Move, opposite, PinAndWin, play_and_sans, Position, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Bind, CapturesComb, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, Move, opposite, PinAndWin, play_and_sans, Position, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -96,9 +96,9 @@ it('puzzles 35', () => {
     console.log(res)
 })
 
-it.only('puzzles 11', () => {
+it.only('puzzles 88', () => {
 
-    let res = TacticalFindSans2(11)
+    let res = TacticalFindSans2(88)
     console.log(res)
 })
 
@@ -112,6 +112,12 @@ skips.push('00rzv') // Mating
 skips.push(...['00tdc', '00xmm']) // Pin
 skips.push(...['00KMV']) // Skewer
 
+skips.push(...['00sO1']) // discover
+
+skips.push(...['00WcO']) // fork
+
+skips.push(...['01G6T']) // capture order
+
 it.only('puzzles n', () => {
     for (let i = 0; i < 160; i++) {
         let res = TacticalFindSans2(i)
@@ -120,227 +126,6 @@ it.only('puzzles n', () => {
         }
     }
 })
-
-type Node = {
-    data: Move
-    value: number
-    children: Node[]
-}
-
-/**
- * Finds the optimal paths (sequences of moves) based on the Minimax algorithm.
- * Assumes the first level (root array) is the Maximizer's turn.
- */
-function BestMovesMinMax(roots: Node[]): Move[][] {
-    if (roots.length === 0) return [];
-
-    // 1. Helper to get the Minimax value of a node
-    function getMinimaxValue(node: Node, isMaximizing: boolean): number {
-        if (node.children.length === 0) {
-            return node.value ?? 0;
-        }
-
-        if (isMaximizing) {
-            let bestVal = -Infinity;
-            for (const child of node.children) {
-                bestVal = Math.max(bestVal, getMinimaxValue(child, false));
-            }
-            return bestVal;
-        } else {
-            let bestVal = Infinity;
-            for (const child of node.children) {
-                bestVal = Math.min(bestVal, getMinimaxValue(child, true));
-            }
-            return bestVal;
-        }
-    }
-
-    // 2. Helper to collect all paths that reach the target value
-    function findPaths(node: Node, targetValue: number, isMaximizing: boolean, currentPath: Move[]): Move[][] {
-        const newPath = [...currentPath, node.data];
-
-        // Base case: Leaf node
-        if (node.children.length === 0) {
-            return (node.value === targetValue) ? [newPath] : [];
-        }
-
-        let paths: Move[][] = [];
-        for (const child of node.children) {
-            // Only follow branches that match the minimax value for this level
-            if (getMinimaxValue(child, !isMaximizing) === targetValue) {
-                paths.push(...findPaths(child, targetValue, !isMaximizing, newPath));
-            }
-        }
-        return paths;
-    }
-
-    // Determine the best achievable value from the starting options
-    const bestStartingValue = Math.max(...roots.map(n => getMinimaxValue(n, false)));
-
-    // Collect all paths that result in that best value
-    let allOptimalPaths: Move[][] = [];
-    for (const rootNode of roots) {
-        if (getMinimaxValue(rootNode, false) === bestStartingValue) {
-            allOptimalPaths.push(...findPaths(rootNode, bestStartingValue, false, []));
-        }
-    }
-
-    return allOptimalPaths;
-}
-
-type ScoredPath = {
-    score: number;
-    path: Move[];
-};
-
-function RankedMovesMinMax(roots: Node[]): ScoredPath[] {
-    if (roots.length === 0) return [];
-
-    // 1. Same Minimax value calculator as before
-    function getMinimaxValue(node: Node, isMaximizing: boolean): number {
-        if (node.children.length === 0) return node.value ?? 0;
-
-        if (isMaximizing) {
-            let bestVal = -Infinity;
-            for (const child of node.children) {
-                bestVal = Math.max(bestVal, getMinimaxValue(child, false));
-            }
-            return bestVal;
-        } else {
-            let bestVal = Infinity;
-            for (const child of node.children) {
-                bestVal = Math.min(bestVal, getMinimaxValue(child, true));
-            }
-            return bestVal;
-        }
-    }
-
-    // 2. Finds the single best path starting from a specific node
-    function findBestPath(node: Node, targetValue: number, isMaximizing: boolean): Move[] {
-        let path = [node.data];
-        if (node.children.length === 0) return path;
-
-        for (const child of node.children) {
-            // Follow the branch that maintains the target Minimax value
-            if (getMinimaxValue(child, !isMaximizing) === targetValue) {
-                return path.concat(findBestPath(child, targetValue, !isMaximizing));
-            }
-        }
-        return path;
-    }
-
-    // 3. Map every root option to its Minimax score and best resulting path
-    const results: ScoredPath[] = roots.map(rootNode => {
-        const score = getMinimaxValue(rootNode, false); // Opponent's turn next
-        return {
-            score: score,
-            path: findBestPath(rootNode, score, false)
-        };
-    });
-
-    // 4. Sort by score (Descending: Best moves first)
-    return results.sort((a, b) => b.score - a.score);
-}
-
-function AllMovesMinMax(roots: Node[]): ScoredPath[] {
-    
-    // 1. Calculate the Minimax value for a node (the "best" it can do)
-    function getMinimaxValue(node: Node, isMaximizing: boolean): number {
-        if (node.children.length === 0) return node.value ?? 0;
-
-        let values = node.children.map(child => getMinimaxValue(child, !isMaximizing));
-        return isMaximizing ? Math.max(...values) : Math.min(...values);
-    }
-
-    // Determine the overall best value achievable from the start
-    const overallBest = Math.max(...roots.map(n => getMinimaxValue(n, false)));
-
-    // 2. Recursively find every single path from a node to its leaves
-    function collectAllPaths(node: Node, currentPath: Move[]): ScoredPath[] {
-        const newPath = [...currentPath, node.data];
-
-        // Base case: it's a leaf
-        if (node.children.length === 0) {
-            return [{
-                path: newPath,
-                score: node.value ?? 0,
-            }];
-        }
-
-        // Recursive case: collect paths from all children
-        let paths: ScoredPath[] = [];
-        for (const child of node.children) {
-            paths.push(...collectAllPaths(child, newPath));
-        }
-        return paths;
-    }
-
-    // 3. Flatten the tree starting from all root options
-    let allPaths: ScoredPath[] = [];
-    for (const root of roots) {
-        allPaths.push(...collectAllPaths(root, []));
-    }
-
-    // 4. Sort all paths by score (Highest score first)
-    return allPaths.sort((a, b) => b.score - a.score);
-}
-
-function move_equals(a: Move, b: Move) {
-    return a.to === b.to && a.from == b.from && a.promotion === b.promotion
-}
-
-function pos_eval(pos: Position, path: Move[]) {
-    let p = pos.clone()
-    for (let m of path) {
-        p.play(m)
-    }
-    if (p.isCheckmate()) {
-        return 1000
-    }
-    return p.board.pieces(pos.turn, 'queen').size() * 9 +
-        p.board.pieces(pos.turn, 'rook').size() * 5 +
-        p.board.pieces(pos.turn, 'bishop').size() * 3.2 +
-        p.board.pieces(pos.turn, 'knight').size() * 3 +
-        p.board.pieces(pos.turn, 'pawn').size() * 1 +
-
-        -p.board.pieces(opposite(pos.turn), 'queen').size() * 9 +
-        -p.board.pieces(opposite(pos.turn), 'rook').size() * 5 +
-        -p.board.pieces(opposite(pos.turn), 'bishop').size() * 3.2 +
-        -p.board.pieces(opposite(pos.turn), 'knight').size() * 3 +
-        -p.board.pieces(opposite(pos.turn), 'pawn').size() * 1
-
-
-
-}
-
-function make_node(pos: Position, root: Node[], moves: Move[]) {
-
-    let path: Move[] = []
-    for (let m of moves) {
-        path.push(m)
-        let res = root.find(_ => move_equals(_.data, m))
-        if (!res) {
-            let children: Node[] = []
-            root.push({ data: m, children, value: pos_eval(pos, path) })
-            root = children
-        } else {
-            root = res.children
-        }
-    }
-    return root
-}
-
-
-function Min_max_sort(pos: Position, aa: Move[][]) {
-    let root: Node[] = []
-    aa.forEach(a => make_node(pos, root, a))
-
-
-    //return BestMovesMinMax(root)
-    //return RankedMovesMinMax(root).map(_ => _.path)
-    return AllMovesMinMax(root).map(_ => _.path)
-}
-
 
 function TacticalFindSans2(n: number) {
     let link = puzzles[n].link
@@ -358,8 +143,7 @@ function TacticalFindSans2(n: number) {
     let res = 
         Min_max_sort(pos, TacticalFind2(pos))
             .map(_ => play_and_sans(_, pos))
-    //let res = ChecksCheckMate(pos).map(_ => play_and_sans(_, pos))
-
+           
     let a = find_solving_sans(res, puzzles[n].sans)
 
     if (!a) {
@@ -468,6 +252,10 @@ const find_solving_sans = (a: SAN[][], b: SAN[]) => {
         return false
     }
 
+    if (b.length === 1) {
+        return true
+    }
+
     a = a.filter(_ => _[0] === head)
 
     a = a.filter(_ => _[1] === b[1])
@@ -478,4 +266,116 @@ const find_solving_sans = (a: SAN[][], b: SAN[]) => {
     }
 
     return true
+}
+
+
+type Node = {
+    data: Move
+    value: number
+    children: Node[]
+}
+
+function move_equals(a: Move, b: Move) {
+    return a.to === b.to && a.from == b.from && a.promotion === b.promotion
+}
+
+function pos_eval(pos: Position, path: Move[]) {
+    let p = pos.clone()
+    for (let m of path) {
+        p.play(m)
+    }
+    if (p.isCheckmate()) {
+        return 1000
+    }
+    return p.board.pieces(pos.turn, 'queen').size() * 9 +
+        p.board.pieces(pos.turn, 'rook').size() * 5 +
+        p.board.pieces(pos.turn, 'bishop').size() * 3.2 +
+        p.board.pieces(pos.turn, 'knight').size() * 3 +
+        p.board.pieces(pos.turn, 'pawn').size() * 1 +
+
+        -p.board.pieces(opposite(pos.turn), 'queen').size() * 9 +
+        -p.board.pieces(opposite(pos.turn), 'rook').size() * 5 +
+        -p.board.pieces(opposite(pos.turn), 'bishop').size() * 3.2 +
+        -p.board.pieces(opposite(pos.turn), 'knight').size() * 3 +
+        -p.board.pieces(opposite(pos.turn), 'pawn').size() * 1
+
+
+
+}
+
+function make_node(pos: Position, root: Node[], moves: Move[]) {
+
+    let path: Move[] = []
+    for (let m of moves) {
+        path.push(m)
+        let res = root.find(_ => move_equals(_.data, m))
+        if (!res) {
+            let children: Node[] = []
+            root.push({ data: m, children, value: pos_eval(pos, path) })
+            root = children
+        } else {
+            root = res.children
+        }
+    }
+    return root
+}
+
+
+function Min_max_sort(pos: Position, aa: Move[][]) {
+    let root: Node[] = []
+    aa.forEach(a => make_node(pos, root, a))
+
+    return BestMovesMinMax(pos, root)
+}
+
+
+function BestMovesMinMax(pos: Position, root: Node[]) {
+
+    for (let c of root) {
+        fill_values_min_max(pos, [], c, true)
+    }
+
+    root.sort((a, b) => b.value - a.value)
+
+    
+    return root.flatMap(_ => allPaths(_)).map(_ => _.map(_ => _.data))
+}
+
+
+function allPaths(node: Node): Node[][] {
+    if (!node.children || node.children.length === 0) {
+        // Leaf node: return path containing just this node
+        return [[node]];
+    }
+    
+    const paths: Node[][] = [];
+    for (const child of node.children) {
+        const childPaths = allPaths(child);
+        for (const path of childPaths) {
+            // Prepend current node to each child path
+            paths.push([node, ...path]);
+        }
+    }
+    return paths;
+}
+
+
+function fill_values_min_max(pos: Position, path: Move[], a: Node, isMaximizing: boolean) {
+
+    if (a.children.length === 0) {
+        a.value = pos_eval(pos, [...path, a.data])
+        return
+    }
+
+    for (let c of a.children) {
+        fill_values_min_max(pos, [...path, a.data], c, !isMaximizing)
+    }
+
+    if (isMaximizing) {
+        a.children.sort((a, b) => a.value - b.value)
+        a.value = Math.min(...a.children.map(_ => _.value))
+    } else {
+        a.children.sort((a, b) => b.value - a.value)
+        a.value = Math.max(...a.children.map(_ => _.value))
+    }
 }

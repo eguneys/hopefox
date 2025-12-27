@@ -124,7 +124,7 @@ const Checks = Either([
     Check('queen'),
 ])
 
-const CapturesComb = Either([
+export const CapturesComb = Either([
     Captures('knight', 'queen'),
     Captures('knight', 'knight'),
     Captures('knight', 'rook'),
@@ -142,12 +142,14 @@ const CapturesComb = Either([
     Captures('queen', 'queen'),
     Captures('queen', 'bishop'),
     Captures('queen', 'knight'),
+    Captures('queen', 'pawn'),
 
     Captures('pawn', 'bishop'),
     Captures('pawn', 'knight'),
     Captures('pawn', 'queen'),
 
     Captures('king', 'knight'),
+    Captures('king', 'queen'),
 ])
 
 const ForksComb = Either([
@@ -173,6 +175,8 @@ export const CaptureCaptureCapture = Bind([CapturesComb, CapturesComb, CapturesC
 
 export const TacticalFind2 = Either([
     MateIn1s,
+    Bind([Checks, KingRuns, MateIn1s]),
+    Bind([Checks, CapturesComb]),
     Bind([CapturesComb, CapturesComb]),
     Bind([CapturesComb, CapturesComb, MateIn1s]),
     Bind([Checks, Blocks, CapturesComb, Blocks, MateIn1s]),
@@ -529,7 +533,7 @@ function Either(ss: PosMove[]) {
 
 type PosMove = (pos: Position) => Move[][]
 
-function Bind(ss: PosMove[]) {
+export function Bind(ss: PosMove[]) {
     return (pos: Position) => {
         function deep(pos: Position, ss: PosMove[], line: Move[]): Move[][] {
             if (ss.length === 1) {
