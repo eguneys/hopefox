@@ -164,7 +164,6 @@ const MateIn1s = Either([
     MateIn1('queen'),
 ])
 
-//export const ChecksKingRunsForks = Bind([ForksComb, s, KingRuns], 3))
 export const CapturesKingRunsForks = Bind([ForksComb, KingRuns, CapturesComb])
 export const ChecksCapturesMate = Bind([Combination([Checks, Blocks, CapturesComb], 2), MateIn1s])
 export const ChecksCapturesMateLong = Combination([Checks, Blocks, CapturesComb, MateIn1s], 5)
@@ -174,6 +173,7 @@ export const CaptureCaptureCapture = Bind([CapturesComb, CapturesComb, CapturesC
 
 export const TacticalFind2 = Either([
     MateIn1s,
+    Bind([CapturesComb, CapturesComb]),
     Bind([CapturesComb, CapturesComb, MateIn1s]),
     Bind([Checks, Blocks, CapturesComb, Blocks, MateIn1s]),
     ChecksCapturesMate,
