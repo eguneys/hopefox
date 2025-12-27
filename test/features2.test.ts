@@ -5,6 +5,7 @@ import { puzzles } from './fixture'
 it.only('puzzles 223', () => {
 
     let res = TacticalFindSans2(223,
+        false,
         Either([
             CapturesKingRunsForks,
             CaptureForkCapture
@@ -47,7 +48,7 @@ skips.push(...['01GCT', '00kZF']) // tricky interpose
 
 skips.push(...['003r5']) // need chill move
 
-it.only('puzzles n', () => {
+it.skip('puzzles n', () => {
     let nb = 300
     let l =0
     for (let i = 0; i < nb; i++) {
@@ -62,14 +63,34 @@ it.only('puzzles n', () => {
     console.log(`${l}/${nb}`)
 })
 
-function TacticalFindSans2(n: number, Fn = TacticalFind2) {
+
+
+it.only('skipped puzzles n', () => {
+    let nb = 300
+    let l =0
+    for (let i = 0; i < nb; i++) {
+        let res = TacticalFindSans2(i, true)
+        if (res === 1) {
+            l++
+        }
+        if (!res) {
+            break
+        }
+    }
+    console.log(`${l}/${nb}`)
+})
+
+
+
+function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFind2) {
     let link = puzzles[n].link
     let fen = puzzles[n].move_fens[0]
 
     if (puzzles[n].tags.includes('endgame') || puzzles[n].tags.includes('promotion')) {
         return true
     }
-    if (skips.includes(puzzles[n].id)) {
+
+    if (skips_only !== skips.includes(puzzles[n].id)) {
         return true
     }
 
@@ -151,6 +172,13 @@ const find_solving_sans = (a: SAN[][], b: SAN[]) => {
 
     return true
 }
+
+
+
+
+
+
+
 
 
 type Node = {
