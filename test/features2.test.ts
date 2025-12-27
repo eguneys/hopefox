@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, PinAndWin, play_and_sans, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, CapturesKingRunsForks, ChecksCapturesMateLong, ChecksCheckMate, ChecksKingRunsForks, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, PinAndWin, play_and_sans, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -85,7 +85,7 @@ it.skip('puzzles 12', () => {
 })
 
 
-it('puzzles 56', () => {
+it('puzzles 35', () => {
     let link = puzzles[56].link
     let fen = puzzles[56].move_fens[0]
 
@@ -96,9 +96,9 @@ it('puzzles 56', () => {
     console.log(res)
 })
 
-it('puzzles 38', () => {
+it.only('puzzles 35', () => {
 
-    let res = TacticalFindSans2(38)
+    let res = TacticalFindSans2(35)
     console.log(res)
 })
 
@@ -114,7 +114,7 @@ skips.push(...['00KMV']) // Skewer
 
 it.only('puzzles n', () => {
     for (let i = 0; i < 160; i++) {
-        let res = TacticalFindSansLoose2(i)
+        let res = TacticalFindSans2(i)
         if (!res) {
             break
         }
@@ -135,16 +135,15 @@ function TacticalFindSans2(n: number) {
 
     let pos = fen_pos(fen)
 
-    let res = CapturesKingRunsForks(pos).map(_ => play_and_sans(_, pos))
-    //res = res.slice(0, 1)
-    //let a = res.find(_ => _.join(' ').startsWith(puzzles[n].sans.join(' ')))
+    let res = TacticalFind2(pos).map(_ => play_and_sans(_, pos))
+    //let res = ChecksCheckMate(pos).map(_ => play_and_sans(_, pos))
 
     let a = find_solving_sans(res, puzzles[n].sans)
 
     if (!a) {
         console.log(n)
         console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0, 10))
+        console.log(puzzles[n].sans, '\nexpected but found\n', res)
         return false
     }
     return true
@@ -232,6 +231,9 @@ function TacticalFindSans(n: number) {
    Rf2 Nexf2 Qh8
 */
 const find_solving_sans = (a: SAN[][], b: SAN[]) => {
+    if (a.length === 0) {
+        return false
+    }
     if (a[0].length < b.length) {
         return false
     }

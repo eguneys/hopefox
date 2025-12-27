@@ -122,7 +122,6 @@ const Blocks = Either([
 
 const Checks = Either([
     Check('queen'),
-    Check('rook')
 ])
 
 const CapturesComb = Either([
@@ -130,6 +129,7 @@ const CapturesComb = Either([
     Captures('knight', 'knight'),
     Captures('knight', 'rook'),
     Captures('knight', 'bishop'),
+    Captures('knight', 'pawn'),
     Captures('bishop', 'queen'),
     Captures('bishop', 'knight'),
     Captures('bishop', 'rook'),
@@ -164,25 +164,24 @@ const MateIn1s = Either([
     MateIn1('queen'),
 ])
 
-
-export const ChecksKingRunsForks = Combination([Checks, KingRuns, ForksComb], 3)
-export const CapturesKingRunsForks = Combination([CapturesComb, KingRuns, ForksComb], 3)
-export const CapturesCapturesMate = Combination([CapturesComb, MateIn1s], 3)
-export const ChecksCapturesMate = Combination([Checks, Blocks, CapturesComb, MateIn1s], 3)
+//export const ChecksKingRunsForks = Bind([ForksComb, s, KingRuns], 3))
+export const CapturesKingRunsForks = Bind([ForksComb, KingRuns, CapturesComb])
+export const ChecksCapturesMate = Bind([Combination([Checks, Blocks, CapturesComb], 2), MateIn1s])
 export const ChecksCapturesMateLong = Combination([Checks, Blocks, CapturesComb, MateIn1s], 5)
 
-export const ChecksCheckMate = Bind([Checks, Combination([Checks, CapturesComb, KingRuns], 3), MateIn1s])
-
-//export const CapturesCapturesCaptures = Combination([CapturesComb], 3)
+export const CaptureForkCapture = Bind([CapturesComb, ForksComb, CapturesComb])
+export const CaptureCaptureCapture = Bind([CapturesComb, CapturesComb, CapturesComb])
 
 export const TacticalFind2 = Either([
     MateIn1s,
-    CapturesKingRunsForks,
-    CapturesCapturesMate,
+    Bind([CapturesComb, CapturesComb, MateIn1s]),
+    Bind([Checks, Blocks, CapturesComb, Blocks, MateIn1s]),
     ChecksCapturesMate,
-    ChecksCapturesMateLong,
-    ChecksKingRunsForks,
-    ChecksCheckMate
+    Bind([Checks, KingRuns, Checks, CapturesComb, MateIn1s]),
+    CapturesKingRunsForks,
+    CaptureForkCapture,
+    CaptureCaptureCapture,
+    CapturesComb,
 ])
 
 
@@ -207,7 +206,7 @@ function combs<T>(a: T[], n: number): T[][] {
   return result;
 }
 
-//console.log(combs([1,2], 3))
+//console.log(combs([1,2,3], 3))
 
 
 /*** Manual */
