@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { Adventure, Backrank1, fen_pos, play_and_sans } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Chess, Exchange, ExchangeAndGobble, fen_pos, MateIn1, play_and_sans, RookMate, TacticalFind } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -14,13 +14,102 @@ it('works', () => {
 })
 
 
-it.only('puzzles 0', () => {
+it('puzzles 0', () => {
     let link = puzzles[0].link
-    let fen = puzzles[0].fen
+    let fen = puzzles[0].move_fens[0]
 
-    console.log(link)
     let pos = fen_pos(fen)
 
     let res = Backrank1(pos).map(_ => play_and_sans(_, pos).join(' '))
     console.log(res)
 })
+
+
+it('puzzles 1', () => {
+    let link = puzzles[1].link
+    let fen = puzzles[1].move_fens[0]
+
+    let pos = fen_pos(fen)
+
+    let res = RookMate(pos).map(_ => play_and_sans(_, pos).join(' '))
+    console.log(res)
+})
+
+
+it('puzzles 3', () => {
+    let link = puzzles[3].link
+    let fen = puzzles[3].move_fens[0]
+
+    let pos = fen_pos(fen)
+
+    let res = Backrank2(pos).map(_ => play_and_sans(_, pos).join(' '))
+    console.log(link)
+    console.log(res)
+})
+
+it('puzzles 4', () => {
+    let link = puzzles[4].link
+    let fen = puzzles[4].move_fens[0]
+
+    let pos = fen_pos(fen)
+
+    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
+    console.log(link)
+    console.log(res)
+})
+
+it('puzzles 5', () => {
+    let link = puzzles[5].link
+    let fen = puzzles[5].move_fens[0]
+
+    let pos = fen_pos(fen)
+
+    //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
+    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
+    console.log(link)
+    console.log(res)
+})
+
+
+it.skip('puzzles 12', () => {
+    let link = puzzles[12].link
+    let fen = puzzles[12].move_fens[0]
+
+    let pos = fen_pos(fen)
+
+    //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
+    let res = Adventure2(pos).map(_ => play_and_sans(_, pos).join(' '))
+    console.log(link)
+    console.log(res)
+})
+
+let skips = ['00MWz']
+it.only('puzzles n', () => {
+
+    for (let i = 0; i < 60; i++) {
+        let res = TacticalFindSans(i)
+        if (!res) {
+            break
+        }
+    }
+})
+
+function TacticalFindSans(n: number) {
+    let link = puzzles[n].link
+    let fen = puzzles[n].move_fens[0]
+
+    if (skips.includes(puzzles[n].id)) {
+        return true
+    }
+
+    let pos = fen_pos(fen)
+
+    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
+    if (res.length === 0) {
+        console.log(n)
+        console.log(link)
+        console.log(res)
+        return false
+    }
+    return true
+}
