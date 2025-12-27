@@ -134,10 +134,13 @@ export const CapturesComb = Either([
     Captures('bishop', 'knight'),
     Captures('bishop', 'rook'),
     Captures('bishop', 'bishop'),
+    Captures('bishop', 'pawn'),
     Captures('rook', 'queen'),
     Captures('rook', 'rook'),
     Captures('rook', 'bishop'),
     Captures('rook', 'knight'),
+    Captures('rook', 'pawn'),
+
     Captures('queen', 'rook'),
     Captures('queen', 'queen'),
     Captures('queen', 'bishop'),
@@ -150,11 +153,13 @@ export const CapturesComb = Either([
 
     Captures('king', 'knight'),
     Captures('king', 'queen'),
+    Captures('king', 'rook'),
 ])
 
 const ForksComb = Either([
     Forks('knight', 'king', 'queen'),
     Forks('knight', 'king', 'rook'),
+    Forks('knight', 'king', 'bishop'),
     Forks('queen', 'king', 'queen'),
     Forks('queen', 'king', 'bishop'),
     Forks('queen', 'king', 'rook'),
@@ -167,7 +172,6 @@ const MateIn1s = Either([
 ])
 
 export const CapturesKingRunsForks = Bind([ForksComb, KingRuns, CapturesComb])
-export const ChecksCapturesMate = Bind([Combination([Checks, Blocks, CapturesComb], 2), MateIn1s])
 export const ChecksCapturesMateLong = Combination([Checks, Blocks, CapturesComb, MateIn1s], 5)
 
 export const CaptureForkCapture = Bind([CapturesComb, ForksComb, CapturesComb])
@@ -176,12 +180,17 @@ export const CaptureCaptureCapture = Bind([CapturesComb, CapturesComb, CapturesC
 export const TacticalFind2 = Either([
     MateIn1s,
     Bind([Checks, KingRuns, MateIn1s]),
-    Bind([Checks, CapturesComb]),
-    Bind([CapturesComb, CapturesComb]),
     Bind([CapturesComb, CapturesComb, MateIn1s]),
     Bind([Checks, Blocks, CapturesComb, Blocks, MateIn1s]),
-    ChecksCapturesMate,
+    Bind([Combination([Checks, Blocks, CapturesComb], 2), MateIn1s]),
     Bind([Checks, KingRuns, Checks, CapturesComb, MateIn1s]),
+    Bind([Checks, CapturesComb]),
+    Bind([Checks, CapturesComb, CapturesComb]),
+    Bind([CapturesComb, CapturesComb]),
+    Bind([CapturesComb, CapturesComb, CapturesComb]),
+    Bind([CapturesComb, CapturesComb, CapturesComb, CapturesComb]),
+    Bind([Checks, Blocks, CapturesComb]),
+    Bind([Checks, Blocks, CapturesComb, CapturesComb]),
     CapturesKingRunsForks,
     CaptureForkCapture,
     CaptureCaptureCapture,
@@ -524,7 +533,7 @@ export const TacticalFind = Either([
     GobblesMoreWithExchange
 ])
 
-function Either(ss: PosMove[]) {
+export function Either(ss: PosMove[]) {
     return (pos: Position) => {
         return ss.flatMap(_ => _(pos))
     }

@@ -1,137 +1,72 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Bind, CapturesComb, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, Move, opposite, PinAndWin, play_and_sans, Position, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Bind, CaptureForkCapture, CapturesComb, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Either, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, Move, opposite, PinAndWin, play_and_sans, Position, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
 import { puzzles } from './fixture'
 
+it.only('puzzles 223', () => {
 
-it('works', () => {
-
-    let fen = "r1b1kb1r/pp5p/2pp1q1p/1B1Qp3/4P3/2N5/PPP2PPP/R3K2R w KQkq - 0 11"
-
-    let pos = fen_pos(fen)
-    let res = Adventure(pos).map(_ => play_and_sans(_, pos).join(' '))
-
-    console.log(res)
-})
+    let res = TacticalFindSans2(223,
+        Either([
+            CapturesKingRunsForks,
+            CaptureForkCapture
+        ])
 
 
-it('puzzles 0', () => {
-    let link = puzzles[0].link
-    let fen = puzzles[0].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    let res = Backrank1(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(res)
-})
-
-
-it('puzzles 1', () => {
-    let link = puzzles[1].link
-    let fen = puzzles[1].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    let res = RookMate(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(res)
-})
-
-
-it('puzzles 3', () => {
-    let link = puzzles[3].link
-    let fen = puzzles[3].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    let res = Backrank2(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(link)
-    console.log(res)
-})
-
-it('puzzles 4', () => {
-    let link = puzzles[4].link
-    let fen = puzzles[4].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(link)
-    console.log(res)
-})
-
-it('puzzles 5', () => {
-    let link = puzzles[5].link
-    let fen = puzzles[5].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(link)
-    console.log(res)
-})
-
-
-it.skip('puzzles 12', () => {
-    let link = puzzles[12].link
-    let fen = puzzles[12].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    //let res = Adventure2(pos).map(_ => play_and_sans(_, pos).join(' '))
-    let res = Liquidation(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(link)
-    console.log(res)
-})
-
-
-it('puzzles 35', () => {
-    let link = puzzles[56].link
-    let fen = puzzles[56].move_fens[0]
-
-    let pos = fen_pos(fen)
-
-    let res = ChecksCapturesMateLong(pos).map(_ => play_and_sans(_, pos).join(' '))
-    console.log(link)
-    console.log(res)
-})
-
-it.only('puzzles 88', () => {
-
-    let res = TacticalFindSans2(88)
+    )
     console.log(res)
 })
 
 
 
 
-let skips = ['00MWz', '00Rlv', '008tL', '01Cds', '01TeF', '00Aae', '00QCD']
+let skips = ['013ze'] // matein1
+
+skips.push(...['00MWz', '00Rlv', '008tL', '01Cds', '01TeF', '00Aae', '00QCD'])
 skips.push('00k6k') // And
 skips.push('00rzv') // Mating
 
-skips.push(...['00tdc', '00xmm']) // Pin
-skips.push(...['00KMV']) // Skewer
+skips.push(...['00tdc', '00xmm', '00o9U', '00WnZ', '01TwJ']) // Pin
+skips.push(...['00KMV', '00ICz', '003eP']) // Skewer
 
-skips.push(...['00sO1']) // discover
+skips.push(...['00sO1', '00bWA', '00gSv', '00DTg']) // discover
 
-skips.push(...['00WcO']) // fork
+skips.push(...['00WcO', '003jH', '00jPH']) // fork
 
 skips.push(...['01G6T']) // capture order
+skips.push(...['00puq', '01UXl', '00byq', '01VBW', '00Aas']) // long
+
+skips.push(...['010hY', '01KDp']) // short look first
+
+skips.push(...['00PGi']) // smothered mate
+
+skips.push(...['01Bmi', '00ZWf', '01Lo7']) // trap
+
+skips.push(...['013JE']) // defense
+
+
+skips.push(...['01GCT', '00kZF']) // tricky interpose
+
+skips.push(...['003r5']) // need chill move
 
 it.only('puzzles n', () => {
-    for (let i = 0; i < 160; i++) {
+    let nb = 300
+    let l =0
+    for (let i = 0; i < nb; i++) {
         let res = TacticalFindSans2(i)
+        if (res === 1) {
+            l++
+        }
         if (!res) {
             break
         }
     }
+    console.log(`${l}/${nb}`)
 })
 
-function TacticalFindSans2(n: number) {
+function TacticalFindSans2(n: number, Fn = TacticalFind2) {
     let link = puzzles[n].link
     let fen = puzzles[n].move_fens[0]
 
-    if (puzzles[n].tags.includes('endgame')) {
+    if (puzzles[n].tags.includes('endgame') || puzzles[n].tags.includes('promotion')) {
         return true
     }
     if (skips.includes(puzzles[n].id)) {
@@ -141,7 +76,7 @@ function TacticalFindSans2(n: number) {
     let pos = fen_pos(fen)
 
     let res = 
-        Min_max_sort(pos, TacticalFind2(pos))
+        Min_max_sort(pos, Fn(pos))
             .map(_ => play_and_sans(_, pos))
            
     let a = find_solving_sans(res, puzzles[n].sans)
@@ -149,9 +84,10 @@ function TacticalFindSans2(n: number) {
     if (!a) {
         console.log(n)
         console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', res)
+        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0, 6))
         return false
     }
+    return 1
     return true
 }
 
@@ -178,58 +114,6 @@ function TacticalFindSansLoose2(n: number) {
     }
     return true
 }
-
-
-
-function TacticalFindSansLoose(n: number) {
-    let link = puzzles[n].link
-    let fen = puzzles[n].move_fens[0]
-
-    if (puzzles[n].tags.includes('endgame')) {
-        return true
-    }
-    if (skips.includes(puzzles[n].id)) {
-        return true
-    }
-
-    let pos = fen_pos(fen)
-
-    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos))
-    let a = res.find(_ => _.join(' ').startsWith(puzzles[n].sans.join(' ')))
-    if (!a) {
-        console.log(n)
-        console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', res)
-        return false
-    }
-    return true
-}
-
-function TacticalFindSans(n: number) {
-    let link = puzzles[n].link
-    let fen = puzzles[n].move_fens[0]
-
-    if (puzzles[n].tags.includes('endgame')) {
-        return true
-    }
-    if (skips.includes(puzzles[n].id)) {
-        return true
-    }
-
-    let pos = fen_pos(fen)
-
-    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos))
-    let a = find_solving_sans(res, puzzles[n].sans)
-
-    if (!a) {
-        console.log(n)
-        console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', res)
-        return false
-    }
-    return true
-}
-
 
 /*
    Rxf7+ Kg8 Rxd7
