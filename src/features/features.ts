@@ -19,6 +19,90 @@
 'First Move'
 'queen Gobbles rook'
 
+
+/**
+ * 
+ * 
+ */
+
+
+'Check Captures Pins Sacrifice Gobbles'
+'Sacrifice Sacrifice Captures'
+'Gobbles Exchange'
+'Sacrifice Captures Check'
+'Pins Any Gobbles'
+'Gobbles'
+'Exchange Gobbles'
+'Gobbles' // 'Gobbles Exchange' 'Gobbles Exchange'
+'Check Only Gobbles'// 'Check First Gobbles'
+'Captures Exchange'
+'Captures Forks Captures'
+'Exchange Gobbles'
+'Exchange Gobbles'
+'Captures Exchange'
+
+'Sacrifice Gobbles Forks FirstMove Gobbles'
+'Check OnlyMove Exchange Gobbles'
+'Gobbles Gobbles Gobbles'
+
+'Gobbels' // 'Gobbles Gobbles' 'Gobbles Gobbles'
+
+'Captures Captures Gobbles'
+'Captures Gobbles Gobbles'
+'Forks Sacrifice Gobbles'
+
+'Forks KingRuns Gobbles' // 'Forks AllMoves Gobbles'
+
+'Check Exchange Gobbles Traps FirstMove Gobbles'
+
+'Check BlocksCheck Gobbles OnlyMove MateIn1'
+'Check KingRuns Check OnlyMove MateIn1'
+'Check BlocksCheck Gobbles OnlyMove MateIn1'
+'Check All MateIn1'
+'Gobbles FirstMove MateIn1'
+'Check Gobbles Check OnlyMove MateIn1'
+'Check OnlyMove MateIn1'
+'MateIn1'
+
+
+
+'Check Captures Sacrifice Gobbles Exchange Pins Forks'
+'Any Only FirstMove KingRuns BlocksCheck MateIn1'
+
+/**  */
+
+'Check Captures Gobbles Exchange Sacrifice'
+'Pins Forks'
+'KingRuns BlocksCheck'
+'Any Only FirstMove'
+'MateIn1'
+
+'Forks KingRuns Gobbles' // Ne2+ Kh1 Nxd4       -Q
+'Exchange Gobbles'     // 'Nxd5 Qxd5+' Rxd5     -Nn -Q
+'Exchange'             // 'Nxd5 cxd5'           -Nn
+'Captures'             //  Nxd5                 -N
+'Captures Captures Captures' // Nxd5 Qxd5+ Rxd5
+
+'Exchange Forks KingRuns Gobbles Captures'
+'Sacrifice Check'
+'Pins'
+'BlocksCheck'
+'MateIn1'
+'All Only FirstMove'
+
+
+
+'Exchange Forks KingRuns Gobbles Captures'
+
+
+'Exchange axA Bxa'
+'Forks a+AB'
+'KingRuns'
+'Gobbles axB a<B'
+'Captures axB'
+
+'Captures KingRuns Forks'
+
 import { attacks } from "../attacks"
 import { Position } from "../chess"
 import { fen_pos, pos_moves } from "../hopefox"
@@ -28,6 +112,105 @@ import { makeSan } from "../san"
 import { Move, Role } from "../types"
 import { opposite } from "../util"
 import { onlyMove } from "./soup_snakes"
+
+const Blocks = Either([
+    BlocksCheck('bishop'),
+    BlocksCheck('rook')
+])
+
+
+
+const Checks = Either([
+    Check('queen'),
+    Check('rook')
+])
+
+const CapturesComb = Either([
+    Captures('knight', 'queen'),
+    Captures('knight', 'knight'),
+    Captures('knight', 'rook'),
+    Captures('knight', 'bishop'),
+    Captures('bishop', 'queen'),
+    Captures('bishop', 'knight'),
+    Captures('bishop', 'rook'),
+    Captures('bishop', 'bishop'),
+    Captures('rook', 'queen'),
+    Captures('rook', 'rook'),
+    Captures('rook', 'bishop'),
+    Captures('rook', 'knight'),
+    Captures('queen', 'rook'),
+    Captures('queen', 'queen'),
+    Captures('queen', 'bishop'),
+    Captures('queen', 'knight'),
+
+    Captures('pawn', 'bishop'),
+    Captures('pawn', 'knight'),
+    Captures('pawn', 'queen'),
+
+    Captures('king', 'knight'),
+])
+
+const ForksComb = Either([
+    Forks('knight', 'king', 'queen'),
+    Forks('knight', 'king', 'rook'),
+    Forks('queen', 'king', 'queen'),
+    Forks('queen', 'king', 'bishop'),
+    Forks('queen', 'king', 'rook'),
+    Forks('rook', 'king', 'bishop'),
+])
+
+const MateIn1s = Either([
+    MateIn1('rook'),
+    MateIn1('queen'),
+])
+
+
+export const ChecksKingRunsForks = Combination([Checks, KingRuns, ForksComb], 3)
+export const CapturesKingRunsForks = Combination([CapturesComb, KingRuns, ForksComb], 3)
+export const CapturesCapturesMate = Combination([CapturesComb, MateIn1s], 3)
+export const ChecksCapturesMate = Combination([Checks, Blocks, CapturesComb, MateIn1s], 3)
+export const ChecksCapturesMateLong = Combination([Checks, Blocks, CapturesComb, MateIn1s], 5)
+
+export const ChecksCheckMate = Bind([Checks, Combination([Checks, CapturesComb, KingRuns], 3), MateIn1s])
+
+//export const CapturesCapturesCaptures = Combination([CapturesComb], 3)
+
+export const TacticalFind2 = Either([
+    MateIn1s,
+    CapturesKingRunsForks,
+    CapturesCapturesMate,
+    ChecksCapturesMate,
+    ChecksCapturesMateLong,
+    ChecksKingRunsForks,
+    ChecksCheckMate
+])
+
+
+function Combination(ss: PosMove[], n: number) {
+    let res = combs(ss, n)
+    return Either(res.map(_ => Bind(_)))
+}
+
+function combs<T>(a: T[], n: number): T[][] {
+  let result: T[][] = [[]];
+  
+  for (let i = 0; i < n; i++) {
+    const newResult: T[][] = [];
+    for (const combo of result) {
+      for (const item of a) {
+        newResult.push([...combo, item]);
+      }
+    }
+    result = newResult;
+  }
+  
+  return result;
+}
+
+//console.log(combs([1,2], 3))
+
+
+/*** Manual */
 
 export const Liquidation = Bind([
     Check('queen'),
@@ -315,7 +498,7 @@ export const TacticalFind = Either([
     RookMate,
     ExchangeAndGobble,
     ExchangeAndGobble2,
-    Adventure2,
+    //Adventure2,
     Liquidation,
     Skewer,
     ExchangeAndWin,

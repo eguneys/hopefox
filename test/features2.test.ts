@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, PinAndWin, play_and_sans, RookMate, TacticalFind } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, PinAndWin, play_and_sans, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -85,33 +85,98 @@ it.skip('puzzles 12', () => {
 })
 
 
-it.skip('puzzles 80', () => {
-    let link = puzzles[80].link
-    let fen = puzzles[80].move_fens[0]
+it('puzzles 56', () => {
+    let link = puzzles[56].link
+    let fen = puzzles[56].move_fens[0]
 
     let pos = fen_pos(fen)
 
-    let res = PinAndWin(pos).map(_ => play_and_sans(_, pos).join(' '))
+    let res = ChecksCapturesMateLong(pos).map(_ => play_and_sans(_, pos).join(' '))
     console.log(link)
     console.log(res)
 })
+
+it('puzzles 38', () => {
+
+    let res = TacticalFindSans2(38)
+    console.log(res)
+})
+
 
 
 
 let skips = ['00MWz', '00Rlv', '008tL', '01Cds', '01TeF', '00Aae', '00QCD']
 skips.push('00k6k') // And
 skips.push('00rzv') // Mating
-it.only('puzzles n', () => {
 
+skips.push(...['00tdc', '00xmm']) // Pin
+skips.push(...['00KMV']) // Skewer
+
+it.only('puzzles n', () => {
     for (let i = 0; i < 160; i++) {
-        let res = TacticalFindSans(i)
+        let res = TacticalFindSansLoose2(i)
         if (!res) {
             break
         }
     }
 })
 
-function TacticalFindSans(n: number) {
+
+function TacticalFindSans2(n: number) {
+    let link = puzzles[n].link
+    let fen = puzzles[n].move_fens[0]
+
+    if (puzzles[n].tags.includes('endgame')) {
+        return true
+    }
+    if (skips.includes(puzzles[n].id)) {
+        return true
+    }
+
+    let pos = fen_pos(fen)
+
+    let res = CapturesKingRunsForks(pos).map(_ => play_and_sans(_, pos))
+    //res = res.slice(0, 1)
+    //let a = res.find(_ => _.join(' ').startsWith(puzzles[n].sans.join(' ')))
+
+    let a = find_solving_sans(res, puzzles[n].sans)
+
+    if (!a) {
+        console.log(n)
+        console.log(link)
+        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0, 10))
+        return false
+    }
+    return true
+}
+
+function TacticalFindSansLoose2(n: number) {
+    let link = puzzles[n].link
+    let fen = puzzles[n].move_fens[0]
+
+    if (puzzles[n].tags.includes('endgame')) {
+        return true
+    }
+    if (skips.includes(puzzles[n].id)) {
+        return true
+    }
+
+    let pos = fen_pos(fen)
+
+    let res = TacticalFind2(pos).map(_ => play_and_sans(_, pos))
+    let a = res.find(_ => _.join(' ').startsWith(puzzles[n].sans.join(' ')))
+    if (!a) {
+        console.log(n)
+        console.log(link)
+        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0, 3))
+        return false
+    }
+    return true
+}
+
+
+
+function TacticalFindSansLoose(n: number) {
     let link = puzzles[n].link
     let fen = puzzles[n].move_fens[0]
 
@@ -132,5 +197,61 @@ function TacticalFindSans(n: number) {
         console.log(puzzles[n].sans, '\nexpected but found\n', res)
         return false
     }
+    return true
+}
+
+function TacticalFindSans(n: number) {
+    let link = puzzles[n].link
+    let fen = puzzles[n].move_fens[0]
+
+    if (puzzles[n].tags.includes('endgame')) {
+        return true
+    }
+    if (skips.includes(puzzles[n].id)) {
+        return true
+    }
+
+    let pos = fen_pos(fen)
+
+    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos))
+    let a = find_solving_sans(res, puzzles[n].sans)
+
+    if (!a) {
+        console.log(n)
+        console.log(link)
+        console.log(puzzles[n].sans, '\nexpected but found\n', res)
+        return false
+    }
+    return true
+}
+
+
+/*
+   Rxf7+ Kg8 Rxd7
+   Rxf7 + Ke8 Rxd7
+   Rf2 Nexf2 Qh8
+*/
+const find_solving_sans = (a: SAN[][], b: SAN[]) => {
+    if (a[0].length < b.length) {
+        return false
+    }
+    if (b.length === 0) {
+        return true
+    }
+    let head = a[0][0]
+
+    if (head !== b[0]) {
+        return false
+    }
+
+    a = a.filter(_ => _[0] === head)
+
+    a = a.filter(_ => _[1] === b[1])
+
+
+    if (!find_solving_sans(a.map(_ => _.slice(2)), b.slice(2))) {
+        return false
+    }
+
     return true
 }
