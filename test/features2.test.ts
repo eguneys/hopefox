@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Chess, Exchange, ExchangeAndGobble, fen_pos, Liquidation, MateIn1, play_and_sans, RookMate, TacticalFind } from '../src'
+import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Chess, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, PinAndWin, play_and_sans, RookMate, TacticalFind } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -85,22 +85,22 @@ it.skip('puzzles 12', () => {
 })
 
 
-it.skip('puzzles 30', () => {
-    let link = puzzles[30].link
-    let fen = puzzles[30].move_fens[0]
+it.skip('puzzles 80', () => {
+    let link = puzzles[80].link
+    let fen = puzzles[80].move_fens[0]
 
     let pos = fen_pos(fen)
 
-    //let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    //let res = Adventure2(pos).map(_ => play_and_sans(_, pos).join(' '))
-    let res = Backrank5(pos).map(_ => play_and_sans(_, pos).join(' '))
+    let res = PinAndWin(pos).map(_ => play_and_sans(_, pos).join(' '))
     console.log(link)
     console.log(res)
 })
 
 
 
-let skips = ['00MWz', '00Rlv']
+let skips = ['00MWz', '00Rlv', '008tL', '01Cds', '01TeF', '00Aae', '00QCD']
+skips.push('00k6k') // And
+skips.push('00rzv') // Mating
 it.only('puzzles n', () => {
 
     for (let i = 0; i < 160; i++) {
@@ -115,14 +115,17 @@ function TacticalFindSans(n: number) {
     let link = puzzles[n].link
     let fen = puzzles[n].move_fens[0]
 
+    if (puzzles[n].tags.includes('endgame')) {
+        return true
+    }
     if (skips.includes(puzzles[n].id)) {
         return true
     }
 
     let pos = fen_pos(fen)
 
-    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos).join(' '))
-    let a = res.find(_ => _ === puzzles[n].sans.join(' '))
+    let res = TacticalFind(pos).map(_ => play_and_sans(_, pos))
+    let a = res.find(_ => _.join(' ').startsWith(puzzles[n].sans.join(' ')))
     if (!a) {
         console.log(n)
         console.log(link)

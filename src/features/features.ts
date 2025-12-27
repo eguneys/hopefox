@@ -44,7 +44,10 @@ export const Adventure2 = Either([
     Forks('knight', 'king', 'bishop'),
     Forks('bishop', 'king', 'rook'),
     Forks('rook', 'king', 'knight'),
-    Forks('queen', 'king', 'bishop')
+    Forks('rook', 'king', 'bishop'),
+    Forks('rook', 'king', 'queen'),
+    Forks('queen', 'king', 'bishop'),
+    Forks('queen', 'king', 'rook'),
 ])
 
 export const AdventureAndFinish = Bind([
@@ -58,15 +61,53 @@ export const AdventureAndFinish = Bind([
         Gobbles('knight', 'rook'),
         Gobbles('knight', 'bishop'),
         Gobbles('bishop', 'rook'),
+        Gobbles('rook', 'queen'),
         Gobbles('rook', 'knight'),
+        Gobbles('rook', 'bishop'),
         Gobbles('queen', 'bishop'),
+        Gobbles('queen', 'rook'),
     ])
 ])
 
+
+export const ForksNewWay = Bind([
+    Forks('knight', 'king', 'rook'),
+    Sacrifice('queen'),
+    Gobbles('queen', 'queen')
+])
+
+export const CaptureDefenderWithCheck = Bind([
+    Captures('bishop', 'knight'),
+    Gobbles('pawn', 'bishop'),
+    Gobbles('queen', 'queen')
+])
+
+export const CaptureDefender2 = Bind([
+    Captures('knight', 'bishop'),
+    Captures('pawn', 'knight'),
+    Gobbles('queen', 'knight')
+])
+
+
+
 export const UnpinGobble = Bind([
     Gobbles('knight', 'knight'),
-    Gobbles('bishop', 'queen'),
-    Gobbles('knight', 'queen')
+    Either([
+        Bind([
+            Gobbles('bishop', 'queen'),
+            Gobbles('knight', 'queen')
+        ]),
+        Bind([
+            Gobbles('bishop', 'knight'),
+            Gobbles('queen', 'bishop')
+        ])
+    ])
+])
+
+export const GobbleGobble = Bind([
+    Gobbles('knight', 'rook'),
+    Gobbles('bishop', 'rook'),
+    Gobbles('pawn', 'bishop')
 ])
 
 export const Backrank1 = Bind([
@@ -124,6 +165,30 @@ export const Backrank6 = Bind([
 ])
 
 
+export const BackrankF7 = Bind([
+    Check('queen'),
+    KingRuns,
+    Check('queen'),
+    OnlyMove,
+    MateIn1('rook')
+])
+
+export const BackrankBlocks = Bind([
+    Check('rook'),
+    BlocksCheck('bishop'),
+    Gobbles('rook', 'bishop'),
+    OnlyMove,
+    MateIn1('rook')
+])
+
+export const BackrankLiquidation = Bind([
+    Sacrifice('queen'),
+    Gobbles('knight', 'queen'),
+    Check('rook'),
+    BlocksCheck('queen'),
+    Gobbles('rook', 'queen')
+])
+
 
 export const Backranks = Either([
     Backrank1,
@@ -131,7 +196,15 @@ export const Backranks = Either([
     Backrank3,
     Backrank4,
     Backrank5,
-    Backrank6
+    Backrank6,
+    BackrankF7,
+    BackrankBlocks,
+    BackrankLiquidation,
+])
+
+export const GobbleExchange = Bind([
+    Captures('bishop', 'rook'),
+    Exchange('queen')
 ])
 
 
@@ -145,6 +218,7 @@ export const ExchangeAndGobble = Bind([
     Either([
         Gobbles('rook', 'rook'),
         Gobbles('rook', 'bishop'),
+        Gobbles('knight', 'queen'),
     ])
 ])
 
@@ -160,10 +234,17 @@ export const GobbleAndExchange2 = Bind([
 ])
 
 
-export const Skewer = Bind([
-    Check('rook'),
-    FirstMove,
-    Gobbles('rook', 'rook')
+export const Skewer = Either([
+    Bind([
+        Check('queen'),
+        OnlyMove,
+        Gobbles('queen', 'rook')
+    ]),
+    Bind([
+        Check('rook'),
+        FirstMove,
+        Gobbles('rook', 'rook')
+    ])
 ])
 
 export const ExchangeAndWin = Bind([
@@ -172,10 +253,61 @@ export const ExchangeAndWin = Bind([
 ])
 
 export const GobblesSome = Either([
-    Gobbles('knight', 'bishop')
+    Gobbles('knight', 'bishop'),
+    Bind([
+        Either([
+            Gobbles('rook', 'bishop'),
+            Gobbles('rook', 'knight'),
+            Gobbles('rook', 'rook'),
+        ]),
+        Exchange('rook')
+    ]),
+    Bind([
+        Gobbles('bishop', 'knight'),
+        Exchange('bishop')
+    ]),
+])
+
+export const GobblesMoreWithExchange = Bind([
+    Exchange('knight'),
+    Gobbles('queen', 'knight')
+])
+
+export const GobblesAll = Either([
+    Gobbles('queen', 'rook')
+])
+
+export const PinAndWin = Bind([
+    Pins('bishop', 'queen', 'king'),
+    AnyAllMoves,
+    Gobbles('bishop', 'queen')
 ])
 
 
+export const SomeSacRook = Bind([
+    Sacrifice('rook'),
+    Captures('knight', 'rook'),
+    Check('rook')
+])
+
+export const KingGobbles = Bind([
+    Gobbles('king', 'knight'),
+    Exchange('bishop')
+])
+
+export const Gobble3 = Bind([
+    Sacrifice('rook'),
+    Sacrifice('queen'),
+    Captures('rook', 'queen')
+])
+
+export const GobbleAndSkewer = Bind([
+    Check('pawn'),
+    Captures('queen', 'pawn'),
+    Pins('bishop', 'queen', 'king'),
+    Sacrifice('queen'),
+    Gobbles('pawn', 'queen')
+])
 
 export const TacticalFind = Either([
     Backranks,
@@ -190,8 +322,20 @@ export const TacticalFind = Either([
     GobbleAndExchange,
     GobbleAndExchange2,
     GobblesSome,
+    GobblesAll,
     UnpinGobble,
-    AdventureAndFinish
+    AdventureAndFinish,
+    GobbleGobble,
+    ForksNewWay,
+    CaptureDefenderWithCheck,
+    PinAndWin,
+    SomeSacRook,
+    KingGobbles,
+    CaptureDefender2,
+    GobbleExchange,
+    Gobble3,
+    GobbleAndSkewer,
+    GobblesMoreWithExchange
 ])
 
 function Either(ss: PosMove[]) {
@@ -302,6 +446,11 @@ function AllMoves(pos: Position) {
     return m.slice(0, 10).map(_ => [_])
 }
 
+function AnyAllMoves(pos: Position) {
+    let m = pos_moves(pos)
+    return m.map(_ => [_])
+}
+
 function Hanging(a: Role) {
     return (pos: Position) => {
         let res = []
@@ -317,6 +466,49 @@ function Hanging(a: Role) {
         return res
     }
 }
+
+
+function Pins(a: Role, b: Role, c: Role) {
+    return (pos: Position) => {
+
+        let res: Move[][] = []
+        let mm = pos_moves(pos)
+
+        let king = pos.board.kingOf(opposite(pos.turn))!
+
+        for (let sq of pos.board[pos.turn]) {
+
+            let piece = pos.board.get(sq)!
+            let aaX = attacks(piece, sq, pos.board.occupied)
+
+            for (let a of aaX) {
+                let aa = attacks(piece, a, pos.board.occupied.without(sq))
+                for (let sq2 of pos.board[opposite(pos.turn)]) {
+
+                if (!aa.has(sq2)) {
+                    continue
+                }
+
+                let aa2 = attacks(piece, a, pos.board.occupied.without(sq2))
+
+                if (!aa2.has(king)) {
+                    continue
+                }
+
+                for (let m of mm) {
+                    if (sq === m.from && a === m.to) {
+                        res.push([m])
+                    }
+                }
+
+            }
+            }
+
+        }
+        return res
+    }
+}
+
 
 
 function BlocksCheck(a: Role) {
@@ -502,7 +694,7 @@ function Sacrifice(a: Role) {
             let mm2 = pos_moves(p2)
 
             for (let move2 of mm2) {
-                if (move2.to !== move.from) {
+                if (move2.to !== move.to) {
                     continue
                 }
 
