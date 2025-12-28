@@ -18,27 +18,38 @@ import { opposite } from "../util";
 
 export type Position = CPos
 
-export type Ray = SquareSet
+export type Ray = {
+    from: Square
+    to: Square
+    ray: SquareSet
+}
 
 export type AttackRays = {
-    from: Square
     rays: Ray[]
     all: SquareSet
 }
 
-export type HitRay = {
+export type PinRay = {
     from: Square
-    ray: Ray
+    to: Square
+    pinned: Square
+    ray: SquareSet
 }
 
 export type Features = {
+    turn_king: Square
+    opposite_king: Square
     open: Ray[]
     turn_attacks: AttackRays[]
     opposite_attacks: AttackRays[]
-    turn_hits: HitRay[]
-    opposite_hits: HitRay[]
-    turn_defends: HitRay[]
-    opposite_defends: HitRay[]
+    turn_hits: Ray[]
+    opposite_hits: Ray[]
+    turn_defends: Ray[]
+    opposite_defends: Ray[]
+    turn_hit_pins: PinRay[]
+    opposite_hit_pins: PinRay[]
+    turn_defend_pins: PinRay[]
+    opposite_defend_pins: PinRay[]
 }
 
 
@@ -53,26 +64,18 @@ export type PositionWithFeatures = {
     after_features: Features
 }
 
-
-
-function find_features(pos: Position): Features {
-
-    let open = open_rays(pos.board.occupied)
-    let turn_attacks = attack_rays(pos, pos.turn)
-    let opposite_attacks = attack_rays(pos, opposite(pos.turn))
-    let { hits: turn_hits, defends: turn_defends } = hits_and_defends(pos, pos.turn)
-    let { hits: opposite_hits, defends: opposite_defends } = hits_and_defends(pos, opposite(pos.turn))
-
-    return {
-        open,
-        turn_attacks,
-        opposite_attacks,
-        turn_hits,
-        turn_defends,
-        opposite_hits,
-        opposite_defends
-    }
+export type MoreFeatures = {
+    check?: Check
+    blocks: Ray[]
 }
+
+type Check = {
+    from: Square
+    to: Square
+    ray: SquareSet
+    to_threaten: Square
+}
+
 
 function apply_move_context(pos: Position, moves: MoveContext) {
 
@@ -85,27 +88,152 @@ function apply_move_context(pos: Position, moves: MoveContext) {
     return p2
 }
 
-function hits_and_defends(pos: Position, color: Color) {
-    let hits: HitRay[] = []
-    let defends: HitRay[] = []
+
+function more_features(f: Features): MoreFeatures {
+    let checks = find_Checks(f)
+
+    return {
+        check: checks[0],
+        blocks: find_Blocks(f, checks[0])
+    }
+}
+
+
+function find_Blocks(f: Features, check?: Check) {
+    if (check === undefined) {
+        return []
+    }
+
+    let blocks: Ray[] = []
+    for (let attack of f.turn_attacks) {
+        for (let a of attack.rays) {
+            if (check.ray.has(a.to)) {
+                blocks.push(a)
+            }
+        }
+    }
+
+    return blocks
+}
+
+function find_Checks(f: Features) {
+    let res: Check[] = []
+    let king = f.opposite_king
+    for (let open of f.open) {
+        if (open.from === king || open.to === king) {
+            for (let attack of f.turn_attacks) {
+                for (let attack_ray of attack.rays) {
+                    if (attack_ray.ray.intersect(open.ray)) {
+                        res.push({
+                            from: attack_ray.from,
+                            to: attack_ray.to,
+                            ray: attack_ray.ray,
+                            to_threaten: king
+                        })
+
+                    }
+                }
+            }
+        }
+    }
+    return res
+}
+
+function find_features(pos: Position): Features {
+
+    let open = open_rays(pos.board.occupied)
+    let turn_attacks = attack_rays(pos, pos.turn)
+    let opposite_attacks = attack_rays(pos, opposite(pos.turn))
+    let { hits: turn_hits, defends: turn_defends } = hits_and_defends(pos, pos.turn)
+    let { hits: opposite_hits, defends: opposite_defends } = hits_and_defends(pos, opposite(pos.turn))
+    let { hits: turn_hit_pins, defends: turn_defend_pins } = hits_and_defends_with_pins(pos, pos.turn)
+    let { hits: opposite_hit_pins, defends: opposite_defend_pins } = hits_and_defends_with_pins(pos, opposite(pos.turn))
+
+    let turn_king = pos.board.kingOf(pos.turn)!
+    let opposite_king = pos.board.kingOf(opposite(pos.turn))!
+
+    return {
+        turn_king,
+        opposite_king,
+        open,
+        turn_attacks,
+        opposite_attacks,
+        turn_hits,
+        turn_defends,
+        opposite_hits,
+        opposite_defends,
+        turn_hit_pins,
+        turn_defend_pins,
+        opposite_hit_pins,
+        opposite_defend_pins
+    }
+}
+
+
+
+function hits_and_defends_with_pins(pos: Position, color: Color) {
+    let hits: PinRay[] = []
+    let defends: PinRay[] = []
 
     for (let from of SquareSet.full()) {
         let piece = pos.board.get(from)
         if (piece && piece.color === color) {
             let aa = attacks(piece, from, pos.board.occupied)
 
-            let x = aa.intersect(pos.board.occupied).singleSquare()
+            let pinned = aa.intersect(pos.board.occupied).singleSquare()
 
-            if (x !== undefined) {
-                if (pos.board.get(x)!.color === color) {
+            if (pinned === undefined) {
+                continue
+            }
+
+            let to = aa.intersect(pos.board.occupied.without(pinned)).singleSquare()
+
+            if (to !== undefined) {
+                if (pos.board.get(to)!.color === color) {
                     defends.push({
                         from,
-                        ray: aa
+                        to,
+                        pinned,
+                        ray: ray(from, to)
                     })
                 } else {
                     hits.push({
                         from,
-                        ray: aa
+                        to,
+                        pinned,
+                        ray: ray(from, to)
+                    })
+                }
+            }
+        }
+    }
+    return { hits, defends }
+
+}
+
+function hits_and_defends(pos: Position, color: Color) {
+    let hits: Ray[] = []
+    let defends: Ray[] = []
+
+    for (let from of SquareSet.full()) {
+        let piece = pos.board.get(from)
+        if (piece && piece.color === color) {
+            let aa = attacks(piece, from, pos.board.occupied)
+
+            let to = aa.intersect(pos.board.occupied).singleSquare()
+
+            if (to !== undefined) {
+                if (pos.board.get(to)!.color === color) {
+                    defends.push({
+                        from,
+                        to,
+                        ray: ray(from, to)
+                    })
+                } else {
+                    hits.push({
+                        from,
+                        to,
+                        ray: ray(from, to)
                     })
                 }
             }
@@ -126,12 +254,11 @@ function attack_rays(pos: Position, color: Color) {
 
             let aa = attacks(piece, from, pos.board.occupied)
 
-            for (let a of aa) {
-                rays.push(ray(from, a))
+            for (let to of aa) {
+                rays.push({ from, to, ray: ray(from, to) })
             }
 
             res.push({
-                from,
                 rays,
                 all: aa
             })
@@ -150,7 +277,7 @@ function open_rays(occupied: SquareSet) {
             }
 
             if (a.intersect(occupied.without(from).without(to)).isEmpty()) {
-                res.push(a)
+                res.push({ from, to, ray: ray(from, to) })
             }
         }
     }
