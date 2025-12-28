@@ -1,22 +1,52 @@
 import { it } from 'vitest'
-import { Adventure, Adventure2, Backrank1, Backrank2, Backrank3, Backrank5, Backranks, Bind, CaptureForkCapture, CapturesComb, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Either, Exchange, ExchangeAndGobble, fen_pos, ForksNewWay, Liquidation, MateIn1, Move, opposite, PinAndWin, play_and_sans, Position, RookMate, SAN, TacticalFind, TacticalFind2 } from '../src'
+import { Bind, CaptureForkCapture, CapturesComb, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Either, Exchange, fen_pos, MateIn1, Move, opposite, play_and_sans, Position, SAN, TacticalFind2 } from '../src'
 import { puzzles } from './fixture'
 
-it.only('puzzles 223', () => {
+it.only('puzzles 117', () => {
 
-    let res = TacticalFindSans2(223,
-        false,
-        Either([
-            CapturesKingRunsForks,
-            CaptureForkCapture
-        ])
+    let res = TacticalFindSans2(117,
+        true,
 
+        TacticalFind2
 
     )
     console.log(res)
 })
 
 
+
+it.only('skipped puzzles n', () => {
+    let nb = 300
+    let l =0
+    for (let i = 0; i < nb; i++) {
+        let res = TacticalFindSans2(i, true)
+        if (res === 1) {
+            l++
+        }
+        if (!res) {
+            break
+        }
+    }
+    console.log(`${l}/${nb}`)
+})
+
+
+
+
+it.skip('puzzles n', () => {
+    let nb = 300
+    let l =0
+    for (let i = 0; i < nb; i++) {
+        let res = TacticalFindSans2(i)
+        if (res === 1) {
+            l++
+        }
+        if (!res) {
+            break
+        }
+    }
+    console.log(`${l}/${nb}`)
+})
 
 
 let skips = ['013ze'] // matein1
@@ -48,41 +78,7 @@ skips.push(...['01GCT', '00kZF']) // tricky interpose
 
 skips.push(...['003r5']) // need chill move
 
-it.skip('puzzles n', () => {
-    let nb = 300
-    let l =0
-    for (let i = 0; i < nb; i++) {
-        let res = TacticalFindSans2(i)
-        if (res === 1) {
-            l++
-        }
-        if (!res) {
-            break
-        }
-    }
-    console.log(`${l}/${nb}`)
-})
-
-
-
-it.only('skipped puzzles n', () => {
-    let nb = 300
-    let l =0
-    for (let i = 0; i < nb; i++) {
-        let res = TacticalFindSans2(i, true)
-        if (res === 1) {
-            l++
-        }
-        if (!res) {
-            break
-        }
-    }
-    console.log(`${l}/${nb}`)
-})
-
-
-
-function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFind2) {
+export function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFind2) {
     let link = puzzles[n].link
     let fen = puzzles[n].move_fens[0]
 
@@ -105,7 +101,7 @@ function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFind2) {
     if (!a) {
         console.log(n)
         console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0, 6))
+        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(2100))
         return false
     }
     return 1
@@ -143,9 +139,6 @@ function TacticalFindSansLoose2(n: number) {
 */
 const find_solving_sans = (a: SAN[][], b: SAN[]) => {
     if (a.length === 0) {
-        return false
-    }
-    if (a[0].length < b.length) {
         return false
     }
     if (b.length === 0) {

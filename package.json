@@ -6,7 +6,6 @@
   "module": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    
     "test": "vitest --hideSkippedTests --exclude=\"*/old\"",
     "bench": "vitest bench",
     "build": "rm -rf dist && tsc"

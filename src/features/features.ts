@@ -166,6 +166,10 @@ const ForksComb = Either([
     Forks('rook', 'king', 'bishop'),
 ])
 
+const PinsComb = Either([
+    Pins('bishop', 'king', 'queen')
+])
+
 const MateIn1s = Either([
     MateIn1('rook'),
     MateIn1('queen'),
@@ -184,17 +188,23 @@ export const TacticalFind2 = Either([
     Bind([Checks, Blocks, CapturesComb, Blocks, MateIn1s]),
     Bind([Combination([Checks, Blocks, CapturesComb], 2), MateIn1s]),
     Bind([Checks, KingRuns, Checks, CapturesComb, MateIn1s]),
+
     Bind([Checks, CapturesComb]),
     Bind([Checks, CapturesComb, CapturesComb]),
-    Bind([CapturesComb, CapturesComb]),
-    Bind([CapturesComb, CapturesComb, CapturesComb]),
-    Bind([CapturesComb, CapturesComb, CapturesComb, CapturesComb]),
+    Bind([CapturesComb, CapturesComb, CapturesComb, Blocks, CapturesComb]),
+    Combination([CapturesComb], 1),
+    Combination([CapturesComb], 2),
+    Combination([CapturesComb], 3),
+    Combination([CapturesComb], 4),
+
     Bind([Checks, Blocks, CapturesComb]),
     Bind([Checks, Blocks, CapturesComb, CapturesComb]),
-    CapturesKingRunsForks,
-    CaptureForkCapture,
-    CaptureCaptureCapture,
-    CapturesComb,
+
+    Bind([PinsComb, AnyAllMoves, CapturesComb]),
+    Bind([CapturesComb, CapturesComb, PinsComb, AnyAllMoves, CapturesComb]),
+
+    Bind([ForksComb, KingRuns, CapturesComb]),
+    Bind([CapturesComb, ForksComb, CapturesComb]),
 ])
 
 
@@ -218,320 +228,6 @@ function combs<T>(a: T[], n: number): T[][] {
   
   return result;
 }
-
-//console.log(combs([1,2,3], 3))
-
-
-/*** Manual */
-
-export const Liquidation = Bind([
-    Check('queen'),
-    Exchange('queen'),
-    Gobbles('king', 'rook'),
-    Traps('bishop', 'rook'),
-    FirstMove,
-    Gobbles('bishop', 'rook')
-])
-
-export const Adventure2 = Either([
-    Forks('knight', 'king', 'queen'),
-    Forks('knight', 'king', 'rook'),
-    Forks('knight', 'king', 'bishop'),
-    Forks('bishop', 'king', 'rook'),
-    Forks('rook', 'king', 'knight'),
-    Forks('rook', 'king', 'bishop'),
-    Forks('rook', 'king', 'queen'),
-    Forks('queen', 'king', 'bishop'),
-    Forks('queen', 'king', 'rook'),
-])
-
-export const AdventureAndFinish = Bind([
-    Adventure2,
-    Either([
-        KingRuns,
-        AllMoves,
-    ]),
-    Either([
-        Gobbles('knight', 'queen'),
-        Gobbles('knight', 'rook'),
-        Gobbles('knight', 'bishop'),
-        Gobbles('bishop', 'rook'),
-        Gobbles('rook', 'queen'),
-        Gobbles('rook', 'knight'),
-        Gobbles('rook', 'bishop'),
-        Gobbles('queen', 'bishop'),
-        Gobbles('queen', 'rook'),
-    ])
-])
-
-
-export const ForksNewWay = Bind([
-    Forks('knight', 'king', 'rook'),
-    Sacrifice('queen'),
-    Gobbles('queen', 'queen')
-])
-
-export const CaptureDefenderWithCheck = Bind([
-    Captures('bishop', 'knight'),
-    Gobbles('pawn', 'bishop'),
-    Gobbles('queen', 'queen')
-])
-
-export const CaptureDefender2 = Bind([
-    Captures('knight', 'bishop'),
-    Captures('pawn', 'knight'),
-    Gobbles('queen', 'knight')
-])
-
-
-
-export const UnpinGobble = Bind([
-    Gobbles('knight', 'knight'),
-    Either([
-        Bind([
-            Gobbles('bishop', 'queen'),
-            Gobbles('knight', 'queen')
-        ]),
-        Bind([
-            Gobbles('bishop', 'knight'),
-            Gobbles('queen', 'bishop')
-        ])
-    ])
-])
-
-export const GobbleGobble = Bind([
-    Gobbles('knight', 'rook'),
-    Gobbles('bishop', 'rook'),
-    Gobbles('pawn', 'bishop')
-])
-
-export const Backrank1 = Bind([
-    Check('rook'),
-    OnlyMove,
-    Exchange('rook'),
-    Gobbles('bishop', 'queen')
-])
-
-export const Adventure = Bind([
-    Sacrifice('bishop'),
-    Gobbles('pawn', 'bishop'),
-    Forks('queen', 'king', 'rook'), // Hanging('rook')
-    FirstMove,
-    Gobbles('queen', 'rook'),
-])
-
-export const RookMate = Bind([
-    MateIn1('rook')
-])
-
-export const Backrank2 = Bind([
-    Check('rook'),
-    OnlyMove,
-    MateIn1('rook')
-])
-
-export const Backrank3 = Bind([
-    Check('queen'),
-    Gobbles('bishop', 'queen'),
-    Check('rook'),
-    OnlyMove,
-    MateIn1('rook')
-])
-
-export const Backrank4 = Bind([
-    Gobbles('rook', 'rook'),
-    FirstMove, // Queen block
-    MateIn1('rook')
-])
-
-export const Backrank5 = Bind([
-    Check('queen'),
-    AllMoves,
-    MateIn1('queen')
-])
-
-
-export const Backrank6 = Bind([
-    Check('queen'),
-    BlocksCheck('bishop'),
-    Gobbles('queen', 'bishop'),
-    OnlyMove,
-    MateIn1('queen')
-])
-
-
-export const BackrankF7 = Bind([
-    Check('queen'),
-    KingRuns,
-    Check('queen'),
-    OnlyMove,
-    MateIn1('rook')
-])
-
-export const BackrankBlocks = Bind([
-    Check('rook'),
-    BlocksCheck('bishop'),
-    Gobbles('rook', 'bishop'),
-    OnlyMove,
-    MateIn1('rook')
-])
-
-export const BackrankLiquidation = Bind([
-    Sacrifice('queen'),
-    Gobbles('knight', 'queen'),
-    Check('rook'),
-    BlocksCheck('queen'),
-    Gobbles('rook', 'queen')
-])
-
-
-export const Backranks = Either([
-    Backrank1,
-    Backrank2,
-    Backrank3,
-    Backrank4,
-    Backrank5,
-    Backrank6,
-    BackrankF7,
-    BackrankBlocks,
-    BackrankLiquidation,
-])
-
-export const GobbleExchange = Bind([
-    Captures('bishop', 'rook'),
-    Exchange('queen')
-])
-
-
-export const ExchangeAndGobble2 = Bind([
-    Exchange('queen'),
-    Gobbles('rook', 'rook'),
-])
-
-export const ExchangeAndGobble = Bind([
-    Exchange('rook'),
-    Either([
-        Gobbles('rook', 'rook'),
-        Gobbles('rook', 'bishop'),
-        Gobbles('knight', 'queen'),
-    ])
-])
-
-export const GobbleAndExchange = Bind([
-    Captures('queen', 'bishop'),
-    Forks('queen', 'queen', 'king'),
-    Captures('queen', 'queen')
-])
-
-export const GobbleAndExchange2 = Bind([
-    Captures('queen', 'bishop'),
-    Exchange('queen')
-])
-
-
-export const Skewer = Either([
-    Bind([
-        Check('queen'),
-        OnlyMove,
-        Gobbles('queen', 'rook')
-    ]),
-    Bind([
-        Check('rook'),
-        FirstMove,
-        Gobbles('rook', 'rook')
-    ])
-])
-
-export const ExchangeAndWin = Bind([
-    Exchange('knight'),
-    Gobbles('rook', 'queen')
-])
-
-export const GobblesSome = Either([
-    Gobbles('knight', 'bishop'),
-    Bind([
-        Either([
-            Gobbles('rook', 'bishop'),
-            Gobbles('rook', 'knight'),
-            Gobbles('rook', 'rook'),
-        ]),
-        Exchange('rook')
-    ]),
-    Bind([
-        Gobbles('bishop', 'knight'),
-        Exchange('bishop')
-    ]),
-])
-
-export const GobblesMoreWithExchange = Bind([
-    Exchange('knight'),
-    Gobbles('queen', 'knight')
-])
-
-export const GobblesAll = Either([
-    Gobbles('queen', 'rook')
-])
-
-export const PinAndWin = Bind([
-    Pins('bishop', 'queen', 'king'),
-    AnyAllMoves,
-    Gobbles('bishop', 'queen')
-])
-
-
-export const SomeSacRook = Bind([
-    Sacrifice('rook'),
-    Captures('knight', 'rook'),
-    Check('rook')
-])
-
-export const KingGobbles = Bind([
-    Gobbles('king', 'knight'),
-    Exchange('bishop')
-])
-
-export const Gobble3 = Bind([
-    Sacrifice('rook'),
-    Sacrifice('queen'),
-    Captures('rook', 'queen')
-])
-
-export const GobbleAndSkewer = Bind([
-    Check('pawn'),
-    Captures('queen', 'pawn'),
-    Pins('bishop', 'queen', 'king'),
-    Sacrifice('queen'),
-    Gobbles('pawn', 'queen')
-])
-
-export const TacticalFind = Either([
-    Backranks,
-    Adventure,
-    RookMate,
-    ExchangeAndGobble,
-    ExchangeAndGobble2,
-    //Adventure2,
-    Liquidation,
-    Skewer,
-    ExchangeAndWin,
-    GobbleAndExchange,
-    GobbleAndExchange2,
-    GobblesSome,
-    GobblesAll,
-    UnpinGobble,
-    AdventureAndFinish,
-    GobbleGobble,
-    ForksNewWay,
-    CaptureDefenderWithCheck,
-    PinAndWin,
-    SomeSacRook,
-    KingGobbles,
-    CaptureDefender2,
-    GobbleExchange,
-    Gobble3,
-    GobbleAndSkewer,
-    GobblesMoreWithExchange
-])
 
 export function Either(ss: PosMove[]) {
     return (pos: Position) => {
