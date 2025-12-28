@@ -1,13 +1,17 @@
-import { it } from 'vitest'
+import { describe, it } from 'vitest'
 import { Bind, CaptureForkCapture, CapturesComb, CapturesKingRunsForks, ChecksCapturesMateLong, Chess, Either, Exchange, fen_pos, MateIn1, Move, opposite, play_and_sans, Position, SAN, TacticalFind2 } from '../src'
 import { puzzles } from './fixture'
 
-it.only('puzzles 117', () => {
+describe.skip(() => {
+it.only('puzzles 126', () => {
 
-    let res = TacticalFindSans2(117,
+    let res = TacticalFindSans2(126,
         true,
 
-        TacticalFind2
+        Either([
+            Bind([CapturesComb, CapturesComb, CapturesComb]),
+            Bind([CapturesComb, CapturesComb, CapturesComb, CapturesComb]),
+        ])
 
     )
     console.log(res)
@@ -78,7 +82,7 @@ skips.push(...['01GCT', '00kZF']) // tricky interpose
 
 skips.push(...['003r5']) // need chill move
 
-export function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFind2) {
+function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFind2) {
     let link = puzzles[n].link
     let fen = puzzles[n].move_fens[0]
 
@@ -101,7 +105,7 @@ export function TacticalFindSans2(n: number, skips_only = false, Fn = TacticalFi
     if (!a) {
         console.log(n)
         console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(2100))
+        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0))
         return false
     }
     return 1
@@ -226,9 +230,35 @@ function make_node(pos: Position, root: Node[], moves: Move[]) {
 }
 
 
+function print_node(n: Node, depth: number): string {
+    let res = ''
+    let ind = " ".repeat(depth + 1)
+
+    let m = n.data
+
+    res += " " + n.data.from + " <" + ("?") + ">" + "\n"
+
+    let children = n.children.map((c, i) => {
+        if (i === n.children.length - 1) {
+            res += ind + "└─"
+        } else if (i === 0) {
+            res += ind + "├─"
+        } else {
+            res += ind + "│ "
+        }
+        res += print_node(c, depth + 1)
+    }).join('')
+
+    return res
+}
+
+
+
 function Min_max_sort(pos: Position, aa: Move[][]) {
     let root: Node[] = []
     aa.forEach(a => make_node(pos, root, a))
+
+    //console.log(print_node(root[0], 0))
 
     return BestMovesMinMax(pos, root)
 }
@@ -284,3 +314,4 @@ function fill_values_min_max(pos: Position, path: Move[], a: Node, isMaximizing:
         a.value = Math.max(...a.children.map(_ => _.value))
     }
 }
+})

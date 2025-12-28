@@ -175,6 +175,14 @@ const MateIn1s = Either([
     MateIn1('queen'),
 ])
 
+const OffersExchangeComb = Either([
+    OffersExchange('queen')
+])
+
+const EvadeCaptures = Either([
+    EvadeCapture('queen', 'rook')
+])
+
 export const CapturesKingRunsForks = Bind([ForksComb, KingRuns, CapturesComb])
 export const ChecksCapturesMateLong = Combination([Checks, Blocks, CapturesComb, MateIn1s], 5)
 
@@ -196,6 +204,10 @@ export const TacticalFind2 = Either([
     Combination([CapturesComb], 2),
     Combination([CapturesComb], 3),
     Combination([CapturesComb], 4),
+    Combination([CapturesComb], 5),
+
+    Bind([CapturesComb, OffersExchangeComb]),
+    Bind([Combination([CapturesComb], 3), EvadeCaptures]),
 
     Bind([Checks, Blocks, CapturesComb]),
     Bind([Checks, Blocks, CapturesComb, CapturesComb]),
@@ -519,20 +531,20 @@ function Forks(a: Role, b: Role, c: Role) {
 
 function Captures(a: Role, b: Role) {
     return (pos: Position) => {
-    let mm = pos_moves(pos)
+        let mm = pos_moves(pos)
 
-    let res: Move[][] = []
-    for (let move of mm) {
-        if (pos.board.get(move.from)!.role !== a) {
-            continue
+        let res: Move[][] = []
+        for (let move of mm) {
+            if (pos.board.get(move.from)!.role !== a) {
+                continue
+            }
+            if (pos.board.get(move.to)?.role !== b) {
+                continue
+            }
+            res.push([move])
         }
-        if (pos.board.get(move.to)?.role !== b) {
-            continue
-        }
-        res.push([move])
+        return res
     }
-    return res
-}
 }
 
 function KingRuns(pos: Position) {
@@ -585,6 +597,65 @@ function Sacrifice(a: Role) {
             let mm2 = pos_moves(p2)
 
             for (let move2 of mm2) {
+                if (move2.to !== move.to) {
+                    continue
+                }
+
+                res.push([move])
+            }
+        }
+        return res
+    }
+
+}
+
+function EvadeCapture(a: Role, b: Role) {
+    return (pos: Position) => {
+        let mm = pos_moves(pos)
+
+        let piece = { color: opposite(pos.turn), role: b }
+        let pieces = pos.board[b].intersect(pos.board[opposite(pos.turn)])
+
+        let res: Move[][] = []
+        for (let move of mm) {
+            if (pos.board.get(move.from)!.role !== a) {
+                continue
+            }
+
+            for (let sq of pieces) {
+                let a1 = attacks(piece, sq, pos.board.occupied)
+                let a2 = attacks(piece, sq, pos.board.occupied.without(move.from).with(move.to))
+
+                if (a1.has(move.from) && !a2.has(move.to)) {
+                    res.push([move])
+                }
+            }
+        }
+        return res
+    }
+}
+
+function OffersExchange(a: Role) {
+    return (pos: Position) => {
+        let mm = pos_moves(pos)
+
+
+        let res: Move[][] = []
+        for (let move of mm) {
+            if (pos.board.get(move.from)!.role !== a) {
+                continue
+            }
+
+            let p2 = pos.clone()
+            p2.play(move)
+
+            let mm2 = pos_moves(p2)
+
+            for (let move2 of mm2) {
+                if (pos.board.get(move2.from)!.role !== a) {
+                    continue
+                }
+
                 if (move2.to !== move.to) {
                     continue
                 }
