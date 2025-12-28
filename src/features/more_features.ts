@@ -1,15 +1,3 @@
-'Check a-h Block g Capture a g Recapture x g Recapture y g'
-
-'OpenAttack'; 'OpenKing'
-
-'OpenKing a-h'; 'Check a-h'
-
-'Check a-h'; 'Block g'
-
-'Block a'; 'Capture g a'
-
-'Capture g a'; 'Capture x g'
-
 import { attacks, ray } from "../attacks";
 import { Position as CPos } from "../chess";
 import { SquareSet } from "../squareSet";
@@ -60,50 +48,74 @@ export type MoveContext = {
 
 export type PositionWithFeatures = {
     features: Features
+    more_features: MoreFeatures
     move_ctx: MoveContext
     after_features: Features
+    after_more_features: MoreFeatures
 }
 
 export type MoreFeatures = {
-    check?: Check
-    blocks: Ray[]
+    checks: Check[]
+    blocks: Ray[][]
 }
 
-type Check = {
+export type Check = {
     from: Square
     to: Square
     ray: SquareSet
     to_threaten: Square
 }
 
+export function build_features(pos: Position, history: Move[], move: Move): PositionWithFeatures {
 
-function apply_move_context(pos: Position, moves: MoveContext) {
+    let move_ctx = {
+        move,
+        history
+    }
+
+    let p2 = apply_moves(pos, history)
+
+    let features = find_features(p2)
+    let more_features = find_more_features(features)
+
+    let p3 = apply_moves(p2, [move])
+
+    let after_features = find_features(p3)
+    let after_more_features = find_more_features(after_features)
+
+
+
+
+    return {
+        features,
+        more_features,
+        move_ctx,
+        after_features,
+        after_more_features
+    }
+}
+
+export function apply_moves(pos: Position, history: Move[]) {
 
     let p2 = pos.clone()
 
-    moves.history.forEach(_ => p2.play(_))
-
-    p2.play(moves.move)
+    history.forEach(_ => p2.play(_))
 
     return p2
 }
 
 
-function more_features(f: Features): MoreFeatures {
+export function find_more_features(f: Features): MoreFeatures {
     let checks = find_Checks(f)
 
     return {
-        check: checks[0],
-        blocks: find_Blocks(f, checks[0])
+        checks,
+        blocks: checks.map(_ => find_Blocks(f, _))
     }
 }
 
 
-function find_Blocks(f: Features, check?: Check) {
-    if (check === undefined) {
-        return []
-    }
-
+function find_Blocks(f: Features, check: Check) {
     let blocks: Ray[] = []
     for (let attack of f.turn_attacks) {
         for (let a of attack.rays) {
