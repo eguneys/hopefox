@@ -76,9 +76,10 @@ export function apply_features(pos: Position, pf: PositionWithFeatures): Positio
     let more_features = pf.after_more_features
     let history = [...pf.move_ctx.history, pf.move_ctx.move]
 
-    let moves = pos_moves(pos)
 
     let p2 = apply_moves(pos, history)
+
+    let moves = pos_moves(p2)
     return moves.map(move => {
 
         let p3 = apply_moves(p2, [move])
@@ -96,14 +97,14 @@ export function apply_features(pos: Position, pf: PositionWithFeatures): Positio
     })
 }
 
-export function build_features(pos: Position, history: Move[], move: Move): PositionWithFeatures {
+export function init_features(pos: Position, move: Move): PositionWithFeatures {
 
     let move_ctx = {
         move,
-        history
+        history: []
     }
 
-    let p2 = apply_moves(pos, history)
+    let p2 = apply_moves(pos, [])
 
     let features = find_features(p2)
     let more_features = find_more_features(features)
@@ -112,9 +113,6 @@ export function build_features(pos: Position, history: Move[], move: Move): Posi
 
     let after_features = find_features(p3)
     let after_more_features = find_more_features(after_features)
-
-
-
 
     return {
         features,
@@ -336,5 +334,11 @@ function open_rays(occupied: SquareSet) {
 export function move_san(pos: Position, move_ctx: MoveContext) {
     let p2 = apply_moves(pos, move_ctx.history)
 
-    return makeSan(p2, move_ctx.move)
+    let res = makeSan(p2, move_ctx.move)
+
+    if (res.includes('-')) {
+        console.log(history, move_ctx.move)
+    }
+
+    return res
 }

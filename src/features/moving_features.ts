@@ -3,7 +3,7 @@ import { FEN } from "../mor3_hope1";
 import { SquareSet } from "../squareSet";
 import { Role, FileName, FILE_NAMES, Square } from "../types";
 import { squareFile, squareFromCoords, squareRank } from "../util";
-import { Position, PositionWithFeatures, apply_features, build_features, find_more_features, move_san } from "./more_features";
+import { Position, PositionWithFeatures, apply_features, init_features, find_more_features, move_san } from "./more_features";
 import { ActionRestriction, FileRestriction, HitsRestriction, is_file2_restriction, is_file_restriction, is_hits_restriction, is_on_restriction, is_rank_restriction, is_role_restriction, is_to_restriction, RestrictionParameter, ruleset_split, Split } from "./split_ruleset";
 
 const initial_context_a_h: File_Ctx[] = []
@@ -31,12 +31,11 @@ export type SplitWithFeatureAndContext = {
     feature: PositionWithFeatures
 }
 
+let i = 0
 function split_features(pos: Position, ruleset: Split[], app: SplitWithFeatureAndContext) {
 
     let a = move_san(pos, app.feature.move_ctx)
-    if (a === 'Rc1+' && app.split.definition.name === 'check') {
-        console.log('yay')
-    }
+    console.log(a, app.feature.move_ctx.move, app.feature.move_ctx.history.length)
     let file_ctx = satisfy_restrictions(app.feature, app.ctx, app.split.restrictions)
 
     if (!file_ctx) {
@@ -60,7 +59,7 @@ export function moving_features(fen: FEN, text: string) {
 
     let pos = fen_pos(fen)
     let moves = pos_moves(pos)
-    let features = moves.map(move => build_features(pos, [], move))
+    let features = moves.map(move => init_features(pos, move))
 
     let depth = -1
 
