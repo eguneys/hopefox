@@ -17,22 +17,9 @@
 'capture a; on a to a; capture a'
 
 import { FILE_NAMES, FileName, Move, RANK_NAMES, RankName, Role, Square } from "../types";
-import { Features, MoreFeatures } from "./more_features";
+import { Features, MoreFeatures, PositionWithFeatures } from "./more_features";
 
 
-export type File_Ctx = {
-    a: FileName
-    sq: Square
-}
-
-export type ActionApplication = {
-    action: Split
-    ctx: File_Ctx[]
-}
-
-export function apply_action(action: Split, ctx: File_Ctx[]) {
-    return { action, ctx }
-}
 
 export type FileRestriction2 = {
     a: FileName

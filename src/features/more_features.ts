@@ -1,6 +1,7 @@
 import { attacks, ray } from "../attacks";
 import { Position as CPos } from "../chess";
 import { pos_moves } from "../hopefox";
+import { makeSan } from "../san";
 import { SquareSet } from "../squareSet";
 import { Color, Move, Square } from "../types";
 import { opposite } from "../util";
@@ -67,7 +68,7 @@ export type Check = {
     to_threaten: Square
 }
 
-export function apply_features(pos: Position, pf: PositionWithFeatures) {
+export function apply_features(pos: Position, pf: PositionWithFeatures): PositionWithFeatures[] {
     let features = pf.after_features
     let more_features = pf.after_more_features
     let history = [...pf.move_ctx.history, pf.move_ctx.move]
@@ -320,4 +321,10 @@ function open_rays(occupied: SquareSet) {
         }
     }
     return res
+}
+
+export function make_san(pos: Position, move_ctx: MoveContext) {
+    let p2 = apply_moves(pos, move_ctx.history)
+
+    return makeSan(p2, move_ctx.move)
 }

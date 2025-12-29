@@ -1,13 +1,60 @@
 import { fen_pos, pos_moves } from "../hopefox";
 import { FEN } from "../mor3_hope1";
-import { Role, FileName, FILE_NAMES } from "../types";
+import { SquareSet } from "../squareSet";
+import { Role, FileName, FILE_NAMES, Square } from "../types";
 import { squareFile, squareFromCoords, squareRank } from "../util";
-import { PositionWithFeatures, apply_features, build_features, find_more_features } from "./more_features";
-import { ActionApplication, ActionRestriction, apply_action, File_Ctx, FileRestriction, HitsRestriction, is_file2_restriction, is_file_restriction, is_hits_restriction, is_on_restriction, is_rank_restriction, is_role_restriction, is_to_restriction, RestrictionParameter, ruleset_split, Split } from "./split_ruleset";
+import { Position, PositionWithFeatures, apply_features, build_features, find_more_features, make_san } from "./more_features";
+import { ActionRestriction, FileRestriction, HitsRestriction, is_file2_restriction, is_file_restriction, is_hits_restriction, is_on_restriction, is_rank_restriction, is_role_restriction, is_to_restriction, RestrictionParameter, ruleset_split, Split } from "./split_ruleset";
+
+const initial_context_a_h: File_Ctx[] = []
+
+for (let sq of SquareSet.full()) {
+    initial_context_a_h.push({
+        a: "a",
+        sq
+    })
+    initial_context_a_h.push({
+        a: "h",
+        sq
+    })
+}
+
+
+export type File_Ctx = {
+    a: FileName
+    sq: Square
+}
+
+export type SplitWithFeatureAndContext = {
+    split: Split
+    ctx: File_Ctx[]
+    feature: PositionWithFeatures
+}
+
+export function split_with_context(split: Split, ctx: File_Ctx[]) {
+    return { split, ctx }
+}
+
+function split_features(pos: Position, ruleset: Split[], app: SplitWithFeatureAndContext) {
+    let file_ctx = satisfy_restrictions(app.feature, app.ctx, app.split.restrictions)
+    if (!file_ctx) {
+        return []
+    }
+
+    let next_features = apply_features(pos, app.feature)
+    let res: SplitWithFeatureAndContext[] = []
+    for (let transition of app.split.transitions) {
+        let split = ruleset.find(_ => _.definition.name === transition.name)!
+        let ctx = map_args_to_ctx(transition.args, file_ctx)
+
+        res.push(...next_features.map(feature => ({ split, ctx, feature })))
+    }
+    return res
+}
 
 export function moving_features(fen: FEN, text: string) {
 
-    let ruleset = ruleset_split(text).map(_ => apply_action(_, []))
+    let ruleset = ruleset_split(text)
 
     let pos = fen_pos(fen)
     let moves = pos_moves(pos)
@@ -15,29 +62,21 @@ export function moving_features(fen: FEN, text: string) {
 
     let depth = -1
 
-    while (depth++ < 8 && features.length > 0) {
+    let ctx: File_Ctx[] = []
+    let apps: SplitWithFeatureAndContext[] = []
 
-        let new_features: PositionWithFeatures[] = []
-        next_feature: for (let feature of features) {
-            let next_ruleset: ActionApplication[] = []
-            for (let { action: rule, ctx } of ruleset) {
-                let file_ctx = satisfy_restrictions(feature, ctx, rule.restrictions)
-                if (!file_ctx) {
-                    continue next_feature
-                }
 
-                for (let transition of rule.transitions) {
-                    let to_rule = ruleset.find(_ => _.action.definition.name === transition.name)!.action
-                    let t_ctx = map_args_to_ctx(transition.args, file_ctx)
-
-                    next_ruleset.push(apply_action(to_rule, t_ctx))
-                }
-            }
-            ruleset = next_ruleset
-
-            new_features.push(...apply_features(pos, feature))
+    for (let feature of features) {
+        for (let split of ruleset) {
+            apps.push({ feature, split, ctx})
         }
-        features = new_features
+    }
+
+
+    while (depth++ < 8 && apps.length > 0) {
+        for (let app of apps) {
+            split_features(pos, ruleset, app)
+        }
     }
 }
 
@@ -120,6 +159,7 @@ function satisfy_restrictions(pf: PositionWithFeatures, ctx: File_Ctx[], restric
 
     const sq_file_restriction = ({a}: FileRestriction) => (ctx.filter(_ => _.a === a) ?? in_between_ctx(ctx, a)).map(_ => _.sq)
 
+    let is_after_move = false
     for (let restriction of restrictions) {
         if (is_role_restriction(restriction)) { 
             if (sq_file_restriction(restriction.on).find(_ => _ === pf.features.turn_king) !== undefined) {
@@ -141,6 +181,8 @@ function satisfy_restrictions(pf: PositionWithFeatures, ctx: File_Ctx[], restric
             } else {
                 return undefined
             }
+
+            is_after_move = true
         }
 
         if (is_hits_restriction(restriction)) { 
