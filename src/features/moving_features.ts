@@ -16,7 +16,7 @@
 'block a-h g; to g; capture g check a-f check 1-8'
 'capture a; on a to a; capture a'
 
-import { FileName, Move, RankName, Role, Square } from "../types";
+import { FILE_NAMES, FileName, Move, RANK_NAMES, RankName, Role, Square } from "../types";
 import { Features, MoreFeatures } from "./more_features";
 
 type FileRestriction2 = {
@@ -75,6 +75,10 @@ type Split = {
     transitions: ActionTransition
 }
 
+export function ruleset_split(ruleset: string) {
+    return ruleset.split('\n').map(_ => split(_))
+}
+
 function split(rule: string) {
     let [def, gen, trans] = rule.split(';')
 
@@ -84,46 +88,54 @@ function split(rule: string) {
     for (let i = 0; i < params.length; i++) {
         let parameter = parse_restriction_parameter(params[i++])
 
-        parameters.push(parameter)
+        parameters.push(parameter!)
     }
 
     let definition = { name, parameters }
 
     let restrictions: ActionRestriction[]  = []
-    let gg = gen.split(' ')
+    let gg = gen.trim().split(' ')
 
     for (let i = 0; i < gg.length; i++) {
         if (gg[i] === 'king') {
             let role: Role = 'king'
-            let on = parse_restriction_parameter(gg[i++]) as FileRestriction
+            let on = parse_restriction_parameter(gg[++i]) as FileRestriction
 
             restrictions.push({ role, on })
         }
         if (gg[i] === 'to') {
-            let to = parse_restriction_parameter(gg[i++]) as FileRestriction
+            let to = parse_restriction_parameter(gg[++i]) as FileRestriction
 
             restrictions.push({ to })
         }
         if (gg[i] === 'on') {
-            let on = parse_restriction_parameter(gg[i++]) as FileRestriction
+            let on = parse_restriction_parameter(gg[++i]) as FileRestriction
 
             restrictions.push({ on })
+        }
+        if (gg[i] === 'hits') {
+            let hits = parse_restriction_parameter(gg[++i]) as FileRestriction2
+
+            restrictions.push({ hits })
         }
     }
 
     let transitions: ActionTransition[] = []
-    let tt = trans.split(' ')
+    let tt = trans.trim().split(' ')
 
     for (let i = 0; i < tt.length; i++) {
         let name = tt[i]
 
         let args: RestrictionParameter[] = []
 
-        let argument
-        do {
-            argument = parse_restriction_parameter(tt[i++])
-            args.push(argument)
-        } while (argument !== undefined)
+        while (i + 1 < tt.length) {
+            let argument = parse_restriction_parameter(tt[i+1])
+            if (argument === undefined) {
+                break
+            }
+            args.push(argument!)
+            i++;
+        }
 
         transitions.push({ name, args })
 
@@ -136,10 +148,15 @@ function split(rule: string) {
     }
 }
 
-function parse_restriction_parameter(t: string): RestrictionParameter {
+function parse_restriction_parameter(t: string): RestrictionParameter | undefined {
     if (t.includes('-')) {
         let [a, h] = t.split('-') as [FileName, FileName]
         return { a, h }
     }
-    return { a: t } as FileRestriction
+    if (FILE_NAMES.includes(t as FileName)) {
+        return { a: t } as FileRestriction
+    }
+    if (RANK_NAMES.includes(t as RankName)) {
+        return { a: t } as RankRestriction
+    }
 }
