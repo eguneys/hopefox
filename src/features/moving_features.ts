@@ -3,7 +3,7 @@ import { FEN } from "../mor3_hope1";
 import { SquareSet } from "../squareSet";
 import { Role, FileName, FILE_NAMES, Square } from "../types";
 import { squareFile, squareFromCoords, squareRank } from "../util";
-import { Position, PositionWithFeatures, apply_features, build_features, find_more_features, make_san } from "./more_features";
+import { Position, PositionWithFeatures, apply_features, build_features, find_more_features, move_san } from "./more_features";
 import { ActionRestriction, FileRestriction, HitsRestriction, is_file2_restriction, is_file_restriction, is_hits_restriction, is_on_restriction, is_rank_restriction, is_role_restriction, is_to_restriction, RestrictionParameter, ruleset_split, Split } from "./split_ruleset";
 
 const initial_context_a_h: File_Ctx[] = []
@@ -31,12 +31,14 @@ export type SplitWithFeatureAndContext = {
     feature: PositionWithFeatures
 }
 
-export function split_with_context(split: Split, ctx: File_Ctx[]) {
-    return { split, ctx }
-}
-
 function split_features(pos: Position, ruleset: Split[], app: SplitWithFeatureAndContext) {
+
+    let a = move_san(pos, app.feature.move_ctx)
+    if (a === 'Rc1+' && app.split.definition.name === 'check') {
+        console.log('yay')
+    }
     let file_ctx = satisfy_restrictions(app.feature, app.ctx, app.split.restrictions)
+
     if (!file_ctx) {
         return []
     }
@@ -62,21 +64,22 @@ export function moving_features(fen: FEN, text: string) {
 
     let depth = -1
 
-    let ctx: File_Ctx[] = []
     let apps: SplitWithFeatureAndContext[] = []
 
 
     for (let feature of features) {
         for (let split of ruleset) {
-            apps.push({ feature, split, ctx})
+            apps.push({ feature, split, ctx: initial_context_a_h })
         }
     }
 
 
     while (depth++ < 8 && apps.length > 0) {
+        let new_apps = []
         for (let app of apps) {
-            split_features(pos, ruleset, app)
+            new_apps.push(...split_features(pos, ruleset, app))
         }
+        apps = new_apps
     }
 }
 
@@ -189,6 +192,16 @@ function satisfy_restrictions(pf: PositionWithFeatures, ctx: File_Ctx[], restric
         }
 
         if (is_on_restriction(restriction)) { 
+            let sq = sq_file_restriction(restriction.on).find(_ => pf.features.opposite_pieces.has(_))
+
+            if (sq !== undefined) {
+                res.push({
+                    a: restriction.on.a,
+                    sq
+                })
+            } else {
+                return undefined
+            }
         }
 
     }

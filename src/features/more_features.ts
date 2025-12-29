@@ -29,6 +29,9 @@ export type PinRay = {
 export type Features = {
     turn_king: Square
     opposite_king: Square
+    turn_pieces: SquareSet
+    opposite_pieces: SquareSet
+    occupied: SquareSet
     open: Ray[]
     turn_attacks: AttackRays[]
     opposite_attacks: AttackRays[]
@@ -191,9 +194,16 @@ function find_features(pos: Position): Features {
     let turn_king = pos.board.kingOf(pos.turn)!
     let opposite_king = pos.board.kingOf(opposite(pos.turn))!
 
+    let turn_pieces = pos.board[pos.turn]
+    let opposite_pieces = pos.board[opposite(pos.turn)]
+    let occupied = pos.board.occupied
+
     return {
         turn_king,
         opposite_king,
+        turn_pieces,
+        opposite_pieces,
+        occupied,
         open,
         turn_attacks,
         opposite_attacks,
@@ -323,7 +333,7 @@ function open_rays(occupied: SquareSet) {
     return res
 }
 
-export function make_san(pos: Position, move_ctx: MoveContext) {
+export function move_san(pos: Position, move_ctx: MoveContext) {
     let p2 = apply_moves(pos, move_ctx.history)
 
     return makeSan(p2, move_ctx.move)
