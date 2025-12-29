@@ -331,6 +331,20 @@ function open_rays(occupied: SquareSet) {
     return res
 }
 
+export function move_sans(pos: Position, move_ctx: MoveContext) {
+    let res = []
+    for (let move of move_ctx.history) {
+
+        res.push(makeSan(pos, move))
+
+        pos = apply_moves(pos, [move])
+    }
+
+    res.push(makeSan(pos, move_ctx.move))
+
+    return res
+}
+
 export function move_san(pos: Position, move_ctx: MoveContext) {
     let p2 = apply_moves(pos, move_ctx.history)
 

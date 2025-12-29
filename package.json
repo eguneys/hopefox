@@ -8,7 +8,7 @@
   "scripts": {
     "test": "vitest --hideSkippedTests --exclude=\"*/old\"",
     "bench": "vitest bench",
-    "build": "rm -rf dist && tsc"
+    "build": "tsc --build --clean"
   },
   "keywords": [],
   "author": "",

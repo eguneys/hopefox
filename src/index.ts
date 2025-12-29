@@ -96,3 +96,4 @@ export * from './features/features'
 
 export * from './features/split_ruleset'
 export * from './features/moving_features'
+export * from './features/node_tree'
