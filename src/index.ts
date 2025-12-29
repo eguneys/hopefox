@@ -94,4 +94,5 @@ export * from './short/mor_short'
 export * from './features/soup_snakes'
 export * from './features/features'
 
+export * from './features/split_ruleset'
 export * from './features/moving_features'

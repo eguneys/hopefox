@@ -1,5 +1,6 @@
 import { attacks, ray } from "../attacks";
 import { Position as CPos } from "../chess";
+import { pos_moves } from "../hopefox";
 import { SquareSet } from "../squareSet";
 import { Color, Move, Square } from "../types";
 import { opposite } from "../util";
@@ -64,6 +65,31 @@ export type Check = {
     to: Square
     ray: SquareSet
     to_threaten: Square
+}
+
+export function apply_features(pos: Position, pf: PositionWithFeatures) {
+    let features = pf.after_features
+    let more_features = pf.after_more_features
+    let history = [...pf.move_ctx.history, pf.move_ctx.move]
+
+    let moves = pos_moves(pos)
+
+    let p2 = apply_moves(pos, history)
+    return moves.map(move => {
+
+        let p3 = apply_moves(p2, [move])
+
+        let after_features = find_features(p3)
+        let after_more_features = find_more_features(after_features)
+
+        return {
+            features,
+            more_features,
+            move_ctx: { move, history },
+            after_features,
+            after_more_features
+        }
+    })
 }
 
 export function build_features(pos: Position, history: Move[], move: Move): PositionWithFeatures {
