@@ -1,5 +1,6 @@
 import { it } from 'vitest'
-import { ruleset_split } from '../src'
+import { moving_features, ruleset_split } from '../src'
+import { puzzles } from './fixture'
 
 
 let ruleset = `
@@ -10,4 +11,5 @@ capture a; on a to a; capture a
 
 it('moves', () => {
     //console.log(ruleset_split(ruleset)[0])
+    moving_features(puzzles[0].move_fens[0], ruleset)
 })

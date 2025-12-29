@@ -18,22 +18,18 @@ export function moving_features(fen: FEN, text: string) {
     while (depth++ < 8 && features.length > 0) {
 
         let new_features: PositionWithFeatures[] = []
-        for (let feature of features) {
-
+        next_feature: for (let feature of features) {
             let next_ruleset: ActionApplication[] = []
             for (let { action: rule, ctx } of ruleset) {
                 let file_ctx = satisfy_restrictions(feature, ctx, rule.restrictions)
                 if (!file_ctx) {
-                    continue
+                    continue next_feature
                 }
 
                 for (let transition of rule.transitions) {
                     let to_rule = ruleset.find(_ => _.action.definition.name === transition.name)!.action
                     let t_ctx = map_args_to_ctx(transition.args, file_ctx)
 
-                    if (t_ctx === undefined) {
-                        continue
-                    }
                     next_ruleset.push(apply_action(to_rule, t_ctx))
                 }
             }
@@ -41,6 +37,7 @@ export function moving_features(fen: FEN, text: string) {
 
             new_features.push(...apply_features(pos, feature))
         }
+        features = new_features
     }
 }
 
@@ -104,9 +101,9 @@ function map_args_to_ctx(args: RestrictionParameter[], ctx: File_Ctx[]) {
 
             let a = ctx.filter(_ => _.a === param.a) ?? in_between_ctx(ctx, param.a)
 
-            let h = a.filter(_ => _.a === param.h) ?? in_between_ctx(a, param.h)
+            let h = ctx.filter(_ => _.a === param.h) ?? in_between_ctx(ctx, param.h)
 
-            return h
+            return [...a, ...h]
         }
         if (is_rank_restriction(param)) {
             return ctx.filter(_ => _.a === param.a) ?? in_between_ctx(ctx, param.a, true)
@@ -130,6 +127,8 @@ function satisfy_restrictions(pf: PositionWithFeatures, ctx: File_Ctx[], restric
                     a: restriction.on.a,
                     sq: pf.features.turn_king
                 })
+            } else {
+                return undefined
             }
         }
 
@@ -139,6 +138,8 @@ function satisfy_restrictions(pf: PositionWithFeatures, ctx: File_Ctx[], restric
                     a: restriction.to.a,
                     sq: pf.move_ctx.move.to
                 })
+            } else {
+                return undefined
             }
         }
 
