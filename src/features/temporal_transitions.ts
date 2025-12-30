@@ -28,6 +28,7 @@ export function Generate_TemporalTransitions(pos: Position) {
             }
 
             for (let moves of m_moves) {
+                res.push([...h1, ...moves])
                 new_queue.push([...h1, ...moves])
             }
         }

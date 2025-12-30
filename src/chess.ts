@@ -271,14 +271,8 @@ export abstract class Position {
     return SquareSet.empty();
   }
 
-  c_cache = new LRUCache<SquareSet>(64)
-
   dests(square: Square, ctx?: Context): SquareSet {
 
-    let v = this.c_cache.get(square + '')
-    if (v) {
-      return v
-    }
     ctx = ctx || this.ctx();
     if (ctx.variantEnd) return SquareSet.empty();
     const piece = this.board.get(square);
@@ -327,8 +321,6 @@ export abstract class Position {
     }
 
     if (legal) pseudo = pseudo.union(legal);
-
-    this.c_cache.put(square + '', pseudo)
 
     return pseudo;
   }
