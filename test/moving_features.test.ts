@@ -40,7 +40,7 @@ function solve_n(n: number) {
 
 
 
-const find_solving_sans = (a: SAN[][], b: SAN[]) => {
+export const find_solving_sans = (a: SAN[][], b: SAN[]) => {
     if (a.length === 0) {
         return false
     }

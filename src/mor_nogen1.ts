@@ -1,4 +1,4 @@
-import { c_to_piece, move_c_to_Move, MoveC, NO_PIECE, PositionC } from "./hopefox_c"
+import { piece_c_to_piece, move_c_to_Move, MoveC, NO_PIECE, PositionC } from "./hopefox_c"
 import { FEN, Line, MoveAttackSentence, parse_line_recur, parse_piece, parse_rules, ParsedSentence, piece2_pieces, Pieces, pieces_of_color, StillAttackSentence } from "./mor3_hope1"
 import { Move, Piece, Square } from "./types"
 import { m } from './mor3_hope1'
@@ -723,7 +723,7 @@ function extract_p_context(pos: PositionC): PContext {
     for (let sq of SquareSet.full()) {
         let p = m.get_at(pos, sq)
         if (p !== undefined) {
-           let p1 = c_to_piece(p)
+           let p1 = piece_c_to_piece(p)
            
            let p2 = piece2_pieces(p1)
 

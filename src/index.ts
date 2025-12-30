@@ -91,9 +91,7 @@ export * from './mor_gen6'
 export * from './short/mor_short'
 
 
-export * from './features/soup_snakes'
-export * from './features/features'
 
-export * from './features/split_ruleset'
-export * from './features/moving_features'
 export * from './features/node_tree'
+export * from './features/tactical_features'
+export * from './features/temporal_transitions'

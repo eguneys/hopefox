@@ -4,7 +4,7 @@ import { Board } from "./board";
 import { Chess } from "./chess";
 import { squareSet } from "./debug";
 import { EMPTY_FEN, makeFen, parseFen } from "./fen";
-import { c_to_piece, MoveC, piece_to_c, PieceC, W_PIECES } from "./hopefox_c";
+import { piece_c_to_piece, MoveC, piece_to_c, PieceC, W_PIECES } from "./hopefox_c";
 import { extract_pieces, FEN, Line, MoveAttackSentence, OPPONENT_PIECE_NAMES, parse_line_recur, parse_piece, parse_rules, ParsedSentence, PIECE_NAMES, Pieces, PLAYER_PIECE_NAMES, StillAttackSentence } from "./mor3_hope1";
 import { m } from './mor3_hope1'
 import { SquareSet } from "./squareSet";
@@ -1089,7 +1089,7 @@ function pcc_still_attack(res: StillAttackSentence) {
 
 function attacks_c(pc: PieceC, s: Square, occupied: SquareSet) {
     //return m.attacks(pc, s, occupied)
-    return attacks(c_to_piece(pc), s, occupied)
+    return attacks(piece_c_to_piece(pc), s, occupied)
 }
 
 

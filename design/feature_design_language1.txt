@@ -1,0 +1,21 @@
+capture ; ; flee-into-pin
+flee-into-pin attacked-pinned-piece; ; capture attacked-pinned-piece
+check ; ; flee-into-pin
+flee-into-pin; ; capture-pin-hanging-piece
+capture-hanging-piece; ; 
+in-between-check; ; capture-hanging-piece
+capture-the-defender-of-piece-in-tension-and-defend; ;
+
+capture threaten-mate-in-1; check ; block-check ; capture-block-with-check distract-mate-in-1;
+
+capture-defended-x-ray-attacked-through; ; exchange
+fork threaten-mate-in-1 hit-hanging-piece; push-to-block-mate; capture
+exchange-sacrifice ; lure-into-pin ; sacrifice-with-check-and-discovered-attack ; accept-sacrifice - capture
+
+offer-exchange
+
+capture-the-defender-and-expose-defended-x-ray-attacked-through
+
+skewer
+double-attack-with-check
+
