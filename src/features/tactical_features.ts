@@ -5,6 +5,7 @@
 
 import { attacks, between, ray } from "../attacks"
 import { Position } from "../chess"
+import { squareSet } from "../debug"
 import { pos_moves } from "../hopefox"
 import { makeSan } from "../san"
 import { SquareSet } from "../squareSet"
@@ -121,6 +122,7 @@ function Generate_TacticalFeatures(pos: Position) {
             let aa2 = attacks(on, a, pos.board.occupied.without(sq).with(a))
 
             for (let a2 of aa2) {
+                let ss = squareSet(pos.board.occupied)
                 let ap = pos.board.get(a2)
                 let type: AttackType = ap === undefined ? 'cover' : ap.color === on.color ? 'defend' : 'attack'
                 res.push({
@@ -249,9 +251,15 @@ function Generate_Motives(features: TacticalFeatureSet) {
             if (block.from === a2.from) {
                 continue
             }
+            if (a2.to2 === block.from) {
+                continue
+            }
+
+
             if (!r.has(block.to)) {
                 continue
             }
+
             unblockable = false
             res.push({
                 motif: 'BlockableAttack',

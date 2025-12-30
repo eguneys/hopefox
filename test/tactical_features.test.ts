@@ -4,10 +4,24 @@ import { Generate_TemporalMotives, san_moves, TemporalMoves } from '../src/featu
 import { fen_pos, Generate_TemporalTransitions, Min_max_sort, Move, pos_moves, Position } from '../src'
 import { squareSet } from '../src/debug'
 
+import fs from 'fs'
+
+
+function render(data: string) {
+    fs.writeFileSync(__dirname + '/_output.txt', data)
+}
 
 it('works', () => {
-    console.log(puzzles[0].link)
-    solve_n(0)
+
+    solve_n(2)
+
+    return
+    for (let i = 0; i < 100; i++) {
+        let res = solve_n(i)
+        if (!res) {
+            break
+        }
+    }
 })
 
 
@@ -23,9 +37,16 @@ function solve_n(n: number) {
     let res = Min_max_sort(pos, tt).map(_ => san_moves(pos, _))
 
 
-    console.log(res, solution)
-    console.log(find_solving_sans_loose(res, solution))
-    console.log(find_solving_sans(res, solution))
+    let solved = find_solving_sans(res, solution)
+    let loose = find_solving_sans_loose(res, solution)
+
+    if (!solved) {
+        console.log(n)
+        console.log(link)
+        console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0))
+        console.log('loosely solved: ', loose)
+    }
+    return solved
 }
 
 function Legal_moves_filter(pos: Position, mm: Move[]) {

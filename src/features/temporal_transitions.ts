@@ -11,10 +11,6 @@ export function Generate_TemporalTransitions(pos: Position) {
     while (queue.length > 0) {
         let new_queue: Move[][] = []
         for (let h1 of queue) {
-            if (h1.length > 5) {
-                res.push(h1)
-                continue
-            }
             let p2 = play_moves(pos, h1)
             let temporal_motives = Generate_TemporalMotives(p2)
 
@@ -29,7 +25,10 @@ export function Generate_TemporalTransitions(pos: Position) {
 
             for (let moves of m_moves) {
                 res.push([...h1, ...moves])
-                new_queue.push([...h1, ...moves])
+                if (h1.length + moves.length >= 5) {
+                    continue
+                }
+                new_queue.unshift([...h1, ...moves])
             }
         }
         queue = new_queue
