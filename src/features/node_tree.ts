@@ -106,10 +106,10 @@ function fill_values_min_max(pos: Position, path: Move[], a: Node, isMaximizing:
     }
 
     if (isMaximizing) {
-        a.children.sort((a, b) => b.value - a.value)
-        a.value = Math.max(...a.children.map(_ => _.value))
-    } else {
         a.children.sort((a, b) => a.value - b.value)
         a.value = Math.min(...a.children.map(_ => _.value))
+    } else {
+        a.children.sort((a, b) => b.value - a.value)
+        a.value = Math.max(...a.children.map(_ => _.value))
     }
 }
