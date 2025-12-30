@@ -1,4 +1,5 @@
 import { Position } from "../chess";
+import { pos_moves } from "../hopefox";
 import { Move } from "../types";
 import { Generate_TemporalMotives, play_moves, san_moves, TemporalMoves } from "./tactical_features";
 
@@ -18,6 +19,7 @@ export function Generate_TemporalTransitions(pos: Position) {
                 temporal_motives
                 .map(_ => TemporalMoves(p2, _))
                 .filter(_ => _.length > 0)
+                .filter(_ => Legal_moves_filter(p2, _))
 
             if (m_moves.length === 0) {
                 res.push(h1)
@@ -35,3 +37,17 @@ export function Generate_TemporalTransitions(pos: Position) {
     }
     return res
 }
+
+export function Legal_moves_filter(pos: Position, mm: Move[]) {
+
+    let p2 = pos.clone()
+    for (let m of mm) {
+        let aa = pos_moves(p2)
+        if (!aa.find(_ => _.from === m.from && _.to === m.to)) {
+            return false
+        }
+        p2.play(m)
+    }
+    return true
+}
+

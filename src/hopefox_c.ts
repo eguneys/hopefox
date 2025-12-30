@@ -131,6 +131,11 @@ function make_move(move: Move, castling?: boolean, en_passant?: boolean): MoveC 
     return type + ((pt - KNIGHT) << 12) + (move.from << 6) + move.to
 }
 
+export function make_move_from_to(from: Square, to: Square) {
+    return NORMAL_MOVE + (from << 6) + to
+}
+
+
 export function move_c_to_Move(c: MoveC): Move {
 
     let to = c & 0x3F
@@ -177,11 +182,8 @@ export class PositionManager {
         this.m._make_move(id, move)
     }
 
-    pos_turn(pos: number): Color {
-        if (this.m._get_turn(pos) === WHITE) {
-            return 'white'
-        }
-        return 'black'
+    pos_turn(pos: number): ColorC {
+        return this.m._get_turn(pos)
     }
 
     get_legal_moves(id: PositionC): MoveC[] {

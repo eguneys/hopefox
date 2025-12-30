@@ -13,9 +13,6 @@ function render(data: string) {
 
 it('works', () => {
 
-    solve_n(2)
-
-    return
     for (let i = 0; i < 100; i++) {
         let res = solve_n(i)
         if (!res) {
@@ -33,7 +30,7 @@ function solve_n(n: number) {
     let pos = fen_pos(fen)
     let tt = Generate_TemporalTransitions(pos)
 
-    tt = tt.filter(_ => Legal_moves_filter(pos, _))
+    //tt = tt.filter(_ => Legal_moves_filter(pos, _))
     let res = Min_max_sort(pos, tt).map(_ => san_moves(pos, _))
 
 
@@ -47,19 +44,6 @@ function solve_n(n: number) {
         console.log('loosely solved: ', loose)
     }
     return solved
-}
-
-function Legal_moves_filter(pos: Position, mm: Move[]) {
-
-    let p2 = pos.clone()
-    for (let m of mm) {
-        let aa = pos_moves(p2)
-        if (!aa.find(_ => _.from === m.from && _.to === m.to)) {
-            return false
-        }
-        p2.play(m)
-    }
-    return true
 }
 
 export const find_solving_sans_loose = (a: SAN[][], b: SAN[]) => {
