@@ -296,6 +296,10 @@ function group_by<A, T>(fn: (a: A) => T, arr: A[]): Map<T, A[]> {
     return res
 }
 
+type OccasionalCapture = {
+    temporal: 'OccasionalCapture'
+    capture: Attacks
+}
 
 type CheckToLureIntoAFork = {
     temporal: 'CheckToLureIntoAFork'
@@ -312,6 +316,7 @@ type Checkmate = {
 type TemporalMotive = 
     | CheckToLureIntoAFork
     | Checkmate
+    | OccasionalCapture
 
 export function Generate_TemporalMotives(pos: Position) {
     let features = Generate_TacticalFeatures(pos)
@@ -375,6 +380,19 @@ export function Generate_TemporalMotives(pos: Position) {
         }
     }
 
+
+    let captures = features.filter(_ => _.feature === 'Attacks')
+        .filter(_ => _.type === 'attack')
+        .filter(_ => pos.board[pos.turn].has(_.from))
+
+    for (let cc of captures) {
+        res.push({
+            temporal: 'OccasionalCapture',
+            capture: cc
+        })
+    }
+
+
     return res
 }
 
@@ -385,6 +403,8 @@ export function TemporalMoves(pos: Position, temporal_motive: TemporalMotive) {
 
     } else if (temporal_motive.temporal === 'Checkmate') {
         moves = [temporal_motive.attack]
+    } else if (temporal_motive.temporal === 'OccasionalCapture') {
+        moves = [temporal_motive.capture]
     }
 
     return moves
