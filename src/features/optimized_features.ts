@@ -1,5 +1,5 @@
 import { between } from "../attacks"
-import { BLACK, ColorC, KING, make_move_from_to, piece_c_color_of, piece_c_type_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, ColorC, KING, make_move_from_to, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { SquareSet } from "../squareSet"
 
 type FEN = string
@@ -65,6 +65,7 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
         for (let a of aa) {
             let ap = m.get_at(pos, a)
             let type = attackType(color, ap)
+            // Attacks: A from B a C type
             NewFeature(sq, a, type)
             Attacks_Feature_End += 4
 
@@ -77,6 +78,7 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
                 let ap = m.get_at(pos, a2)
                 let type = attackType(color, ap)
                 cursor += Stride
+                // Attacks2 A from B a C a2 D type
                 NewFeature(sq, a, a2, type)
                 Attacks2_Feature_End += 4
                 cursor -= Stride
@@ -90,6 +92,7 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
                     let ap = m.get_at(pos, a2)
                     let type2 = attackType(color, ap)
                     cursor += Stride * 2
+                    // XRay_Attacks A from B a2 C a D type2 E type
                     NewFeature(sq, a2, a, type2, type)
                     XRay_Attacks_Feature_End += 4
                     cursor -= Stride * 2
@@ -97,8 +100,8 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
 
                 for (let a2 of aa2) {
                     let ap = m.get_at(pos, a2)
-                    let type2 = attackType(color, ap)
                     cursor += Stride * 3
+                    // Blocks A from B to C a2
                     NewFeature(a, sq, a2)
                     Blocks_Feature_End += 4
                     cursor -= Stride * 3
@@ -131,17 +134,19 @@ function NewMotives(features: TacticalFeatures) {
 
     for (let a2 = features.Attacks2_Feature_End; a2 < features.Attacks2_Feature_End; a2++) {
 
+        // Attack2
         let a2_from = GetA(a2)
-        let a2_to = GetA(a2)
-        let a2_to2 = GetA(a2)
-        let a2_type = GetA(a2)
+        let a2_to = GetB(a2)
+        let a2_to2 = GetC(a2)
+        let a2_type = GetD(a2)
 
         let r = between(a2_to, a2_to2)
         let unblockable = true
         for (let block = features.Attacks_Feature_Start; block < features.Attacks_Feature_End; block++) {
 
+            // Attacks
             let block_from = GetA(block)
-            let block_to = GetA(block)
+            let block_to = GetB(block)
 
             if (block_from === a2_from) {
                 continue
@@ -156,12 +161,14 @@ function NewMotives(features: TacticalFeatures) {
 
             unblockable = false
 
+            // BlockableAttack A a2 B block
             NewFeature(a2, block)
             BlockableAttack_End += 4
         }
 
         if (unblockable) {
             cursor += Stride
+            // UnblockableAttack A a2
             NewFeature(a2)
             UnblockableAttack_End += 4
             cursor -= Stride
@@ -179,7 +186,8 @@ function NewMotives(features: TacticalFeatures) {
         for (let i = base; i < base + count; i++) {
 
             let a = Get_Attacks_feature(base, count)
-            let type = GetA(a)
+            // Attacks
+            let type = GetC(a)
 
             if (type === AttackType.Attack) {
                 if (a1 === undefined) {
@@ -194,6 +202,7 @@ function NewMotives(features: TacticalFeatures) {
         }
 
         if (a3 === undefined && a2 !== undefined) {
+            // DoubleAttack A a1 B a2
             NewFeature(a1!, a2)
             DoubleAttacks_Feature_End += 4
         }
@@ -223,12 +232,18 @@ export function Generate_TemporalMotives(pos: PositionC) {
 
     let turn_bb = m.get_pieces_color_bb(pos, m.pos_turn(pos))
     for (let aa = motives.BlockableAttack_Start; aa < motives.BlockableAttack_End; aa++) {
+        // aa BlockableAttack
         let aa_aa = GetA(aa)
-        let aa_block = GetA(aa)
+        let aa_block = GetB(aa)
 
+        // aa_aa Attacks
         let aa_aa_from = GetA(aa_aa)
-        let aa_aa_type = GetA(aa_aa)
+        let aa_aa_to = GetB(aa_aa)
+        let aa_aa_type = GetC(aa_aa)
+
+        // aa_block Blocks
         let aa_block_from = GetA(aa_block)
+        let aa_block_to = GetB(aa_block)
 
         if (aa_aa_type !== AttackType.Attack) {
             continue
@@ -237,8 +252,6 @@ export function Generate_TemporalMotives(pos: PositionC) {
             continue
         }
 
-        let aa_aa_to = GetA(aa_aa)
-        let aa_block_to = GetA(aa_block)
 
         let from = aa_aa_from
         let to = aa_aa_to
@@ -257,8 +270,9 @@ export function Generate_TemporalMotives(pos: PositionC) {
         for (let a = features2.Attacks_Feature_Start;
             a < features2.Attacks_Feature_End; a++) {
 
-            let a_type = GetA(a)
-            let a_to = GetA(a)
+            // a Attacks
+            let a_to = GetB(a)
+            let a_type = GetC(a)
 
             if (a_type !== AttackType.Attack) {
                 continue
@@ -268,9 +282,10 @@ export function Generate_TemporalMotives(pos: PositionC) {
                 continue
             }
 
+            // cc Attacks
             let cc = a
             let cc_from = GetA(cc)
-            let cc_to = GetA(cc)
+            let cc_to = GetB(cc)
 
             let from = cc_from
             let to = cc_to
@@ -287,14 +302,17 @@ export function Generate_TemporalMotives(pos: PositionC) {
             for (let da = motives3.DoubleAttacks_Feature_Start;
                 da < motives3.DoubleAttacks_Feature_End; da++) {
 
+                    // da DoubleAttacks
                     let da_a1 = GetA(da)
 
+                    // da_a1 Attacks
                     let da_a1_from = GetA(da_a1)
 
                     if (da_a1_from !== cc_to) {
                         continue
                     }
 
+                    // CheckToLureIntoAFork A aa B cc C da
                     NewFeature(aa, cc, da)
                     CheckToLureIntoAFork_Feature_End += 4
 
@@ -327,9 +345,11 @@ export function Generate_TemporalMotives(pos: PositionC) {
     for (let aa = motives.UnblockableAttack_Start;
         aa < motives.UnblockableAttack_End; aa++) {
 
+            // aa UnblockableAttack
             let aa_aa = GetA(aa)
 
-            let aa_to2 = GetA(aa_aa)
+            // aa_aa Attacks2
+            let aa_to2 = GetC(aa_aa)
 
             if (aa_to2 !== king_on) {
                 continue
@@ -337,6 +357,7 @@ export function Generate_TemporalMotives(pos: PositionC) {
 
 
 
+            // Checkmate A aa
             NewFeature(aa_aa)
             Checkmate_End += 4
     }
@@ -350,8 +371,9 @@ export function Generate_TemporalMotives(pos: PositionC) {
     for (let cc = features.Attacks_Feature_Start;
         cc < features.Attacks_Feature_End; cc++) {
 
-            let cc_type = GetA(cc)
+            // cc Attacks
             let cc_from = GetA(cc)
+            let cc_type = GetC(cc)
 
             if (cc_type !== AttackType.Attack) {
                 continue
@@ -361,6 +383,7 @@ export function Generate_TemporalMotives(pos: PositionC) {
                 continue
             }
 
+            // OccasionalCapture A cc
             NewFeature(cc)
             OccasionalCapture_End += 4
         }
@@ -376,8 +399,56 @@ export function Generate_TemporalMotives(pos: PositionC) {
     }
 }
 
+type TemporalMotives = {
+
+    CheckToLureIntoAFork_Feature_Start: number,
+    CheckToLureIntoAFork_Feature_End: number,
+    Checkmate_Start: number,
+    Checkmate_End: number,
+    OccasionalCapture_Start: number,
+    OccasionalCapture_End: number,
+}
+
+export function CheckToLureIntoAForkMoves(o: number) {
+    // o CheckToLureIntoAForkMoves
+    let ba_blockedAttack = GetA(o)
+    let ba_capture = GetB(o)
+
+    let attack = GetA(ba_blockedAttack)
+    // blockedAttack BlockableAttack
+    let block = GetB(ba_blockedAttack)
+
+    let aa_from = GetA(attack)
+    let aa_to = GetB(attack)
+
+    let block_from = GetA(block)
+    let block_to = GetB(block)
+
+    let capture_from = GetA(ba_capture)
+    let capture_to = GetB(ba_capture)
+
+    return [make_move_from_to(aa_from, aa_to), make_move_from_to(block_from, block_to), make_move_from_to(cc_from, cc_to)]
+}
 
 
+export function CheckmateMoves(o: number) {
+
+    let a = GetA(o)
+
+    let a_from = GetA(a)
+    let a_to = GetB(a)
+
+    return [make_move_from_to(a_from, a_to)]
+}
+
+export function OccasionalCaptureMoves(o: number) {
+    let a = GetA(o)
+
+    let a_from = GetA(a)
+    let a_to = GetB(a)
+
+    return [make_move_from_to(a_from, a_to)]
+}
 
 
 /** SquareSet Pack */
@@ -452,3 +523,17 @@ function Get_Attacks_feature_grouped_by_from_iterator(from: number) {
 function Get_Attacks_feature(base: number, offset: number) {
     return bucketOffsets[base + offset]
 }
+
+
+
+// Attacks: A from B a C type
+// Attacks2 A from B a C a2 D type
+// XRay_Attacks A from B a2 C a D type2 E type
+// Blocks A from B to C a2
+// BlockableAttack A a2 B block
+// UnblockableAttack A a2
+// DoubleAttack A a1 B a2
+// CheckToLureIntoAFork A aa B cc C da
+//    aa BlockableAttack cc Attacks
+// Checkmate A aa
+// OccasionalCapture A cc
