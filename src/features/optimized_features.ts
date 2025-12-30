@@ -2,6 +2,103 @@ import { between } from "../attacks"
 import { BLACK, ColorC, KING, make_move_from_to, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { SquareSet } from "../squareSet"
 
+
+/****  Search */
+
+function play_moves(pos: PositionC, moves: MoveC[]) {
+    moves.forEach(_ => m.make_move(pos, _))
+}
+
+function unplay_moves(pos: PositionC, moves: MoveC[]) {
+    for (let i = moves.length - 1; i >= 0; i--) {
+        m.unmake_move(pos, moves[i])
+    }
+}
+
+function Legal_moves_filter(pos: PositionC, mm: MoveC[]) {
+
+    let l = m.get_legal_moves(pos)
+    let a = 0
+    let b = 0
+    for (let x of l) {
+        a += x
+        a *= x
+    }
+    for (let m of mm) {
+        b += m
+        b *= m
+    }
+    return a === b
+}
+
+
+export function Generate_TemporalTransitions(fen: FEN) {
+
+
+
+
+
+    let pos = m.create_position(fen)
+
+    let res: MoveC[][] = []
+
+    let queue: MoveC[][] = [[]]
+
+    while (queue.length > 0) {
+        let new_queue: MoveC[][] = []
+        for (let h1 of queue) {
+            play_moves(pos, h1)
+            let temporal_motives = Generate_TemporalMotives(pos)
+
+            unplay_moves(pos, h1)
+
+            let m_moves = []
+            for (let i = temporal_motives.CheckToLureIntoAFork_Feature_Start;
+                i < temporal_motives.CheckToLureIntoAFork_Feature_End; i++) {
+                    m_moves.push(CheckToLureIntoAForkMoves(i))
+            }
+            for (let i = temporal_motives.Checkmate_Start;
+                i < temporal_motives.Checkmate_End; i++) {
+                    m_moves.push(CheckmateMoves(i))
+            }
+
+            for (let i = temporal_motives.OccasionalCapture_Start;
+                i < temporal_motives.OccasionalCapture_End; i++) {
+                    m_moves.push(OccasionalCaptureMoves(i))
+            }
+
+
+
+
+            m_moves = m_moves
+                .filter(_ => _.length > 0)
+                .filter(_ => Legal_moves_filter(pos, _))
+
+
+
+            if (m_moves.length === 0) {
+                res.push(h1)
+            }
+
+            for (let moves of m_moves) {
+                res.push([...h1, ...moves])
+                if (h1.length + moves.length >= 5) {
+                    continue
+                }
+                new_queue.unshift([...h1, ...moves])
+            }
+        }
+        queue = new_queue
+    }
+    return res
+}
+
+
+
+
+/**** Temporal Features */
+
+
 type FEN = string
 
 let m = await PositionManager.make()
@@ -427,7 +524,7 @@ export function CheckToLureIntoAForkMoves(o: number) {
     let capture_from = GetA(ba_capture)
     let capture_to = GetB(ba_capture)
 
-    return [make_move_from_to(aa_from, aa_to), make_move_from_to(block_from, block_to), make_move_from_to(cc_from, cc_to)]
+    return [make_move_from_to(aa_from, aa_to), make_move_from_to(block_from, block_to), make_move_from_to(capture_from, capture_to)]
 }
 
 
