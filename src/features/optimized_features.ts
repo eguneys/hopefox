@@ -35,10 +35,9 @@ function Legal_moves_filter(pos: PositionC, mm: MoveC[]) {
 export function Generate_TemporalTransitions_Optimized(fen: FEN) {
 
 
-
-
-
     let pos = m.create_position(fen)
+
+    Reset()
 
     let res: MoveC[][] = []
 
@@ -135,10 +134,20 @@ type TacticalFeatures = {
 function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
     let occupied = m.pos_occupied(pos)
 
-    let Attacks_Feature_Start = -1, Attacks_Feature_End = -1
-    let Attacks2_Feature_Start = -1, Attacks2_Feature_End = -1
-    let XRay_Attacks_Feature_Start = -1, XRay_Attacks_Feature_End = -1
-    let Blocks_Feature_Start = -1, Blocks_Feature_End = -1
+    let Stride = 10000
+    let Attacks_Feature_Start = cursor
+    let Attacks_Feature_End = Attacks_Feature_Start
+
+    let Attacks2_Feature_Start = cursor + Stride
+    let Attacks2_Feature_End = Attacks2_Feature_Start
+
+    let XRay_Attacks_Feature_Start = cursor + Stride * 2
+    let XRay_Attacks_Feature_End = XRay_Attacks_Feature_Start
+
+    let Blocks_Feature_Start = cursor + Stride * 3
+    let Blocks_Feature_End = Blocks_Feature_Start
+
+
 
     for (let sq of m.pos_occupied(pos)) {
 
@@ -148,23 +157,11 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
 
         let aa = m.attacks(on, sq, occupied)
 
-        let Stride = 1000
-        Attacks_Feature_Start = cursor
-        Attacks_Feature_End = Attacks_Feature_Start
-
-        Attacks2_Feature_Start = cursor + Stride
-        Attacks2_Feature_End = Attacks2_Feature_Start
-
-        XRay_Attacks_Feature_Start = cursor + Stride * 2
-        XRay_Attacks_Feature_End = XRay_Attacks_Feature_Start
-
-        Blocks_Feature_Start = cursor + Stride * 3
-        Blocks_Feature_End = Blocks_Feature_Start
-
         for (let a of aa) {
             let ap = m.get_at(pos, a)
             let type = attackType(color, ap)
             // Attacks: A from B a C type
+            cursor = Attacks_Feature_End
             NewFeature(sq, a, type)
             Attacks_Feature_End += 4
 
@@ -176,11 +173,10 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
             for (let a2 of aa2) {
                 let ap = m.get_at(pos, a2)
                 let type = attackType(color, ap)
-                cursor += Stride
+                cursor = Attacks2_Feature_End
                 // Attacks2 A from B a C a2 D type
                 NewFeature(sq, a, a2, type)
                 Attacks2_Feature_End += 4
-                cursor -= Stride
             }
 
 
@@ -190,20 +186,18 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
                 for (let a2 of aa2) {
                     let ap = m.get_at(pos, a2)
                     let type2 = attackType(color, ap)
-                    cursor += Stride * 2
+                    cursor = XRay_Attacks_Feature_End
                     // XRay_Attacks A from B a2 C a D type2 E type
                     NewFeature(sq, a2, a, type2, type)
                     XRay_Attacks_Feature_End += 4
-                    cursor -= Stride * 2
                 }
 
                 for (let a2 of aa2) {
                     let ap = m.get_at(pos, a2)
-                    cursor += Stride * 3
+                    cursor = Blocks_Feature_End
                     // Blocks A from B to C a2
                     NewFeature(a, sq, a2)
                     Blocks_Feature_End += 4
-                    cursor -= Stride * 3
                 }
 
             }
@@ -222,7 +216,7 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
 
 function NewMotives(features: TacticalFeatures) {
 
-    let Stride = 1000
+    let Stride = 10000
 
     let BlockableAttack_Start = cursor
     let BlockableAttack_End = BlockableAttack_Start
@@ -266,11 +260,10 @@ function NewMotives(features: TacticalFeatures) {
         }
 
         if (unblockable) {
-            cursor += Stride
+            cursor = UnblockableAttack_End
             // UnblockableAttack A a2
             NewFeature(a2)
             UnblockableAttack_End += 4
-            cursor -= Stride
         }
     }
 
@@ -601,7 +594,7 @@ function Attacks_feature_Decrease_Depth() {
     depth--
 }
 
-let depth = 0
+let depth: number
 const bucketOffsets = new Uint32Array(8 * 64 * 128)
 const bucketCounts =  new Uint32Array(8 * 64)
 
