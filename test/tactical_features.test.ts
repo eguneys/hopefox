@@ -14,7 +14,8 @@ function render(data: string) {
 it('works', () => {
 
     for (let i = 0; i < 100; i++) {
-        let res = solve_n(0)
+        let res = solve_n(i)
+        render(`${i}, ${res}`)
         if (!res) {
             break
         }

@@ -1,9 +1,11 @@
 import { between } from "../attacks"
-import { BLACK, ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { SquareSet } from "../squareSet"
+import PackMem from './pack_mem'
 
 
-/****  Search */
+const Empty = SquareSet.empty()
+const Squares = SquareSet.full()
 
 function play_moves(pos: PositionC, moves: MoveC[]) {
     moves.forEach(_ => m.make_move(pos, _))
@@ -15,17 +17,28 @@ function unplay_moves(pos: PositionC, moves: MoveC[]) {
     }
 }
 
-function Legal_moves_filter(pos: PositionC, mm: MoveC[], l: MoveC[] = m.get_legal_moves(pos)) {
+function Legal_moves_filter(pos: PositionC, mm: MoveC[]) {
+
+    let l = m.get_legal_moves(pos)
 
     let aaa = l.map(move_c_to_Move)
     let a = 0
     let b = 0
-    for (let x of mm) {
-        if (!l.includes(x)) {
-            return false
+
+    let i = 0
+    let res  = true
+    for (i = 0; i < mm.length; i++) {
+        if (!l.includes(mm[i])) {
+            res = false
+            break
         }
+        m.make_move(pos, mm[i])
+        l = m.get_legal_moves(pos)
     }
-    return true
+    for (let j = i - 1; j >= 0; j--) {
+        m.unmake_move(pos, mm[j])
+    }
+    return res
 }
 
 
@@ -43,11 +56,8 @@ export function Generate_TemporalTransitions_Optimized(fen: FEN) {
         for (let h1 of queue) {
             play_moves(pos, h1)
 
-            let l = m.get_legal_moves(pos)
-
-
-
-            Reset()
+            PackMem.reset()
+            
             let temporal_motives = Generate_TemporalMotives(pos)
 
 
@@ -71,7 +81,7 @@ export function Generate_TemporalTransitions_Optimized(fen: FEN) {
 
             m_moves = m_moves
                 .filter(_ => _.length > 0)
-                .filter(_ => Legal_moves_filter(pos, _, l))
+                .filter(_ => Legal_moves_filter(pos, _))
 
             unplay_moves(pos, h1)
 
@@ -136,16 +146,16 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
     let occupied = m.pos_occupied(pos)
 
     let Stride = 10000
-    let Attacks_Feature_Start = cursor
+    let Attacks_Feature_Start = PackMem.cursor
     let Attacks_Feature_End = Attacks_Feature_Start
 
-    let Attacks2_Feature_Start = cursor + Stride
+    let Attacks2_Feature_Start = PackMem.cursor + Stride
     let Attacks2_Feature_End = Attacks2_Feature_Start
 
-    let XRay_Attacks_Feature_Start = cursor + Stride * 2
+    let XRay_Attacks_Feature_Start = PackMem.cursor + Stride * 2
     let XRay_Attacks_Feature_End = XRay_Attacks_Feature_Start
 
-    let Blocks_Feature_Start = cursor + Stride * 3
+    let Blocks_Feature_Start = PackMem.cursor + Stride * 3
     let Blocks_Feature_End = Blocks_Feature_Start
 
 
@@ -162,9 +172,9 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
             let ap = m.get_at(pos, a)
             let type = attackType(color, ap)
             // Attacks: A from B a C type
-            cursor = Attacks_Feature_End
-            NewFeature(sq, a, type)
-            Add_Attacks_feature_grouped_by_from(sq, cursor)
+            PackMem.cursor = Attacks_Feature_End
+            PackMem.new_feature(sq, a, type)
+            PackMem.add_feature_grouped_by_from(sq, PackMem.cursor)
             Attacks_Feature_End += 5
 
 
@@ -174,9 +184,9 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
             for (let a2 of aa2) {
                 let ap = m.get_at(pos, a2)
                 let type = attackType(color, ap)
-                cursor = Attacks2_Feature_End
+                PackMem.cursor = Attacks2_Feature_End
                 // Attacks2 A from B a C a2 D type
-                NewFeature(sq, a, a2, type)
+                PackMem.new_feature(sq, a, a2, type)
                 Attacks2_Feature_End += 5
             }
 
@@ -187,17 +197,17 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
                 for (let a2 of aa2) {
                     let ap = m.get_at(pos, a2)
                     let type2 = attackType(color, ap)
-                    cursor = XRay_Attacks_Feature_End
+                    PackMem.cursor = XRay_Attacks_Feature_End
                     // XRay_Attacks A from B a2 C a D type2 E type
-                    NewFeature(sq, a2, a, type2, type)
+                    PackMem.new_feature(sq, a2, a, type2, type)
                     XRay_Attacks_Feature_End += 5
                 }
 
                 for (let a2 of aa2) {
                     let ap = m.get_at(pos, a2)
-                    cursor = Blocks_Feature_End
+                    PackMem.cursor = Blocks_Feature_End
                     // Blocks A from B to C a2
-                    NewFeature(a, sq, a2)
+                    PackMem.new_feature(a, sq, a2)
                     Blocks_Feature_End += 5
                 }
 
@@ -205,7 +215,7 @@ function NewTacticalFeatures(pos: PositionC): TacticalFeatures {
         }
     }
 
-    cursor = Blocks_Feature_Start + Stride
+    PackMem.cursor = Blocks_Feature_Start + Stride
 
 
     return {
@@ -221,20 +231,20 @@ function NewMotives(features: TacticalFeatures) {
 
     let Stride = 10000
 
-    let BlockableAttack_Start = cursor
+    let BlockableAttack_Start = PackMem.cursor
     let BlockableAttack_End = BlockableAttack_Start
 
-    let UnblockableAttack_Start = cursor + Stride
+    let UnblockableAttack_Start = PackMem.cursor + Stride
     let UnblockableAttack_End = UnblockableAttack_Start
 
 
     for (let a2 = features.Attacks2_Feature_Start; a2 < features.Attacks2_Feature_End; a2+=5) {
 
         // Attack2
-        let a2_from = GetA(a2)
-        let a2_to = GetB(a2)
-        let a2_to2 = GetC(a2)
-        let a2_type = GetD(a2)
+        let a2_from = PackMem.read_a(a2)
+        let a2_to = PackMem.read_b(a2)
+        let a2_to2 = PackMem.read_c(a2)
+        let a2_type = PackMem.read_d(a2)
 
         if (a2_to === undefined || a2_to2 === undefined || a2_to > 63 || a2_to2 > 63) {
             debugger
@@ -244,8 +254,8 @@ function NewMotives(features: TacticalFeatures) {
         for (let block = features.Attacks_Feature_Start; block < features.Attacks_Feature_End; block+=5) {
 
             // Attacks
-            let block_from = GetA(block)
-            let block_to = GetB(block)
+            let block_from = PackMem.read_a(block)
+            let block_to = PackMem.read_b(block)
 
             if (block_from === a2_from) {
                 continue
@@ -260,33 +270,33 @@ function NewMotives(features: TacticalFeatures) {
 
             unblockable = false
 
-            cursor = BlockableAttack_End
+            PackMem.cursor = BlockableAttack_End
             // BlockableAttack A a2 B block
-            NewFeature(a2, block)
+            PackMem.new_feature(a2, block)
             BlockableAttack_End += 5
         }
 
         if (unblockable) {
-            cursor = UnblockableAttack_End
+            PackMem.cursor = UnblockableAttack_End
             // UnblockableAttack A a2
-            NewFeature(a2)
+            PackMem.new_feature(a2)
             UnblockableAttack_End += 5
         }
     }
 
-    let DoubleAttacks_Feature_Start = cursor,
+    let DoubleAttacks_Feature_Start = PackMem.cursor,
         DoubleAttacks_Feature_End = DoubleAttacks_Feature_Start
 
     for (let from of Squares) {
 
-        let [base, count] = Get_Attacks_feature_grouped_by_from_iterator(from)
+        let [base, count] = PackMem.get_feature_grouped_by_from_iterator(from)
 
         let a1, a2, a3
         for (let i = 0; i < count; i++) {
 
-            let a = Get_Attacks_feature(base, i)
+            let a = PackMem.get_feature_grouped_by_from(base, i)
             // Attacks
-            let type = GetC(a)
+            let type = PackMem.read_c(a)
 
             if (type === AttackType.Attack) {
                 if (a1 === undefined) {
@@ -301,15 +311,15 @@ function NewMotives(features: TacticalFeatures) {
         }
 
         if (a3 === undefined && a2 !== undefined) {
-            cursor = DoubleAttacks_Feature_End
+            PackMem.cursor = DoubleAttacks_Feature_End
             // DoubleAttack A a1 B a2
-            NewFeature(a1!, a2)
+            PackMem.new_feature(a1!, a2)
             DoubleAttacks_Feature_End += 5
         }
     }
 
 
-    cursor = DoubleAttacks_Feature_Start + Stride
+    PackMem.cursor = DoubleAttacks_Feature_Start + Stride
 
 
     return {
@@ -330,8 +340,17 @@ export function Generate_TemporalMotives(pos: PositionC) {
     let features = NewTacticalFeatures(pos)
     let motives = NewMotives(features)
 
-    let CheckToLureIntoAFork_Feature_Start = cursor,
+    let Stride = 10000
+    let CheckToLureIntoAFork_Feature_Start = PackMem.cursor,
     CheckToLureIntoAFork_Feature_End = CheckToLureIntoAFork_Feature_Start
+
+    let Checkmate_Start = PackMem.cursor + Stride,
+    Checkmate_End = Checkmate_Start
+
+    let OccasionalCapture_Start = PackMem.cursor + Stride * 2,
+    OccasionalCapture_End = OccasionalCapture_Start
+
+
 
     let turn = m.pos_turn(pos)
     let opposite_turn = turn === WHITE ? BLACK : WHITE
@@ -339,17 +358,17 @@ export function Generate_TemporalMotives(pos: PositionC) {
     let opposite_bb = m.get_pieces_color_bb(pos, opposite_turn)
     for (let aa = motives.BlockableAttack_Start; aa < motives.BlockableAttack_End; aa+=5) {
         // aa BlockableAttack
-        let aa_aa = GetA(aa)
-        let aa_block = GetB(aa)
+        let aa_aa = PackMem.read_a(aa)
+        let aa_block = PackMem.read_b(aa)
 
         // aa_aa Attacks2
-        let aa_aa_from = GetA(aa_aa)
-        let aa_aa_to = GetB(aa_aa)
-        let aa_aa_type = GetD(aa_aa)
+        let aa_aa_from = PackMem.read_a(aa_aa)
+        let aa_aa_to = PackMem.read_b(aa_aa)
+        let aa_aa_type = PackMem.read_d(aa_aa)
 
         // aa_block Attacks
-        let aa_block_from = GetA(aa_block)
-        let aa_block_to = GetB(aa_block)
+        let aa_block_from = PackMem.read_a(aa_block)
+        let aa_block_to = PackMem.read_b(aa_block)
 
         if (aa_aa_type !== AttackType.Attack) {
             continue
@@ -382,20 +401,25 @@ export function Generate_TemporalMotives(pos: PositionC) {
         }
 
 
+        let LureFrame = PackMem.frame
 
         m.make_move(pos, move2)
 
-        Attacks_feature_Increase_Depth()
+        let cursor2 = PackMem.push_frame()
+        PackMem.increase_depth()
         
         let features2 = NewTacticalFeatures(pos)
         let motives2 = NewMotives(features2)
+
+
+
 
         for (let a = features2.Attacks_Feature_Start;
             a < features2.Attacks_Feature_End; a+=5) {
 
             // a Attacks
-            let a_to = GetB(a)
-            let a_type = GetC(a)
+            let a_to = PackMem.read_b(a)
+            let a_type = PackMem.read_c(a)
 
             if (a_type !== AttackType.Attack) {
                 continue
@@ -407,8 +431,8 @@ export function Generate_TemporalMotives(pos: PositionC) {
 
             // cc Attacks
             let cc = a
-            let cc_from = GetA(cc)
-            let cc_to = GetB(cc)
+            let cc_from = PackMem.read_a(cc)
+            let cc_to = PackMem.read_b(cc)
 
             let from = cc_from
             let to = cc_to
@@ -421,7 +445,8 @@ export function Generate_TemporalMotives(pos: PositionC) {
 
             m.make_move(pos, move3)
 
-            Attacks_feature_Increase_Depth()
+            let cursor3 = PackMem.push_frame()
+            PackMem.increase_depth()
 
             let features3 = NewTacticalFeatures(pos)
             let motives3 = NewMotives(features3)
@@ -432,40 +457,46 @@ export function Generate_TemporalMotives(pos: PositionC) {
                 da < motives3.DoubleAttacks_Feature_End; da+=5) {
 
                     // da DoubleAttacks
-                    let da_a1 = GetA(da)
+                    let da_a1 = PackMem.read_a(da)
 
                     // da_a1 Attacks
-                    let da_a1_from = GetA(da_a1)
+                    let da_a1_from = PackMem.read_a(da_a1)
 
                     if (da_a1_from !== cc_to) {
                         continue
                     }
 
-                    cursor = CheckToLureIntoAFork_Feature_End
+                    let tmp_cursor = PackMem.cursor
+                    let tmp_frame = PackMem.frame
+                    PackMem.frame = LureFrame
+                    PackMem.cursor = CheckToLureIntoAFork_Feature_End
                     // CheckToLureIntoAFork A aa B cc C da
-                    NewFeature(aa, cc, da)
+                    PackMem.new_feature(aa, cc, da)
                     CheckToLureIntoAFork_Feature_End += 5
 
+                    PackMem.frame = tmp_frame
+                    PackMem.cursor = tmp_cursor
             }
 
 
 
 
-            Attacks_feature_Decrease_Depth()
+            //PackMem.decrease_depth()
+            //PackMem.pop_frame(cursor3)
+
             m.unmake_move(pos, move3)
 
         }
 
-        Attacks_feature_Decrease_Depth()
+
+        //PackMem.decrease_depth()
+        //PackMem.pop_frame(cursor2)
 
         m.unmake_move(pos, move2)
         m.unmake_move(pos, move1)
 
-
     }
 
-    let Checkmate_Start = cursor,
-    Checkmate_End = Checkmate_Start
 
 
     let king_on = m.get_pieces_bb(pos, [KING]).intersect(m.get_pieces_color_bb(pos, opposite_turn)).singleSquare()!
@@ -474,11 +505,11 @@ export function Generate_TemporalMotives(pos: PositionC) {
         aa < motives.UnblockableAttack_End; aa+=5) {
 
             // aa UnblockableAttack
-            let aa_aa = GetA(aa)
+            let aa_aa = PackMem.read_a(aa)
 
-            let aa_from = GetA(aa_aa)
+            let aa_from = PackMem.read_a(aa_aa)
             // aa_aa Attacks2
-            let aa_to2 = GetC(aa_aa)
+            let aa_to2 = PackMem.read_c(aa_aa)
 
             if (aa_to2 !== king_on) {
                 continue
@@ -486,15 +517,11 @@ export function Generate_TemporalMotives(pos: PositionC) {
 
 
 
-            cursor = Checkmate_End
+            PackMem.cursor = Checkmate_End
             // Checkmate A aa
-            NewFeature(aa_aa)
+            PackMem.new_feature(aa_aa)
             Checkmate_End += 5
     }
-
-
-    let OccasionalCapture_Start = cursor,
-    OccasionalCapture_End = OccasionalCapture_Start
 
 
     let p_bb = m.get_pieces_color_bb(pos, turn)
@@ -502,8 +529,8 @@ export function Generate_TemporalMotives(pos: PositionC) {
         cc < features.Attacks_Feature_End; cc+=5) {
 
             // cc Attacks
-            let cc_from = GetA(cc)
-            let cc_type = GetC(cc)
+            let cc_from = PackMem.read_a(cc)
+            let cc_type = PackMem.read_c(cc)
 
             if (cc_type !== AttackType.Attack) {
                 continue
@@ -513,13 +540,13 @@ export function Generate_TemporalMotives(pos: PositionC) {
                 continue
             }
 
-            cursor = OccasionalCapture_End
+            PackMem.cursor = OccasionalCapture_End
             // OccasionalCapture A cc
-            NewFeature(cc)
+            PackMem.new_feature(cc)
             OccasionalCapture_End += 5
         }
 
-    cursor = OccasionalCapture_Start + 10000
+    PackMem.cursor = OccasionalCapture_Start + 10000
 
     return { 
         CheckToLureIntoAFork_Feature_Start,
@@ -543,23 +570,23 @@ type TemporalMotives = {
 
 export function CheckToLureIntoAForkMoves(o: number) {
     // o CheckToLureIntoAForkMoves
-    let ba_blockedAttack = GetA(o)
-    let ba_capture = GetB(o)
+    let ba_blockedAttack = PackMem.read_a(o)
+    let ba_capture = PackMem.read_b(o)
 
     // blockedAttack BlockableAttack
-    let attack = GetA(ba_blockedAttack)
-    let block = GetB(ba_blockedAttack)
+    let attack = PackMem.read_a(ba_blockedAttack)
+    let block = PackMem.read_b(ba_blockedAttack)
 
     // attack Attack2
-    let aa_from = GetA(attack)
-    let aa_to = GetB(attack)
+    let aa_from = PackMem.read_a(attack)
+    let aa_to = PackMem.read_b(attack)
 
     // block Attacks
-    let block_from = GetA(block)
-    let block_to = GetB(block)
+    let block_from = PackMem.read_a(block)
+    let block_to = PackMem.read_b(block)
 
-    let capture_from = GetA(ba_capture)
-    let capture_to = GetB(ba_capture)
+    let capture_from = PackMem.read_a(ba_capture)
+    let capture_to = PackMem.read_b(ba_capture)
 
     return [make_move_from_to(aa_from, aa_to), make_move_from_to(block_from, block_to), make_move_from_to(capture_from, capture_to)]
 }
@@ -567,107 +594,20 @@ export function CheckToLureIntoAForkMoves(o: number) {
 
 export function CheckmateMoves(o: number) {
 
-    let a = GetA(o)
+    let a = PackMem.read_a(o)
 
-    let a_from = GetA(a)
-    let a_to = GetB(a)
+    let a_from = PackMem.read_a(a)
+    let a_to = PackMem.read_b(a)
 
     return [make_move_from_to(a_from, a_to)]
 }
 
 export function OccasionalCaptureMoves(o: number) {
-    let a = GetA(o)
+    let a = PackMem.read_a(o)
 
-    let a_from = GetA(a)
-    let a_to = GetB(a)
+    let a_from = PackMem.read_a(a)
+    let a_to = PackMem.read_b(a)
 
     return [make_move_from_to(a_from, a_to)]
 }
 
-
-/** SquareSet Pack */
-
-const Empty = SquareSet.empty()
-const Squares = SquareSet.full()
-
-export function NewSquareSet(a: SquareSet, b = Empty) {
-    return NewFeature(a.lo, a.hi, b.lo, b.hi)
-}
-
-export function GetSquareSet(o: number) {
-    let a = GetA(o)
-    let b = GetB(o)
-    let c = GetC(o)
-    let d = GetD(o)
-
-    return [new SquareSet(a, b), new SquareSet(c, d)]
-}
-
-/** Feature Pack */
-let cursor!: number
-const FeaturePack = new Uint32Array(10000000)
-
-export function Reset() {
-    cursor = 0
-    depth = 0
-    bucketOffsets.fill(0)
-    bucketCounts.fill(0)
-}
-
-export function NewFeature(a: number, b = 0, c = 0, d = 0, e = 0) {
-    FeaturePack[cursor++] = a
-    FeaturePack[cursor++] = b
-    FeaturePack[cursor++] = c
-    FeaturePack[cursor++] = d
-    FeaturePack[cursor++] = e
-}
-
-export function GetA(o: number) { return FeaturePack[o] }
-export function GetB(o: number) { return FeaturePack[o + 1] }
-export function GetC(o: number) { return FeaturePack[o + 2] }
-export function GetD(o: number) { return FeaturePack[o + 3] }
-export function GetE(o: number) { return FeaturePack[o + 4] }
-
-function Attacks_feature_Increase_Depth() {
-    depth++
-}
-
-function Attacks_feature_Decrease_Depth() {
-    depth--
-}
-
-let depth: number
-const bucketOffsets = new Uint32Array(8 * 64 * 128)
-const bucketCounts =  new Uint32Array(8 * 64)
-
-function Add_Attacks_feature_grouped_by_from(from: number, featureOffset: number) {
-    let key = depth * 64 + from
-    const count = bucketCounts[key]
-    bucketOffsets[key * 128 + bucketCounts[key]++] = featureOffset
-}
-
-function Get_Attacks_feature_grouped_by_from_iterator(from: number) {
-    let key = depth * 64 + from
-    const count = bucketCounts[key]
-    const base = key * 128
-    return [base, count]
-}
-
-
-function Get_Attacks_feature(base: number, offset: number) {
-    return bucketOffsets[base + offset]
-}
-
-
-
-// Attacks: A from B a C type
-// Attacks2 A from B a C a2 D type
-// XRay_Attacks A from B a2 C a D type2 E type
-// Blocks A from B to C a2
-// BlockableAttack A a2 B block
-// UnblockableAttack A a2
-// DoubleAttack A a1 B a2
-// CheckToLureIntoAFork A aa B cc C da
-//    aa BlockableAttack cc Attacks
-// Checkmate A aa
-// OccasionalCapture A cc
