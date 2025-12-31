@@ -1,7 +1,7 @@
 import { it } from 'vitest'
 import { puzzles } from './fixture'
 import { Generate_TemporalMotives, san_moves, TemporalMoves } from '../src/features/tactical_features'
-import { fen_pos, Generate_TemporalTransitions, Generate_TemporalTransitions_Optimized, Min_max_sort, Move, pos_moves, Position } from '../src'
+import { fen_pos, Generate_TemporalTransitions_Optimized, Min_max_sort, Move, move_c_to_Move, pos_moves, Position } from '../src'
 import { squareSet } from '../src/debug'
 
 import fs from 'fs'
@@ -13,17 +13,12 @@ function render(data: string) {
 
 it('works', () => {
 
-    let fen = puzzles[1].move_fens[0]
-    let tt = Generate_TemporalTransitions_Optimized(fen)
-    console.log(tt)
-    /*
-    for (let i = 0; i < 100; i++) {
-        let res = solve_n(i)
+    for (let i = 0; i < 1; i++) {
+        let res = solve_n(2)
         if (!res) {
             break
         }
     }
-        */
 })
 
 
@@ -32,11 +27,10 @@ function solve_n(n: number) {
     let fen = puzzles[n].move_fens[0]
     let solution = puzzles[n].sans
 
-    let pos = fen_pos(fen)
-    let tt = Generate_TemporalTransitions(pos)
+    let tt = Generate_TemporalTransitions_Optimized(fen)
 
-    //tt = tt.filter(_ => Legal_moves_filter(pos, _))
-    let res = Min_max_sort(pos, tt).map(_ => san_moves(pos, _))
+    let tt2 = tt.map(_ => _.map(move_c_to_Move))
+    let res = Min_max_sort(fen_pos(fen), tt2).map(_ => san_moves(fen_pos(fen), _))
 
 
     let solved = find_solving_sans(res, solution)
