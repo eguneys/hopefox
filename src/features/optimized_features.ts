@@ -32,7 +32,7 @@ function Legal_moves_filter(pos: PositionC, mm: MoveC[]) {
 }
 
 
-export function Generate_TemporalTransitions(fen: FEN) {
+export function Generate_TemporalTransitions_Optimized(fen: FEN) {
 
 
 
@@ -90,6 +90,8 @@ export function Generate_TemporalTransitions(fen: FEN) {
         }
         queue = new_queue
     }
+
+    m.delete_position(pos)
     return res
 }
 

@@ -3969,6 +3969,7 @@ async function createWasm() {
 
 
 
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.preloadFile = FS_preloadFile;
   FS.staticInit();;
@@ -4235,7 +4236,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'addOnPostRun',
   'freeTableIndexes',
   'functionsInTableMap',
-  'setValue',
   'PATH',
   'PATH_FS',
   'UTF8Decoder',
@@ -4425,6 +4425,7 @@ unexportedSymbols.forEach(unexportedRuntimeSymbol);
   // End runtime exports
   // Begin JS library exports
   Module['getValue'] = getValue;
+  Module['setValue'] = setValue;
   Module['UTF8ToString'] = UTF8ToString;
   Module['stringToUTF8'] = stringToUTF8;
   // End JS library exports
@@ -4446,6 +4447,9 @@ var _free_legal_moves = Module['_free_legal_moves'] = makeInvalidEarlyAccess('_f
 var _free = Module['_free'] = makeInvalidEarlyAccess('_free');
 var _attacks = Module['_attacks'] = makeInvalidEarlyAccess('_attacks');
 var _pos_attacks = Module['_pos_attacks'] = makeInvalidEarlyAccess('_pos_attacks');
+var _get_pieces_bb = Module['_get_pieces_bb'] = makeInvalidEarlyAccess('_get_pieces_bb');
+var _get_pieces_color_bb = Module['_get_pieces_color_bb'] = makeInvalidEarlyAccess('_get_pieces_color_bb');
+var _get_occupied = Module['_get_occupied'] = makeInvalidEarlyAccess('_get_occupied');
 var _get_turn = Module['_get_turn'] = makeInvalidEarlyAccess('_get_turn');
 var _get_at = Module['_get_at'] = makeInvalidEarlyAccess('_get_at');
 var _is_checkmate = Module['_is_checkmate'] = makeInvalidEarlyAccess('_is_checkmate');
@@ -4487,6 +4491,12 @@ function assignWasmExports(wasmExports) {
   _attacks = Module['_attacks'] = createExportWrapper('attacks', 5);
   assert(wasmExports['pos_attacks'], 'missing Wasm export: pos_attacks');
   _pos_attacks = Module['_pos_attacks'] = createExportWrapper('pos_attacks', 3);
+  assert(wasmExports['get_pieces_bb'], 'missing Wasm export: get_pieces_bb');
+  _get_pieces_bb = Module['_get_pieces_bb'] = createExportWrapper('get_pieces_bb', 4);
+  assert(wasmExports['get_pieces_color_bb'], 'missing Wasm export: get_pieces_color_bb');
+  _get_pieces_color_bb = Module['_get_pieces_color_bb'] = createExportWrapper('get_pieces_color_bb', 3);
+  assert(wasmExports['get_occupied'], 'missing Wasm export: get_occupied');
+  _get_occupied = Module['_get_occupied'] = createExportWrapper('get_occupied', 2);
   assert(wasmExports['get_turn'], 'missing Wasm export: get_turn');
   _get_turn = Module['_get_turn'] = createExportWrapper('get_turn', 1);
   assert(wasmExports['get_at'], 'missing Wasm export: get_at');
