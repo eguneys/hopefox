@@ -13,8 +13,8 @@ function render(data: string) {
 
 it('works', () => {
 
-    for (let i = 0; i < 1; i++) {
-        let res = solve_n(2)
+    for (let i = 0; i < 100; i++) {
+        let res = solve_n(i)
         if (!res) {
             break
         }

@@ -15,9 +15,8 @@ function unplay_moves(pos: PositionC, moves: MoveC[]) {
     }
 }
 
-function Legal_moves_filter(pos: PositionC, mm: MoveC[]) {
+function Legal_moves_filter(pos: PositionC, mm: MoveC[], l: MoveC[] = m.get_legal_moves(pos)) {
 
-    let l = m.get_legal_moves(pos)
     let a = 0
     let b = 0
     for (let x of mm) {
@@ -43,6 +42,10 @@ export function Generate_TemporalTransitions_Optimized(fen: FEN) {
         for (let h1 of queue) {
             play_moves(pos, h1)
 
+            let l = m.get_legal_moves(pos)
+
+
+
             Reset()
             let temporal_motives = Generate_TemporalMotives(pos)
 
@@ -67,7 +70,7 @@ export function Generate_TemporalTransitions_Optimized(fen: FEN) {
 
             m_moves = m_moves
                 .filter(_ => _.length > 0)
-                .filter(_ => Legal_moves_filter(pos, _))
+                .filter(_ => Legal_moves_filter(pos, _, l))
 
             unplay_moves(pos, h1)
 
@@ -241,7 +244,7 @@ function NewMotives(features: TacticalFeatures) {
             if (block_from === a2_from) {
                 continue
             }
-            if (block_from === a2_to) {
+            if (a2_to2 === block_from) {
                 continue
             }
 
@@ -256,6 +259,9 @@ function NewMotives(features: TacticalFeatures) {
             BlockableAttack_End += 5
         }
 
+        if (a2_from === 31 && a2_to === 4) {
+            debugger
+        }
         if (unblockable) {
             cursor = UnblockableAttack_End
             // UnblockableAttack A a2
@@ -448,6 +454,7 @@ export function Generate_TemporalMotives(pos: PositionC) {
             // aa UnblockableAttack
             let aa_aa = GetA(aa)
 
+            let aa_from = GetA(aa_aa)
             // aa_aa Attacks2
             let aa_to2 = GetC(aa_aa)
 
