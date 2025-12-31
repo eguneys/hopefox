@@ -1,5 +1,5 @@
 import { between } from "../attacks"
-import { BLACK, ColorC, KING, make_move_from_to, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { SquareSet } from "../squareSet"
 
 
@@ -17,6 +17,7 @@ function unplay_moves(pos: PositionC, moves: MoveC[]) {
 
 function Legal_moves_filter(pos: PositionC, mm: MoveC[], l: MoveC[] = m.get_legal_moves(pos)) {
 
+    let aaa = l.map(move_c_to_Move)
     let a = 0
     let b = 0
     for (let x of mm) {
@@ -254,14 +255,12 @@ function NewMotives(features: TacticalFeatures) {
 
             unblockable = false
 
+            cursor = BlockableAttack_End
             // BlockableAttack A a2 B block
             NewFeature(a2, block)
             BlockableAttack_End += 5
         }
 
-        if (a2_from === 31 && a2_to === 4) {
-            debugger
-        }
         if (unblockable) {
             cursor = UnblockableAttack_End
             // UnblockableAttack A a2
@@ -297,6 +296,7 @@ function NewMotives(features: TacticalFeatures) {
         }
 
         if (a3 === undefined && a2 !== undefined) {
+            cursor = DoubleAttacks_Feature_End
             // DoubleAttack A a1 B a2
             NewFeature(a1!, a2)
             DoubleAttacks_Feature_End += 5
@@ -325,25 +325,32 @@ export function Generate_TemporalMotives(pos: PositionC) {
     CheckToLureIntoAFork_Feature_End = CheckToLureIntoAFork_Feature_Start
 
 
-    let turn_bb = m.get_pieces_color_bb(pos, m.pos_turn(pos))
+    let turn = m.pos_turn(pos)
+    let opposite_turn = turn === WHITE ? BLACK : WHITE
+    let turn_bb = m.get_pieces_color_bb(pos, turn)
+    let opposite_bb = m.get_pieces_color_bb(pos, opposite_turn)
     for (let aa = motives.BlockableAttack_Start; aa < motives.BlockableAttack_End; aa+=5) {
         // aa BlockableAttack
         let aa_aa = GetA(aa)
         let aa_block = GetB(aa)
 
-        // aa_aa Attacks
+        // aa_aa Attacks2
         let aa_aa_from = GetA(aa_aa)
         let aa_aa_to = GetB(aa_aa)
-        let aa_aa_type = GetC(aa_aa)
+        let aa_aa_type = GetD(aa_aa)
 
-        // aa_block Blocks
+        // aa_block Attacks
         let aa_block_from = GetA(aa_block)
         let aa_block_to = GetB(aa_block)
 
         if (aa_aa_type !== AttackType.Attack) {
             continue
         }
-        if (!turn_bb.has(aa_block_from)) {
+        if (!turn_bb.has(aa_aa_from)) {
+            continue
+        }
+
+        if (!opposite_bb.has(aa_block_from)) {
             continue
         }
 
@@ -355,11 +362,22 @@ export function Generate_TemporalMotives(pos: PositionC) {
         to = aa_block_to
         let move2 = make_move_from_to(from, to)
 
-        if (!Legal_moves_filter(pos, [move1, move2])) {
+        if (aa_block_from === 43 && aa_block_to === 3) {
+            debugger
+        }
+        if (!Legal_moves_filter(pos, [move1])) {
             continue
         }
 
         m.make_move(pos, move1)
+
+        if (!Legal_moves_filter(pos, [move2])) {
+            m.unmake_move(pos, move1)
+            continue
+        }
+
+
+
         m.make_move(pos, move2)
 
         Attacks_feature_Increase_Depth()
@@ -418,6 +436,7 @@ export function Generate_TemporalMotives(pos: PositionC) {
                         continue
                     }
 
+                    cursor = CheckToLureIntoAFork_Feature_End
                     // CheckToLureIntoAFork A aa B cc C da
                     NewFeature(aa, cc, da)
                     CheckToLureIntoAFork_Feature_End += 5
@@ -444,8 +463,6 @@ export function Generate_TemporalMotives(pos: PositionC) {
     Checkmate_End = Checkmate_Start
 
 
-    let turn = m.pos_turn(pos)
-    let opposite_turn = turn === WHITE ? BLACK : WHITE;
     let king_on = m.get_pieces_bb(pos, [KING]).intersect(m.get_pieces_color_bb(pos, opposite_turn)).singleSquare()!
 
     for (let aa = motives.UnblockableAttack_Start;
@@ -464,6 +481,7 @@ export function Generate_TemporalMotives(pos: PositionC) {
 
 
 
+            cursor = Checkmate_End
             // Checkmate A aa
             NewFeature(aa_aa)
             Checkmate_End += 5
@@ -490,6 +508,7 @@ export function Generate_TemporalMotives(pos: PositionC) {
                 continue
             }
 
+            cursor = OccasionalCapture_End
             // OccasionalCapture A cc
             NewFeature(cc)
             OccasionalCapture_End += 5
