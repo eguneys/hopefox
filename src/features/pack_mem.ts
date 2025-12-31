@@ -2,7 +2,7 @@ const Nb_Depth = 8
 const Nb_BucketSize = 64
 const Nb_BucketCount = 128
 
-const Nb_Frames = 100
+const Nb_Frames = 1000
 const Nb_FrameSize = 1000000
 
 class PackMem {
@@ -48,9 +48,6 @@ class PackMem {
     }
 
     new_feature(a: number, b = 0, c = 0, d = 0, e = 0) {
-        if (this.cursor === 1000010) {
-            debugger
-        }
         this.Pack[this.frame * Nb_FrameSize + this._cursor++] = a
         this.Pack[this.frame * Nb_FrameSize + this._cursor++] = b
         this.Pack[this.frame * Nb_FrameSize + this._cursor++] = c
