@@ -225,7 +225,7 @@ function NewMotives(features: TacticalFeatures) {
     let UnblockableAttack_End = UnblockableAttack_Start
 
 
-    for (let a2 = features.Attacks2_Feature_End; a2 < features.Attacks2_Feature_End; a2++) {
+    for (let a2 = features.Attacks2_Feature_Start; a2 < features.Attacks2_Feature_End; a2++) {
 
         // Attack2
         let a2_from = GetA(a2)
@@ -351,6 +351,11 @@ export function Generate_TemporalMotives(pos: PositionC) {
         from = aa_block_from
         to = aa_block_to
         let move2 = make_move_from_to(from, to)
+
+        if (!Legal_moves_filter(pos, [move1, move2])) {
+            continue
+        }
+
         m.make_move(pos, move1)
         m.make_move(pos, move2)
 
@@ -382,6 +387,12 @@ export function Generate_TemporalMotives(pos: PositionC) {
             let from = cc_from
             let to = cc_to
             let move3 = make_move_from_to(from, to)
+
+            if (!Legal_moves_filter(pos, [move3])) {
+                continue
+            }
+
+
             m.make_move(pos, move3)
 
             Attacks_feature_Increase_Depth()

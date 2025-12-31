@@ -13,7 +13,7 @@ function render(data: string) {
 
 it('works', () => {
 
-    let fen = puzzles[0].move_fens[0]
+    let fen = puzzles[1].move_fens[0]
     let tt = Generate_TemporalTransitions_Optimized(fen)
     console.log(tt)
     /*
