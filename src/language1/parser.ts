@@ -1,5 +1,5 @@
 import { between } from "../attacks"
-import { BLACK, KING, move_c_to_Move, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
 
 type ColumnName = string
 
@@ -579,7 +579,8 @@ function seed_db(m: PositionManager, db: Db, pos: PositionC) {
 
 export function parse_rules(rules: string) {
     let db = new Db()
-    return bind_db(db)
+    bind_db(db)
+    return db
 }
 
 export function do_moves(db: Db, m: PositionManager, pos: PositionC) {
@@ -587,7 +588,23 @@ export function do_moves(db: Db, m: PositionManager, pos: PositionC) {
     
     run_db(db)
 
-    let res = []
+    let res: MoveC[] = []
+
+    let check = db.NewColumn('check')
+
+    let [check_start, check_end, check_Inc] = db.GetIteration(check)
+
+    for (let check_index = check_start; check_index < check_end; check_index += check_Inc) {
+
+        let check_from = db.GetParam(check_index, Param.From)
+        let check_to = db.GetParam(check_index, Param.To)
+
+
+        res.push(make_move_from_to(check_from, check_to))
+    }
+    
 
     db._ResetValues()
+
+    return res
 }
