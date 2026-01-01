@@ -1,18 +1,17 @@
 import { it } from 'vitest'
-import { puzzles } from './fixture'
-import { Generate_TemporalMotives, san_moves, TemporalMoves } from '../src/features/tactical_features'
-import { fen_pos, Generate_TemporalTransitions_Optimized, Min_max_sort, Move, move_c_to_Move, pos_moves, Position } from '../src'
-import { squareSet } from '../src/debug'
-
 import fs from 'fs'
+import { puzzles } from './fixture'
+import { fen_pos, Min_max_sort, move_c_to_Move, search, Position, Move } from '../src'
+import { makeSan } from '../src/san'
 
 
 function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
 }
 
-it.skip('works', () => {
+it('works', () => {
     console.log(puzzles[0].link)
+    solve_n(0)
 })
 
 
@@ -21,7 +20,7 @@ function solve_n(n: number) {
     let fen = puzzles[n].move_fens[0]
     let solution = puzzles[n].sans
 
-    let tt = Generate_TemporalTransitions_Optimized(fen)
+    let tt = [search('', fen)]
 
     let tt2 = tt.map(_ => _.map(move_c_to_Move))
     let res = Min_max_sort(fen_pos(fen), tt2).map(_ => san_moves(fen_pos(fen), _))
@@ -75,4 +74,15 @@ export const find_solving_sans = (a: SAN[][], b: SAN[]) => {
 
 function dedup_str(m: string[][]) {
     return [...new Set(m.map(_ => _.join(' ')))].map(_ => _.split(" "))
+}
+
+
+export function san_moves(pos: Position, moves: Move[]) {
+    let res: SAN[] = []
+    let p2 = pos.clone()
+    for (let move of moves) {
+        res.push(makeSan(p2, move))
+        p2.play(move)
+    }
+    return res
 }

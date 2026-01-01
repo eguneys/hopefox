@@ -1,5 +1,6 @@
 import { between } from "../attacks"
 import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { FEN } from "../mor3_hope1"
 
 type ColumnName = string
 
@@ -92,6 +93,7 @@ class Db {
     constructor() {
         this.column_index = 0
         this.column_map = new Map()
+        this.column_by_name = new Map()
 
         this.binds = new Map()
     }
@@ -209,6 +211,33 @@ class Db {
                         }
                     }
                 }
+
+
+
+
+                if (this.const_bind_header) {
+                    this.SetEqualBindJ(e, 0)
+                    let [a2, p2] = this.const_bind_header
+                    let [C_start, C_end, C_Inc] = this.GetConstBindIteration()
+
+                    for (let c = C_start; c < C_end; c += C_Inc) {
+                        let [a2_index, J2] = this.GetConstBind(c)
+                        if (J2 === 0) {
+                            continue
+                        }
+
+                        let intersect =
+                            (a === a2 && a_index === a2_index)
+                            || (a2 === b && a2_index === b_index)
+
+                        if (intersect) {
+                            this.SetConstBindJ(e, 1)
+                            break
+                        }
+                    }
+                }
+
+
             }
         }
 
@@ -226,6 +255,40 @@ class Db {
         }
 
 
+        if (this.equal_bind_header) {
+
+            let [a, p, b, q] = this.equal_bind_header
+
+
+            if (p === Param.From || p === Param.To || q === Param.From || q === Param.To) {
+
+                let [E_start, E_end, E_Inc] = this.GetEqualBindIteration()
+
+                for (let e = E_start; e < E_end; e += E_Inc) {
+                    let [a_index, b_index, J] = this.GetEqualBind(e)
+                    if (J === 0) {
+                        continue
+                    }
+
+
+                    this.BeginAddValue(this.bind_column)
+                    if (p === Param.From) {
+                        this.AddValue(this.bind_column, Param.From, p)
+                    }
+                    if (p === Param.To) {
+                        this.AddValue(this.bind_column, Param.To, q)
+                    }
+                    if (q === Param.From) {
+                        this.AddValue(this.bind_column, Param.From, q)
+                    }
+                    if (q === Param.To) {
+                        this.AddValue(this.bind_column, Param.To, q)
+                    }
+                }
+
+            }
+
+        }
 
         if (this.between_bind_header) {
 
@@ -259,8 +322,8 @@ class Db {
 
 
     GetEqualBindIteration(): [Index, Index, Index] {
-        let begin =  Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + Db.Nb_BindEqualParamSize
-        let end = this.equal_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize]
+        let begin =  0
+        let end = this.equal_bind_cursor
         return [begin, end, Db.Nb_BindEqualParamSize]
     }
     GetEqualBind(o: any): [Column, Column, number] {
@@ -275,8 +338,8 @@ class Db {
     }
 
     GetDifferentBindIteration(): [Index, Index, Index] {
-        let begin =  Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + Db.Nb_BindEqualParamSize
-        let end = this.different_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize]
+        let begin =  0
+        let end = this.different_bind_cursor
         return [begin, end, Db.Nb_BindEqualParamSize]
     }
 
@@ -301,10 +364,28 @@ class Db {
     }
 
     GetBetweenBindIteration(): [any, any, any] {
-        let begin =  Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + Db.Nb_BindEqualParamSize
-        let end = this.between_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize]
+        let begin =  0
+        let end = this.between_bind_tape[0]
         return [begin, end, Db.Nb_BindEqualParamSize]
     }
+
+    GetConstBindIteration(): [Index, Index, Index] {
+        let begin =  0
+        let end = this.const_bind_cursor
+        return [begin, end, Db.Nb_BindEqualParamSize]
+    }
+
+    GetConstBind(o: any): [Index, Index] {
+        return [
+            this.const_bind_tape[o],
+            this.const_bind_tape[o + 1],
+        ]
+    }
+
+    SetConstBindJ(o: any, J: number) {
+        this.const_bind_tape[o + 1] = J
+    }
+
 
 
     _ResetValues() {
@@ -327,6 +408,11 @@ class Db {
     static Nb_BindEqualParamSize = 4
     static Nb_EqualBindsSize = 100000
 
+    equal_bind_cursor: number
+    different_bind_cursor: number
+    between_bind_cursor: number
+    const_bind_cursor: number
+
     equal_bind_tape: Int32Array = new Int32Array(Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize)
     different_bind_tape: Int32Array = new Int32Array(Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize)
     between_bind_tape: Int32Array = new Int32Array(Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize)
@@ -338,6 +424,10 @@ class Db {
         this.different_bind_header = undefined
         this.between_bind_header = undefined
         this.const_bind_header = undefined
+        this.equal_bind_cursor = 0
+        this.different_bind_cursor = 0
+        this.between_bind_cursor = 0
+        this.const_bind_cursor = 0
     }
 
     BeginEqual(a: Column, p: Param, b: Column, q: Param) {
@@ -345,26 +435,25 @@ class Db {
     }
 
     SetEqual(a: Index, b: Index) {
-        let cursor = 
-            this.equal_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize]
-            this.equal_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize] = cursor + Db.Nb_BindEqualParamSize
+        let cursor = this.equal_bind_cursor
+        this.equal_bind_cursor = cursor + Db.Nb_BindEqualParamSize
 
-        this.equal_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 0] = a
-        this.equal_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 1] = b
-        this.equal_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 2] = 1
+        this.equal_bind_tape[cursor + 0] = a
+        this.equal_bind_tape[cursor + 1] = b
+        this.equal_bind_tape[cursor + 2] = 1
     }
 
     BeginDifferent(a: Column, p: Param, b: Column, q: Param) {
         this.different_bind_header = [a, p, b, q]
     }
     SetDifferent(a: Index, b: Index) {
-        let cursor = 
-            this.different_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize]
-            this.different_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize] = cursor + Db.Nb_BindEqualParamSize
 
-        this.different_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 0] = a
-        this.different_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 1] = b
-        this.different_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 2] = 1
+        let cursor = this.different_bind_cursor
+        this.different_bind_cursor = cursor + Db.Nb_BindEqualParamSize
+
+        this.different_bind_tape[cursor + 0] = a
+        this.different_bind_tape[cursor + 1] = b
+        this.different_bind_tape[cursor + 2] = 1
     }
 
     BeginBetween(a: Column, p: Param, b: Column, from: Param, on: Param, to: Param) {
@@ -373,13 +462,13 @@ class Db {
 
 
     SetBetween(a: Index, b: Index) {
-        let cursor = 
-            this.between_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize]
-            this.between_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize] = cursor + Db.Nb_BindEqualParamSize
 
-        this.between_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 0] = a
-        this.between_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 1] = b
-        this.between_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 2] = 1
+        let cursor = this.between_bind_cursor
+        this.between_bind_cursor = cursor + Db.Nb_BindEqualParamSize
+
+        this.between_bind_tape[cursor + 0] = a
+        this.between_bind_tape[cursor + 1] = b
+        this.between_bind_tape[cursor + 2] = 1
     }
 
     BeginConst(a: Column, p: Param) {
@@ -387,17 +476,17 @@ class Db {
     }
 
     SetConst(a: Index) {
-        let cursor = 
-            this.equal_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize]
-            this.equal_bind_tape[Db.Nb_BindEqualParamSize * Db.Nb_EqualBindsSize] = cursor + Db.Nb_BindEqualParamSize
 
-        this.equal_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 0] = a
-        this.equal_bind_tape[Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize + cursor + 1] = 1
+        let cursor = this.const_bind_cursor
+        this.const_bind_cursor = cursor + Db.Nb_BindEqualParamSize
+
+        this.const_bind_tape[cursor + 0] = a
+        this.const_bind_tape[cursor + 1] = 1
     }
 
 
     /** Beta */
-    static Nb_ColumnSize = 1000000
+    static Nb_ColumnSize = 10000
     static Nb_ParamSize = 10
     tape: Int32Array = new Int32Array(Db.Nb_Max_Columns * Db.Nb_ColumnSize * Db.Nb_ParamSize).fill(0)
 
@@ -417,8 +506,11 @@ class Db {
     }
 
     GetIteration(a: Column) {
-        let begin = a * Db.Nb_ColumnSize * Db.Nb_ParamSize + Db.Nb_ParamSize
-        let end = this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
+        let begin = 
+            a * Db.Nb_ColumnSize * Db.Nb_ParamSize + Db.Nb_ParamSize
+        let end = 
+            a * Db.Nb_ColumnSize * Db.Nb_ParamSize + 
+            this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
         return [begin, end, Db.Nb_ParamSize]
     }
 
@@ -502,12 +594,14 @@ function bind_db(db: Db) {
     db.BindEqual('attack2', Param.To2, 'occupy', Param.On)
     db.BindConst('occupy', Param.Role, KING)
 
+    /*
     db.BeginBind('fork')
     db.BindDifferent('attack', Param.To, 'attack', Param.To)
 
     db.BeginBind('block')
     db.BindBetween('occupy', Param.On, 'attack', Param.From, Param.On, Param.To)
     db.BindEqual('occupy', Param.On, 'move', Param.To)
+    */
 }
 
 
@@ -607,4 +701,15 @@ export function do_moves(db: Db, m: PositionManager, pos: PositionC) {
     db._ResetValues()
 
     return res
+}
+
+let m = await PositionManager.make()
+
+export function search(rules: string, fen: FEN) {
+    
+    let db = parse_rules(rules)
+
+    let pos = m.create_position(fen)
+
+    return do_moves(db, m, pos)
 }
