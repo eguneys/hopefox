@@ -13,6 +13,13 @@ enum Param {
     To2
 }
 
+const Params = [
+    Param.Color,
+    Param.Role,
+    Param.On,
+    Param.From,
+    Param.To]
+
 type Column = number
 
 type Value = number
@@ -100,8 +107,9 @@ class Db {
 
 
     NewColumn(name: ColumnName): Column {
+
         let column = this.column_by_name.get(name)
-        if (column) {
+        if (column !== undefined) {
             return column
         }
         column = this.column_index
@@ -206,7 +214,7 @@ class Db {
                             || (b2 === b && b2_index === b_index)
 
                         if (intersect) {
-                            this.SetDifferentBindJ(e, 1)
+                            this.SetEqualBindJ(e, 1)
                             break
                         }
                     }
@@ -231,7 +239,7 @@ class Db {
                             || (a2 === b && a2_index === b_index)
 
                         if (intersect) {
-                            this.SetConstBindJ(e, 1)
+                            this.SetEqualBindJ(e, 1)
                             break
                         }
                     }
@@ -286,6 +294,40 @@ class Db {
                     }
                 }
 
+            }
+
+            let [E_start, E_end, E_Inc] = this.GetEqualBindIteration()
+
+            for (let e = E_start; e < E_end; e += E_Inc) {
+                let [a_index, b_index, J] = this.GetEqualBind(e)
+                if (J === 0) {
+                    continue
+                }
+
+
+                let x = this.GetParam(a_index, Param.From)
+                let y = this.GetParam(a_index, Param.To)
+
+                let k = this.GetParam(b_index, Param.On)
+                let r = this.GetParam(b_index, Param.Role)
+
+                console.log(x, y, k, r)
+                if (x === 58 && y === 61) {
+                    debugger
+                }
+                this.BeginAddValue(this.bind_column)
+                for (let i of Params) {
+                    if (i === p || i === q) {
+                        continue
+                    }
+
+
+                    let a_value = this.GetParam(a_index, i)
+                    if (a_value === -1) {
+                        continue
+                    }
+                    this.AddValue(this.bind_column, i, a_value)
+                }
             }
 
         }
@@ -494,6 +536,13 @@ class Db {
         let cursor = 
         this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
         this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize] = cursor + Db.Nb_ParamSize
+
+        this.AddValue(a, Param.Color, -1)
+        this.AddValue(a, Param.Role, -1)
+        this.AddValue(a, Param.On, -1)
+        this.AddValue(a, Param.From, -1)
+        this.AddValue(a, Param.To, -1)
+        this.AddValue(a, Param.To2, -1) 
     }
 
     AddValue(a: Column, p: Param, v: Value) {
@@ -509,7 +558,7 @@ class Db {
         let begin = 
             a * Db.Nb_ColumnSize * Db.Nb_ParamSize + Db.Nb_ParamSize
         let end = 
-            a * Db.Nb_ColumnSize * Db.Nb_ParamSize + 
+            a * Db.Nb_ColumnSize * Db.Nb_ParamSize + Db.Nb_ParamSize +
             this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
         return [begin, end, Db.Nb_ParamSize]
     }

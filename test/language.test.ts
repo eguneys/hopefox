@@ -11,7 +11,8 @@ function render(data: string) {
 
 it('works', () => {
     console.log(puzzles[0].link)
-    solve_n(0)
+    //solve_n(0)
+    console.log(search('', puzzles[0].move_fens[0]).map(move_c_to_Move))
 })
 
 
