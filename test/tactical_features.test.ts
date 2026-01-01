@@ -12,11 +12,7 @@ function render(data: string) {
 }
 
 it('works', () => {
-
-    for (let i = 0; i < 100; i++) {
-        let res = solve_n(i)
-        render(`${i}, ${res}`)
-    }
+    console.log(puzzles[0].link)
 })
 
 

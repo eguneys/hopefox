@@ -1,0 +1,86 @@
+### Formal
+
+occupy on color role
+empty on
+
+attack from to
+defend from to
+cover from to
+
+fork
+attack from a
+attack from b
+
+check
+attack to 
+occupy on king
+
+block
+block on attack from-on-to
+
+capture
+attack move
+
+capture_and_fork on_block
+on_block
+ capture 
+ fork
+
+check_to_capture_and_fork_on_block
+
+
+recapture
+capture
+recapture_on_capture
+
+
+sacrifice_rook_to
+lure_into
+mate
+
+sacrifice_rook_to_lure_into_mate
+
+liquidate
+kick_pinned
+evade_kick
+capture_pinned
+
+
+liquidate-kick_pinned-evade_kick-capture_pinned
+
+
+kick_to
+lure_unblock_into
+a_pin
+
+evade_and
+unblock_into
+pin
+
+kick_to_lure_unblock_into_a_pin-evade_and_unblock_into_a_pin-pin
+
+
+block_check
+attack_queen
+capture_hanging_on_evade_queen
+evade_queen
+capture_hanging
+
+block_check_and_attack_queen_and_capture_hanging_on_evade_queen-evade_queen-capture_hanging
+
+
+### Definitions
+
+
+
+
+check
+to
+lure_into
+a_fork
+check_to_lure_into_a_fork
+
+
+block check
+attack queen
+capture hanging on evade queen

@@ -5,7 +5,7 @@ const Nb_BucketCount = 128
 const Nb_Frames = 1000
 const Nb_FrameSize = 1000000
 
-class PackMem {
+export class PackMem {
 
     Pack = new Uint32Array(Nb_Frames * Nb_FrameSize)
 

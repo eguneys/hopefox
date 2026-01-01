@@ -1,0 +1,165 @@
+## Main
+
+
+```
+occupy on color role
+
+attacks from to type
+attacks2 from to to2 type
+
+xray-attacks from to type over over_type
+
+blocks on blocks: attacks
+
+pushes from to
+blockades_push on blockade: pushes
+
+uncovered_square on
+single_attacked_square aa: attacks
+double_attacked_square aa1: attacks aa2: attacks # aa: attacks[]
+
+blockable_attack aa: attacks2 block: attacks
+unblockable_attack aa: attacks2
+double_attacks: a1: attacks a2: attacks
+
+occasional_capture capture attacks
+
+check_to_lure_into_a_fork
+    blocked_attack: blockable_attack
+    capture: attacks
+    fork: double_attacks
+
+checkmate attack: attacks2
+
+```
+
+
+### 100
+
+blockable_attack 
+capture
+is_checkmate
+
+capture
+is_checkmate
+
+fork
+evade
+capture
+
+liquidate
+capture-trap
+
+double capture
+is_checkmate
+
+double_capture
+block_capture
+is_checkmate
+
+check
+checkmate
+
+capture-check-block-capture-is_checkmate
+
+capture
+fork
+liquidate
+
+
+double_capture piece_up
+
+capture piece_up
+
+capture-unpin_expose_queen-attack_queen
+
+capture_hanging-capture_exchange-capture
+
+capture_lure_into_backrank_mate
+check_lure_into_backrank_mate
+
+skewer
+
+check_to_expose_attack_on_hanging-evade-capture_hanging
+
+
+capture_check_to_remove_defender_on_queen_tension-evade_check-capture_hanging_queen
+
+pin_queen_king-unpin-capture_pinned_queen
+
+
+exchange_sac_with_check-lure_into_discovered_check
+
+
+capture_attack_rook_and_remove_defender_on_piece_hanging-recapture-capture_hanging_piece
+
+
+check_to_evade_king_from_defense_of_rook-evade_king-capture_rook-is_checkmate
+
+sacrifice_piece_to_lure_a_fork-accept_sacrifice-fork_king_rook-evade_check-capture_rook_hanging
+
+
+### 200
+
+
+
+capture_fork_double_attack_and_queen-evade_queen-capture_double_attack
+
+capture_lure_overloaded_from_defense-recapture-capture_hanging
+
+fork_with_check-evade_king-capture_forked_defend_hanging-capture_defended-recapture
+
+capture_to_remove_defender_of_hanging-recapture-capture_hanging
+
+capture_to_unblock_hanging-recapture-capture_hanging
+
+check_to_force_capture_double_defended-force_capture-recapture
+
+capture_to_lure_recapture_into_a_fork-recapture-fork_with_check-evade-capture_forked
+
+### 400
+
+fork_queen_and_mate_threat-sacrifice_queen-recapture
+
+capture_and_discover_mate_threat-evade_mate-save_captured_hanging
+
+capture_to_lure_recapture_into_skewer-recapture-attack_hanging_and_threaten_skewer_on_evade-evade_hanging-skewer
+
+sacrifice_rook_to_lure_into_mate
+
+### 500
+
+block_check_and_attack_queen_and_capture_hanging_on_evade-evade_queen-capture_hanging
+
+kick_to_lure_unblock_into_a_pin-evade_unblock-pin
+
+liquidate-kick_pinned_piece-evade_kick-capture_pinned_piece
+
+
+
+## Design
+
+```
+capture ; ; flee-into-pin
+flee-into-pin attacked-pinned-piece; ; capture attacked-pinned-piece
+check ; ; flee-into-pin
+flee-into-pin; ; capture-pin-hanging-piece
+capture-hanging-piece; ; 
+in-between-check; ; capture-hanging-piece
+capture-the-defender-of-piece-in-tension-and-defend; ;
+
+capture threaten-mate-in-1; check ; block-check ; capture-block-with-check distract-mate-in-1;
+
+capture-defended-x-ray-attacked-through; ; exchange
+fork threaten-mate-in-1 hit-hanging-piece; push-to-block-mate; capture
+exchange-sacrifice ; lure-into-pin ; sacrifice-with-check-and-discovered-attack ; accept-sacrifice - capture
+
+offer-exchange
+
+capture-the-defender-and-expose-defended-x-ray-attacked-through
+
+skewer
+double-attack-with-check
+
+
+```

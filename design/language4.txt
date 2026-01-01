@@ -1,0 +1,22 @@
+
+check
+attack2 to2 occupy king on move
+
+
+check
+attack2 to2
+occupy king on
+move
+
+
+begin_binding check
+attack2 to2 occupy king on move
+end_binding
+
+begin_binding fork
+attack from a attack from b move
+end_binding
+
+begin_binding block
+occupy on attack from-on-to move from on
+end_binding

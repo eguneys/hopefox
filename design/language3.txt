@@ -1,0 +1,32 @@
+# input
+turn color
+opposite color
+occupy color role on
+attack from to
+attack2 from to to2
+
+# output
+move from to
+
+# definitions
+
+check
+attack2 to2 occupy king on move
+
+capture
+attack move
+
+fork
+attack from a attack from b move
+
+block
+occupy on attack from-on-to move on
+
+X check
+Y capture
+Z fork
+Q block
+
+X_to_Y_and_Z_on_Q
+
+check_to_capture_and_fork_on_block
