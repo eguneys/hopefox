@@ -96,6 +96,7 @@ class Db {
         this.binds = new Map()
     }
 
+
     NewColumn(name: ColumnName): Column {
         let column = this.column_by_name.get(name)
         if (column) {
@@ -306,6 +307,14 @@ class Db {
     }
 
 
+    _ResetValues() {
+        this.equal_bind_tape.fill(0)
+        this.different_bind_tape.fill(0)
+        this.between_bind_tape.fill(0)
+        this.const_bind_tape.fill(0)
+        this.tape.fill(0)
+    }
+
     static Nb_Max_Columns = 300
 
 
@@ -326,6 +335,9 @@ class Db {
     BeginSetBinding(column: Column) {
         this.bind_column = column
         this.equal_bind_header = undefined
+        this.different_bind_header = undefined
+        this.between_bind_header = undefined
+        this.const_bind_header = undefined
     }
 
     BeginEqual(a: Column, p: Param, b: Column, q: Param) {
@@ -563,4 +575,19 @@ function seed_db(m: PositionManager, db: Db, pos: PositionC) {
             }
         }
     }
+}
+
+export function parse_rules(rules: string) {
+    let db = new Db()
+    return bind_db(db)
+}
+
+export function do_moves(db: Db, m: PositionManager, pos: PositionC) {
+    seed_db(m, db, pos)
+    
+    run_db(db)
+
+    let res = []
+
+    db._ResetValues()
 }
