@@ -166,16 +166,55 @@ class Db {
 
 
     /** Alpha */
-    BeginSetBinding(column: Column) {
 
+
+    JoinBinds() {
+
+        this.BeginAddValue(this.equal_bind_column)
+
+        this.AddValue(this.equal_bind_column, Param.From, from)
+        this.AddValue(this.equal_bind_column, Param.To, to)
     }
 
-    BeginEqual(a: Column, p: Param, b: Column, q: Param) {
 
+
+    BeginSetBinding(column: Column) {
+        this.equal_bind_column = column
+    }
+
+
+    static Nb_Max_Columns = 300
+
+    static Nb_EqualHeaderSize = 10
+    static Nb_EqualBindSize = 100000
+    static Nb_EqualParamSize = 2
+
+    private equal_bind_headers: Int32Array = 
+        new Int32Array(Db.Nb_Max_Columns * Db.Nb_EqualHeaderSize)
+    private equal_binds: Int32Array = 
+        new Int32Array(Db.Nb_Max_Columns * Db.Nb_EqualBindSize * Db.Nb_EqualParamSize)
+    private equal_bind_column: Column
+
+    BeginEqual(a: Column, p: Param, b: Column, q: Param) {
+        let cursor =
+            this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize]
+            this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize] = cursor + Db.Nb_EqualParamSize
+        this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize + 1] = a
+        this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize + 2] = p
+        this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize + 3] = b
+        this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize + 4] = q
+    }
+
+    SetEqual(a: Index, b: Index) {
+        let cursor = this.tape[this.equal_bind_column * Db.Nb_EqualHeaderSize]
+        this.tape[this.equal_bind_column * Db.Nb_EqualBindSize * Db.Nb_EqualParamSize + cursor] = a
+        this.tape[this.equal_bind_column * Db.Nb_EqualBindSize * Db.Nb_EqualParamSize + cursor + 1] = b
     }
 
     BeginDifferent(a: Column, p: Param, b: Column, q: Param) {
 
+    }
+    SetDifferent(a: Index, b: Index) {
     }
 
     BeginBetween(a: Column, p: Param, b: Column, from: Param, on: Param, to: Param) {
@@ -183,38 +222,22 @@ class Db {
     }
 
 
-    BeginConst(a: Column, p: Param) {
-
-    }
-
-
-    SetEqual(a: Index, b: Index) {
-
-    }
-
-
-    SetDifferent(a: Index, b: Index) {
-
-    }
-
     SetBetween(a: Index, b: Index) {
 
     }
 
-    SetConst(a: Index) {
+    BeginConst(a: Column, p: Param) {
 
     }
 
-
-    JoinBinds() {
-
+    SetConst(a: Index) {
     }
 
 
     /** Beta */
     static Nb_ColumnSize = 1000000
     static Nb_ParamSize = 10
-    tape: Int32Array = new Int32Array(Db.Nb_ColumnSize * Db.Nb_ParamSize).fill(0)
+    tape: Int32Array = new Int32Array(Db.Nb_Max_Columns * Db.Nb_ColumnSize * Db.Nb_ParamSize).fill(0)
 
     BeginAddValue(a: Column) {
         let cursor = 
