@@ -212,24 +212,33 @@ class Db {
 
 
     /** Beta */
-    SetValue(a: Column, p: Param, v: Value) {
+    static Nb_ColumnSize = 1000000
+    static Nb_ParamSize = 10
+    tape: Int32Array = new Int32Array(Db.Nb_ColumnSize * Db.Nb_ParamSize).fill(0)
 
+    BeginAddValue(a: Column) {
+        let cursor = 
+        this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
+        this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize] = cursor + Db.Nb_ParamSize
     }
 
-    GetParam(a: Index) {
-        return 0
+    AddValue(a: Column, p: Param, v: Value) {
+        let cursor = this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
+        this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize + cursor + p] = v
     }
 
-    GetIteration(a: Column, p: Param) {
-        return [0, 0, 0]
+    GetParam(a: Index, p: Param) {
+        return this.tape[a + p]
     }
 
-    GetIteration2(a: Column, p: Param, q: Param) {
-        return [0, 0, 0]
+    GetIteration(a: Column) {
+        let begin = a * Db.Nb_ColumnSize * Db.Nb_ParamSize + Db.Nb_ParamSize
+        let end = this.tape[a * Db.Nb_ColumnSize * Db.Nb_ParamSize]
+        return [begin, end, Db.Nb_ParamSize]
     }
 
-    GetParam2(a: Index) {
-        return [0, 0]
+    GetParam2(a: Index, p: Param, q: Param) {
+        return [a + p, a + q]
     }
 }
 
@@ -240,13 +249,13 @@ function run_db(db: Db) {
         for (let bind of binds) {
             if (bind.type === Binding.Equal) {
                 db.BeginEqual(bind.a, bind.p, bind.b, bind.q)
-                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a, bind.p)
+                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a)
                 for (let a = A_start; a < A_end; a+=A_Inc) {
-                    let a_value = db.GetParam(a)
-                    let [B_start, B_end, B_Inc] = db.GetIteration(bind.b, bind.q)
+                    let a_value = db.GetParam(a, bind.p)
+                    let [B_start, B_end, B_Inc] = db.GetIteration(bind.b)
 
                     for (let b = B_start; b < B_end; b+=B_Inc) {
-                        let b_value = db.GetParam(b)
+                        let b_value = db.GetParam(b, bind.q)
 
                         if (a_value === b_value) {
                             db.SetEqual(a, b)
@@ -256,13 +265,13 @@ function run_db(db: Db) {
                 }
             } else if (bind.type === Binding.Different) {
                 db.BeginDifferent(bind.a, bind.p, bind.b, bind.q)
-                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a, bind.p)
+                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a)
                 for (let a = A_start; a < A_end; a+=A_Inc) {
-                    let a_value = db.GetParam(a)
-                    let [B_start, B_end, B_Inc] = db.GetIteration(bind.b, bind.q)
+                    let a_value = db.GetParam(a, bind.p)
+                    let [B_start, B_end, B_Inc] = db.GetIteration(bind.b)
 
                     for (let b = B_start; b < B_end; b+=B_Inc) {
-                        let b_value = db.GetParam(b)
+                        let b_value = db.GetParam(b, bind.q)
 
                         if (a_value !== b_value) {
                             db.SetDifferent(a, b)
@@ -272,13 +281,13 @@ function run_db(db: Db) {
                 }
             } else if (bind.type === Binding.Between) {
                 db.BeginBetween(bind.a, bind.p, bind.b, bind.from, bind.on, bind.to)
-                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a, bind.p)
+                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a)
                 for (let a = A_start; a < A_end; a+=A_Inc) {
-                    let a_value = db.GetParam(a)
-                    let [B_start, B_end, B_Inc] = db.GetIteration2(bind.b, bind.from, bind.to)
+                    let a_value = db.GetParam(a, bind.p)
+                    let [B_start, B_end, B_Inc] = db.GetIteration(bind.b)
 
                     for (let b = B_start; b < B_end; b+=B_Inc) {
-                        let [b_value1, b_value2] = db.GetParam2(b)
+                        let [b_value1, b_value2] = db.GetParam2(b, bind.from, bind.to)
 
                         if (between(b_value1, b_value2).has(a_value)) {
                             db.SetBetween(a, b)
@@ -287,9 +296,9 @@ function run_db(db: Db) {
                 }
             } else if (bind.type === Binding.Const) {
                 db.BeginConst(bind.a, bind.p)
-                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a, bind.p)
+                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a)
                 for (let a = A_start; a < A_end; a+=A_Inc) {
-                    let a_value = db.GetParam(a)
+                    let a_value = db.GetParam(a, bind.p)
                     if (a_value === bind.v) {
                         db.SetConst(a)
                     }
@@ -322,9 +331,11 @@ function seed_db(m: PositionManager, db: Db, pos: PositionC) {
     let color = m.pos_turn(pos)
 
     let turn = db.NewColumn('turn')
-    db.SetValue(turn, Param.Color, color)
+    db.BeginAddValue(turn)
+    db.AddValue(turn, Param.Color, color)
     let opposite = db.NewColumn('opposite')
-    db.SetValue(opposite, Param.Color, color === WHITE ? BLACK : WHITE)
+    db.BeginAddValue(opposite)
+    db.AddValue(opposite, Param.Color, color === WHITE ? BLACK : WHITE)
 
     let attack = db.NewColumn('attack')
     let attack2 = db.NewColumn('attack2')
@@ -339,24 +350,27 @@ function seed_db(m: PositionManager, db: Db, pos: PositionC) {
 
             let piece = m.get_at(pos, on)!
 
-            db.SetValue(occupy, Param.Role, piece_c_type_of(piece))
-            db.SetValue(occupy, Param.Color, color)
-            db.SetValue(occupy, Param.On, on)
+            db.BeginAddValue(occupy)
+            db.AddValue(occupy, Param.Role, piece_c_type_of(piece))
+            db.AddValue(occupy, Param.Color, color)
+            db.AddValue(occupy, Param.On, on)
 
             let aa = m.attacks(piece, on, occupied)
 
             for (let a of aa) {
 
-                db.SetValue(attack, Param.From, on)
-                db.SetValue(attack, Param.To, a)
+                db.BeginAddValue(attack)
+                db.AddValue(attack, Param.From, on)
+                db.AddValue(attack, Param.To, a)
 
 
                 let aa2 = m.attacks(piece, a, occupied.without(on))
 
                 for (let a2 of aa2) {
-                    db.SetValue(attack2, Param.From, on)
-                    db.SetValue(attack2, Param.To, a)
-                    db.SetValue(attack, Param.To2, a2)
+                    db.BeginAddValue(attack2)
+                    db.AddValue(attack2, Param.From, on)
+                    db.AddValue(attack2, Param.To, a)
+                    db.AddValue(attack2, Param.To2, a2)
                 }
             }
         }
