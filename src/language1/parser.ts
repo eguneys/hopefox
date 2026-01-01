@@ -305,6 +305,7 @@ class Db {
                 }
 
 
+                /*
                 let x = this.GetParam(a_index, Param.From)
                 let y = this.GetParam(a_index, Param.To)
 
@@ -315,6 +316,7 @@ class Db {
                 if (x === 58 && y === 61) {
                     debugger
                 }
+                    */
                 this.BeginAddValue(this.bind_column)
                 for (let i of Params) {
                     if (i === p || i === q) {
@@ -731,7 +733,7 @@ export function do_moves(db: Db, m: PositionManager, pos: PositionC) {
     
     run_db(db)
 
-    let res: MoveC[] = []
+    let res: MoveC[][] = []
 
     let check = db.NewColumn('check')
 
@@ -743,7 +745,7 @@ export function do_moves(db: Db, m: PositionManager, pos: PositionC) {
         let check_to = db.GetParam(check_index, Param.To)
 
 
-        res.push(make_move_from_to(check_from, check_to))
+        res.push([make_move_from_to(check_from, check_to)])
     }
     
 

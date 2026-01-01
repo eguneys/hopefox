@@ -3,6 +3,7 @@ import fs from 'fs'
 import { puzzles } from './fixture'
 import { fen_pos, Min_max_sort, move_c_to_Move, search, Position, Move } from '../src'
 import { makeSan } from '../src/san'
+import { makeFen } from '../src/fen'
 
 
 function render(data: string) {
@@ -10,9 +11,9 @@ function render(data: string) {
 }
 
 it('works', () => {
-    console.log(puzzles[0].link)
-    //solve_n(0)
-    console.log(search('', puzzles[0].move_fens[0]).map(move_c_to_Move))
+    //console.log(puzzles[0].link)
+    solve_n(0)
+    //console.log(search('', puzzles[0].move_fens[0]).map(move_c_to_Move))
 })
 
 
@@ -21,7 +22,7 @@ function solve_n(n: number) {
     let fen = puzzles[n].move_fens[0]
     let solution = puzzles[n].sans
 
-    let tt = [search('', fen)]
+    let tt = search('', fen)
 
     let tt2 = tt.map(_ => _.map(move_c_to_Move))
     let res = Min_max_sort(fen_pos(fen), tt2).map(_ => san_moves(fen_pos(fen), _))
