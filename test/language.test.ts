@@ -1,7 +1,7 @@
 import { it } from 'vitest'
 import fs from 'fs'
 import { puzzles } from './fixture'
-import { fen_pos, Min_max_sort, move_c_to_Move, search, Position, Move } from '../src'
+import { fen_pos, Min_max_sort, move_c_to_Move, join_position, Position, Move } from '../src'
 import { makeSan } from '../src/san'
 
 
@@ -9,10 +9,22 @@ function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
 }
 
-it('works', () => {
-    //console.log(puzzles[0].link)
+it('relational', () => {
     solve_n(0)
+})
+
+
+it.skip('works', () => {
+    //console.log(puzzles[0].link)
+    //solve_n(0)
     //console.log(search('', puzzles[0].move_fens[0]).map(move_c_to_Move))
+
+    let fen = 'k7/8/8/8/8/8/6n1/7K w - - 0 1'
+    let tt = join_position(fen)
+
+    let tt2 = tt.map(_ => _.map(move_c_to_Move))
+    console.log(tt2.map(_ => san_moves(fen_pos(fen), _)))
+    //solve_n(0)
 })
 
 
@@ -21,7 +33,7 @@ function solve_n(n: number) {
     let fen = puzzles[n].move_fens[0]
     let solution = puzzles[n].sans
 
-    let tt = search('', fen)
+    let tt = join_position(fen)
 
     let tt2 = tt.map(_ => _.map(move_c_to_Move))
     let res = Min_max_sort(fen_pos(fen), tt2).map(_ => san_moves(fen_pos(fen), _))
