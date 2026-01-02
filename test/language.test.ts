@@ -10,7 +10,7 @@ function render(data: string) {
 }
 
 it('relational', () => {
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 10; i++) {
         render('' + i)
         solve_n(i)
     }

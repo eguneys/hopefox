@@ -148,6 +148,8 @@ export function join_position1a(pos: PositionC) {
 
   let moves: MoveC[][] = []
 
+  moves.push(...bind_moves([pp.moves]))
+  /*
   let checks = pp.checks
   make_moves(checks, pos, () => {
     let pp2 = join_position(pos)
@@ -164,6 +166,7 @@ export function join_position1a(pos: PositionC) {
       moves.push(...bind_moves([checks, blocks, forks]))
     })
   })
+    */
 
 
   return {
@@ -202,118 +205,49 @@ function unmake_moves(moves: Relation, pos: PositionC) {
 
 export function join_position(pos: PositionC) {
 
+  let color = m.pos_turn(pos)
+  let enemy_color = color === WHITE ? BLACK : WHITE
+
   let moves = move_coll(m, pos)
   let turn = turn_coll(m, pos)
   let occupy = occupy_coll(m, pos)
   let attacks2 = attacks2_coll(m, pos)
   let attacks = attacks_coll(m, pos)
 
-  const Kings = select(occupy, r =>
-    r.get('occupy.role') === KING
+  let _
+
+  _ = join(attacks, occupy, (a, o1) =>
+    a.get('attack.attacker_square') === o1.get('occupy.square')
+      ? mergeRows(a, o1)
+      : null
   )
-
-  const enemyKing = semiJoin(Kings, turn, (k, t) => {
-    return k.get('occupy.color') === t.get('opposite.color')
-  })
-
-  const checkingAttacks =
-    join(attacks2, enemyKing, (a, k) =>
-      a.get('attack2.to2') === k.get('occupy.on')
-        ? mergeRows(a, k)
-        : null)
-    
-  const checkingMoves =
-    join(moves, checkingAttacks, (m, a) =>
-      m.get('move.from') === a.get('attack2.from') &&
-        m.get('move.to') === a.get('attack2.to')
-        ? mergeRows(m, a)
-        : null
-    )
-
-  const checks =
-    extend(checkingMoves, r => {
-      const out = new Map<Column, Value>()
-      out.set("check", 1)
-      return out
-    })
-
-
-  let blockingAttacks = semiJoin(attacks, attacks, (a, b) => {
-    if (
-      b.get('attack.from')! < a.get('attack.to')! &&
-      a.get('attack.to')! < b.get('attack.to')!) {
-        return true
-    }
-    return false
-  })
-
-  const blockingMoves =
-    join(moves, blockingAttacks, (m, a) =>
-      m.get('move.from') === a.get('attack.from') &&
-        m.get('move.to') === a.get('attack.to')
-        ? mergeRows(m, a)
-        : null
-    )
-
-  const blocks =
-    extend(blockingMoves, r => {
-      const out = new Map<Column, Value>()
-      out.set("block", 1)
-      return out
-    })
-
-  const captures = semiJoin(moves, occupy, (a, b)=> {
-    return a.get('move.to') === b.get('occupy.on')
-  })
-
-  const double_attacks = join(attacks2, attacks2, (a, b) =>
-    a.get('attack2.from') === b.get('attack2.from') &&
-    a.get('attack2.to') === b.get('attack2.to') &&
-      a.get('attack2.to2') !== b.get('attack2.to2')
-      ? mapRows(a, b, (a, b) => {
-        let res = new Map()
-        res.set('double_attack.from', a.get('attack2.from'))
-        res.set('double_attack.to', b.get('attack2.to'))
-        res.set('double_attack.to1', a.get('attack2.to2'))
-        res.set('double_attack.to2', b.get('attack2.to2'))
-        return res
-      })
+  _ = join(_, occupy, (t, o2) =>
+    t.get('attack.target_square') === o2.get('occupy.square') &&
+      t.get('occupy.color') !== o2.get('occupy.color')
+      ? (() => {
+        const r = new Map()
+        r.set('threat.attacker_square', t.get('attack.attacker_square'))
+        r.set('threat.attacker_piece', t.get('occupy.piece'))
+        r.set('threat.attacker_color', t.get('occupy.color'))
+        r.set('threat.target_square', o2.get('occupy.square'))
+        r.set('threat.target_piece', o2.get('occupy.piece'))
+        r.set('threat.target_value', o2.get('occupy.value'))
+        return r
+      })()
       : null
   )
 
-  const occupy2 = join(occupy, occupy, (a, b) => mapRows(a, b, (a, b) => {
-    let res = new Map()
-    res.set('occupy.color', a.get('occupy.color'))
-    res.set('occupy.role', a.get('occupy.role'))
-    res.set('occupy.on', a.get('occupy.on'))
-    res.set('occupy2.color', b.get('occupy.color'))
-    res.set('occupy2.role', b.get('occupy.role'))
-    res.set('occupy2.on', b.get('occupy.on'))
-    return res
-  }))
+  let threats = _
 
-
-  const double_attack_moves = semiJoin(double_attacks, occupy2, (a, b) =>
-    a.get('double_attack.to1') === b.get('occupy.on') &&
-    a.get('double_attack.to2') === b.get('occupy2.on')
-  )
-
-
-  const forks =
-    join(moves, double_attack_moves, (m, a) =>
-      m.get('move.from') === a.get('double_attack.from') &&
-        m.get('move.to') === a.get('double_attack.to')
-        ? mergeRows(m, a)
-        : null
-    )
-
-
+  moves = project(threats, (a) => {
+    let row = new Map()
+    row.set('move.from', a.get('threat.attacker_square'))
+    row.set('move.to', a.get('threat.target_square'))
+    return row
+  })
 
   return {
-    checks,
-    blocks,
-    captures,
-    forks
+    moves
   }
 }
 
@@ -373,7 +307,7 @@ function occupy_coll(m: PositionManager, pos: PositionC): Relation {
       let occupy = new Map()
       occupy.set('occupy.color', color)
       occupy.set('occupy.role', role)
-      occupy.set('occupy.on', on)
+      occupy.set('occupy.square', on)
       res.push(occupy)
     }
   }
@@ -432,8 +366,8 @@ function attacks_coll(m: PositionManager, pos: PositionC): Relation {
                 for (let a of aa) {
 
                     let attack = new Map()
-                    attack.set('attack.from', on)
-                    attack.set('attack.to', a)
+                    attack.set('attack.attacker_square', on)
+                    attack.set('attack.target_square', a)
                     res.push(attack)
                 }
             }
