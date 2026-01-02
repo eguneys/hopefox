@@ -130,33 +130,73 @@ export function join_position2(fen: FEN) {
 
   let pos = m.create_position(fen)
 
-  function checking_moves(pos: PositionC) {
-    let res = join_position(pos).checks
+  function out_moves(pos: PositionC) {
+    let res = join_position1a(pos)
 
-    let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
-    return moves
-  }
-  function blocking_moves(pos: PositionC) {
-    let res = join_position(pos).blocks
-
-    let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
-    return moves
-  }
-  function capturing_moves(pos: PositionC) {
-    let res = join_position(pos).captures
-
-    let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
-    return moves
+    return res.moves
   }
 
-
-  let moves = expand(m, pos, checking_moves(pos), blocking_moves)
-  let moves2 = expand(m, pos, moves, capturing_moves)
-
+  let moves: MoveC[][] = out_moves(pos)
 
   m.delete_position(pos)
 
-  return moves2
+  return moves
+}
+
+export function join_position1a(pos: PositionC) {
+  let pp = join_position(pos)
+
+  let checks = pp.checks
+
+  make_moves(checks, pos)
+  let pp2 = join_position(pos)
+
+  let blocks = pp2.blocks
+
+  make_moves(blocks, pos)
+  let pp3 = join_position(pos)
+
+  let captures = pp3.captures
+
+
+  unmake_moves(blocks, pos)
+
+  unmake_moves(checks, pos)
+
+  let moves = bind_moves([checks, blocks, captures])
+
+
+
+  return {
+    moves
+  }
+
+}
+
+function bind_moves(aa: Relation[]) {
+  let moves: MoveC[][] = out_moves(aa[0])
+
+  for (let i = 1; i < aa.length; i++) {
+    let b = out_moves(aa[i])
+    moves = moves.flatMap(_ => b.map(m => [..._, ...m]))
+  }
+  return moves
+}
+
+function out_moves(moves: Relation) {
+  return moves.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
+}
+
+function make_moves(moves: Relation, pos: PositionC) {
+  for (let move of moves.rows) {
+    m.make_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
+  }
+}
+function unmake_moves(moves: Relation, pos: PositionC) {
+  for (let i = moves.rows.length - 1; i >= 0; i--) {
+    let move = moves.rows[i]
+    m.unmake_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
+  }
 }
 
 export function join_position(pos: PositionC) {
