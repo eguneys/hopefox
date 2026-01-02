@@ -146,27 +146,24 @@ export function join_position2(fen: FEN) {
 export function join_position1a(pos: PositionC) {
   let pp = join_position(pos)
 
+  let moves: MoveC[][] = []
+
   let checks = pp.checks
+  make_moves(checks, pos, () => {
+    let pp2 = join_position(pos)
 
-  make_moves(checks, pos)
-  let pp2 = join_position(pos)
+    let blocks = pp2.blocks
 
-  let blocks = pp2.blocks
+    make_moves(blocks, pos, () => {
+      let pp3 = join_position(pos)
 
-  make_moves(blocks, pos)
-  let pp3 = join_position(pos)
+      let captures = pp3.captures
 
-  let captures = pp3.captures
+      let forks = pp3.forks
 
-  let forks = pp3.forks
-
-
-  unmake_moves(blocks, pos)
-
-  unmake_moves(checks, pos)
-
-  let moves = bind_moves([checks, blocks, forks])
-
+      moves.push(...bind_moves([checks, blocks, forks]))
+    })
+  })
 
 
   return {
@@ -189,9 +186,11 @@ function out_moves(moves: Relation) {
   return moves.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 }
 
-function make_moves(moves: Relation, pos: PositionC) {
+function make_moves(moves: Relation, pos: PositionC, fn: () => void) {
   for (let move of moves.rows) {
     m.make_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
+    fn()
+    m.unmake_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
   }
 }
 function unmake_moves(moves: Relation, pos: PositionC) {
@@ -298,12 +297,6 @@ export function join_position(pos: PositionC) {
     a.get('double_attack.to1') === b.get('occupy.on') &&
     a.get('double_attack.to2') === b.get('occupy2.on')
   )
-
-  console.log(
-      select(double_attack_moves, _ => 
-        _.get('double_attack.from') === 53 
-      ))
-
 
 
   const forks =

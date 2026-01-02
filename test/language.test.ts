@@ -10,7 +10,10 @@ function render(data: string) {
 }
 
 it('relational', () => {
-    solve_n(0)
+    for (let i = 0; i < 1000; i++) {
+        render('' + i)
+        solve_n(i)
+    }
 })
 
 
@@ -34,6 +37,9 @@ function solve_n(n: number) {
     let fen = puzzles[n].move_fens[0]
     let solution = puzzles[n].sans
 
+    console.log(n)
+    console.log(link)
+
     let tt = join_position2(fen)
 
     let tt2 = tt.map(_ => _.map(move_c_to_Move))
@@ -44,8 +50,6 @@ function solve_n(n: number) {
     let loose = find_solving_sans_loose(res, solution)
 
     if (!solved) {
-        console.log(n)
-        console.log(link)
         console.log(puzzles[n].sans, '\nexpected but found\n', res.slice(0))
         console.log('loosely solved: ', loose)
     }
