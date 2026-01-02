@@ -83,22 +83,43 @@ export function extend(
 }
 
 
+export function flatExtend(
+  rel: Relation,
+  fn: (r: Row) => Row[]
+): Relation {
+  const rows: Row[] = []
+
+  for (const r of rel.rows) {
+    for (const ext of fn(r)) {
+      const merged = mergeRows(r, ext)
+      if (merged) rows.push(merged)
+    }
+  }
+
+  return { rows }
+}
+
 
 let m = await PositionManager.make()
 export function join_position2(fen: FEN) {
 
   let pos = m.create_position(fen)
 
-  let res = join_position(pos)
+  let res = join_position(pos).checks
 
   let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 
-  moves.map(move => {
+  moves = moves.flatMap(move => {
     m.make_move(pos, move[0])
 
-    let res2 = join_position(pos)
+    let res2 = join_position(pos).blocks
+    console.log(res2)
+
+    let moves = res2.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 
     m.unmake_move(pos, move[0])
+
+    return moves.map(_ => [...move, ..._])
   })
 
   m.delete_position(pos)
@@ -136,9 +157,44 @@ export function join_position(pos: PositionC) {
         : null
     )
 
-  let res = checkingMoves
+  const checks =
+    extend(checkingMoves, r => {
+      const out = new Map<Column, Value>()
+      out.set("check", 1)
+      return out
+    })
 
-  return res
+
+  let blockingAttacks = semiJoin(attacks, attacks, (a, b) => {
+    if (
+      b.get('attack.from')! < a.get('attack.to')! &&
+      a.get('attack.to')! < b.get('attack.to')!) {
+        return true
+    }
+    return false
+  })
+
+  const blockingMoves =
+    join(moves, blockingAttacks, (m, a) =>
+      m.get('move.from') === a.get('attack.from') &&
+        m.get('move.to') === a.get('attack.to')
+        ? mergeRows(m, a)
+        : null
+    )
+
+  const blocks =
+    extend(blockingMoves, r => {
+      const out = new Map<Column, Value>()
+      out.set("block", 1)
+      return out
+    })
+
+
+
+  return {
+    checks,
+    blocks
+  }
 }
 
 

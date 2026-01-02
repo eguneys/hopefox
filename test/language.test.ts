@@ -1,7 +1,7 @@
 import { it } from 'vitest'
 import fs from 'fs'
 import { puzzles } from './fixture'
-import { fen_pos, Min_max_sort, move_c_to_Move, join_position, Position, Move, join_position2 } from '../src'
+import { fen_pos, Min_max_sort, move_c_to_Move, Position, Move, join_position2 } from '../src'
 import { makeSan } from '../src/san'
 
 
