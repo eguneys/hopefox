@@ -30,7 +30,9 @@ enum Binding {
     Equal,
     Different,
     Const,
-    Between
+    Between,
+    FromTo,
+    Move,
 }
 
 type BindEqual = {
@@ -66,23 +68,50 @@ type BindBetween = {
     to: Param
 }
 
+type BindFromTo = {
+    type: Binding.FromTo
+    a: Column
+    b: Column
+}
+
+type BindMove = {
+    type: Binding.Move
+    a: Column
+}
+
+
+
 type Bind = 
     | BindEqual
     | BindDifferent
     | BindConst
     | BindBetween
+    | BindFromTo
+    | BindMove
+
 
 'check'
 'Equal attack2 to2 occupy on'
 'Const occupy king'
+'FromTo attack2 move'
+'Move move'
 
+'check2'
+'FromTo check move'
+'Move move'
+
+
+'attack3'
+'FromTo move attack'
+'Move move'
 
 'fork'
-'Different attack to attack to'
+'Different attack3 to attack to'
 
 'block'
 'Between occupy on attack from on to'
 'Equal occupy on move to'
+'Move move'
 
 
 'binding block'; 'bind equal a p b q'
@@ -170,15 +199,36 @@ class Db {
 
         binds.push({
             type: Binding.Between,
-            a: this.column_by_name.get(a)!,
+            a: this.NewColumn(a),
             p,
-            b: this.column_by_name.get(b)!,
+            b: this.NewColumn(b),
             from,
             on,
             to,
         })
     }
 
+    BindFromTo(a: ColumnName, b: ColumnName) {
+
+        let binds = this.binds.get(this.bind)!
+
+        binds.push({
+            type: Binding.FromTo,
+            a: this.NewColumn(a),
+            b: this.NewColumn(b),
+        })
+    }
+
+
+    BindMove(a: ColumnName) {
+
+        let binds = this.binds.get(this.bind)!
+
+        binds.push({
+            type: Binding.Move,
+            a: this.NewColumn(a),
+        })
+    }
 
 
     /** Alpha */
@@ -234,6 +284,94 @@ class Db {
                             continue
                         }
 
+                        let [x, y] = [
+                            this.GetParam(a2_index, Param.On),
+                            this.GetParam(a2_index, Param.Role),
+                        ]
+                        let [f, t] = [
+                            this.GetParam(b_index, Param.On),
+                            this.GetParam(b_index, Param.Role),
+                        ]
+                        let [ax, bx, cx] = [
+                            this.GetParam(a_index, Param.From),
+                            this.GetParam(a_index, Param.To),
+                            this.GetParam(a_index, Param.To2),
+                        ]
+
+
+
+
+
+                        let intersect =
+                            (a === a2 && a_index === a2_index)
+                            || (a2 === b && a2_index === b_index)
+
+                        if (intersect) {
+                            //console.log(x, y, f, t)
+                            //console.log(ax, bx, cx)
+                            this.SetEqualBindJ(e, 1)
+                            break
+                        }
+                    }
+                }
+
+
+                if (this.from_to_bind_header) {
+                    this.SetEqualBindJ(e, 0)
+                    let [a2, b2] = this.from_to_bind_header
+                    let [F_start, F_end, F_Inc] = this.GetFromToBindIteration()
+
+                    for (let f = F_start; f < F_end; f += F_Inc) {
+                        let [a2_index, b2_index, J2] = this.GetFromToBind(f)
+                        if (J2 === 0) {
+                            continue
+                        }
+
+
+                        let [eq_a, eq_b, eq_c, on_a] = [
+                            this.GetParam(a_index, Param.From),
+                            this.GetParam(a_index, Param.To),
+                            this.GetParam(a_index, Param.To2),
+                            this.GetParam(b_index, Param.On)
+                        ]
+
+                        let [x, y, z, q] = [
+                            this.GetParam(a2_index, Param.From),
+                            this.GetParam(a2_index, Param.To),
+                            this.GetParam(b2_index, Param.From),
+                            this.GetParam(b2_index, Param.To),
+                        ]
+
+                        let intersect =
+                            (a === a2 && a_index === a2_index)
+                            || (a2 === b && a2_index === b_index)
+                            || (a === b2 && a_index === b2_index)
+                            || (b2 === b && b2_index === b_index)
+
+
+                        if (intersect) {
+                            //console.log(x,y,z,q)
+                            //console.log(eq_a, eq_b, eq_c, on_a, eq_c === on_a)
+                            this.SetEqualBindJ(e, 1)
+                            break
+                        }
+                    }
+                }
+
+
+
+
+                if (this.move_bind_header) {
+                    this.SetEqualBindJ(e, 0)
+                    let [a2] = this.move_bind_header
+                    let [M_start, M_end, M_Inc] = this.GetMoveBindIteration()
+
+                    for (let m = M_start; m < M_end; m += M_Inc) {
+                        let [a2_index, J2] = this.GetMoveBind(m)
+                        if (J2 === 0) {
+                            continue
+                        }
+
                         let intersect =
                             (a === a2 && a_index === a2_index)
                             || (a2 === b && a2_index === b_index)
@@ -244,8 +382,6 @@ class Db {
                         }
                     }
                 }
-
-
             }
         }
 
@@ -263,104 +399,111 @@ class Db {
         }
 
 
-        if (this.equal_bind_header) {
 
-            let [a, p, b, q] = this.equal_bind_header
+        if (this.move_bind_header) {
+            let [a] = this.move_bind_header
+            let [M_start, M_end, M_Inc] = this.GetMoveBindIteration()
 
-
-            if (p === Param.From || p === Param.To || q === Param.From || q === Param.To) {
-
-                let [E_start, E_end, E_Inc] = this.GetEqualBindIteration()
-
-                for (let e = E_start; e < E_end; e += E_Inc) {
-                    let [a_index, b_index, J] = this.GetEqualBind(e)
-                    if (J === 0) {
-                        continue
-                    }
-
-
-                    this.BeginAddValue(this.bind_column)
-                    if (p === Param.From) {
-                        this.AddValue(this.bind_column, Param.From, p)
-                    }
-                    if (p === Param.To) {
-                        this.AddValue(this.bind_column, Param.To, q)
-                    }
-                    if (q === Param.From) {
-                        this.AddValue(this.bind_column, Param.From, q)
-                    }
-                    if (q === Param.To) {
-                        this.AddValue(this.bind_column, Param.To, q)
-                    }
-                }
-
-            }
-
-            let [E_start, E_end, E_Inc] = this.GetEqualBindIteration()
-
-            for (let e = E_start; e < E_end; e += E_Inc) {
-                let [a_index, b_index, J] = this.GetEqualBind(e)
+            for (let m = M_start; m < M_end; m += M_Inc) {
+                let [a_index, J] = this.GetMoveBind(m)
                 if (J === 0) {
                     continue
                 }
 
+                if (this.equal_bind_header) {
+                    this.SetMoveBindJ(m, 0)
+                    let [a2, p2, b2, q2] = this.equal_bind_header
+                    let [E_start, E_end, E_Inc] = this.GetEqualBindIteration()
 
-                /*
-                let x = this.GetParam(a_index, Param.From)
-                let y = this.GetParam(a_index, Param.To)
+                    for (let e = E_start; e < E_end; e += E_Inc) {
+                        let [a2_index, b2_index, J2] = this.GetEqualBind(e)
+                        if (J2 === 0) {
+                            continue
+                        }
 
-                let k = this.GetParam(b_index, Param.On)
-                let r = this.GetParam(b_index, Param.Role)
+                        let intersect = 
+                            (a === a2 && a_index === a2_index)
 
-                console.log(x, y, k, r)
-                if (x === 58 && y === 61) {
-                    debugger
+                        if (intersect) {
+                            this.SetMoveBindJ(m, 1)
+                            break
+                        }
+                    }
                 }
-                    */
-                this.BeginAddValue(this.bind_column)
-                for (let i of Params) {
-                    if (i === p || i === q) {
-                        continue
+
+                if (this.different_bind_header) {
+                    this.SetMoveBindJ(m, 0)
+                    let [a2, p2, b2, q2] = this.different_bind_header
+                    let [D_start, D_end, D_Inc] = this.GetDifferentBindIteration()
+
+                    for (let d = D_start; d < D_end; d += D_Inc) {
+                        let [a2_index, b2_index, J2] = this.GetDifferentBind(d)
+                        if (J2 === 0) {
+                            continue
+                        }
+
+                        let intersect = (a === a2 && a_index === a2_index)
+
+                        if (intersect) {
+                            this.SetMoveBindJ(m, 1)
+                            break
+                        }
                     }
+                }
 
 
-                    let a_value = this.GetParam(a_index, i)
-                    if (a_value === -1) {
-                        continue
+
+                if (this.from_to_bind_header) {
+                    this.SetMoveBindJ(m, 0)
+                    let [a2, b2] = this.from_to_bind_header
+                    let [F_start, F_end, F_Inc] = this.GetFromToBindIteration()
+
+                    for (let f = F_start; f < F_end; f += F_Inc) {
+                        let [a2_index, b2_index, J2] = this.GetFromToBind(f)
+                        if (J2 === 0) {
+                            continue
+                        }
+
+                        let [x, y, z, q] = [
+                            this.GetParam(a2_index, Param.From),
+                            this.GetParam(a2_index, Param.To),
+                            this.GetParam(b2_index, Param.From),
+                            this.GetParam(b2_index, Param.To)
+                        ]
+
+                        let intersect = 
+                            (a === a2 && a_index === a2_index)
+                            || (a === b2 && a_index === b2_index)
+
+                        if (intersect) {
+                            //console.log(x, y, z, q)
+                            this.SetMoveBindJ(m, 1)
+                            break
+                        }
                     }
-                    this.AddValue(this.bind_column, i, a_value)
                 }
             }
-
         }
 
-        if (this.between_bind_header) {
-
-            let [a, p, b, from, on, to] = this.between_bind_header
 
 
-            if (from === Param.From || to === Param.To) {
-
-                let [B_start, B_end, B_Inc] = this.GetBetweenBindIteration()
-
-                for (let b = B_start; b < B_end; b += B_Inc) {
-                    let [a_index, b_index, J] = this.GetBetweenBind(b)
-                    if (J === 0) {
-                        continue
-                    }
 
 
-                    this.BeginAddValue(this.bind_column)
-                    if (from === Param.From) {
-                        this.AddValue(this.bind_column, Param.From, from)
-                    }
-                    if (to === Param.To) {
-                        this.AddValue(this.bind_column, Param.To, to)
-                    }
+        if (this.move_bind_header) {
+            let [M_start, M_end, M_Inc] = this.GetMoveBindIteration()
+
+            for (let m = M_start; m < M_end; m += M_Inc) {
+                let [a_index, J] = this.GetMoveBind(m)
+                if (J === 0) {
+                    continue
                 }
 
+                this.BeginAddValue(this.bind_column)
+                let a_from_value = this.GetParam(a_index, Param.From)
+                let a_to_value = this.GetParam(a_index, Param.To)
+                this.AddValue(this.bind_column, Param.From, a_from_value)
+                this.AddValue(this.bind_column, Param.To, a_to_value)
             }
-
         }
     }
 
@@ -377,6 +520,7 @@ class Db {
             this.equal_bind_tape[o + 2],
         ]
     }
+
     SetEqualBindJ(o: any, J: number) {
         this.equal_bind_tape[o + 2] = J
     }
@@ -472,6 +616,14 @@ class Db {
         this.different_bind_cursor = 0
         this.between_bind_cursor = 0
         this.const_bind_cursor = 0
+
+
+        this.move_bind_header = undefined
+        this.move_bind_cursor = 0
+
+        this.from_to_bind_header = undefined
+        this.from_to_bind_cursor = 0
+
     }
 
     BeginEqual(a: Column, p: Param, b: Column, q: Param) {
@@ -527,6 +679,81 @@ class Db {
         this.const_bind_tape[cursor + 0] = a
         this.const_bind_tape[cursor + 1] = 1
     }
+
+
+
+
+    move_bind_header?: [Column]
+    move_bind_tape: Int32Array = new Int32Array(Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize)
+    move_bind_cursor: number
+
+    GetMoveBindIteration(): [Index, Index, Index] {
+        let begin =  0
+        let end = this.move_bind_cursor
+        return [begin, end, Db.Nb_BindEqualParamSize]
+    }
+    GetMoveBind(o: any): [Column, number] {
+        return [
+            this.move_bind_tape[o],
+            this.move_bind_tape[o + 1],
+        ]
+    }
+
+
+    SetMoveBindJ(o: any, J: number) {
+        this.move_bind_tape[o + 1] = J
+    }
+
+
+    BeginMove(a: Column) {
+        this.move_bind_header = [a]
+    }
+
+    SetMove(a: Index) {
+        let cursor = this.move_bind_cursor
+        this.move_bind_cursor = cursor + Db.Nb_BindEqualParamSize
+
+        this.move_bind_tape[cursor + 0] = a
+        this.move_bind_tape[cursor + 1] = 1
+    }
+
+
+    from_to_bind_header?: [Column, Column]
+    from_to_bind_tape: Int32Array = new Int32Array(Db.Nb_EqualBindsSize * Db.Nb_BindEqualParamSize)
+    from_to_bind_cursor: number
+
+    GetFromToBindIteration(): [Index, Index, Index] {
+        let begin =  0
+        let end = this.from_to_bind_cursor
+        return [begin, end, Db.Nb_BindEqualParamSize]
+    }
+    GetFromToBind(o: any): [Column, Column, number] {
+        return [
+            this.from_to_bind_tape[o],
+            this.from_to_bind_tape[o + 1],
+            this.from_to_bind_tape[o + 2],
+        ]
+    }
+
+
+    SetFromToBindJ(o: any, J: number) {
+        this.from_to_bind_tape[o + 2] = J
+    }
+
+
+    BeginFromTo(a: Column, b: Column) {
+        this.from_to_bind_header = [a, b]
+    }
+
+    SetFromTo(a: Index, b: Index) {
+        let cursor = this.from_to_bind_cursor
+        this.from_to_bind_cursor = cursor + Db.Nb_BindEqualParamSize
+
+        this.from_to_bind_tape[cursor + 0] = a
+        this.from_to_bind_tape[cursor + 1] = b
+        this.from_to_bind_tape[cursor + 2] = 1
+    }
+
 
 
     /** Beta */
@@ -631,6 +858,30 @@ function run_db(db: Db) {
                         db.SetConst(a)
                     }
                 }
+            } else if (bind.type === Binding.FromTo) {
+                db.BeginFromTo(bind.a, bind.b)
+                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a)
+                for (let a = A_start; a < A_end; a+=A_Inc) {
+                    let a_from_value = db.GetParam(a, Param.From)
+                    let a_to_value = db.GetParam(a, Param.To)
+                    let [B_start, B_end, B_Inc] = db.GetIteration(bind.b)
+
+                    for (let b = B_start; b < B_end; b+=B_Inc) {
+                        let b_from_value = db.GetParam(b, Param.From)
+                        let b_to_value = db.GetParam(b, Param.To)
+
+                        if (a_from_value === b_from_value && a_to_value === b_to_value) {
+                            db.SetFromTo(a, b)
+                        }
+                    }
+                }
+            } else if (bind.type === Binding.Move) {
+                db.BeginMove(bind.a)
+                let [A_start, A_end, A_Inc] = db.GetIteration(bind.a)
+                for (let a = A_start; a < A_end; a+=A_Inc) {
+                    let a_value = db.GetParam(a, Param.From)
+                    db.SetMove(a)
+                }
             }
         }
 
@@ -644,6 +895,13 @@ function bind_db(db: Db) {
     db.BeginBind('check')
     db.BindEqual('attack2', Param.To2, 'occupy', Param.On)
     db.BindConst('occupy', Param.Role, KING)
+    db.BindFromTo('attack2', 'move')
+    db.BindMove('move')
+
+
+    db.BeginBind('check2')
+    db.BindFromTo('check', 'move')
+    db.BindMove('move')
 
     /*
     db.BeginBind('fork')

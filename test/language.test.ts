@@ -3,7 +3,6 @@ import fs from 'fs'
 import { puzzles } from './fixture'
 import { fen_pos, Min_max_sort, move_c_to_Move, search, Position, Move } from '../src'
 import { makeSan } from '../src/san'
-import { makeFen } from '../src/fen'
 
 
 function render(data: string) {
