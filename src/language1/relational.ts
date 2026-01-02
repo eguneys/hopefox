@@ -149,24 +149,6 @@ export function join_position1a(pos: PositionC) {
   let moves: MoveC[][] = []
 
   moves.push(...bind_moves([pp.moves]))
-  /*
-  let checks = pp.checks
-  make_moves(checks, pos, () => {
-    let pp2 = join_position(pos)
-
-    let blocks = pp2.blocks
-
-    make_moves(blocks, pos, () => {
-      let pp3 = join_position(pos)
-
-      let captures = pp3.captures
-
-      let forks = pp3.forks
-
-      moves.push(...bind_moves([checks, blocks, forks]))
-    })
-  })
-    */
 
 
   return {
@@ -214,6 +196,8 @@ export function join_position(pos: PositionC) {
   let attacks2 = attacks2_coll(m, pos)
   let attacks = attacks_coll(m, pos)
 
+  let threats
+
   let _
 
   _ = join(attacks, occupy, (a, o1) =>
@@ -237,12 +221,40 @@ export function join_position(pos: PositionC) {
       : null
   )
 
-  let threats = _
+  threats = _
 
-  moves = project(threats, (a) => {
+
+  _ = join(attacks2, occupy, (a2, o1) =>
+    a2.get('attack2.attacker_square') === o1.get('occupy.square')
+      ? mergeRows(a2, o1)
+      : null
+  )
+
+  _ = join(_, occupy, (t, o2) =>
+    t.get('attack2.target_square') === o2.get('occupy.square') &&
+    t.get('occupy.color') !== o2.get('occupy.color')
+      ? (() => {
+        const r = new Map()
+        r.set('check.check_square', t.get('attack2.check_square'))
+        r.set('check.attacker_square', t.get('attack2.attacker_square'))
+        r.set('check.attacker_piece', t.get('occupy.piece'))
+        r.set('check.attacker_color', t.get('occupy.color'))
+        r.set('check.target_square', o2.get('occupy.square'))
+        r.set('check.target_piece', o2.get('occupy.piece'))
+        r.set('check.target_value', o2.get('occupy.value'))
+        return r
+      })()
+      : null
+  )
+
+  let checks = select(_, _ => _.get('check.target_piece') === KING)
+
+  checks = select(checks, _ => _.get('check.attacker_color') === color)
+
+  moves = project(checks, (a) => {
     let row = new Map()
-    row.set('move.from', a.get('threat.attacker_square'))
-    row.set('move.to', a.get('threat.target_square'))
+    row.set('move.from', a.get('check.attacker_square'))
+    row.set('move.to', a.get('check.check_square'))
     return row
   })
 
@@ -306,7 +318,7 @@ function occupy_coll(m: PositionManager, pos: PositionC): Relation {
 
       let occupy = new Map()
       occupy.set('occupy.color', color)
-      occupy.set('occupy.role', role)
+      occupy.set('occupy.piece', role)
       occupy.set('occupy.square', on)
       res.push(occupy)
     }
@@ -336,9 +348,9 @@ function attacks2_coll(m: PositionManager, pos: PositionC): Relation {
 
         for (let a2 of aa2) {
           let attack2 = new Map()
-          attack2.set('attack2.from', on)
-          attack2.set('attack2.to', a)
-          attack2.set('attack2.to2', a2)
+          attack2.set('attack2.attacker_square', on)
+          attack2.set('attack2.check_square', a)
+          attack2.set('attack2.target_square', a2)
           res.push(attack2)
         }
       }

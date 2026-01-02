@@ -10,9 +10,12 @@ function render(data: string) {
 }
 
 it('relational', () => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 1000; i++) {
         render('' + i)
-        solve_n(i)
+        let res = solve_n(i)
+        if (!res) { 
+            break
+        }
     }
 })
 
