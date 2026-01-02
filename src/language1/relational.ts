@@ -1,4 +1,4 @@
-import { BLACK, KING, make_move_from_to, move_c_to_Move, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
 
 type Column = string
@@ -99,32 +99,64 @@ export function flatExtend(
   return { rows }
 }
 
+function expand(
+  m: PositionManager,
+  pos: PositionC,
+  moves: MoveC[][],
+  next: (pos: PositionC) => MoveC[][]
+): MoveC[][] {
+  const res: MoveC[][] = []
+
+  for (const mm of moves) {
+    for (let move of mm) {
+      m.make_move(pos, move)
+    }
+
+    for (const mm2 of next(pos)) {
+      res.push([...mm, ...mm2])
+    }
+
+    for (let i = mm.length - 1; i >= 0; i--) {
+      m.unmake_move(pos, mm[i])
+    }
+  }
+
+  return res
+}
+
 
 let m = await PositionManager.make()
 export function join_position2(fen: FEN) {
 
   let pos = m.create_position(fen)
 
-  let res = join_position(pos).checks
+  function checking_moves(pos: PositionC) {
+    let res = join_position(pos).checks
 
-  let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
+    let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
+    return moves
+  }
+  function blocking_moves(pos: PositionC) {
+    let res = join_position(pos).blocks
 
-  moves = moves.flatMap(move => {
-    m.make_move(pos, move[0])
+    let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
+    return moves
+  }
+  function capturing_moves(pos: PositionC) {
+    let res = join_position(pos).captures
 
-    let res2 = join_position(pos).blocks
-    console.log(res2)
+    let moves = res.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
+    return moves
+  }
 
-    let moves = res2.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 
-    m.unmake_move(pos, move[0])
+  let moves = expand(m, pos, checking_moves(pos), blocking_moves)
+  let moves2 = expand(m, pos, moves, capturing_moves)
 
-    return moves.map(_ => [...move, ..._])
-  })
 
   m.delete_position(pos)
 
-  return moves
+  return moves2
 }
 
 export function join_position(pos: PositionC) {
@@ -189,11 +221,15 @@ export function join_position(pos: PositionC) {
       return out
     })
 
+  const captures = semiJoin(moves, occupy, (a, b)=> {
+    return a.get('move.to') === b.get('occupy.on')
+  })
 
 
   return {
     checks,
-    blocks
+    blocks,
+    captures
   }
 }
 
