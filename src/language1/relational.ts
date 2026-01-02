@@ -158,12 +158,14 @@ export function join_position1a(pos: PositionC) {
 
   let captures = pp3.captures
 
+  let forks = pp3.forks
+
 
   unmake_moves(blocks, pos)
 
   unmake_moves(checks, pos)
 
-  let moves = bind_moves([checks, blocks, captures])
+  let moves = bind_moves([checks, blocks, forks])
 
 
 
@@ -265,14 +267,66 @@ export function join_position(pos: PositionC) {
     return a.get('move.to') === b.get('occupy.on')
   })
 
+  const double_attacks = join(attacks2, attacks2, (a, b) =>
+    a.get('attack2.from') === b.get('attack2.from') &&
+    a.get('attack2.to') === b.get('attack2.to') &&
+      a.get('attack2.to2') !== b.get('attack2.to2')
+      ? mapRows(a, b, (a, b) => {
+        let res = new Map()
+        res.set('double_attack.from', a.get('attack2.from'))
+        res.set('double_attack.to', b.get('attack2.to'))
+        res.set('double_attack.to1', a.get('attack2.to2'))
+        res.set('double_attack.to2', b.get('attack2.to2'))
+        return res
+      })
+      : null
+  )
+
+  const occupy2 = join(occupy, occupy, (a, b) => mapRows(a, b, (a, b) => {
+    let res = new Map()
+    res.set('occupy.color', a.get('occupy.color'))
+    res.set('occupy.role', a.get('occupy.role'))
+    res.set('occupy.on', a.get('occupy.on'))
+    res.set('occupy2.color', b.get('occupy.color'))
+    res.set('occupy2.role', b.get('occupy.role'))
+    res.set('occupy2.on', b.get('occupy.on'))
+    return res
+  }))
+
+
+  const double_attack_moves = semiJoin(double_attacks, occupy2, (a, b) =>
+    a.get('double_attack.to1') === b.get('occupy.on') &&
+    a.get('double_attack.to2') === b.get('occupy2.on')
+  )
+
+  console.log(
+      select(double_attack_moves, _ => 
+        _.get('double_attack.from') === 53 
+      ))
+
+
+
+  const forks =
+    join(moves, double_attack_moves, (m, a) =>
+      m.get('move.from') === a.get('double_attack.from') &&
+        m.get('move.to') === a.get('double_attack.to')
+        ? mergeRows(m, a)
+        : null
+    )
+
+
 
   return {
     checks,
     blocks,
-    captures
+    captures,
+    forks
   }
 }
 
+function mapRows(a: Row, b: Row, fn: (a: Row, b: Row) => Row) {
+  return fn(a, b)
+}
 
 function move_coll(m: PositionManager, pos: PositionC): Relation {
   let res: Row[] = []
