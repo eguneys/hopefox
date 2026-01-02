@@ -1,5 +1,6 @@
 import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
+import { SquareSet } from "../squareSet"
 
 type Column = string
 type Value = number
@@ -192,20 +193,24 @@ export function join_position(pos: PositionC) {
 
   let moves = move_coll(m, pos)
   let turn = turn_coll(m, pos)
-  let occupy = occupy_coll(m, pos)
+  let { occupies, vacants } = occupies_coll(m, pos)
   let attacks2 = attacks2_coll(m, pos)
   let attacks = attacks_coll(m, pos)
 
-  let threats
-
   let _
+  let pressures, covers, defends
 
-  _ = join(attacks, occupy, (a, o1) =>
+  let attacks_occupy = join(attacks, occupies, (a, o1) =>
     a.get('attack.attacker_square') === o1.get('occupy.square')
       ? mergeRows(a, o1)
       : null
   )
-  _ = join(_, occupy, (t, o2) =>
+
+  covers = semiJoin(attacks, vacants, (a, o2) =>
+    a.get('attack.target_square') === o2.get('vacant.square')
+  )
+
+  pressures = join(attacks_occupy, occupies, (t, o2) =>
     t.get('attack.target_square') === o2.get('occupy.square') &&
       t.get('occupy.color') !== o2.get('occupy.color')
       ? (() => {
@@ -221,16 +226,14 @@ export function join_position(pos: PositionC) {
       : null
   )
 
-  threats = _
 
-
-  _ = join(attacks2, occupy, (a2, o1) =>
+  _ = join(attacks2, occupies, (a2, o1) =>
     a2.get('attack2.attacker_square') === o1.get('occupy.square')
       ? mergeRows(a2, o1)
       : null
   )
 
-  _ = join(_, occupy, (t, o2) =>
+  _ = join(_, occupies, (t, o2) =>
     t.get('attack2.target_square') === o2.get('occupy.square') &&
     t.get('occupy.color') !== o2.get('occupy.color')
       ? (() => {
@@ -257,6 +260,7 @@ export function join_position(pos: PositionC) {
     row.set('move.to', a.get('check.check_square'))
     return row
   })
+
 
   return {
     moves
@@ -302,29 +306,30 @@ function turn_coll(m: PositionManager, pos: PositionC): Relation {
 }
 
 
-function occupy_coll(m: PositionManager, pos: PositionC): Relation {
-  let res: Row[] = []
+function occupies_coll(m: PositionManager, pos: PositionC): { occupies: Relation, vacants: Relation } {
+  let occupies: Relation = { rows: [] }
+  let vacants: Relation = { rows: [] }
 
-  let color = m.pos_turn(pos)
   let occupied = m.pos_occupied(pos)
-  for (let color of [WHITE, BLACK]) {
-    let pieces = m.get_pieces_color_bb(pos, color)
+  for (let on of SquareSet.full()) {
 
-    for (let on of pieces) {
+    let piece = m.get_at(pos, on)
 
-      let piece = m.get_at(pos, on)!
-
-      let role = piece_c_type_of(piece)
-
-      let occupy = new Map()
-      occupy.set('occupy.color', color)
-      occupy.set('occupy.piece', role)
-      occupy.set('occupy.square', on)
-      res.push(occupy)
+    if (!piece) {
+      let vacant = new Map()
+      vacant.set('vacant.square', on)
+      vacants.rows.push(vacant)
+      continue
     }
+
+    let occupy = new Map()
+    occupy.set('occupy.color', piece_c_color_of(piece))
+    occupy.set('occupy.piece', piece_c_type_of(piece))
+    occupy.set('occupy.square', on)
+    occupies.rows.push(occupy)
   }
 
-  return { rows: res }
+  return { occupies, vacants }
 }
 
 
