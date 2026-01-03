@@ -1,7 +1,8 @@
 import { between } from "../attacks"
-import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
 import { SquareSet } from "../squareSet"
+import { World } from "./linker"
 
 type Column = string
 type Value = number
@@ -146,14 +147,14 @@ export function join_position2(fen: FEN) {
 }
 
 export function join_position1a(pos: PositionC) {
-  let pp = join_position(pos)
+  let pp = join_position(m, pos)
 
   let first_move = pp
 
   let res: MoveC[][] = []
   
   make_moves(pp.moves, pos, () => {
-    let second_move = join_position(pos)
+    let second_move = join_position(m, pos)
 
     let blockable_checks = join(first_move.checks, second_move!.blocks, (a, b) =>
       a.get('check.check_square') === b.get('block.attacker_square') &&
@@ -236,7 +237,7 @@ function unmake_moves(moves: Relation, pos: PositionC) {
   }
 }
 
-export function join_position(pos: PositionC) {
+export function join_position(m: PositionManager, pos: PositionC): World {
 
   let color = m.pos_turn(pos)
   let enemy_color = color === WHITE ? BLACK : WHITE
@@ -325,7 +326,11 @@ export function join_position(pos: PositionC) {
   return {
     checks,
     blocks,
-    moves
+    moves,
+    occupies,
+    vacants,
+    attacks2,
+    attacks,
   }
 }
 

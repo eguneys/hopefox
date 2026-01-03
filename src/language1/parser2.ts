@@ -233,7 +233,7 @@ class Parser {
         return res
     }
 
-    private parse_fact() {
+    private parse_fact(): Fact | undefined {
         let current_token = this.current_token
         if (current_token.type === TokenType.BeginFact) {
             this.eat(TokenType.BeginFact)
@@ -274,7 +274,7 @@ class Parser {
         }
     }
 
-    private parse_idea() {
+    private parse_idea(): Idea | undefined {
         let current_token = this.current_token
         if (current_token.type === TokenType.BeginIdea) {
             this.eat(TokenType.BeginIdea)
@@ -317,6 +317,7 @@ class Parser {
 
             return {
                 name,
+                line,
                 assigns,
                 matches,
                 aliases
@@ -326,13 +327,19 @@ class Parser {
     }
 
 
-    public parse_program() {
+    public parse_program(): Program {
         let facts = []
         let ideas = []
-        while (this.current_token.type !== TokenType.Eof) {
+
+        let current_token = this.current_token
+        while (current_token.type !== TokenType.Eof) {
 
             while (this.current_token.type === TokenType.Newline) {
                 this.advance_tokens()
+            }
+
+            if (this.current_token.type === TokenType.Eof) {
+                break
             }
 
             let fact = this.parse_fact()
@@ -346,6 +353,7 @@ class Parser {
                 ideas.push(idea)
                 continue
             }
+
             
             throw new ParserError('Fact or Idea expected.')
         }
@@ -368,27 +376,30 @@ type MatchesEqual = {
 }
 
 type MatchesBetween = {
-    column_a: string
-    param_a: string
+    path_a: Path
     path_b: Path
     path_c: Path
 }
 
 type Matches = MatchesEqual | MatchesBetween
 
+export function is_matches_between(m: Matches): m is MatchesBetween {
+    return (m as MatchesBetween).path_c !== undefined
+}
+
 type Alias = {
     alias: string
     column: string
 }
 
-type Fact = {
+export type Fact = {
     name: string,
     assigns: Assignment[]
     matches: Matches[]
     aliases: Alias[]
 }
 
-type Idea = {
+export type Idea = {
     name: string
     line: string[]
     assigns: Assignment[]
@@ -396,7 +407,7 @@ type Idea = {
     aliases: Alias[]
 }
 
-type Program = {
+export type Program = {
     ideas: Idea[]
     facts: Fact[]
 }
