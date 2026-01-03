@@ -17,6 +17,5 @@ export function join_world(m: PositionManager, pos: PositionC, l: Linked) {
         w0[key] = l.ideas[key](w0, turn, pos, l)
     }
 
-    m.delete_position(pos)
     return w0
 }

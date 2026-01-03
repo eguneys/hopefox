@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { fen_pos, join_world, link, parse_program, PositionManager } from '../src'
+import { fen_pos, join_world, link, out_moves, parse_program, PositionManager, san_moves_c } from '../src'
 import { puzzles } from './fixture'
 
 let m = await PositionManager.make()
@@ -22,19 +22,20 @@ fact capture_legal
 idea recapture
   alias c2 capture_legal
   line capture_legal c2
-    .recapture.from = capture_legal.move.from
-    .recapture.to = capture_legal.move.to
+    .move.from = capture_legal.move.from
+    .move.to = capture_legal.move.to
     .recapture.from2 = c2.move.from
     .recapture.to2 = c2.move.to
-  c2.move.to = capture.move.to
+  c2.move.to = capture_legal.move.to
 `))
 
-    console.log(puzzles[0].link)
-    let fen = puzzles[0].move_fens[0]
+    console.log(puzzles[2].link)
+    let fen = puzzles[2].move_fens[0]
     let pos = m.create_position(fen)
     let res = join_world(m, pos, l)
-    console.log(res)
+    console.log(out_moves(res.recapture).map(ms => san_moves_c(m, pos, ms)))
 
+    m.delete_position(pos)
 })
 
 

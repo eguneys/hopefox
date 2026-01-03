@@ -222,7 +222,7 @@ function bind_moves(aa: Relation[]) {
   return moves
 }
 
-function out_moves(moves: Relation) {
+export function out_moves(moves: Relation) {
   return moves.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 }
 

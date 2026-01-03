@@ -47,6 +47,9 @@ function link_idea(m: PositionManager, i: Idea) {
             }
 
             let name_bindings = { [name]: w[name], [name2]: w[name2] }
+            if (w[name] === undefined || w[name2] === undefined) {
+                throw `Bad join: [${name}], [${name2}]`
+            }
             return join(w[name], w[name2], (a, b) => {
                 let ab_bindings = { [name]: a, [name2]: b }
 
@@ -80,6 +83,9 @@ function link_idea(m: PositionManager, i: Idea) {
                             let [key] = Object.keys(ass)
                             let [l_rel, l_path] = path_split(key)
                             let [r_rel, r_path] = path_split(ass[key])
+                            if (ab_bindings[r_rel] === undefined) {
+                                throw `Bad join binding set: [${r_rel}]` + Object.keys(ab_bindings)
+                            }
                             r.set(
                                 `${name_bindings[l_rel]}`,
                                 ab_bindings[r_rel].get(r_path))

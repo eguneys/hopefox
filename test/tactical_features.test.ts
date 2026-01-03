@@ -1,7 +1,7 @@
 import { it } from 'vitest'
 import { puzzles } from './fixture'
 import { Generate_TemporalMotives, san_moves, TemporalMoves } from '../src/features/tactical_features'
-import { fen_pos, Generate_TemporalTransitions_Optimized, Min_max_sort, Move, move_c_to_Move, pos_moves, Position } from '../src'
+import { fen_pos, Min_max_sort, Move, move_c_to_Move, pos_moves, Position } from '../src'
 import { squareSet } from '../src/debug'
 
 import fs from 'fs'
