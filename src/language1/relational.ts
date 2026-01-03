@@ -177,8 +177,6 @@ export function join_position1a(pos: PositionC) {
       : null
   )
 
-  console.log(blockable_checks)
-
   let moves1 = project(blockable_checks, (a) => {
     let row = new Map()
     row.set('move.from', a.get('blockable_check.check_attacker_square'))
@@ -193,11 +191,20 @@ export function join_position1a(pos: PositionC) {
     return row
   })
 
+  moves1 = legalize_moves(first_move.moves, moves1)
+  moves2 = legalize_moves(second_move!.moves, moves2)
+
   let res: MoveC[][] = bind_moves([moves1, moves2])
   return {
     moves: res
   }
+}
 
+function legalize_moves(moves: Relation, a: Relation) {
+  return semiJoin(moves, a, (a, b) =>
+    a.get('move.from') === b.get('move.from') &&
+    a.get('move.to') === b.get('move.to')
+  )
 }
 
 function bind_moves(aa: Relation[]) {
@@ -312,14 +319,7 @@ export function join_position(pos: PositionC) {
       : null
   )
 
-  let moves = project(checks, (a) => {
-    let row = new Map()
-    row.set('move.from', a.get('check.attacker_square'))
-    row.set('move.to', a.get('check.check_square'))
-    return row
-  })
-
-
+  let moves = legal_moves
 
   return {
     checks,
