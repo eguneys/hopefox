@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { fen_pos, join_world, link, out_moves, parse_program, PositionManager, san_moves_c } from '../src'
+import { fen_pos, join_world, link, out_lines, out_moves, parse_program, PositionManager, san_moves_c } from '../src'
 import { puzzles } from './fixture'
 
 let m = await PositionManager.make()
@@ -33,7 +33,7 @@ idea recapture
     let fen = puzzles[2].move_fens[0]
     let pos = m.create_position(fen)
     let res = join_world(m, pos, l)
-    console.log(out_moves(res.recapture).map(ms => san_moves_c(m, pos, ms)))
+    console.log(out_lines(res.recapture).map(ms => san_moves_c(m, pos, ms)))
 
     m.delete_position(pos)
 })

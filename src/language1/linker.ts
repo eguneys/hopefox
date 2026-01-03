@@ -76,20 +76,25 @@ function link_idea(m: PositionManager, i: Idea) {
                     cond ||= m.is_different ? x === y : x !== y
                 }
 
+
                 return cond
                     ? (() => {
                         const r = new Map()
                         for (let ass of f.assigns) {
                             let [key] = Object.keys(ass)
-                            let [l_rel, l_path] = path_split(key)
+                            //let [l_rel, l_path] = path_split(key)
                             let [r_rel, r_path] = path_split(ass[key])
-                            if (ab_bindings[r_rel] === undefined) {
-                                throw `Bad join binding set: [${r_rel}]` + Object.keys(ab_bindings)
-                            }
                             r.set(
-                                `${name_bindings[l_rel]}`,
-                                ab_bindings[r_rel].get(r_path))
+                                `${key}`,
+                                ab_bindings[r_rel].get(`${r_path}`))
                         }
+
+                        for (let i = 0; i < f.line.length; i++) {
+                            let line = f.line[i]
+                            r.set(`move.from${i+1}`, ab_bindings[line].get('move.from'))
+                            r.set(`move.to${i+1}`, ab_bindings[line].get('move.to'))
+                        }
+
                         return r
                     })() : null
             })

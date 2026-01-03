@@ -226,6 +226,18 @@ export function out_moves(moves: Relation) {
   return moves.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 }
 
+export function out_lines(moves: Relation) {
+  return moves.rows.map(_ => {
+    let res = []
+    for (let i = 0; i < 2; i++) {
+      res.push(make_move_from_to(_.get(`move.from${i + 1}`)!, _.get(`move.to${i + 1}`)!))
+    }
+    return res
+  })
+}
+
+
+
 export function make_moves(m: PositionManager, moves: Relation, pos: PositionC, fn: () => void) {
   for (let move of moves.rows) {
     m.make_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
