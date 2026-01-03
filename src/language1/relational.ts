@@ -1,3 +1,4 @@
+import { between } from "../attacks"
 import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
 import { SquareSet } from "../squareSet"
@@ -147,13 +148,54 @@ export function join_position2(fen: FEN) {
 export function join_position1a(pos: PositionC) {
   let pp = join_position(pos)
 
-  let moves: MoveC[][] = []
+  let first_move = pp
+  let second_move
+  
+  make_moves(pp.moves, pos, () => {
+    second_move = join_position(pos)
+  })
 
-  moves.push(...bind_moves([pp.moves]))
 
+  let blockable_checks = join(first_move.checks, second_move!.blocks, (a, b) =>
+    a.get('check.check_square') === b.get('block.attacker_square') &&
+      a.get('check.target_square') === b.get('block.target_square')
+      ? (() => {
+        const r = new Map()
+        r.set('blockable_check.blocker_square', b.get('block.blocker_square'))
+        r.set('blockable_check.block_square', b.get('block.block_square'))
+        r.set('blockable_check.attacker_square', a.get('check.check_square'))
+        r.set('blockable_check.attacker_piece', a.get('check.piece'))
+        r.set('blockable_check.attacker_color', a.get('check.color'))
+        r.set('blockable_check.target_square', b.get('check.target_square'))
+        r.set('blockable_check.target_piece', b.get('block.target_square'))
 
+        r.set('blockable_check.check_attacker_square', a.get('check.attacker_square'))
+        r.set('blockable_check.check_square', a.get('check.check_square'))
+
+        return r
+      })()
+      : null
+  )
+
+  console.log(blockable_checks)
+
+  let moves1 = project(blockable_checks, (a) => {
+    let row = new Map()
+    row.set('move.from', a.get('blockable_check.check_attacker_square'))
+    row.set('move.to', a.get('blockable_check.check_square'))
+    return row
+  })
+
+  let moves2 = project(blockable_checks, (a) => {
+    let row = new Map()
+    row.set('move.from', a.get('blockable_check.blocker_square'))
+    row.set('move.to', a.get('blockable_check.block_square'))
+    return row
+  })
+
+  let res: MoveC[][] = bind_moves([moves1, moves2])
   return {
-    moves
+    moves: res
   }
 
 }
@@ -191,7 +233,7 @@ export function join_position(pos: PositionC) {
   let color = m.pos_turn(pos)
   let enemy_color = color === WHITE ? BLACK : WHITE
 
-  let moves = move_coll(m, pos)
+  let legal_moves = move_coll(m, pos)
   let turn = turn_coll(m, pos)
   let { occupies, vacants } = occupies_coll(m, pos)
   let attacks2 = attacks2_coll(m, pos)
@@ -254,7 +296,23 @@ export function join_position(pos: PositionC) {
 
   checks = select(checks, _ => _.get('check.attacker_color') === color)
 
-  moves = project(checks, (a) => {
+  let blocks = join(pressures, attacks, (a, b) =>
+    between(
+      a.get('threat.attacker_square')!, 
+      a.get('threat.target_square')!)
+      .has(b.get('attack.target_square')!)
+      ? (() => {
+        const r = new Map()
+        r.set('block.attacker_square', a.get('threat.attacker_square'))
+        r.set('block.target_square', a.get('threat.target_square'))
+        r.set('block.blocker_square', b.get('attack.attacker_square'))
+        r.set('block.block_square', b.get('attack.target_square'))
+        return r
+      })()
+      : null
+  )
+
+  let moves = project(checks, (a) => {
     let row = new Map()
     row.set('move.from', a.get('check.attacker_square'))
     row.set('move.to', a.get('check.check_square'))
@@ -262,7 +320,10 @@ export function join_position(pos: PositionC) {
   })
 
 
+
   return {
+    checks,
+    blocks,
     moves
   }
 }
