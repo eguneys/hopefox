@@ -94,3 +94,4 @@ export * from './short/mor_short'
 
 export * from './features/node_tree'
 export * from './language1/relational'
+export * from './language1/parser2'

@@ -2,15 +2,17 @@ class ParserError extends Error {}
 class LexerError extends Error {}
 
 enum TokenType {
-    Different,
-    Equal,
-    BeginFact,
-    BeginIdea,
-    Alias,
-    Line,
-    Word,
-    Dot,
-    Eof
+    Different = 'Different',
+    Equal = 'Equal',
+    BeginFact = 'BeginFact',
+    BeginIdea = 'BeginIdea',
+    Alias = 'Alias',
+    Line = 'Line',
+    Word = 'Word',
+    Dot = 'Dot',
+    Between = 'Between',
+    Newline = 'Newline',
+    Eof = 'Eof'
 }
 
 type Token = {
@@ -32,18 +34,19 @@ class Lexer {
 
     private advance() {
         this.current_char = this.text[++this.pos]
-        this.lookahead_nb_newlines = this.skip_whitespace()
     }
 
-    private skip_whitespace() {
-        let nb_newlines = 0
+    skip_whitespace() {
+        let has_newline = false
         while (this.current_char !== undefined && /\s/.test(this.current_char)) {
             if (this.current_char === '\n') {
-                nb_newlines++
+                has_newline = true
+                this.advance()
+                break
             }
             this.advance()
         }
-        return nb_newlines
+        return has_newline
     }
 
     private is_lowercase_num(char: string): boolean {
@@ -59,11 +62,12 @@ class Lexer {
         return result
     }
 
-    lookahead_nb_newlines = 0
-
     public get_next_token(): Token {
         while (this.current_char !== undefined) {
-            this.skip_whitespace()
+            let has_newline = this.skip_whitespace()
+            if (has_newline) {
+                return { type: TokenType.Newline, value: '\n' }
+            }
 
             let current_char = this.current_char
             if (current_char === '!') {
@@ -85,6 +89,10 @@ class Lexer {
             }
 
             const word = this.word()
+
+            if (word === 'between') {
+                return { type: TokenType.Between, value: 'between' }
+            }
 
             if (word === 'fact') {
                 return { type: TokenType.BeginFact, value: 'fact' }
@@ -159,22 +167,36 @@ class Parser {
     
     private parse_assigns() {
         this.eat(TokenType.Dot)
-        let path = this.word()
+        let path = this.path()
         this.eat(TokenType.Equal)
         let path2 = this.path()
 
         return { [path]: path2 }
     }
 
-    private parse_match() {
-        let column_a = this.eat(TokenType.Word)
-        let param_a = this.eat(TokenType.Word)
+    private parse_match(): Matches {
+        let path_a = this.path()
+
+        if (this.current_token.type === TokenType.Between) {
+            this.eat(TokenType.Between)
+
+            let path_b = this.path()
+
+            let path_c = this.path()
+
+            return { path_a, path_b, path_c }
+        }
+
+        if (this.current_token.type === TokenType.Different) {
+            this.eat(TokenType.Different)
+            let path_b = this.path()
+            return { path_a, path_b, is_different: true }
+        }
+
         this.eat(TokenType.Equal)
+        let path_b = this.path()
 
-        let column_b = this.eat(TokenType.Word)
-        let param_b = this.eat(TokenType.Word)
-
-        return { column_a, param_a, column_b, param_b }
+        return { path_a, path_b }
     }
 
     private parse_alias() {
@@ -187,7 +209,7 @@ class Parser {
     private parse_line() {
         this.eat(TokenType.Line)
         let res = []
-        while (this.lexer.lookahead_nb_newlines === 0) {
+        while (this.current_token.type !== TokenType.Newline) {
             res.push(this.word())
         }
         return res
@@ -201,11 +223,10 @@ class Parser {
         let res = ''
         while (true) {
             res += this.word()
-            if (this.lexer.lookahead_nb_newlines > 0) {
-                break
-            }
-            this.eat(TokenType.Dot)
-            if (this.lexer.lookahead_nb_newlines > 0) {
+            if (this.current_token.type === TokenType.Dot) {
+                this.eat(TokenType.Dot)
+                res += '.'
+            } else {
                 break
             }
         }
@@ -213,26 +234,35 @@ class Parser {
     }
 
     private parse_fact() {
-        let lookahead_token = this.lookahead_token
-        if (lookahead_token.type === TokenType.BeginFact) {
+        let current_token = this.current_token
+        if (current_token.type === TokenType.BeginFact) {
             this.eat(TokenType.BeginFact)
             let name = this.eat(TokenType.Word)
 
+            this.eat(TokenType.Newline)
             let aliases = []
 
-            while (this.lookahead_token.type !== TokenType.Dot) {
+            while (this.current_token.type === TokenType.Alias) {
                 aliases.push(this.parse_alias())
+                this.eat(TokenType.Newline)
             }
 
             let assigns = []
             while (this.current_token.type === TokenType.Dot) {
                 assigns.push(this.parse_assigns())
+                this.eat(TokenType.Newline)
             }
 
             let matches: Matches[] = []
 
-            while (this.lexer.lookahead_nb_newlines <= 1) {
+            while (true) {
                 matches.push(this.parse_match())
+                if (this.current_token.type === TokenType.Newline) {
+                    this.advance_tokens()
+                }
+                if (this.current_token.type === TokenType.Newline) {
+                    break
+                }
             }
 
             return {
@@ -245,29 +275,44 @@ class Parser {
     }
 
     private parse_idea() {
-        let lookahead_token = this.lookahead_token
-        if (lookahead_token.type === TokenType.BeginFact) {
-            this.eat(TokenType.BeginFact)
+        let current_token = this.current_token
+        if (current_token.type === TokenType.BeginIdea) {
+            this.eat(TokenType.BeginIdea)
             let name = this.eat(TokenType.Word)
 
-
+            this.eat(TokenType.Newline)
             let aliases = []
 
-            while (this.lookahead_token.type !== TokenType.Dot) {
+            while (this.current_token.type === TokenType.Alias) {
                 aliases.push(this.parse_alias())
+                this.eat(TokenType.Newline)
             }
 
+            if (this.current_token.type === TokenType.Newline) {
+                this.eat(TokenType.Newline)
+            }
             let line = this.parse_line()
+            this.eat(TokenType.Newline)
 
             let assigns = []
             while (this.current_token.type === TokenType.Dot) {
                 assigns.push(this.parse_assigns())
+                this.eat(TokenType.Newline)
             }
 
             let matches: Matches[] = []
 
-            while (this.lexer.lookahead_nb_newlines <= 1) {
+            while (true) {
                 matches.push(this.parse_match())
+                if (this.current_token.type === TokenType.Newline) {
+                    this.advance_tokens()
+                }
+                if (this.current_token.type === TokenType.Newline) {
+                    break
+                }
+                if (this.current_token.type === TokenType.Eof) {
+                    break
+                }
             }
 
             return {
@@ -285,15 +330,24 @@ class Parser {
         let facts = []
         let ideas = []
         while (this.current_token.type !== TokenType.Eof) {
+
+            while (this.current_token.type === TokenType.Newline) {
+                this.advance_tokens()
+            }
+
             let fact = this.parse_fact()
             if (fact) {
                 facts.push(fact)
+                continue
             }
 
             let idea = this.parse_idea()
             if (idea) {
                 ideas.push(idea)
+                continue
             }
+            
+            throw new ParserError('Fact or Idea expected.')
         }
 
         return {
@@ -309,10 +363,8 @@ type Assignment = Record<Path, Path>
 
 type MatchesEqual = {
     is_different?: true
-    column_a: string
-    param_a: string
-    column_b: string
-    param_b: string
+    path_a: Path
+    path_b: Path
 }
 
 type MatchesBetween = {
@@ -347,4 +399,9 @@ type Idea = {
 type Program = {
     ideas: Idea[]
     facts: Fact[]
+}
+
+export function parse_program(text: string) {
+    let p = new Parser(new Lexer(text))
+    return p.parse_program()
 }

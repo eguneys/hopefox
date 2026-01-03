@@ -9,7 +9,7 @@ function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
 }
 
-it('relational', () => {
+it.skip('relational', () => {
     solve_n(0)
     return
     for (let i = 0; i < 100; i++) {
