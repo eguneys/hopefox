@@ -128,7 +128,7 @@ function expand(
 }
 
 
-let m = await PositionManager.make()
+/*
 export function join_position2(fen: FEN) {
 
   let pos = m.create_position(fen)
@@ -145,7 +145,9 @@ export function join_position2(fen: FEN) {
 
   return moves
 }
+  */
 
+/*
 export function join_position1a(pos: PositionC) {
   let pp = join_position(m, pos)
 
@@ -153,7 +155,7 @@ export function join_position1a(pos: PositionC) {
 
   let res: MoveC[][] = []
   
-  make_moves(pp.moves, pos, () => {
+  make_moves(m, pp.moves, pos, () => {
     let second_move = join_position(m, pos)
 
     let blockable_checks = join(first_move.checks, second_move!.blocks, (a, b) =>
@@ -201,6 +203,7 @@ export function join_position1a(pos: PositionC) {
     moves: res
   }
 }
+  */
 
 function legalize_moves(moves: Relation, a: Relation) {
   return semiJoin(moves, a, (a, b) =>
@@ -223,14 +226,14 @@ function out_moves(moves: Relation) {
   return moves.rows.map(_ => [make_move_from_to(_.get('move.from')!, _.get('move.to')!)])
 }
 
-function make_moves(moves: Relation, pos: PositionC, fn: () => void) {
+export function make_moves(m: PositionManager, moves: Relation, pos: PositionC, fn: () => void) {
   for (let move of moves.rows) {
     m.make_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
     fn()
     m.unmake_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
   }
 }
-function unmake_moves(moves: Relation, pos: PositionC) {
+function unmake_moves(m: PositionManager, moves: Relation, pos: PositionC) {
   for (let i = moves.rows.length - 1; i >= 0; i--) {
     let move = moves.rows[i]
     m.unmake_move(pos, make_move_from_to(move.get('move.from')!, move.get('move.to')!))
@@ -252,7 +255,7 @@ export function join_position(m: PositionManager, pos: PositionC): World {
   let pressures, covers, defends
 
   let attacks_occupy = join(attacks, occupies, (a, o1) =>
-    a.get('attack.attacker_square') === o1.get('occupy.square')
+    a.get('attacks.from') === o1.get('occupy.square')
       ? mergeRows(a, o1)
       : null
   )
@@ -279,7 +282,7 @@ export function join_position(m: PositionManager, pos: PositionC): World {
 
 
   _ = join(attacks2, occupies, (a2, o1) =>
-    a2.get('attack2.attacker_square') === o1.get('occupy.square')
+    a2.get('attacks2.from') === o1.get('occupy.square')
       ? mergeRows(a2, o1)
       : null
   )
@@ -420,9 +423,9 @@ function attacks2_coll(m: PositionManager, pos: PositionC): Relation {
 
         for (let a2 of aa2) {
           let attack2 = new Map()
-          attack2.set('attack2.attacker_square', on)
-          attack2.set('attack2.check_square', a)
-          attack2.set('attack2.target_square', a2)
+          attack2.set('attacks2.from', on)
+          attack2.set('attacks2.to', a)
+          attack2.set('attacks2.to2', a2)
           res.push(attack2)
         }
       }
@@ -450,8 +453,8 @@ function attacks_coll(m: PositionManager, pos: PositionC): Relation {
                 for (let a of aa) {
 
                     let attack = new Map()
-                    attack.set('attack.attacker_square', on)
-                    attack.set('attack.target_square', a)
+                    attack.set('attacks.from', on)
+                    attack.set('attacks.to', a)
                     res.push(attack)
                 }
             }

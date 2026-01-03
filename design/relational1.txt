@@ -13,20 +13,20 @@ attacks2 from to to2
 fact pressures
      .from = attacks.from
      .to = attacks.to
-  attacks to = occupies square
-  occupies color = turn
+  attacks.to = occupies.square
+  occupies.color = turn
 
 fact check
      .from = attacks2.from
      .to = attacks2.to
      .check = attacks2.to2
-  attacks2 to2 = occupies square
-  occupies color = turn
+  attacks2.to2 = occupies.square
+  occupies.color = turn
 
 fact capture
      .from = attacks.from
      .to = attacks.to
-  attacks to = occupies square
+  attacks.to = occupies square
 
 fact block
      .blocks.from = attacks.from
@@ -54,6 +54,16 @@ idea blockable_check
      .blockable_check.check_to = check.to
   block.block_from = check.to
   block.block_to = check.check
+
+idea recapture
+  alias c2 capture
+  line capture c2
+    .double_capture.from = capture.from
+    .double_capture.to = capture.to
+    .double_capture.from2 = c2.from
+    .double_capture.to2 = c2.to
+  c2.to = capture.to
+ 
 
 idea double_capture
   alias c2 capture
