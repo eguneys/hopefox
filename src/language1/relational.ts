@@ -149,52 +149,53 @@ export function join_position1a(pos: PositionC) {
   let pp = join_position(pos)
 
   let first_move = pp
-  let second_move
+
+  let res: MoveC[][] = []
   
   make_moves(pp.moves, pos, () => {
-    second_move = join_position(pos)
+    let second_move = join_position(pos)
+
+    let blockable_checks = join(first_move.checks, second_move!.blocks, (a, b) =>
+      a.get('check.check_square') === b.get('block.attacker_square') &&
+        a.get('check.target_square') === b.get('block.target_square')
+        ? (() => {
+          const r = new Map()
+          r.set('blockable_check.blocker_square', b.get('block.blocker_square'))
+          r.set('blockable_check.block_square', b.get('block.block_square'))
+          r.set('blockable_check.attacker_square', a.get('check.check_square'))
+          r.set('blockable_check.attacker_piece', a.get('check.piece'))
+          r.set('blockable_check.attacker_color', a.get('check.color'))
+          r.set('blockable_check.target_square', b.get('check.target_square'))
+          r.set('blockable_check.target_piece', b.get('block.target_square'))
+
+          r.set('blockable_check.check_attacker_square', a.get('check.attacker_square'))
+          r.set('blockable_check.check_square', a.get('check.check_square'))
+
+          return r
+        })()
+        : null
+    )
+
+    let moves1 = project(blockable_checks, (a) => {
+      let row = new Map()
+      row.set('move.from', a.get('blockable_check.check_attacker_square'))
+      row.set('move.to', a.get('blockable_check.check_square'))
+      return row
+    })
+
+    let moves2 = project(blockable_checks, (a) => {
+      let row = new Map()
+      row.set('move.from', a.get('blockable_check.blocker_square'))
+      row.set('move.to', a.get('blockable_check.block_square'))
+      return row
+    })
+
+    moves1 = legalize_moves(first_move.moves, moves1)
+    moves2 = legalize_moves(second_move!.moves, moves2)
+
+    res.push(...bind_moves([moves1, moves2]))
   })
 
-
-  let blockable_checks = join(first_move.checks, second_move!.blocks, (a, b) =>
-    a.get('check.check_square') === b.get('block.attacker_square') &&
-      a.get('check.target_square') === b.get('block.target_square')
-      ? (() => {
-        const r = new Map()
-        r.set('blockable_check.blocker_square', b.get('block.blocker_square'))
-        r.set('blockable_check.block_square', b.get('block.block_square'))
-        r.set('blockable_check.attacker_square', a.get('check.check_square'))
-        r.set('blockable_check.attacker_piece', a.get('check.piece'))
-        r.set('blockable_check.attacker_color', a.get('check.color'))
-        r.set('blockable_check.target_square', b.get('check.target_square'))
-        r.set('blockable_check.target_piece', b.get('block.target_square'))
-
-        r.set('blockable_check.check_attacker_square', a.get('check.attacker_square'))
-        r.set('blockable_check.check_square', a.get('check.check_square'))
-
-        return r
-      })()
-      : null
-  )
-
-  let moves1 = project(blockable_checks, (a) => {
-    let row = new Map()
-    row.set('move.from', a.get('blockable_check.check_attacker_square'))
-    row.set('move.to', a.get('blockable_check.check_square'))
-    return row
-  })
-
-  let moves2 = project(blockable_checks, (a) => {
-    let row = new Map()
-    row.set('move.from', a.get('blockable_check.blocker_square'))
-    row.set('move.to', a.get('blockable_check.block_square'))
-    return row
-  })
-
-  moves1 = legalize_moves(first_move.moves, moves1)
-  moves2 = legalize_moves(second_move!.moves, moves2)
-
-  let res: MoveC[][] = bind_moves([moves1, moves2])
   return {
     moves: res
   }
