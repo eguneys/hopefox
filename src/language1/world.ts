@@ -145,6 +145,11 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
                     continue
                 }
 
+                let [name, rest] = path_split(m.path_a)
+                let [name2, rest2] = path_split(m.path_b)
+
+
+
                 let x = ab_bindings[name].get(rest)
                 let y
 
@@ -161,6 +166,7 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
             return cond
                 ? (() => {
                     const r = new Map()
+                    r.set('wid', world_id)
                     for (let ass of fact.assigns) {
                         let [key] = Object.keys(ass)
                         let [r_rel, r_path] = path_split(ass[key])

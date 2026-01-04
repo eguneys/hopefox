@@ -42,7 +42,6 @@ fact captures.move
   moves.from = captures.from
   moves.to = captures.to
 
-
 idea recaptures
   alias c2 captures
   line captures c2
