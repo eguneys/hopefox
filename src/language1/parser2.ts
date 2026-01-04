@@ -231,8 +231,8 @@ class Parser {
 
     private parse_alias() {
         this.eat(TokenType.Alias)
-        let alias = this.word()
-        let column = this.word()
+        let alias = this.path()
+        let column = this.path()
         return { alias, column }
     }
 
@@ -240,7 +240,7 @@ class Parser {
         this.eat(TokenType.Line)
         let res = []
         while (this.current_token.type !== TokenType.Newline) {
-            res.push(this.word())
+            res.push(this.path())
         }
         return res
     }

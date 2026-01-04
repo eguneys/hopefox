@@ -36,29 +36,29 @@ fact blocks
      .block_to = pressures.to
   attacks.to between pressures.from pressures.to
 
-fact captures.move
+fact captures_move
      .from = moves.from
      .to = moves.to
   moves.from = captures.from
   moves.to = captures.to
 
 idea recaptures
-  alias c2 captures
-  line captures c2
-    .from = captures.move.from
-    .to = captures.move.to
-    .recaptures.from2 = c2.move.from
-    .recaptures.to2 = c2.move.to
-  c2.move.to = captures.move.to
+  alias c2 captures_move
+  line captures_move c2
+    .from = captures_move.from
+    .to = captures_move.to
+    .from2 = c2.move.from
+    .to2 = c2.move.to
+  c2.move.to = captures_move.to
 
 `.trim()
 
 
-  let link = puzzles[0].link
+  let link = puzzles[2].link
 
   console.log(link)
 
-  let fen = puzzles[0].move_fens[0]
+  let fen = puzzles[2].move_fens[0]
   let res = search(fen, rules)
 
   console.log(res)

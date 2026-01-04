@@ -4,7 +4,7 @@ import { FEN } from "../mor3_hope1"
 import { SquareSet } from "../squareSet"
 import { Linked } from "./linker"
 import { NodeId, NodeManager } from "./node_manager"
-import { Fact, is_matches_between, parse_program, Program } from "./parser2"
+import { Fact, Idea, is_matches_between, parse_program, Program } from "./parser2"
 import { join, mergeRows, Relation as R, select } from "./relational"
 
 type Relation = R
@@ -59,7 +59,13 @@ export class World_Manager {
 
         this.world = { ...this.world, ...base }
 
-        Join_facts(world_id, this.program.facts, this.world)
+        for (let fact of this.program.facts) {
+            join_fact(world_id, fact, this.world)
+        }
+
+        for (let idea of this.program.ideas) {
+            join_idea(world_id, idea, this.world)
+        }
     }
 
     select_World(id: WorldId, relation: Relation) {
@@ -99,10 +105,82 @@ export class World_Manager {
     }
 }
 
-function Join_facts(world_id: WorldId, facts: Fact[], world: World) {
-    for (let fact of facts) {
-        join_fact(world_id, fact, world)
+function join_idea(world_id: WorldId, idea: Idea, world: World) {
+
+    let w = { ...world }
+
+    for (let alias of idea.aliases) {
+        w[alias.alias] = w[alias.column]
     }
+
+    let m = idea.matches[0]
+
+
+    if (is_matches_between(m)) {
+        return world
+    }
+
+    let facts_relation: Relation = { rows: [] }
+
+    let [name, rest] = path_split(m.path_a)
+    let [name2, rest2] = path_split(m.path_b)
+
+
+    if (name2 === 'KING') {
+        facts_relation = select(w[name], a => a.get(rest) === KING)
+    } else {
+        if (w[name] === undefined || w[name2] === undefined) {
+            throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+        }
+
+        facts_relation = join(w[name], w[name2], (a, b) => {
+
+            let ab_bindings = { [name]: a, [name2]: b }
+
+            let cond = true
+
+            for (let m of idea.matches) {
+
+                if (is_matches_between(m)) {
+                    continue
+                }
+
+                let [name, rest] = path_split(m.path_a)
+                let [name2, rest2] = path_split(m.path_b)
+
+
+
+                let x = ab_bindings[name].get(rest)
+                let y
+
+                if (!rest2) {
+                    let turn = 0
+                    y = turn
+                } else {
+                    y = ab_bindings[name2].get(rest2)
+                }
+
+                cond &&= m.is_different ? x !== y : x === y
+            }
+
+            return cond
+                ? (() => {
+                    const r = new Map()
+                    r.set('wid', world_id)
+                    for (let ass of idea.assigns) {
+                        let [key] = Object.keys(ass)
+                        let [r_rel, r_path] = path_split(ass[key])
+                        r.set(
+                            `${key}`,
+                            ab_bindings[r_rel].get(`${r_path}`))
+                    }
+
+                    return r
+                })() : null
+        })
+    }
+
+    world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, facts_relation)
 }
 
 function join_fact(world_id: WorldId, fact: Fact, world: World) {

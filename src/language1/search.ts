@@ -10,7 +10,7 @@ export function search(fen: FEN, rules: string) {
     let w = new World_Manager(m, pos, rules)
 
 
-    return w.get_Column(0, 'captures')
+    return w.get_Column(0, 'recaptures')
     return w.continuations(0)
 
     /*
