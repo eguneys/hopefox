@@ -1,17 +1,14 @@
-import { PositionManager } from "../hopefox_c"
+import { PositionC, PositionManager } from "../hopefox_c"
 import { parse_program } from "./parser2"
 import { World_Manager } from "./world"
 
 type FEN = string
 
-let m = await PositionManager.make()
-export function search(fen: FEN, rules: string) {
-    let pos = m.create_position(fen)
+export function search(m: PositionManager, pos: PositionC, rules: string) {
     let w = new World_Manager(m, pos, rules)
 
 
-    return w.get_Column(0, 'recaptures')
-    return w.continuations(0)
+    return w.continuations(0, 'recaptures')
 
     /*
 
@@ -33,7 +30,6 @@ export function search(fen: FEN, rules: string) {
         queue = new_queue
     }
 
-    m.delete_position(pos)
     return w.select_Moves(0)
     */
 }

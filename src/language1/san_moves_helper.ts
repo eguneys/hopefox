@@ -17,3 +17,12 @@ export function san_moves(pos: Position, moves: Move[]) {
 export function san_moves_c(m: PositionManager, pos: PositionC, moves: MoveC[]) {
     return san_moves(m.get_pos_read_fen(pos), moves.map(m => move_c_to_Move(m)))
 }
+
+
+export function flat_san_moves_c(m: PositionManager, pos: PositionC, moves: MoveC[][]) {
+    let res: SAN[] = []
+    for (let move of moves) {
+        res.push(...san_moves_c(m, pos, move))
+    }
+    return res
+}

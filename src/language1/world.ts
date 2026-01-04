@@ -34,9 +34,9 @@ export class World_Manager {
         this.Join_world(0, m, pos)
     }
 
-    continuations(world_id: WorldId) {
-        let moves = this.R(world_id, 'moves')
-        return moves
+    continuations(world_id: WorldId, column: Column) {
+        let moves = extract_moves(this.R(world_id, column))
+        return moves.map(_ => [_])
     }
 
     get_Column(world_id: WorldId, column: Column) {
@@ -117,8 +117,8 @@ export class World_Manager {
         */
     }
 
-    is_successor_id(a: WorldId, b: WorldId) {
-        return this.nodes.is_successor_id(a, b)
+    is_a_successor_of_b(a: WorldId, b: WorldId) {
+        return this.nodes.is_a_successor_of_b(a, b)
     }
 
     join_idea(world_id: WorldId, idea: Idea, world: World) {
@@ -145,6 +145,11 @@ export class World_Manager {
         let [name, rest] = path_split(m.path_a)
         let [name2, rest2] = path_split(m.path_b)
 
+        if (name2 === l0) {
+            ;[name, name2] = [name2, name]
+            ;[rest, rest2] = [rest2, rest]
+        }
+
 
         if (name2 === 'KING') {
             facts_relation = select(w[name], a => a.get(rest) === KING)
@@ -156,13 +161,14 @@ export class World_Manager {
                 throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
             }
 
-            let w_name2 = select(w[name2], _ => this.is_successor_id(world_id, _.get('wid')!))
+            let w_name = select(w[name], _ => world_id === _.get('wid')!)
+            let w_name2 = select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
 
             if (w[name].rows.length + w[name2].rows.length > 100000) {
                 throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
             }
 
-            facts_relation = join(w[name], w_name2, (a, b) => {
+            facts_relation = join(w_name, w_name2, (a, b) => {
 
                 let ab_bindings = { [name]: a, [name2]: b }
 
@@ -252,7 +258,11 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
             throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
         }
 
-        facts_relation = join(w[name], w[name2], (a, b) => {
+        let w_name = select(w[name], _ => world_id === _.get('wid')!)
+        let w_name2 = select(w[name2], _ => world_id === _.get('wid')!)
+
+
+        facts_relation = join(w_name, w_name2, (a, b) => {
 
             let ab_bindings = { [name]: a, [name2]: b }
 

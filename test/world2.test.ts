@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { search } from '../src'
+import { flat_san_moves_c, PositionManager, san_moves, san_moves_c, search } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -45,23 +45,28 @@ fact captures_moves
 idea recaptures
   alias c2 captures_moves
   line captures_moves c2
-    .from = captures_move.from
-    .to = captures_move.to
-    .from2 = c2.move.from
-    .to2 = c2.move.to
-  c2.move.to = captures_moves.to
+    .from = captures_moves.from
+    .to = captures_moves.to
+    .from2 = c2.from
+    .to2 = c2.to
+  c2.to = captures_moves.to
 
 `.trim()
 
 
-  let link = puzzles[2].link
+
+  let link = puzzles[0].link
 
   console.log(link)
 
-  let fen = puzzles[2].move_fens[0]
-  let res = search(fen, rules)
+  let fen = puzzles[0].move_fens[0]
 
-  console.log(res)
+  fen = '7k/8/8/4n3/6n1/3N4/8/K7 w - - 0 1'
+  let pos = m.create_position(fen)
+  let res = search(m, pos, rules)
+  console.log(flat_san_moves_c(m, pos, res))
+  m.delete_position(pos)
+
 })
 
 
@@ -106,7 +111,13 @@ fact blocks
   console.log(link)
 
   let fen = puzzles[0].move_fens[0]
-  let res = search(fen, rules)
 
-  console.log(res)
+  let pos = m.create_position(fen)
+  //let res = search(m, pos, rules)
+
+  //console.log(san_moves_c(m, pos, res))
+  console.log('OK')
+  m.delete_position(pos)
 })
+
+let m = await PositionManager.make()

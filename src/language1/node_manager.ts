@@ -95,7 +95,7 @@ export class NodeManager {
         return child.id
     }
 
-    is_successor_id(a: NodeId, b: NodeId) {
+    is_a_successor_of_b(a: NodeId, b: NodeId) {
         if (b === 0) {
             return this.root.children.some(_ => _.id === a)
         }
