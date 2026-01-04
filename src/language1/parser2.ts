@@ -9,6 +9,7 @@ enum TokenType {
     Alias = 'Alias',
     Line = 'Line',
     Word = 'Word',
+    Const = 'Const',
     Dot = 'Dot',
     Between = 'Between',
     Newline = 'Newline',
@@ -18,6 +19,16 @@ enum TokenType {
 type Token = {
     type: TokenType
     value: string
+}
+
+enum Constants {
+    KING = 'KING'
+}
+
+const All_Constants: Constants[] = [Constants.KING]
+
+function is_constant(s: string): s is Constants {
+    return All_Constants.includes(s as Constants)
 }
 
 class Lexer {
@@ -52,10 +63,22 @@ class Lexer {
     private is_lowercase_num(char: string): boolean {
         return /[a-z0-9_]/.test(char)
     }
+    private is_uppercase_num(char: string): boolean {
+        return /[A-Z0-9_]/.test(char)
+    }
 
     private word() {
         let result = ''
         while (this.current_char !== undefined && this.is_lowercase_num(this.current_char)) {
+            result += this.current_char
+            this.advance()
+        }
+        return result
+    }
+
+    private constant() {
+        let result = ''
+        while (this.current_char !== undefined && this.is_uppercase_num(this.current_char)) {
             result += this.current_char
             this.advance()
         }
@@ -86,6 +109,12 @@ class Lexer {
             if (this.current_char === '.') {
                 this.advance()
                 return { type: TokenType.Dot, value: '.' }
+            }
+
+            let constant = this.constant()
+
+            if (is_constant(constant)) {
+                return { type: TokenType.Const, value: constant }
             }
 
             const word = this.word()
@@ -175,26 +204,27 @@ class Parser {
     }
 
     private parse_match(): Matches {
-        let path_a = this.path()
+
+        let path_a = this.path_or_constant()
 
         if (this.current_token.type === TokenType.Between) {
             this.eat(TokenType.Between)
 
-            let path_b = this.path()
+            let path_b = this.path_or_constant()
 
-            let path_c = this.path()
+            let path_c = this.path_or_constant()
 
             return { path_a, path_b, path_c }
         }
 
         if (this.current_token.type === TokenType.Different) {
             this.eat(TokenType.Different)
-            let path_b = this.path()
+            let path_b = this.path_or_constant()
             return { path_a, path_b, is_different: true }
         }
 
         this.eat(TokenType.Equal)
-        let path_b = this.path()
+        let path_b = this.path_or_constant()
 
         return { path_a, path_b }
     }
@@ -231,6 +261,14 @@ class Parser {
             }
         }
         return res
+    }
+
+    private path_or_constant() {
+        if (this.current_token.type === TokenType.Const) {
+            return this.eat(TokenType.Const)
+        } else {
+            return this.path()  
+        }
     }
 
     private parse_fact(): Fact | undefined {
