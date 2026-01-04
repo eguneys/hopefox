@@ -13,7 +13,6 @@ export type Relation = {
   rows: Row[]
 }
 
-
 export function select(
   rel: Relation,
   predicate: (r: Row) => boolean

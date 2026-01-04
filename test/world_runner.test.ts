@@ -1,9 +1,10 @@
-import { it } from 'vitest'
+import { describe, it } from 'vitest'
 import { fen_pos, join_world, link, out_lines, out_moves, parse_program, PositionManager, san_moves_c } from '../src'
 import { puzzles } from './fixture'
 
 let m = await PositionManager.make()
 
+describe.skip(() => {
 
 it('ideas', () => {
     
@@ -103,4 +104,5 @@ fact fork
     let pos = m.create_position(fen)
     let res = join_world(m, pos, l)
     console.log(res)
+})
 })

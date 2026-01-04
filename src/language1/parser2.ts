@@ -263,6 +263,9 @@ class Parser {
                 if (this.current_token.type === TokenType.Newline) {
                     break
                 }
+                if (this.current_token.type === TokenType.Eof) {
+                    break
+                }
             }
 
             return {
