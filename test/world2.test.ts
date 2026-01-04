@@ -12,24 +12,25 @@ fact pressures
   attacks.to = occupies.square
   occupies.color = turn
 
-fact check
+fact checks
      .from = attacks2.from
      .to = attacks2.to
      .check = attacks2.to2
   attacks2.to2 = occupies.square
   occupies.color = turn
 
-fact capture
+fact captures
      .from = attacks.from
      .to = attacks.to
   attacks.to = occupies.square
 
-fact block
-     .blocks.from = attacks.from
-     .blocks.to = attacks.to
-     .blocks.block_from = pressures.from
-     .blocks.block_to = pressures.to
+fact blocks
+     .from = attacks.from
+     .to = attacks.to
+     .block_from = pressures.from
+     .block_to = pressures.to
   attacks.to between pressures.from pressures.to
+
 `.trim()
 
 

@@ -1,10 +1,11 @@
 import { Position } from "../chess"
 import { BLACK, move_c_to_Move, MoveC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
+import { SquareSet } from "../squareSet"
 import { Linked } from "./linker"
 import { NodeId, NodeManager } from "./node_manager"
-import { parse_program, Program } from "./parser2"
-import { Relation as R, select } from "./relational"
+import { Fact, is_matches_between, parse_program, Program } from "./parser2"
+import { join, mergeRows, Relation as R, select } from "./relational"
 
 type Relation = R
 
@@ -30,7 +31,7 @@ export class World_Manager {
         this.world = {}
         this.program = parse_program(program)
 
-        this.Join_position(0, m, pos)
+        this.Join_world(0, m, pos)
     }
 
     private select_Moves(world_id: WorldId) {
@@ -46,15 +47,18 @@ export class World_Manager {
     add_Move(m: PositionManager, pos: PositionC, world_id: WorldId, move: MoveC) {
         m.make_move(pos, move)
         let cid = this.nodes.add_move(world_id, move)
-        this.Join_position(cid, m, pos)
+        this.Join_world(cid, m, pos)
         m.unmake_move(pos, move)
     }
 
-    Join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
+    Join_world(world_id: WorldId, m: PositionManager, pos: PositionC) {
         let base = join_position(world_id, m, pos)
 
-
         this.world = { ...this.world, ...base }
+
+        Join_facts(world_id, this.program.facts, this.world)
+
+
     }
 
     select_World(id: WorldId, relation: Relation) {
@@ -94,6 +98,85 @@ export class World_Manager {
     }
 }
 
+function Join_facts(world_id: WorldId, facts: Fact[], world: World) {
+    for (let fact of facts) {
+        join_fact(world_id, fact, world)
+    }
+}
+
+function join_fact(world_id: WorldId, fact: Fact, world: World) {
+
+    let w = { ...world }
+
+    for (let alias of fact.aliases) {
+        w[alias.alias] = w[alias.column]
+    }
+
+    let m = fact.matches[0]
+
+
+    if (is_matches_between(m)) {
+        return world
+    }
+
+    let [name, rest] = path_split(m.path_a)
+    let [name2, rest2] = path_split(m.path_b)
+
+    if (w[name] === undefined || w[name2] === undefined) {
+        throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+    }
+
+    let facts_relation = join(w[name], w[name2], (a, b) => {
+
+        let ab_bindings = { [name]: a, [name2]: b }
+
+        let cond = true
+
+        for (let m of fact.matches) {
+
+            if (is_matches_between(m)) {
+                continue
+            }
+
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
+            let x = ab_bindings[name].get(rest)
+            let y
+
+            if (!rest2) {
+                let turn = 0
+                y = turn
+            } else {
+                y = ab_bindings[name2].get(rest2)
+            }
+
+            cond ||= m.is_different ? x === y : x !== y
+        }
+
+        return cond
+            ? (() => {
+                const r = new Map()
+                for (let ass of fact.assigns) {
+                    let [key] = Object.keys(ass)
+                    let [r_rel, r_path] = path_split(ass[key])
+                    r.set(
+                        `${key}`,
+                        ab_bindings[r_rel].get(`${r_path}`))
+                }
+
+                return r
+            })() : null
+    })
+
+    world[fact.name] = mergeColumns(world[fact.name] ?? { rows: [] }, facts_relation)
+}
+
+type Path = string
+function path_split(path: Path) {
+    let [name, ...rest] = path.split('.')
+    return [name, rest.join('.')]
+}
+
 function join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
     let turn = m.pos_turn(pos)
     let opponent = turn === WHITE ? BLACK : WHITE
@@ -104,6 +187,26 @@ function join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
     let attacks2: Relation = { rows: [] }
     let moves: Relation = { rows: [] }
 
+    for (let on of SquareSet.full()) {
+        let piece = m.get_at(pos, on)
+
+        if (!piece) {
+            let vacant = new Map()
+            vacant.set('wid', world_id)
+            vacant.set('square', on)
+            vacants.rows.push(vacant)
+        } else {
+            let occupy = new Map()
+            occupy.set('wid', world_id)
+            occupy.set('square', on)
+            occupy.set('piece', piece)
+            occupy.set('color', turn)
+            occupies.rows.push(occupy)
+        } 
+
+
+    }
+
     for (let move of m.get_legal_moves(pos)) {
         let { from, to } = move_c_to_Move(move)
         let row = new Map()
@@ -113,11 +216,18 @@ function join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
         moves.rows.push(row)
     }
 
-
     return {
         attacks,
+        occupies,
+        vacants,
+        attacks2,
         moves
     }
+}
+
+export function mergeColumns(a: Relation, b: Relation) {
+
+    return { rows: { ...a.rows, ...b.rows } }
 }
 
 export function group_by_key(key: number, r: Relation) {
