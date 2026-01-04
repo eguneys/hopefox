@@ -275,7 +275,7 @@ class Parser {
         let current_token = this.current_token
         if (current_token.type === TokenType.BeginFact) {
             this.eat(TokenType.BeginFact)
-            let name = this.eat(TokenType.Word)
+            let name = this.path()
 
             this.eat(TokenType.Newline)
             let aliases = []

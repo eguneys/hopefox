@@ -60,8 +60,6 @@ export class World_Manager {
         this.world = { ...this.world, ...base }
 
         Join_facts(world_id, this.program.facts, this.world)
-
-
     }
 
     select_World(id: WorldId, relation: Relation) {
@@ -247,8 +245,8 @@ function join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
         let { from, to } = move_c_to_Move(move)
         let row = new Map()
         row.set('wid', world_id)
-        row.set('move.from', from)
-        row.set('move.to', to)
+        row.set('from', from)
+        row.set('to', to)
         moves.rows.push(row)
     }
 
