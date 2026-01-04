@@ -71,7 +71,7 @@ export class World_Manager {
             this.join_idea(world_id, idea, base)
         }
 
-        this.world = merge_worlds(this.world, base)
+        this.world = base
     }
 
 
@@ -164,7 +164,7 @@ export class World_Manager {
             let w_name = select(w[name], _ => world_id === _.get('wid')!)
             let w_name2 = select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
 
-            if (w[name].rows.length + w[name2].rows.length > 100000) {
+            if (w_name.rows.length + w_name2.rows.length > 100000) {
                 throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
             }
 
@@ -258,9 +258,15 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
             throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
         }
 
+        if (world_id === 18) {
+            debugger
+        }
         let w_name = select(w[name], _ => world_id === _.get('wid')!)
         let w_name2 = select(w[name2], _ => world_id === _.get('wid')!)
 
+        if (w_name.rows.length + w_name2.rows.length > 100000) {
+            throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
+        }
 
         facts_relation = join(w_name, w_name2, (a, b) => {
 

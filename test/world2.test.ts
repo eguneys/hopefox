@@ -55,13 +55,11 @@ idea recaptures
 
 
 
-  let link = puzzles[0].link
-
+  let link = puzzles[2].link
   console.log(link)
+  let fen = puzzles[2].move_fens[0]
 
-  let fen = puzzles[0].move_fens[0]
-
-  fen = '7k/8/8/4n3/6n1/3N4/8/K7 w - - 0 1'
+  //fen = '7k/8/8/4n3/6n1/3N4/8/K7 w - - 0 1'
   let pos = m.create_position(fen)
   let res = search(m, pos, rules)
   console.log(flat_san_moves_c(m, pos, res))
