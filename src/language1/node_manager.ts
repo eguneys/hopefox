@@ -70,7 +70,6 @@ class Node {
 
 
 export class NodeManager {
-
     cache: NodeCache
     root: NodeRoot
 
@@ -82,7 +81,9 @@ export class NodeManager {
     add_move(id: NodeId, move: MoveC) {
 
         if (id === 0) {
-            return this.root.add_move(move).id
+            let child = this.root.add_move(move)
+            this.cache.add_node(child)
+            return child.id
         }
 
         let parent = this.cache.get_node(id)
@@ -92,6 +93,21 @@ export class NodeManager {
         let child = parent.add_move(move)
         this.cache.add_node(child)
         return child.id
+    }
+
+    is_successor_id(a: NodeId, b: NodeId) {
+        if (b === 0) {
+            return this.root.children.some(_ => _.id === a)
+        }
+
+        let parent = this.cache.get_node(b)
+
+        if (!parent) {
+            return false
+            //throw new NoChildError(b)
+        }
+
+        return parent.children.some(_ => _.id === a)
     }
 
     prefix_test(a: NodeId, b: NodeId) {

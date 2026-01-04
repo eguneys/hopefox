@@ -36,20 +36,20 @@ fact blocks
      .block_to = pressures.to
   attacks.to between pressures.from pressures.to
 
-fact captures_move
+fact captures_moves
      .from = moves.from
      .to = moves.to
   moves.from = captures.from
   moves.to = captures.to
 
 idea recaptures
-  alias c2 captures_move
-  line captures_move c2
+  alias c2 captures_moves
+  line captures_moves c2
     .from = captures_move.from
     .to = captures_move.to
     .from2 = c2.move.from
     .to2 = c2.move.to
-  c2.move.to = captures_move.to
+  c2.move.to = captures_moves.to
 
 `.trim()
 

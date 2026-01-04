@@ -1,5 +1,5 @@
 import { Position } from "../chess"
-import { BLACK, KING, move_c_to_Move, MoveC, PositionC, PositionManager, WHITE } from "../hopefox_c"
+import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
 import { SquareSet } from "../squareSet"
 import { Linked } from "./linker"
@@ -34,10 +34,6 @@ export class World_Manager {
         this.Join_world(0, m, pos)
     }
 
-    private select_Moves(world_id: WorldId) {
-        return this.nodes.history_moves(world_id)
-    }
-
     continuations(world_id: WorldId) {
         let moves = this.R(world_id, 'moves')
         return moves
@@ -55,21 +51,38 @@ export class World_Manager {
     }
 
     Join_world(world_id: WorldId, m: PositionManager, pos: PositionC) {
+
         let base = join_position(world_id, m, pos)
 
-        this.world = { ...this.world, ...base }
+        base = merge_worlds(base, join_position(world_id, m, pos))
+
 
         for (let fact of this.program.facts) {
-            join_fact(world_id, fact, this.world)
+            join_fact(world_id, fact, base)
         }
 
+
+        this.world = merge_worlds(this.world, base)
+
+        this.Materialize_moves(m, pos, world_id)
+
+        base = this.world
         for (let idea of this.program.ideas) {
-            join_idea(world_id, idea, this.world)
+            this.join_idea(world_id, idea, base)
         }
+
+        this.world = merge_worlds(this.world, base)
+    }
+
+
+    Materialize_moves(m: PositionManager, pos: PositionC, world_id: WorldId) {
+        let moves = extract_moves(this.R(world_id, 'captures_moves'))
+        
+        moves.forEach(move => this.add_Move(m, pos, world_id, move))
     }
 
     select_World(id: WorldId, relation: Relation) {
-        return select(relation, a => this.nodes.prefix_test(a.get('wid')!, id))
+        return select(relation, a => a.get('wid')! === id)
     }
 
     R(id: WorldId, Column: Column) {
@@ -103,84 +116,112 @@ export class World_Manager {
         return res
         */
     }
-}
 
-function join_idea(world_id: WorldId, idea: Idea, world: World) {
-
-    let w = { ...world }
-
-    for (let alias of idea.aliases) {
-        w[alias.alias] = w[alias.column]
+    is_successor_id(a: WorldId, b: WorldId) {
+        return this.nodes.is_successor_id(a, b)
     }
 
-    let m = idea.matches[0]
+    join_idea(world_id: WorldId, idea: Idea, world: World) {
 
+        let w = { ...world }
 
-    if (is_matches_between(m)) {
-        return world
-    }
-
-    let facts_relation: Relation = { rows: [] }
-
-    let [name, rest] = path_split(m.path_a)
-    let [name2, rest2] = path_split(m.path_b)
-
-
-    if (name2 === 'KING') {
-        facts_relation = select(w[name], a => a.get(rest) === KING)
-    } else {
-        if (w[name] === undefined || w[name2] === undefined) {
-            throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+        for (let alias of idea.aliases) {
+            w[alias.alias] = w[alias.column]
         }
 
-        facts_relation = join(w[name], w[name2], (a, b) => {
 
-            let ab_bindings = { [name]: a, [name2]: b }
+        let l0 = idea.line[0]
+        let l1 = idea.line[1]
 
-            let cond = true
-
-            for (let m of idea.matches) {
-
-                if (is_matches_between(m)) {
-                    continue
-                }
-
-                let [name, rest] = path_split(m.path_a)
-                let [name2, rest2] = path_split(m.path_b)
+        let m = idea.matches[0]
 
 
+        if (is_matches_between(m)) {
+            return world
+        }
 
-                let x = ab_bindings[name].get(rest)
-                let y
+        let facts_relation: Relation = { rows: [] }
 
-                if (!rest2) {
-                    let turn = 0
-                    y = turn
-                } else {
-                    y = ab_bindings[name2].get(rest2)
-                }
+        let [name, rest] = path_split(m.path_a)
+        let [name2, rest2] = path_split(m.path_b)
 
-                cond &&= m.is_different ? x !== y : x === y
+
+        if (name2 === 'KING') {
+            facts_relation = select(w[name], a => a.get(rest) === KING)
+        } else {
+
+
+
+            if (w[name] === undefined || w[name2] === undefined) {
+                throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
             }
 
-            return cond
-                ? (() => {
-                    const r = new Map()
-                    r.set('wid', world_id)
-                    for (let ass of idea.assigns) {
-                        let [key] = Object.keys(ass)
-                        let [r_rel, r_path] = path_split(ass[key])
-                        r.set(
-                            `${key}`,
-                            ab_bindings[r_rel].get(`${r_path}`))
+            let w_name2 = select(w[name2], _ => this.is_successor_id(world_id, _.get('wid')!))
+
+            if (w[name].rows.length + w[name2].rows.length > 100000) {
+                throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
+            }
+
+            facts_relation = join(w[name], w_name2, (a, b) => {
+
+                let ab_bindings = { [name]: a, [name2]: b }
+
+                let cond = true
+
+                for (let m of idea.matches) {
+
+                    if (is_matches_between(m)) {
+                        continue
                     }
 
-                    return r
-                })() : null
-        })
-    }
+                    let [name, rest] = path_split(m.path_a)
+                    let [name2, rest2] = path_split(m.path_b)
 
-    world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, facts_relation)
+
+
+                    let x = ab_bindings[name].get(rest)
+                    let y
+
+                    if (!rest2) {
+                        let turn = 0
+                        y = turn
+                    } else {
+                        y = ab_bindings[name2].get(rest2)
+                    }
+
+                    cond &&= m.is_different ? x !== y : x === y
+                }
+
+                return cond
+                    ? (() => {
+                        const r = new Map()
+                        r.set('wid', world_id)
+                        for (let ass of idea.assigns) {
+                            let [key] = Object.keys(ass)
+                            let [r_rel, r_path] = path_split(ass[key])
+                            r.set(
+                                `${key}`,
+                                ab_bindings[r_rel].get(`${r_path}`))
+                        }
+
+                        return r
+                    })() : null
+            })
+        }
+
+        world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, facts_relation)
+    }
+}
+
+function extract_moves(moves: Relation) {
+
+    let res: MoveC[] = []
+    for (let row of moves.rows) {
+        res.push(make_move_from_to(row.get('from')!, row.get('to')!))
+    }
+    // todo fix
+    res = [...new Set(res)]
+    return res
 }
 
 function join_fact(world_id: WorldId, fact: Fact, world: World) {
@@ -258,7 +299,7 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
         })
     }
 
-    world[fact.name] = mergeColumns(world[fact.name] ?? { rows: [] }, facts_relation)
+    world[fact.name] = mergeColumns(w[fact.name] ?? { rows: [] }, facts_relation)
 }
 
 type Path = string
@@ -267,7 +308,7 @@ function path_split(path: Path) {
     return [name, rest.join('.')]
 }
 
-function join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
+function join_position(world_id: WorldId, m: PositionManager, pos: PositionC): World {
     let turn = m.pos_turn(pos)
     let opponent = turn === WHITE ? BLACK : WHITE
 
@@ -341,6 +382,18 @@ function join_position(world_id: WorldId, m: PositionManager, pos: PositionC) {
         attacks2,
         moves
     }
+}
+
+export function merge_worlds(a: World, b: World) {
+    let res: World = {}
+    for (let key of Object.keys(b)) {
+        if (a[key] === undefined) {
+            res[key] = b[key]
+        } else {
+            res[key] = mergeColumns(a[key], b[key])
+        }
+    }
+    return res
 }
 
 export function mergeColumns(a: Relation, b: Relation) {
