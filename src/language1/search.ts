@@ -8,7 +8,7 @@ export function search(m: PositionManager, pos: PositionC, rules: string) {
     let w = new World_Manager(m, pos, rules)
 
 
-    return w.continuations(0, 'blockable_checks')
+    return w.continuations(0, 'double_capture')
 
     /*
 

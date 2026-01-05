@@ -440,7 +440,7 @@ export function is_matches_between(m: Matches): m is MatchesBetween {
     return (m as MatchesBetween).path_c !== undefined
 }
 
-type Alias = {
+export type Alias = {
     alias: string
     column: string
 }

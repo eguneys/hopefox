@@ -5,7 +5,7 @@ import { FEN } from "../mor3_hope1"
 import { SquareSet } from "../squareSet"
 import { Linked } from "./linker"
 import { NodeId, NodeManager } from "./node_manager"
-import { Fact, Idea, is_matches_between, parse_program, Program } from "./parser2"
+import { Alias, Fact, Idea, is_matches_between, parse_program, Program } from "./parser2"
 import { join, mergeRows, Relation as R, select } from "./relational"
 import { san_moves, san_moves_c } from "./san_moves_helper"
 
@@ -70,7 +70,7 @@ export class World_Manager {
         for (let idea of this.program.ideas) {
 
             this.world = merge_worlds(this.world, base)
-            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, idea.line)
+            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(idea.line, idea.aliases))
             base = this.world
 
             this.join_idea(world_id, idea, base)
@@ -241,6 +241,11 @@ export class World_Manager {
 
         world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, facts_relation)
     }
+}
+
+
+function fix_alias(line: string[], aliases: Alias[]) {
+    return line.map(line => aliases.find(_ => _.alias === line)?.column ?? line)
 }
 
 function extract_moves(moves: Relation) {
