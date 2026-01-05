@@ -5,7 +5,7 @@ import { FEN } from "../mor3_hope1"
 import { SquareSet } from "../squareSet"
 import { Linked } from "./linker"
 import { NodeId, NodeManager } from "./node_manager"
-import { Alias, Fact, Idea, is_matches_between, parse_program, Program } from "./parser2"
+import { Alias, Fact, Idea, is_matches_between, Motif, parse_program, Program } from "./parser2"
 import { join, mergeRows, Relation as R, select } from "./relational"
 import { san_moves, san_moves_c } from "./san_moves_helper"
 
@@ -35,7 +35,7 @@ export class World_Manager {
         this.program = parse_program(program)
 
         //base_pos = m.get_pos_read_fen(pos)
-        this.Join_world(0, m, pos, false)
+        this.Join_world(0, m, pos, false, false)
     }
 
     continuations(world_id: WorldId, column: Column) {
@@ -48,7 +48,7 @@ export class World_Manager {
         return this.R(world_id, column)
     }
 
-    Join_world(world_id: WorldId, m: PositionManager, pos: PositionC, break_ideas: boolean) {
+    Join_world(world_id: WorldId, m: PositionManager, pos: PositionC, break_ideas: boolean, break_motives: boolean) {
 
         let base = join_position(world_id, m, pos)
 
@@ -70,16 +70,30 @@ export class World_Manager {
         for (let idea of this.program.ideas) {
 
             this.world = merge_worlds(this.world, base)
-            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(idea.line, idea.aliases))
+            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(idea.line, idea.aliases), true)
             base = this.world
 
             this.join_idea(world_id, idea, base)
         }
 
+        if (break_motives) {
+            this.world = merge_worlds(this.world, base)
+            return
+        }
+
+        for (let motif of this.program.motives) {
+
+            this.world = merge_worlds(this.world, base)
+            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(motif.line, motif.aliases), false)
+            base = this.world
+
+            this.join_motif(world_id, motif, base)
+        }
+
         this.world = base
     }
 
-    Materialize_moves_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[]) {
+    Materialize_moves_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[], break_ideas: boolean) {
 
         let self = this
         function deeper(cid: WorldId, i: number) {
@@ -90,7 +104,7 @@ export class World_Manager {
                 m.make_move(pos, move)
                 let cid2 = self.nodes.add_move(cid, move)
 
-                self.Join_world(cid2, m, pos, true)
+                self.Join_world(cid2, m, pos, break_ideas, true)
 
                 if (i + 1 < line.length) {
                     deeper(cid2, i + 1)
@@ -237,6 +251,103 @@ export class World_Manager {
 
         world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, _)
     }
+
+
+    join_motif(world_id: WorldId, motif: Motif, world: World) {
+
+        let w = { ...world }
+
+        for (let alias of motif.aliases) {
+            w[alias.alias] = w[alias.column]
+        }
+
+        let _: Relation = { rows: [] }
+
+        for (let m of motif.matches) {
+
+            if (is_matches_between(m)) {
+                return world
+            }
+
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
+
+            if (motif.line.indexOf(name) > motif.line.indexOf(name2)) {
+                ;[name, name2] = [name2, name]
+            }
+
+            if (name2 === 'KING') {
+                _ = select(w[name], a => a.get(rest) === KING)
+            } else {
+
+                let w_name, w_name2
+
+                if (name === '_') {
+                    w_name = _
+                } else if (name2 === '_') {
+                    w_name2 = _
+                } else {
+                    if (w[name] === undefined || w[name2] === undefined) {
+                        throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+                    }
+
+                }
+
+                w_name ??= select(w[name], _ => world_id === _.get('wid')!)
+                w_name2 ??= select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
+
+                if (w_name.rows.length + w_name2.rows.length > 100000) {
+                    throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
+                }
+
+                _ = join(w_name, w_name2, (a, b) => {
+
+                    let ab_bindings = { [name]: a, [name2]: b }
+
+                    let cond = true
+
+                    let x = ab_bindings[name].get(rest)
+                    let y
+
+                    if (!rest2) {
+                        let turn = 0
+                        y = turn
+                    } else {
+                        y = ab_bindings[name2].get(rest2)
+                    }
+
+                    cond &&= m.is_different ? x !== y : x === y
+
+                    return cond
+                        ? (() => {
+                            const r = new Map()
+                            r.set('wid', world_id)
+                            for (let ass of motif.assigns) {
+                                let [key] = Object.keys(ass)
+                                let [r_rel, r_path] = path_split(ass[key])
+                                if (ab_bindings[r_rel] === undefined) {
+                                    if (ab_bindings['_']) {
+                                        r.set(
+                                            `${key}`,
+                                            ab_bindings['_'].get(`${r_path}`))
+                                    }
+                                    continue
+                                }
+                                r.set(
+                                    `${key}`,
+                                    ab_bindings[r_rel].get(`${r_path}`))
+                            }
+
+                            return r
+                        })() : null
+                })
+            }
+    }
+
+        world[motif.name] = mergeColumns(world[motif.name] ?? { rows: [] }, _)
+    }
+
+
 }
 
 

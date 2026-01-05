@@ -6,6 +6,7 @@ enum TokenType {
     Equal = 'Equal',
     BeginFact = 'BeginFact',
     BeginIdea = 'BeginIdea',
+    BeginMotif = 'BeginMotif',
     Legal = 'Legal',
     Alias = 'Alias',
     Line = 'Line',
@@ -131,6 +132,12 @@ class Lexer {
             if (word === 'idea') {
                 return { type: TokenType.BeginIdea, value: 'fact' }
             }
+
+            if (word === 'motif') {
+                return { type: TokenType.BeginMotif, value: 'motif' }
+            }
+
+
 
             if (word === 'alias') {
                 return { type: TokenType.Alias, value: 'alias' }
@@ -372,10 +379,66 @@ class Parser {
     }
 
 
+    private parse_motif(): Motif | undefined {
+        let current_token = this.current_token
+        if (current_token.type === TokenType.BeginMotif) {
+            this.eat(TokenType.BeginMotif)
+            let name = this.eat(TokenType.Word)
+
+            this.eat(TokenType.Newline)
+            let aliases = []
+
+            while (this.current_token.type === TokenType.Alias) {
+                aliases.push(this.parse_alias())
+                this.eat(TokenType.Newline)
+            }
+
+            if (this.current_token.type === TokenType.Newline) {
+                this.eat(TokenType.Newline)
+            }
+            let line = this.parse_line()
+            this.eat(TokenType.Newline)
+
+            let assigns = []
+            while (this.current_token.type === TokenType.Dot) {
+                assigns.push(this.parse_assigns())
+                this.eat(TokenType.Newline)
+            }
+
+            let matches: Matches[] = []
+
+            while (true) {
+                matches.push(this.parse_match())
+                if (this.current_token.type === TokenType.Newline) {
+                    this.advance_tokens()
+                }
+                if (this.current_token.type === TokenType.Newline) {
+                    break
+                }
+                if (this.current_token.type === TokenType.Eof) {
+                    break
+                }
+            }
+
+            return {
+                name,
+                line,
+                assigns,
+                matches,
+                aliases
+            }
+        }
+
+    }
+
+
+
+
     public parse_program(): Program {
         let facts = []
         let ideas = []
         let legals = []
+        let motives = []
 
         let current_token = this.current_token
         while (current_token.type !== TokenType.Eof) {
@@ -406,6 +469,13 @@ class Parser {
                 continue
             }
 
+            let motif = this.parse_motif()
+            if (motif) {
+                motives.push(motif)
+                continue
+            }
+
+
             
             throw new ParserError('Fact or Idea expected.')
         }
@@ -413,6 +483,7 @@ class Parser {
         return {
             facts,
             ideas,
+            motives,
             legals
         }
     }
@@ -460,10 +531,20 @@ export type Idea = {
     aliases: Alias[]
 }
 
+
+export type Motif = {
+    name: string
+    line: string[]
+    assigns: Assignment[]
+    matches: Matches[]
+    aliases: Alias[]
+}
+
 export type Program = {
     ideas: Idea[]
     facts: Fact[]
     legals: string[]
+    motives: Motif[]
 }
 
 export function parse_program(text: string) {
