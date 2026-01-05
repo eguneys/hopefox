@@ -39,6 +39,14 @@ legal checks_moves
 legal captures_moves
 legal blocks_moves
 
+idea blockable_checks
+   line checks_moves blocks_moves
+     .from = checks_moves.from
+     .to = checks_moves.to
+     .block_from = blocks_moves.from
+     .block_to = blocks_moves.to
+  blocks_moves.block_from = checks_moves.to
+  blocks_moves.block_to = checks_moves.check
 
 idea double_captures
   alias c2 captures_moves
@@ -51,27 +59,22 @@ idea double_captures
   c2.to = captures_moves.to
   c3.to = _.to
 
+motif check_to_lure_into_double_capture
+  line blockable_checks double_captures
+     .from = blockable_checks.check_from
+  blockable_checks.check_from = double_captures.from
+  blockable_checks.to = double_captures.to
+
+
 `.trim()
 
 ;`
- 
-idea blockable_checks
-   line checks_moves blocks_moves
-     .from = blocks_moves.from
-     .to = blocks_moves.to
-     .check_from = checks_moves.from
-     .check_to = checks_moves.to
-  blocks_moves.block_from = checks_moves.to
-  blocks_moves.block_to = checks_moves.check
-
-
 
 idea check_to_lure_into_double_capture
-  line blockable_check double_capture
-     .check_to_lure_into_double_capture.from = blockable_check.check_from
-  blockable_check.check_from = double_capture.from
-  blockable_check.to = double_capture.to
-
+  line blockable_checks double_captures
+     .from = blockable_checks.check_from
+  blockable_checks.check_from = double_captures.from
+  blockable_checks.to = double_captures.to
 
 idea double_capture
   alias c2 captures_moves
@@ -92,13 +95,32 @@ idea double_capture
   console.log(link)
   let fen = puzzles[0].move_fens[0]
 
-  fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
+  //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
   let pos = m.create_position(fen)
   let res = search(m, pos, rules)
   console.log(flat_san_moves_c(m, pos, res))
   m.delete_position(pos)
 
 })
+
+function bench(rules: string) {
+  for (let i = 0; i < 1000; i++) {
+    render('' + i)
+    solve_n(0, rules)
+  }
+}
+
+function solve_n(n: number, rules: string) {
+  let link = puzzles[n].link
+  console.log(link)
+  let fen = puzzles[n].move_fens[0]
+
+  //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
+  let pos = m.create_position(fen)
+  let res = search(m, pos, rules)
+  console.log(flat_san_moves_c(m, pos, res))
+  m.delete_position(pos)
+}
 
 it.skip('ideas', () => {
 
@@ -216,3 +238,10 @@ fact blocks
 })
 
 let m = await PositionManager.make()
+
+
+import fs from 'fs'
+
+function render(data: string) {
+    fs.writeFileSync(__dirname + '/_output.txt', data)
+}
