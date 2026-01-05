@@ -6,8 +6,8 @@ import { SquareSet } from "../squareSet"
 import { Linked } from "./linker"
 import { NodeId, NodeManager } from "./node_manager"
 import { Alias, Fact, Idea, is_matches_between, Motif, parse_program, Program } from "./parser2"
-import { join, mergeRows, Relation as R, select } from "./relational"
-import { san_moves, san_moves_c } from "./san_moves_helper"
+import { join, mergeRows, Relation as R, select, semiJoin } from "./relational"
+import { flat_san_moves, san_moves, san_moves_c } from "./san_moves_helper"
 
 type Relation = R
 
@@ -21,7 +21,7 @@ type Continuation = {
     next_world_ids: WorldId[]
 }
 
-//let base_pos: Position
+let base_pos: Position
 
 export class World_Manager {
 
@@ -34,7 +34,7 @@ export class World_Manager {
         this.world = {}
         this.program = parse_program(program)
 
-        //base_pos = m.get_pos_read_fen(pos)
+        base_pos = m.get_pos_read_fen(pos)
         this.Join_world(0, m, pos, false, false)
     }
 
@@ -50,6 +50,20 @@ export class World_Manager {
 
     Join_world(world_id: WorldId, m: PositionManager, pos: PositionC, break_ideas: boolean, break_motives: boolean) {
 
+        if (world_id === 16) {
+
+            let nn = this.nodes.history_moves(world_id)
+            let aa = san_moves(base_pos, nn.map(move_c_to_Move))
+            let r = m.get_fen(pos)
+            debugger
+        }
+
+        if (world_id === 17) {
+            let nn = this.nodes.history_moves(world_id)
+            let aa = san_moves(base_pos, nn.map(move_c_to_Move))
+            let r = m.get_fen(pos)
+            debugger
+        }
         let base = join_position(world_id, m, pos)
 
         base = merge_worlds(base, join_position(world_id, m, pos))
@@ -104,6 +118,11 @@ export class World_Manager {
                 m.make_move(pos, move)
                 let cid2 = self.nodes.add_move(cid, move)
 
+                let mm = san_moves(base_pos, self.nodes.history_moves(cid2).map(move_c_to_Move))
+
+                if (cid2 === 16 || cid2 === 17) {
+                    //debugger
+                }
                 self.Join_world(cid2, m, pos, true, true)
 
                 if (i + 1 < line.length) {
@@ -119,22 +138,30 @@ export class World_Manager {
     }
 
 
-    Materialize_lines_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[]) {
+    Materialize_lines_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, the_line: string[]) {
 
+        let debug_last_line: MoveC[] = []
         let self = this
         function deeper(cid: WorldId, i: number) {
 
-            let lines = extract_lines(self.R(cid, line[i]))
+            let lines = extract_lines(self.R(cid, the_line[i]))
+            let aa = flat_san_moves(base_pos, lines.map(_ => [...debug_last_line, ..._].map(move_c_to_Move)))
 
             lines.forEach(line => {
-                let cid2
-                line.forEach(move => {
-                    cid2 = self.nodes.add_move(cid, move)
+                let aa2 = flat_san_moves(base_pos, [[...debug_last_line, ...line].map(move_c_to_Move)])
+                let cid2 = cid
+
+                for (let move of line) {
+                    cid2 = self.nodes.add_move(cid2, move)
+                    let debug_moves = self.nodes.history_moves(cid2)
+                    let wtf_line = line
+                    aa2;
                     m.make_move(pos, move)
                     self.Join_world(cid2, m, pos, false, true)
-                })
+                }
 
-                if (i + 1 < line.length) {
+                if (i < the_line.length - 1) {
+                    debug_last_line = line
                     deeper(cid2!, i + 1)
                 }
 
@@ -190,15 +217,25 @@ export class World_Manager {
 
     join_idea(world_id: WorldId, idea: Idea, world: World) {
 
+        if (world_id === 11) {
+            let xx = this.nodes.history_moves(world_id)
+            debugger
+        }
         let w = { ...world }
 
         for (let alias of idea.aliases) {
             w[alias.alias] = w[alias.column]
         }
 
+        let successor_list = idea.line
+
         let _: Relation = { rows: [] }
 
-        for (let m of idea.matches) {
+        let k = 0
+        for (let i_m = 0; i_m < idea.matches.length; i_m++) {
+            let m = idea.matches[i_m]
+
+            let use_first_world_id = i_m === idea.matches.length - 1
 
             if (is_matches_between(m)) {
                 return world
@@ -219,23 +256,44 @@ export class World_Manager {
 
                 if (name === '_') {
                     w_name = _
+                    w_name2 = w[name2]
                 } else if (name2 === '_') {
                     w_name2 = _
+                    w_name = w[name]
                 } else {
                     if (w[name] === undefined || w[name2] === undefined) {
                         throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
                     }
 
+                    w_name = select(w[name], _ => world_id === _.get('wid')!)
+                    w_name2 = w[name2]
+
+
+
                 }
 
+                /*
+                // optimization pre filter has to check again
+                w_name2 = semiJoin(w_name2, w_name, (a, b) =>
+                    this.is_a_successor_of_b(a.get('wid')!, b.get('wid')!)
+                )
+                */
+
+                /*
                 w_name ??= select(w[name], _ => world_id === _.get('wid')!)
                 w_name2 ??= select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
+                */
 
                 if (w_name.rows.length + w_name2.rows.length > 100000) {
                     throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
                 }
 
+                let i = k
                 _ = join(w_name, w_name2, (a, b) => {
+
+                    if (!this.is_a_successor_of_b(b.get('wid')!, a.get('wid')!)) {
+                        return null
+                    }
 
                     let ab_bindings = { [name]: a, [name2]: b }
 
@@ -256,7 +314,11 @@ export class World_Manager {
                     return cond
                         ? (() => {
                             const r = new Map()
-                            r.set('wid', world_id)
+                            let world_id_in_progress = use_first_world_id ? world_id : b.get('wid')
+                            if (world_id_in_progress === 16) {
+                                let aa = ''
+                            }
+                            r.set('wid', world_id_in_progress)
                             for (let ass of idea.assigns) {
                                 let [key] = Object.keys(ass)
                                 let [r_rel, r_path] = path_split(ass[key])
@@ -273,24 +335,51 @@ export class World_Manager {
                                     ab_bindings[r_rel].get(`${r_path}`))
                             }
 
-                            for (let i = 0; i < 8; i++) {
-                                let key = i == 0 ? '' : i + 1
-                                let move = idea.line[i]
+                            for (let x = 0; x < i; x++) {
+                                let key = x == 0 ? '' : x + 1
+                                let move = idea.line[x]
+                                r.set(`from${key}`, ab_bindings['_'].get(`from${key}`))
+                                r.set(`to${key}`, ab_bindings['_'].get(`to${key}`))
+                            }
+                            for (let j = i; j < 8; j++) {
+                                let key = j == 0 ? '' : j + 1
+                                let move = idea.line[j]
+                                if (move === undefined) {
+                                    k = j
+                                    break
+                                }
                                 if (ab_bindings[move] !== undefined) {
                                     r.set(`from${key}`, ab_bindings[move].get(`from`))
                                     r.set(`to${key}`, ab_bindings[move].get(`to`))
+                                    if (r.get('from') === r.get('from3')) {
+                                        let bwid = b.get('wid')!
+                                        let awid = a.get('wid')!
+                                        let res = this.is_a_successor_of_b(b.get('wid')!, a.get('wid')!)
+                                        let brr = this.nodes.history_moves(bwid).map(move_c_to_Move)
+                                        let arr = this.nodes.history_moves(awid).map(move_c_to_Move)
+                                        let y = 'aa'
+                                        let asdf = w
+                                    }
                                 } else {
+                                    /*
                                     if (ab_bindings['_']) {
-
                                         r.set(`from${key}`, ab_bindings['_'].get(`from`))
                                         r.set(`to${key}`, ab_bindings['_'].get(`to`))
+                                    } else {
+                                        k = j
+                                        break
                                     }
+                                        */
+                                       k = j
+                                       break
                                 }
                             }
 
                             return r
                         })() : null
                 })
+
+                let end = 'ok'
             }
     }
 
@@ -424,9 +513,21 @@ function extract_lines(moves: Relation) {
             aa.push(make_move_from_to(row.get('from' + i)!, row.get('to' + i)!))
         }
         // todo fix
-        res.push([... new Set(aa)])
+        //res.push([... new Set(aa)])
+        if (!res.find(_ => line_equals(_, aa))) {
+            res.push(aa)
+        }
     }
     return res
+}
+
+function line_equals(a: MoveC[], b: MoveC[]) {
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) {
+            return false
+        }
+    }
+    return true
 }
 
 function join_legal(world_id: WorldId, legal: string, world: World) {

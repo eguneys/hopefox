@@ -148,7 +148,7 @@ export class NodeManager {
 
     history_moves(id: NodeId) {
         if (id === 0) {
-            return this.root.children.map(_ => _.move)
+            return []
         }
 
         let a_child = this.cache.get_node(id)
