@@ -35,7 +35,7 @@ export class World_Manager {
         this.program = parse_program(program)
 
         //base_pos = m.get_pos_read_fen(pos)
-        this.Join_world(0, m, pos)
+        this.Join_world(0, m, pos, false)
     }
 
     continuations(world_id: WorldId, column: Column) {
@@ -48,14 +48,7 @@ export class World_Manager {
         return this.R(world_id, column)
     }
 
-    add_Move(m: PositionManager, pos: PositionC, world_id: WorldId, move: MoveC) {
-        m.make_move(pos, move)
-        let cid = this.nodes.add_move(world_id, move)
-        this.Join_world(cid, m, pos)
-        m.unmake_move(pos, move)
-    }
-
-    Join_world(world_id: WorldId, m: PositionManager, pos: PositionC) {
+    Join_world(world_id: WorldId, m: PositionManager, pos: PositionC, break_ideas: boolean) {
 
         let base = join_position(world_id, m, pos)
 
@@ -69,30 +62,49 @@ export class World_Manager {
             join_legal(world_id, legal, base)
         }
 
-        this.world = merge_worlds(this.world, base)
+        if (break_ideas) {
+            this.world = merge_worlds(this.world, base)
+            return
+        }
 
-        this.Materialize_moves(m, pos, world_id)
-
-        base = this.world
         for (let idea of this.program.ideas) {
+
+            this.world = merge_worlds(this.world, base)
+            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, idea.line)
+            base = this.world
+
             this.join_idea(world_id, idea, base)
         }
 
         this.world = base
     }
 
+    Materialize_moves_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[]) {
+        let moves = extract_moves(this.R(world_id, line[0]))
 
-    Materialize_moves(m: PositionManager, pos: PositionC, world_id: WorldId) {
-        /*
-        if (world_id >= 8) {
-            let a = san_moves(base_pos, this.nodes.history_moves(world_id).map(move_c_to_Move))
-            debugger
+        moves.forEach(move => {
+            m.make_move(pos, move)
+            let cid = this.nodes.add_move(world_id, move)
 
-        }
-        */
-        let moves = extract_moves(this.R(world_id, 'blocks_moves'))
-        
-        moves.forEach(move => this.add_Move(m, pos, world_id, move))
+            this.Join_world(cid, m, pos, true)
+
+
+            let moves2 = extract_moves(this.R(cid, line[1]))
+
+            moves2.forEach(move => {
+                m.make_move(pos, move)
+                let cid2 = this.nodes.add_move(cid, move)
+
+                this.Join_world(cid2, m, pos, true)
+
+                m.unmake_move(pos, move)
+            })
+
+
+            m.unmake_move(pos, move)
+        })
+
+
     }
 
     select_World(id: WorldId, relation: Relation) {
@@ -146,6 +158,7 @@ export class World_Manager {
 
         let l0 = idea.line[0]
         let l1 = idea.line[1]
+
 
         let m = idea.matches[0]
 
@@ -265,8 +278,9 @@ function join_legal(world_id: WorldId, legal: string, world: World) {
             ? (() => {
                 const r = new Map()
                 r.set('wid', world_id)
-                r.set(`from`, ab_bindings[name].get('from'))
-                r.set(`to`, ab_bindings[name].get('to'))
+                for (let [key, value] of ab_bindings[name]) {
+                    r.set(key, value)
+                }
                 return r
             })() : null
     })
