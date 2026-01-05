@@ -1,3 +1,4 @@
+import { between } from "../attacks"
 import { Position } from "../chess"
 import { BLACK, KING, make_move_from_to, move_c_to_Move, MoveC, PositionC, PositionManager, WHITE } from "../hopefox_c"
 import { FEN } from "../mor3_hope1"
@@ -242,7 +243,8 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
 
 
     if (is_matches_between(m)) {
-        return world
+        join_between(world_id, fact, world)
+        return
     }
 
     let facts_relation: Relation = { rows: [] }
@@ -314,6 +316,82 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
                 })() : null
         })
     }
+
+    world[fact.name] = mergeColumns(w[fact.name] ?? { rows: [] }, facts_relation)
+}
+
+
+
+function join_between(world_id: WorldId, fact: Fact, world: World) {
+
+    let w = { ...world }
+
+    for (let alias of fact.aliases) {
+        w[alias.alias] = w[alias.column]
+    }
+
+    let m = fact.matches[0]
+
+    if (!is_matches_between(m)) {
+        return
+    }
+
+    let facts_relation: Relation = { rows: [] }
+
+    let [name, rest] = path_split(m.path_a)
+    let [name2, rest2] = path_split(m.path_b)
+    let [name3, rest3] = path_split(m.path_c)
+
+
+    if (w[name] === undefined || w[name2] === undefined) {
+        throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+    }
+
+    let w_name = select(w[name], _ => world_id === _.get('wid')!)
+    let w_name2 = select(w[name2], _ => world_id === _.get('wid')!)
+
+    if (w_name.rows.length + w_name2.rows.length > 100000) {
+        throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
+    }
+
+    facts_relation = join(w_name, w_name2, (a, b) => {
+
+        let ab_bindings = { [name]: a, [name2]: b }
+
+        let cond = true
+
+        for (let m of fact.matches) {
+
+            if (!is_matches_between(m)) {
+                continue
+            }
+
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
+            let [name3, rest3] = path_split(m.path_c)
+
+            let x = ab_bindings[name].get(rest)!
+            let y = ab_bindings[name2].get(rest2)!
+            let z = ab_bindings[name3].get(rest3)!
+
+            cond &&= between(y, z).has(x)
+        }
+
+        return cond
+            ? (() => {
+                const r = new Map()
+                r.set('wid', world_id)
+                for (let ass of fact.assigns) {
+                    let [key] = Object.keys(ass)
+                    let [r_rel, r_path] = path_split(ass[key])
+                    r.set(
+                        `${key}`,
+                        ab_bindings[r_rel].get(`${r_path}`))
+                }
+
+                return r
+            })() : null
+    })
 
     world[fact.name] = mergeColumns(w[fact.name] ?? { rows: [] }, facts_relation)
 }
