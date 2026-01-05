@@ -7,6 +7,7 @@ import { Linked } from "./linker"
 import { NodeId, NodeManager } from "./node_manager"
 import { Fact, Idea, is_matches_between, parse_program, Program } from "./parser2"
 import { join, mergeRows, Relation as R, select } from "./relational"
+import { san_moves, san_moves_c } from "./san_moves_helper"
 
 type Relation = R
 
@@ -20,22 +21,25 @@ type Continuation = {
     next_world_ids: WorldId[]
 }
 
+//let base_pos: Position
+
 export class World_Manager {
 
     world: World
     nodes: NodeManager
     program: Program
 
-
     constructor(m: PositionManager, pos: PositionC, program: string) {
         this.nodes = new NodeManager()
         this.world = {}
         this.program = parse_program(program)
 
+        //base_pos = m.get_pos_read_fen(pos)
         this.Join_world(0, m, pos)
     }
 
     continuations(world_id: WorldId, column: Column) {
+
         let moves = extract_moves(this.R(world_id, column))
         return moves.map(_ => [_])
     }
@@ -79,6 +83,13 @@ export class World_Manager {
 
 
     Materialize_moves(m: PositionManager, pos: PositionC, world_id: WorldId) {
+        /*
+        if (world_id >= 8) {
+            let a = san_moves(base_pos, this.nodes.history_moves(world_id).map(move_c_to_Move))
+            debugger
+
+        }
+        */
         let moves = extract_moves(this.R(world_id, 'blocks_moves'))
         
         moves.forEach(move => this.add_Move(m, pos, world_id, move))
@@ -289,10 +300,6 @@ function join_fact(world_id: WorldId, fact: Fact, world: World) {
     } else {
         if (w[name] === undefined || w[name2] === undefined) {
             throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
-        }
-
-        if (world_id === 18) {
-            debugger
         }
         let w_name = select(w[name], _ => world_id === _.get('wid')!)
         let w_name2 = select(w[name2], _ => world_id === _.get('wid')!)

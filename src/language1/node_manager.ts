@@ -161,6 +161,7 @@ export class NodeManager {
         let i_child = a_child.parent
         while (!(i_child instanceof NodeRoot)) {
             res.unshift(i_child.move)
+            i_child = i_child.parent
         }
         return res
     }
