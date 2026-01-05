@@ -40,8 +40,8 @@ export class World_Manager {
 
     continuations(world_id: WorldId, column: Column) {
 
-        let moves = extract_moves(this.R(world_id, column))
-        return moves.map(_ => [_])
+        let lines = extract_lines(this.R(world_id, column))
+        return lines
     }
 
     get_Column(world_id: WorldId, column: Column) {
@@ -70,7 +70,7 @@ export class World_Manager {
         for (let idea of this.program.ideas) {
 
             this.world = merge_worlds(this.world, base)
-            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(idea.line, idea.aliases), true)
+            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(idea.line, idea.aliases))
             base = this.world
 
             this.join_idea(world_id, idea, base)
@@ -84,7 +84,7 @@ export class World_Manager {
         for (let motif of this.program.motives) {
 
             this.world = merge_worlds(this.world, base)
-            this.Materialize_moves_Until_lines_Exists(m, pos, world_id, fix_alias(motif.line, motif.aliases), false)
+            this.Materialize_lines_Until_lines_Exists(m, pos, world_id, fix_alias(motif.line, motif.aliases))
             base = this.world
 
             this.join_motif(world_id, motif, base)
@@ -93,7 +93,7 @@ export class World_Manager {
         this.world = base
     }
 
-    Materialize_moves_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[], break_ideas: boolean) {
+    Materialize_moves_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[]) {
 
         let self = this
         function deeper(cid: WorldId, i: number) {
@@ -104,13 +104,43 @@ export class World_Manager {
                 m.make_move(pos, move)
                 let cid2 = self.nodes.add_move(cid, move)
 
-                self.Join_world(cid2, m, pos, break_ideas, true)
+                self.Join_world(cid2, m, pos, true, true)
 
                 if (i + 1 < line.length) {
                     deeper(cid2, i + 1)
                 }
 
                 m.unmake_move(pos, move)
+            })
+        }
+
+        deeper(world_id, 0)
+
+    }
+
+
+    Materialize_lines_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[]) {
+
+        let self = this
+        function deeper(cid: WorldId, i: number) {
+
+            let lines = extract_lines(self.R(cid, line[i]))
+
+            lines.forEach(line => {
+                let cid2
+                line.forEach(move => {
+                    cid2 = self.nodes.add_move(cid, move)
+                    m.make_move(pos, move)
+                    self.Join_world(cid2, m, pos, false, true)
+                })
+
+                if (i + 1 < line.length) {
+                    deeper(cid2!, i + 1)
+                }
+
+                for (let i = line.length - 1; i >= 0; i--) {
+                    m.unmake_move(pos, line[i])
+                }
             })
         }
 
@@ -243,6 +273,15 @@ export class World_Manager {
                                     ab_bindings[r_rel].get(`${r_path}`))
                             }
 
+                            for (let i = 0; i < 8; i++) {
+                                let move = idea.line[i]
+                                if (ab_bindings[move] !== undefined) {
+                                    let key = i == 0 ? '' : i + 1
+                                    r.set(`from${key}`, ab_bindings[move].get(`from${key}`))
+                                    r.set(`to${key}`, ab_bindings[move].get(`to${key}`))
+                                }
+                            }
+
                             return r
                         })() : null
                 })
@@ -363,6 +402,24 @@ function extract_moves(moves: Relation) {
     }
     // todo fix
     res = [...new Set(res)]
+    return res
+}
+
+function extract_lines(moves: Relation) {
+
+    let res: MoveC[][] = []
+    for (let row of moves.rows) {
+        let aa: MoveC[] = []
+        aa.push(make_move_from_to(row.get('from')!, row.get('to')!))
+        for (let i = 1; i < 8; i++) {
+            if (!row.has('from' + i)) {
+                break
+            }
+            aa.push(make_move_from_to(row.get('from' + i)!, row.get('to' + i)!))
+        }
+        // todo fix
+        res.push([... new Set(aa)])
+    }
     return res
 }
 

@@ -41,8 +41,6 @@ legal blocks_moves
 
 idea blockable_checks
    line checks_moves blocks_moves
-     .from = checks_moves.from
-     .to = checks_moves.to
      .block_from = blocks_moves.from
      .block_to = blocks_moves.to
   blocks_moves.block_from = checks_moves.to
@@ -52,23 +50,18 @@ idea double_captures
   alias c2 captures_moves
   alias c3 captures_moves
   line captures_moves c2 c3
-    .from = captures_moves.from
-    .to = captures_moves.to
-    .from2 = c2.from
-    .from3 = c3.from
   c2.to = captures_moves.to
   c3.to = _.to
+
+`.trim()
+
+;`
 
 motif check_to_lure_into_double_capture
   line blockable_checks double_captures
      .from = blockable_checks.check_from
   blockable_checks.check_from = double_captures.from
   blockable_checks.to = double_captures.to
-
-
-`.trim()
-
-;`
 
 idea check_to_lure_into_double_capture
   line blockable_checks double_captures
