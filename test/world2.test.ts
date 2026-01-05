@@ -39,7 +39,7 @@ legal checks_moves
 legal captures_moves
 legal blocks_moves
 
-idea blockable_check
+idea blockable_checks
    line checks_moves blocks_moves
      .from = blocks_moves.from
      .to = blocks_moves.to
@@ -48,22 +48,24 @@ idea blockable_check
   blocks_moves.block_from = checks_moves.to
   blocks_moves.block_to = checks_moves.check
 
+
+idea double_capture
+  alias c2 captures_moves
+  alias c3 captures_moves
+  alias c4 captures_moves
+  line captures_moves c2 c3 c4
+    .from = captures_moves.from
+    .to = captures_moves.to
+    .from2 = c2.from
+    .from3 = c3.from
+    .from4 = c4.from
+  c2.to = captures_moves.to
+  c3.to = c2.to
+
 `.trim()
 
 ;`
-idea double_capture
-  alias c2 capture
-  alias c3 capture
-  alias c4 capture
-  line capture c2 c3 c4
-    .double_capture.from = capture.from
-    .double_capture.to = capture.to
-    .double_capture.from2 = c2.from
-    .double_capture.from3 = c3.from
-    .double_capture.from4 = c4.from
-  c2.to = capture.to
-  c3.to = c2.to
-  
+ 
 idea check_to_lure_into_double_capture
   line blockable_check double_capture
      .check_to_lure_into_double_capture.from = blockable_check.check_from
@@ -76,7 +78,7 @@ idea check_to_lure_into_double_capture
   console.log(link)
   let fen = puzzles[0].move_fens[0]
 
-  //fen = '8/3Qnk1p/3R4/4B2b/Pp2p3/1P2P3/5PPP/2r3K1 w - - 5 33'
+  //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
   let pos = m.create_position(fen)
   let res = search(m, pos, rules)
   console.log(flat_san_moves_c(m, pos, res))

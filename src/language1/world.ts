@@ -80,30 +80,27 @@ export class World_Manager {
     }
 
     Materialize_moves_Until_lines_Exists(m: PositionManager, pos: PositionC, world_id: WorldId, line: string[]) {
-        let moves = extract_moves(this.R(world_id, line[0]))
 
-        moves.forEach(move => {
-            m.make_move(pos, move)
-            let cid = this.nodes.add_move(world_id, move)
+        let self = this
+        function deeper(cid: WorldId, i: number) {
 
-            this.Join_world(cid, m, pos, true)
-
-
-            let moves2 = extract_moves(this.R(cid, line[1]))
+            let moves2 = extract_moves(self.R(cid, line[i]))
 
             moves2.forEach(move => {
                 m.make_move(pos, move)
-                let cid2 = this.nodes.add_move(cid, move)
+                let cid2 = self.nodes.add_move(cid, move)
 
-                this.Join_world(cid2, m, pos, true)
+                self.Join_world(cid2, m, pos, true)
+
+                if (i + 1 < line.length) {
+                    deeper(cid2, i + 1)
+                }
 
                 m.unmake_move(pos, move)
             })
+        }
 
-
-            m.unmake_move(pos, move)
-        })
-
+        deeper(world_id, 0)
 
     }
 
