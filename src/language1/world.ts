@@ -152,62 +152,42 @@ export class World_Manager {
             w[alias.alias] = w[alias.column]
         }
 
+        let _: Relation = { rows: [] }
 
-        let l0 = idea.line[0]
-        let l1 = idea.line[1]
+        for (let m of idea.matches) {
 
-
-        let m = idea.matches[0]
-
-
-        if (is_matches_between(m)) {
-            return world
-        }
-
-        let facts_relation: Relation = { rows: [] }
-
-        let [name, rest] = path_split(m.path_a)
-        let [name2, rest2] = path_split(m.path_b)
-
-        if (name2 === l0) {
-            ;[name, name2] = [name2, name]
-            ;[rest, rest2] = [rest2, rest]
-        }
-
-
-        if (name2 === 'KING') {
-            facts_relation = select(w[name], a => a.get(rest) === KING)
-        } else {
-
-
-
-            if (w[name] === undefined || w[name2] === undefined) {
-                throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+            if (is_matches_between(m)) {
+                return world
             }
 
-            let w_name = select(w[name], _ => world_id === _.get('wid')!)
-            let w_name2 = select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
 
-            if (w_name.rows.length + w_name2.rows.length > 100000) {
-                throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
-            }
+            if (name2 === 'KING') {
+                _ = select(w[name], a => a.get(rest) === KING)
+            } else {
 
-            facts_relation = join(w_name, w_name2, (a, b) => {
+                if (w[name] === undefined || w[name2] === undefined) {
+                    throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+                }
 
-                let ab_bindings = { [name]: a, [name2]: b }
+                let w_name = select(w[name], _ => world_id === _.get('wid')!)
+                let w_name2 = select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
 
-                let cond = true
+                if (w_name.rows.length + w_name2.rows.length > 100000) {
+                    throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
+                }
 
-                for (let m of idea.matches) {
+                _ = join(w_name, w_name2, (a, b) => {
 
-                    if (is_matches_between(m)) {
-                        continue
-                    }
+                    let ab_bindings = { [name]: a, [name2]: b }
 
+                    let cond = true
+
+                    /*
                     let [name, rest] = path_split(m.path_a)
                     let [name2, rest2] = path_split(m.path_b)
-
-
+                    */
 
                     let x = ab_bindings[name].get(rest)
                     let y
@@ -220,26 +200,26 @@ export class World_Manager {
                     }
 
                     cond &&= m.is_different ? x !== y : x === y
-                }
 
-                return cond
-                    ? (() => {
-                        const r = new Map()
-                        r.set('wid', world_id)
-                        for (let ass of idea.assigns) {
-                            let [key] = Object.keys(ass)
-                            let [r_rel, r_path] = path_split(ass[key])
-                            r.set(
-                                `${key}`,
-                                ab_bindings[r_rel].get(`${r_path}`))
-                        }
+                    return cond
+                        ? (() => {
+                            const r = new Map()
+                            r.set('wid', world_id)
+                            for (let ass of idea.assigns) {
+                                let [key] = Object.keys(ass)
+                                let [r_rel, r_path] = path_split(ass[key])
+                                r.set(
+                                    `${key}`,
+                                    ab_bindings[r_rel].get(`${r_path}`))
+                            }
 
-                        return r
-                    })() : null
-            })
-        }
+                            return r
+                        })() : null
+                })
+            }
+    }
 
-        world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, facts_relation)
+        world[idea.name] = mergeColumns(world[idea.name] ?? { rows: [] }, _)
     }
 }
 

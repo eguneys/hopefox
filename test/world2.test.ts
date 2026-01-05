@@ -43,15 +43,12 @@ legal blocks_moves
 idea double_capture
   alias c2 captures_moves
   alias c3 captures_moves
-  alias c4 captures_moves
-  line captures_moves c2 c3 c4
+  line captures_moves c2 c3
     .from = captures_moves.from
     .to = captures_moves.to
     .from2 = c2.from
-    .from3 = c3.from
-    .from4 = c4.from
   c2.to = captures_moves.to
-  c3.to = c2.to
+  c3.to = _.to
 
 `.trim()
 
@@ -73,6 +70,20 @@ idea check_to_lure_into_double_capture
      .check_to_lure_into_double_capture.from = blockable_check.check_from
   blockable_check.check_from = double_capture.from
   blockable_check.to = double_capture.to
+
+
+idea double_capture
+  alias c2 captures_moves
+  alias c3 captures_moves
+  line captures_moves c2 c3
+    .from = captures_moves.from
+    .to = captures_moves.to
+  c2.to = captures_moves.to
+    .from2 = c2.from
+  c3.to = _.to
+
+
+
 `
 
 

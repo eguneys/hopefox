@@ -65,7 +65,7 @@ class Lexer {
         return /[a-z0-9_]/.test(char)
     }
     private is_uppercase_num(char: string): boolean {
-        return /[A-Z0-9_]/.test(char)
+        return /[A-Z0-9]/.test(char)
     }
 
     private word() {
