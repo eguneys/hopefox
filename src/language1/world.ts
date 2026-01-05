@@ -274,11 +274,17 @@ export class World_Manager {
                             }
 
                             for (let i = 0; i < 8; i++) {
+                                let key = i == 0 ? '' : i + 1
                                 let move = idea.line[i]
                                 if (ab_bindings[move] !== undefined) {
-                                    let key = i == 0 ? '' : i + 1
-                                    r.set(`from${key}`, ab_bindings[move].get(`from${key}`))
-                                    r.set(`to${key}`, ab_bindings[move].get(`to${key}`))
+                                    r.set(`from${key}`, ab_bindings[move].get(`from`))
+                                    r.set(`to${key}`, ab_bindings[move].get(`to`))
+                                } else {
+                                    if (ab_bindings['_']) {
+
+                                        r.set(`from${key}`, ab_bindings['_'].get(`from`))
+                                        r.set(`to${key}`, ab_bindings['_'].get(`to`))
+                                    }
                                 }
                             }
 
@@ -411,7 +417,7 @@ function extract_lines(moves: Relation) {
     for (let row of moves.rows) {
         let aa: MoveC[] = []
         aa.push(make_move_from_to(row.get('from')!, row.get('to')!))
-        for (let i = 1; i < 8; i++) {
+        for (let i = 2; i < 8; i++) {
             if (!row.has('from' + i)) {
                 break
             }

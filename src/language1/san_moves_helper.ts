@@ -20,9 +20,9 @@ export function san_moves_c(m: PositionManager, pos: PositionC, moves: MoveC[]) 
 
 
 export function flat_san_moves_c(m: PositionManager, pos: PositionC, moves: MoveC[][]) {
-    let res: SAN[] = []
+    let res: SAN[][] = []
     for (let move of moves) {
-        res.push(...san_moves_c(m, pos, move))
+        res.push(san_moves_c(m, pos, move))
     }
     return res
 }

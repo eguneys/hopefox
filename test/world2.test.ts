@@ -91,7 +91,7 @@ idea double_capture
   //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
   let pos = m.create_position(fen)
   let res = search(m, pos, rules)
-  console.log(flat_san_moves_c(m, pos, res))
+  console.log(dedup_sans(flat_san_moves_c(m, pos, res)))
   m.delete_position(pos)
 
 })
@@ -237,4 +237,9 @@ import fs from 'fs'
 
 function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
+}
+
+type SAN = string
+function dedup_sans(m: SAN[][]) {
+    return [...new Set(m.map(_ => _.join(' ')))].map(_ => _.split(" "))
 }
