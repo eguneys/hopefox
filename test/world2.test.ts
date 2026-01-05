@@ -40,13 +40,14 @@ legal captures_moves
 legal blocks_moves
 
 
-idea double_capture
+idea double_captures
   alias c2 captures_moves
   alias c3 captures_moves
   line captures_moves c2 c3
     .from = captures_moves.from
     .to = captures_moves.to
     .from2 = c2.from
+    .from3 = c3.from
   c2.to = captures_moves.to
   c3.to = _.to
 

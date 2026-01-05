@@ -163,16 +163,29 @@ export class World_Manager {
             let [name, rest] = path_split(m.path_a)
             let [name2, rest2] = path_split(m.path_b)
 
+            if (idea.line.indexOf(name) > idea.line.indexOf(name2)) {
+                ;[name, name2] = [name2, name]
+            }
+
             if (name2 === 'KING') {
                 _ = select(w[name], a => a.get(rest) === KING)
             } else {
 
-                if (w[name] === undefined || w[name2] === undefined) {
-                    throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+                let w_name, w_name2
+
+                if (name === '_') {
+                    w_name = _
+                } else if (name2 === '_') {
+                    w_name2 = _
+                } else {
+                    if (w[name] === undefined || w[name2] === undefined) {
+                        throw `Bad join: [${name}]x[${name2}] ${Object.keys(w)}`
+                    }
+
                 }
 
-                let w_name = select(w[name], _ => world_id === _.get('wid')!)
-                let w_name2 = select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
+                w_name ??= select(w[name], _ => world_id === _.get('wid')!)
+                w_name2 ??= select(w[name2], _ => this.is_a_successor_of_b(_.get('wid')!, world_id))
 
                 if (w_name.rows.length + w_name2.rows.length > 100000) {
                     throw `Join too big: [${name}]x[${name2}] ${Object.keys(w)}`
@@ -183,11 +196,6 @@ export class World_Manager {
                     let ab_bindings = { [name]: a, [name2]: b }
 
                     let cond = true
-
-                    /*
-                    let [name, rest] = path_split(m.path_a)
-                    let [name2, rest2] = path_split(m.path_b)
-                    */
 
                     let x = ab_bindings[name].get(rest)
                     let y
@@ -208,6 +216,14 @@ export class World_Manager {
                             for (let ass of idea.assigns) {
                                 let [key] = Object.keys(ass)
                                 let [r_rel, r_path] = path_split(ass[key])
+                                if (ab_bindings[r_rel] === undefined) {
+                                    if (ab_bindings['_']) {
+                                        r.set(
+                                            `${key}`,
+                                            ab_bindings['_'].get(`${r_path}`))
+                                    }
+                                    continue
+                                }
                                 r.set(
                                     `${key}`,
                                     ab_bindings[r_rel].get(`${r_path}`))
