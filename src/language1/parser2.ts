@@ -6,6 +6,7 @@ enum TokenType {
     Equal = 'Equal',
     BeginFact = 'BeginFact',
     BeginIdea = 'BeginIdea',
+    Legal = 'Legal',
     Alias = 'Alias',
     Line = 'Line',
     Word = 'Word',
@@ -139,6 +140,9 @@ class Lexer {
                 return { type: TokenType.Line, value: 'line' }
             }
 
+            if (word === 'legal') {
+                return { type: TokenType.Legal, value: 'legal' }
+            }
 
 
             if (word !== undefined) {
@@ -371,6 +375,7 @@ class Parser {
     public parse_program(): Program {
         let facts = []
         let ideas = []
+        let legals = []
 
         let current_token = this.current_token
         while (current_token.type !== TokenType.Eof) {
@@ -381,6 +386,12 @@ class Parser {
 
             if (this.current_token.type === TokenType.Eof) {
                 break
+            }
+
+            if (this.current_token.type === TokenType.Legal) {
+                this.eat(TokenType.Legal)
+                legals.push(this.word())
+                continue
             }
 
             let fact = this.parse_fact()
@@ -401,7 +412,8 @@ class Parser {
 
         return {
             facts,
-            ideas
+            ideas,
+            legals
         }
     }
 
@@ -451,6 +463,7 @@ export type Idea = {
 export type Program = {
     ideas: Idea[]
     facts: Fact[]
+    legals: string[]
 }
 
 export function parse_program(text: string) {

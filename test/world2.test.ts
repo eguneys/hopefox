@@ -35,20 +35,18 @@ fact blocks
      .block_to = pressures.to
   attacks.to between pressures.from pressures.to
 
-fact captures_moves
-     .from = moves.from
-     .to = moves.to
-  moves.from = captures.from
-  moves.to = captures.to
+legal checks_moves
+legal captures_moves
+legal blocks_moves
 
 idea blockable_check
-   line checks blocks
-     .from = blocks.from
-     .to = blocks.to
-     .check_from = checks.from
-     .check_to = checks.to
-  blocks.block_from = checks.to
-  blocks.block_to = checks.check
+   line checks_moves blocks_moves
+     .from = blocks_moves.from
+     .to = blocks_moves.to
+     .check_from = checks_moves.from
+     .check_to = checks_moves.to
+  blocks_moves.block_from = checks_moves.to
+  blocks_moves.block_to = checks_moves.check
 
 `.trim()
 

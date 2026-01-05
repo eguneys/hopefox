@@ -57,11 +57,13 @@ export class World_Manager {
 
         base = merge_worlds(base, join_position(world_id, m, pos))
 
-
         for (let fact of this.program.facts) {
             join_fact(world_id, fact, base)
         }
 
+        for (let legal of this.program.legals) {
+            join_legal(world_id, legal, base)
+        }
 
         this.world = merge_worlds(this.world, base)
 
@@ -77,7 +79,7 @@ export class World_Manager {
 
 
     Materialize_moves(m: PositionManager, pos: PositionC, world_id: WorldId) {
-        let moves = extract_moves(this.R(world_id, 'captures_moves'))
+        let moves = extract_moves(this.R(world_id, 'blocks_moves'))
         
         moves.forEach(move => this.add_Move(m, pos, world_id, move))
     }
@@ -229,6 +231,35 @@ function extract_moves(moves: Relation) {
     // todo fix
     res = [...new Set(res)]
     return res
+}
+
+function join_legal(world_id: WorldId, legal: string, world: World) {
+
+    let w = {...world}
+
+    let name = legal.replace('_moves', '')
+    let name2 = 'moves'
+
+    let w_name = select(w[name], _ => world_id === _.get('wid')!)
+    let w_name2 = select(w[name2], _ => world_id === _.get('wid')!)
+
+    let relation = join(w_name, w_name2, (a, b) => {
+
+        let ab_bindings = { [name]: a, [name2]: b }
+
+        let cond = ab_bindings[name].get('from') === ab_bindings[name2].get('from')
+            && ab_bindings[name].get('to') === ab_bindings[name2].get('to')
+
+        return cond
+            ? (() => {
+                const r = new Map()
+                r.set('wid', world_id)
+                r.set(`from`, ab_bindings[name].get('from'))
+                r.set(`to`, ab_bindings[name].get('to'))
+                return r
+            })() : null
+    })
+    world[legal] = mergeColumns(w[legal] ?? { rows: [] }, relation)
 }
 
 function join_fact(world_id: WorldId, fact: Fact, world: World) {
