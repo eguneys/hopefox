@@ -1,6 +1,8 @@
-import { NodeId } from "../language1/node_manager"
+import { move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../hopefox_c"
+import { NodeId, NodeManager } from "../language1/node_manager"
 import { Alias, Idea } from "../language1/parser2"
 import { Relation, Row } from "../language1/relational"
+import { SquareSet } from "../squareSet"
 
 
 enum FactLifecycleState {
@@ -46,12 +48,14 @@ class Scheduler {
     facts: Map<FactKey, Fact>
     fact_queue: Fact[]
 
+    materializer: Materialize_Manager
 
-    constructor() {
+    constructor(m: PositionManager, pos: PositionC) {
         this.active_ideas = new Set()
         this.pending_prefixes = new Map()
         this.facts = new Map()
         this.fact_queue = []
+        this.materializer = new Materialize_Manager(m, pos)
     }
 
 
@@ -109,7 +113,7 @@ class Scheduler {
                 if (fact.state === FactLifecycleState.UNREQUESTED) {
                     fact.state = FactLifecycleState.MATERIALIZING
 
-                    materialize_fact(fact)
+                    this.materializer.materialize_fact(fact)
                     fact.state = FactLifecycleState.COMPLETE
                     this.resume_waiting_prefixes(fact)
                 }
@@ -280,7 +284,167 @@ class IdeaJoin {
     }
 }
 
+class Materialize_Manager {
 
-function materialize_fact(fact: Fact) {
+    nodes: NodeManager
+    m: PositionManager
+    pos: PositionC
 
+    Rms: Map<string, RelationManager>
+
+    constructor(m: PositionManager, pos: PositionC) {
+
+        this.m = m
+        this.pos = pos
+
+        this.nodes = new NodeManager()
+        this.Rms = new Map()
+    }
+
+    add_row(column: Column, row: Row) {
+        let rm = this.Rms.get(column)
+        if (!rm) {
+            rm = new RelationManager()
+            this.Rms.set(column, rm)
+        }
+        rm.add_row(row)
+    }
+
+    materialize_fact(fact: Fact) {
+        this.make_moves_to_world(fact.world_id)
+
+        switch (fact.column) {
+            case 'occupies':
+                this.materialize_occupies(fact.world_id)
+                break
+            case 'moves':
+                this.materialize_moves(fact.world_id)
+                break
+            case 'attacks':
+                this.materialize_attacks(fact.world_id)
+                break
+            case 'attacks2':
+                this.materialize_attacks2(fact.world_id)
+                break
+        }
+
+        this.unmake_moves_to_base(fact.world_id)
+    }
+
+
+    materialize_attacks2(world_id: WorldId) {
+
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (piece) {
+
+                let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
+
+                for (let a of aa) {
+
+                    let aa2 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(on))
+
+                    for (let a2 of aa2) {
+                        this.add_row('attacks2', new Map([
+                            ['start_world_id', world_id],
+                            ['from', on],
+                            ['to', a],
+                            ['to2', a2],
+                            ['piece', piece_c_type_of(piece)],
+                            ['color', piece_c_color_of(piece)]
+                        ]))
+                    }
+                }
+            }
+        }
+    }
+
+    materialize_attacks(world_id: WorldId) {
+
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (piece) {
+
+                let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
+
+                for (let a of aa) {
+                    this.add_row('attacks', new Map([
+                        ['start_world_id', world_id],
+                        ['from', on],
+                        ['to', a],
+                        ['piece', piece_c_type_of(piece)],
+                        ['color', piece_c_color_of(piece)]
+                    ]))
+                }
+
+
+
+            }
+        }
+    }
+
+    materialize_vacants(world_id: WorldId) {
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (!piece) {
+                this.add_row('vacants', new Map([
+                    ['start_world_id', world_id],
+                    ['square', on]
+
+                ]))
+            }
+        }
+    }
+
+    materialize_occupies(world_id: WorldId) {
+
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (piece) {
+                this.add_row('occupies', new Map([
+                    ['start_world_id', world_id],
+                    ['square', on],
+                    ['piece', piece_c_type_of(piece)],
+                    ['color', piece_c_color_of(piece)]
+                ]))
+            }
+        }
+    }
+
+    make_moves_to_world(world_id: WorldId) {
+        let history = this.nodes.history_moves(world_id)
+        for (let move of history) {
+            this.m.make_move(this.pos, move)
+        }
+    }
+
+    unmake_moves_to_base(world_id: WorldId) {
+        let history = this.nodes.history_moves(world_id)
+        for (let i = history.length - 1; i >= 0; i--) {
+            let move = history[i]
+            this.m.make_move(this.pos, move)
+        }
+    }
+
+    materialize_moves(world_id: WorldId) {
+        let legal_moves = this.m.get_legal_moves(this.pos)
+
+        for (const move of legal_moves) {
+            const next_world_id = this.nodes.add_move(world_id, move)
+
+            let { from, to } = move_c_to_Move(move)
+
+            this.add_row('moves', new Map([
+                ['from', from],
+                ['to', to],
+                ['start_world_id', world_id],
+                ['end_world_id', next_world_id],
+            ]))
+
+        }
+    }
 }
