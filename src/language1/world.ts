@@ -500,7 +500,7 @@ function extract_moves(moves: Relation) {
     return res
 }
 
-function extract_lines(moves: Relation) {
+export function extract_lines(moves: Relation) {
 
     let res: MoveC[][] = []
     for (let row of moves.rows) {

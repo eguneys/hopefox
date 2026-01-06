@@ -2,6 +2,7 @@ import { move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, Po
 import { NodeId, NodeManager } from "../language1/node_manager"
 import { Alias, Idea } from "../language1/parser2"
 import { Relation, Row } from "../language1/relational"
+import { extract_lines } from "../language1/world"
 import { SquareSet } from "../squareSet"
 
 
@@ -43,12 +44,20 @@ function make_fact_with_key(column: Column, world_id: WorldId) {
 class Scheduler {
 
     active_ideas: Set<IdeaJoin>
-    pending_prefixes: Map<FactKey, Set<Prefix>>
+    private pending_prefixes: Map<FactKey, Set<Prefix>>
 
-    facts: Map<FactKey, Fact>
-    fact_queue: Fact[]
+    private facts: Map<FactKey, Fact>
+    private fact_queue: Fact[]
 
-    materializer: Materialize_Manager
+    private materializer: Materialize_Manager
+
+    get_continuations(column: Column) {
+        let rm = this.materializer.Rms.get(column)
+        if (!rm) {
+            throw new Error('No such column ' + column)
+        }
+       return extract_lines(rm.base)
+    }
 
     constructor(m: PositionManager, pos: PositionC) {
         this.active_ideas = new Set()
@@ -133,7 +142,13 @@ type RowId = number
 class RelationManager {
     base: Relation
     name: string
-    index_start_world: Map<WorldId, RowId[]> = new Map()
+    private index_start_world: Map<WorldId, RowId[]>
+
+    constructor(name: string) {
+        this.base = { rows: [] }
+        this.name = name
+        this.index_start_world = new Map()
+    }
 
     add_rows(world_id: WorldId, rows: Row[]) {
         for (const row of rows) {
@@ -199,13 +214,13 @@ function extend_prefix(prefix: Prefix, row_id: RowId, owner: IdeaJoin): Prefix {
 
 class IdeaJoin {
 
-    scheduler: Scheduler
+    private scheduler: Scheduler
     worklist: Prefix[]
-    initial_world_id: WorldId
+    private initial_world_id: WorldId
 
-    line: string[]
+    private line: string[]
 
-    Ms: RelationManager[]
+    private Ms: RelationManager[]
 
     constructor(spec: Idea, world_id: WorldId, scheduler: Scheduler) {
 
@@ -304,7 +319,7 @@ class Materialize_Manager {
     add_row(column: Column, row: Row) {
         let rm = this.Rms.get(column)
         if (!rm) {
-            rm = new RelationManager()
+            rm = new RelationManager(column)
             this.Rms.set(column, rm)
         }
         rm.add_row(row)
@@ -447,4 +462,13 @@ class Materialize_Manager {
 
         }
     }
+}
+
+
+export function search(m: PositionManager, pos: PositionC, rules: string) {
+    let scheduler = new Scheduler(m, pos)
+
+    scheduler.request_fact('moves', 0)
+    scheduler.run()
+    return scheduler.get_continuations('moves')
 }
