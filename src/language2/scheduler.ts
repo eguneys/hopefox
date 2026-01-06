@@ -40,12 +40,18 @@ function make_fact_with_key(column: Column, world_id: WorldId) {
 
 class Scheduler {
 
-    pending_fact_join_requests: Fact[] = []
-    pending_idea_join_requests: IdeaJoin[] = []
-    pending_prefixes: Map<FactKey, Set<Prefix>> = new Map()
+    active_ideas: Set<IdeaJoin>
+    pending_prefixes: Map<FactKey, Set<Prefix>>
+
+    facts: Map<FactKey, Fact>
+    fact_queue: Fact[]
+
 
     constructor() {
-
+        this.active_ideas = new Set()
+        this.pending_prefixes = new Map()
+        this.facts = new Map()
+        this.fact_queue = []
     }
 
 
@@ -58,49 +64,61 @@ class Scheduler {
         }
     }
 
-    resume_waiting_prefixes(idea: IdeaJoin) {
-        for (let prefix of this.pending_prefixes.get(idea.fact.key) ?? []) {
-            idea.worklist.push(prefix)
+    resume_waiting_prefixes(fact: Fact) {
+        const waiting = this.pending_prefixes.get(fact.key)
+        if (!waiting) {
+            return
         }
-        this.pending_prefixes.delete(idea.fact.key)
-        idea.run()
-    }
 
-    // TODO requesting the same key twice is safe
-    request_fact(column: Column, world_id: WorldId) {
-        this.pending_fact_join_requests.push(make_fact_with_key(column, world_id))
+        for (const prefix of waiting) {
+            prefix.owner.worklist.push(prefix)
+        }
+
+        this.pending_prefixes.delete(fact.key)
     }
 
     is_facts_joined(key: FactKey) {
-        return false
+        const fact = this.facts.get(key)
+        return fact?.state === FactLifecycleState.COMPLETE
+    }
+
+    request_idea(idea_spec: Idea, world_id: WorldId) {
+
+        const idea = new IdeaJoin(
+            idea_spec,
+            world_id,
+            this
+        )
+    }
+
+    request_fact(column: Column, world_id: WorldId) {
+        let key = hash_fact_key(column, world_id)
+        let fact = this.facts.get(key)
+        if (!fact) {
+            fact = make_fact_with_key(column, world_id)
+            this.facts.set(key, fact)
+            this.fact_queue.push(fact)
+        }
     }
 
     run() {
-        let any_queue_non_empty = true
-        while (any_queue_non_empty) {
+        while (this.fact_queue.length > 0 || this.active_ideas.size > 0) {
 
-            if (this.pending_fact_join_requests.length > 0) {
-                let key = this.pending_fact_join_requests.shift()!
-                if (key.state === FactLifecycleState.UNREQUESTED) {
-                    key.state = FactLifecycleState.REQUESTED
+            if (this.fact_queue.length > 0) {
+                let fact = this.fact_queue.shift()!
+                if (fact.state === FactLifecycleState.UNREQUESTED) {
+                    fact.state = FactLifecycleState.MATERIALIZING
+
+                    materialize_fact(fact)
+                    fact.state = FactLifecycleState.COMPLETE
+                    this.resume_waiting_prefixes(fact)
                 }
             }
 
-            let requested = this.pending_fact_join_requests.find(_ => _.state === FactLifecycleState.REQUESTED)
-            if (requested) {
-                requested.state = FactLifecycleState.MATERIALIZING
-                let job = new IdeaJoin(requested)
-                this.pending_idea_join_requests.push(job)
-            }
 
-            let finished = this.pending_idea_join_requests.find(_ => _.fact.state === FactLifecycleState.COMPLETE)
-            if (finished) {
-                this.resume_waiting_prefixes(finished)
+            for (const idea of this.active_ideas) {
+                idea.step()
             }
-
-            any_queue_non_empty = 
-                this.pending_fact_join_requests.length > 0 ||
-                this.pending_idea_join_requests.length > 0
         }
     }
 
@@ -152,6 +170,7 @@ class RelationManager {
 // line M c1 c2 c3
 // A prefix is a partially matched line.
 type Prefix = {
+    owner: IdeaJoin
     length: number
     bindings: RowId[]
 }
@@ -165,8 +184,9 @@ function prefix_required_last_world_id(M: RelationManager, prefix: Prefix, initi
     return last_row.get('end_world_id')!
 }
 
-function extend_prefix(prefix: Prefix, row_id: RowId): Prefix {
+function extend_prefix(prefix: Prefix, row_id: RowId, owner: IdeaJoin): Prefix {
     return {
+        owner,
         length: prefix.length + 1,
         bindings: [...prefix.bindings, row_id]
     }
@@ -176,36 +196,40 @@ function extend_prefix(prefix: Prefix, row_id: RowId): Prefix {
 class IdeaJoin {
 
     scheduler: Scheduler
-    worklist: Prefix[] = [{ length: 0, bindings: [] }]
-    line: string[]
-
-    fact: Fact
-
-    M: RelationManager
-
+    worklist: Prefix[]
     initial_world_id: WorldId
 
-    constructor(fact: Fact) {
-        this.fact = fact
+    line: string[]
+
+    Ms: RelationManager[]
+
+    constructor(spec: Idea, world_id: WorldId, scheduler: Scheduler) {
+
+        this.line = spec.line
+        this.scheduler = scheduler
+        this.initial_world_id = world_id
+
+        this.worklist = [{ owner: this, length: 0, bindings: [] }]
     }
 
-    get_row(row_id: RowId) {
-        return this.M.get_row(row_id)
+
+    get_row(step_index: number, row_id: RowId) {
+        return this.Ms[step_index].get_row(row_id)
     }
 
     insert_line_into_relation(prefix: Prefix) {
 
         const row = new Map()
 
-        const first = this.get_row(prefix.bindings[0])
-        const last = this.get_row(prefix.bindings[prefix.length - 1])
+        const first = this.get_row(0, prefix.bindings[0])
+        const last = this.get_row(prefix.length - 1, prefix.bindings[prefix.length - 1])
 
         row.set('start_world_id', first.get('start_world_id'))
         row.set('end_world_id', last.get('end_world_id'))
 
 
         for (let i = 0; i < prefix.bindings.length; i++) {
-            const r = this.get_row(prefix.bindings[i])
+            const r = this.get_row(i, prefix.bindings[i])
             row.set(`from${i+1}`, r.get('from'))
             row.set(`to${i+1}`, r.get('to'))
         }
@@ -213,31 +237,39 @@ class IdeaJoin {
         // output.emit(row)
     }
 
-    run() {
+    step() {
 
-        while (this.worklist.length > 0) {
-            let prefix = this.worklist.pop()!
+        if (this.worklist.length === 0) {
+            this.scheduler.active_ideas.delete(this)
+            return
+        }
 
-            if (prefix.length === this.line.length) {
-                this.insert_line_into_relation(prefix)
-                continue
-            }
+        let prefix = this.worklist.pop()!
 
-            let next_world_id = prefix_required_last_world_id(this.M, prefix, this.initial_world_id)
+        if (prefix.length === this.line.length) {
+            this.insert_line_into_relation(prefix)
+            return
+        }
 
-            let needs_fact_key = hash_fact_key(this.M.name, next_world_id)
-            if (!this.scheduler.is_facts_joined(needs_fact_key)) {
-                this.scheduler.suspend_prefix_to_request_facts(prefix, needs_fact_key)
-                continue
-            }
+        const stepIndex = prefix.length
+        let M = this.Ms[stepIndex]
 
-            let [start_row_id, end_row_id] = this.M.get_row_ids_starting_at_world_id(next_world_id)
-            for (let row_id = start_row_id; row_id < end_row_id; row_id++) {
-                let new_prefix = extend_prefix(prefix, row_id)
+        let next_world_id = prefix_required_last_world_id(M, prefix, this.initial_world_id)
 
-                if (this.constraints_hold(new_prefix)) {
-                    this.worklist.push(new_prefix)
-                }
+        let needs_fact_key = hash_fact_key(M.name, next_world_id)
+
+        if (!this.scheduler.is_facts_joined(needs_fact_key)) {
+            this.scheduler.suspend_prefix_to_request_facts(prefix, needs_fact_key)
+            this.scheduler.request_fact(M.name, next_world_id)
+            return
+        }
+
+        
+        for (let row_id of M.get_row_ids_starting_at_world_id(next_world_id)) {
+            let new_prefix = extend_prefix(prefix, row_id, this)
+
+            if (this.constraints_hold(new_prefix)) {
+                this.worklist.push(new_prefix)
             }
         }
     }
@@ -246,4 +278,9 @@ class IdeaJoin {
     constraints_hold(prefix: Prefix) {
         return false
     }
+}
+
+
+function materialize_fact(fact: Fact) {
+
 }
