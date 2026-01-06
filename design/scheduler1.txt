@@ -13,8 +13,10 @@ line(M, n) =
 Mi.end_world_id == M(i+1).start_world_id
 
 
-line M c1 c2 c3
+line = expand + join + suspend + resume
 
+A prefix is a partially matched line.
+line M c1 c2 c3
 
 Prefix {
   idea_id = double_captures
@@ -47,6 +49,12 @@ while worklist not empty:
         if constraints_hold(new_prefix):
             push(worklist, new_prefix)
 
+Fact lifecycle state
+
+UNREQUESTED
+REQUESTED
+MATERIALIZING
+COMPLETE
 
 
 Scheduler
