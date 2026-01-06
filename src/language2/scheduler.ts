@@ -53,7 +53,7 @@ class Scheduler {
         // how do we get fact key from a prefix ??
         let list = this.pending_prefixes.get(fact_key)
         if (!list) {
-            this.pending_prefixes.set(fact_key, new Set(prefix))
+            this.pending_prefixes.set(fact_key, new Set([prefix]))
         } else {
             list.add(prefix)
         }
@@ -64,7 +64,7 @@ class Scheduler {
             idea.worklist.push(prefix)
         }
         this.pending_prefixes.delete(idea.fact.key)
-        idea.active_evaluation_loop()
+        idea.run()
     }
 
     // TODO requesting the same key twice is safe
@@ -90,13 +90,10 @@ class Scheduler {
             let requested = this.pending_fact_join_requests.find(_ => _.state === FactLifecycleState.REQUESTED)
             if (requested) {
                 requested.state = FactLifecycleState.MATERIALIZING
-
-                // run materialization(key) ?? 
                 let job = new IdeaJoin(requested)
                 this.pending_idea_join_requests.push(job)
             }
 
-            // materialization finished ?? 
             let finished = this.pending_idea_join_requests.find(_ => _.fact.state === FactLifecycleState.COMPLETE)
             if (finished) {
                 this.resume_waiting_prefixes(finished)
@@ -110,56 +107,88 @@ class Scheduler {
 
 }
 
+type RowId = number
 // M is a move-fact relation
 // line M c1 c2 c3
 // A prefix is a partially matched line.
 type Prefix = {
     length: number
-    waiting_on: Fact
-    bindings: Map<string, Row>
+    bindings: RowId[]
+}
+
+
+function prefix_last_world_id(prefix: Prefix, initial_world: WorldId): WorldId {
+    if (prefix.length === 0) {
+        return initial_world
+    }
+    const last_row = get_row(prefix.bindings[prefix.length - 1])
+    return last_row.end_world_id
+}
+
+function extend_prefix(prefix: Prefix, row_id: RowId): Prefix {
+    return {
+        length: prefix.length + 1,
+        bindings: [...prefix.bindings, row_id]
+    }
 }
 
 class IdeaJoin {
 
     scheduler: Scheduler
-    worklist: Prefix[]
+    worklist: Prefix[] = [{ length: 0, bindings: [] }]
     line: string[]
 
     fact: Fact
 
     M: Column
 
+    initial_world_id: WorldId
+
     constructor(fact: Fact) {
         this.fact = fact
     }
 
-    active_evaluation_loop() {
+    insert_line_into_relation(prefix: Prefix) {
+
+        const row = new Map()
+
+        const first = get_row(prefix.bindings[0])
+        const last = get_row(prefix.bindings[prefix.length - 1])
+
+        row.set('start_world_id', first.start_world_id)
+        row.set('end_world_id', last.end_world_id)
+
+
+        for (let i = 0; i < prefix.bindings.length; i++) {
+            const r = get_row(prefix.bindings[i])
+            row.set(`from${i+1}`, r.from)
+            row.set(`to${i+1}`, r.to)
+        }
+
+        // output.emit(row)
+    }
+
+    run() {
 
         while (this.worklist.length > 0) {
             let prefix = this.worklist.pop()!
 
             if (prefix.length === this.line.length) {
-                // emit result row ??
-                let row = prefix.idea_result_row // ?? 
-                this.scheduler.insert_into_relation(this.M, row) // ??
+                this.insert_line_into_relation(prefix)
                 continue
             }
 
             // ??
-            let prefix_last_world_id = prefix.last.end_world_id
+            let next_world_id = prefix_last_world_id(prefix, this.initial_world_id)
 
-            let needs_fact_key = hash_fact_key(this.M, prefix_last_world_id)
+            let needs_fact_key = hash_fact_key(this.M.name, next_world_id)
             if (!this.scheduler.is_facts_joined(needs_fact_key)) {
                 this.scheduler.suspend_prefix_to_request_facts(prefix, needs_fact_key)
                 continue
             }
 
 
-            for (let row of this.M.rows) {
-                if (row.get('start_world_id') !== prefix_last_world_id) {
-                    continue
-                }
-
+            for (let row of this.M.get_rows_starting_at(next_world_id)) {
                 let new_prefix = extend_prefix(prefix, row)
 
                 if (this.constraints_hold(new_prefix)) {
