@@ -1,0 +1,68 @@
+Scheduler
+ ├─ World creation jobs
+ ├─ Fact materialization jobs
+ ├─ Idea materialization jobs
+ │    └─ line operator
+ │         └─ active prefix loop
+
+
+line(M, n) =
+  σ successor_chain
+    ( M ⨝ M ⨝ ... ⨝ M )   // n times
+
+Mi.end_world_id == M(i+1).start_world_id
+
+
+line M c1 c2 c3
+
+
+Prefix {
+  idea_id = double_captures
+  line_id = 0
+  length = 1
+  bindings = { c1 → row_42 }
+  waiting_on = Facts(captures_moves, world = row_42.end_world_id)
+}
+
+
+Active evaluation loop
+worklist = initial prefixes (length 0)
+
+while worklist not empty:
+    prefix = pop(worklist)
+
+    if prefix.length == line_length:
+        emit result row
+        continue
+
+    next_relation = M
+    required_world = prefix.last.end_world_id
+
+    if !facts_available(next_relation, required_world):
+        suspend(prefix)
+        continue
+
+    for each row in M where row.start_world_id == required_world:
+        new_prefix = extend(prefix, row)
+        if constraints_hold(new_prefix):
+            push(worklist, new_prefix)
+
+
+
+Scheduler
+
+while any queue non-empty:
+
+    if pending_fact_requests not empty:
+        key = dequeue
+        if state(key) == UNREQUESTED:
+            set state(key) = REQUESTED
+
+    if exists REQUESTED:
+        key = pick REQUESTED
+        set state(key) = MATERIALIZING
+        run materialization(key)
+
+    if materialization finished:
+        set state(key) = COMPLETE
+        resume waiting prefixes
