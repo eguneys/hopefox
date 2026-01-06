@@ -25,16 +25,23 @@ class NodeCache {
 }
 
 class NodeRoot {
-    children: Node[]
+    children: Map<MoveC, Node>
 
     constructor() {
-        this.children = []
+        this.children = new Map()
     }
 
     add_move(move: MoveC) {
+
+        let exists = this.children.get(move)
+
+        if (exists) {
+            return exists
+        }
+
         let child: Node = new Node(this, move)
 
-        this.children.push(child)
+        this.children.set(move, child)
 
         return child
     }
@@ -50,19 +57,26 @@ class Node {
     id: NodeId
     parent: Node | NodeRoot
     move: MoveC
-    children: Node[]
+    children: Map<MoveC, Node>
 
     constructor(parent: Node | NodeRoot, move: MoveC) {
         this.id = Node.gen_node_id()
         this.parent = parent
         this.move = move
-        this.children = []
+        this.children = new Map()
     }
 
     add_move(move: MoveC) {
+
+        let exists = this.children.get(move)
+
+        if (exists) {
+            return exists
+        }
+
         let child: Node = new Node(this, move)
 
-        this.children.push(child)
+        this.children.set(move, child)
 
         return child
     }
@@ -96,18 +110,23 @@ export class NodeManager {
     }
 
     is_a_successor_of_b(a: NodeId, b: NodeId) {
+        let child = this.cache.get_node(a)
+
+        if (!child) {
+            throw new NoChildError(b)
+        }
+
         if (b === 0) {
-            return this.root.children.some(_ => _.id === a)
+            return child.parent === this.root
         }
 
         let parent = this.cache.get_node(b)
 
         if (!parent) {
-            return false
-            //throw new NoChildError(b)
+            throw new NoChildError(b)
         }
 
-        return parent.children.some(_ => _.id === a)
+        return child.parent === parent
     }
 
     prefix_test(a: NodeId, b: NodeId) {
