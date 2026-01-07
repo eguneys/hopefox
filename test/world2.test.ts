@@ -58,7 +58,6 @@ idea double_captures
 
 idea check_to_lure_into_double_capture
   line blockable_checks double_captures
-  blockable_checks.check_to = double_captures.from
   blockable_checks.block_to = double_captures.to
 `.trim()
 
@@ -76,8 +75,7 @@ idea double_capture
 
 idea check_to_lure_into_double_capture
   line blockable_checks double_captures
-  blockable_checks.check_from = double_captures.from
-  blockable_checks.to = double_captures.to
+  blockable_checks.block_to = double_captures.to
 
 `
 
