@@ -2,8 +2,45 @@ import { it } from 'vitest'
 import { attacks, fen_pos, flat_san_moves_c, PositionManager, san_moves, san_moves_c, search } from '../src'
 import { puzzles } from './fixture'
 
+it('only skips', () => {
 
-it('solving', () => {
+  let rules = `
+fact check0
+  .from = attacks2.from
+  .to = attacks2.to
+  .piece = occupies.piece
+  attacks2.to2 = occupies.square
+  attacks2.to2 != attacks2.from
+  attacks2.color != occupies.color
+
+fact check
+ .from = check0.from
+ .to = check0.to
+ check0.piece = KING
+
+
+legal check_moves
+
+`
+
+  let patterns = [
+    'check_moves'
+  ]
+
+  let start_from = 4
+  for (let j = start_from; j < skips.length; j++) {
+    let i = skips[j]
+    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
+    let res = minmax_solve_loose(i, rules, patterns)
+    if (!res) {
+      console.log(puzzles[i].link)
+      break
+    }
+  }
+
+})
+
+it.skip('solving', () => {
     let rules = `
 fact pressures
      .from = attacks.from
@@ -135,7 +172,6 @@ let patterns = [
     return res2
   }
 
-  let skips = [...skips0, ...skips2, ...skips3, ...skips4]
   for (let i = start_from; i < 100; i++) {
 
     if (skips.includes(i)) {
@@ -153,7 +189,7 @@ let patterns = [
 
 let single_out: any
 
-//single_out = [74, 'fork_and_capture']
+single_out = [70, 'fork_and_capture']
 
 let n
 let skips4 = [70, 72, 74, 75, 80]
@@ -161,6 +197,9 @@ let skips0 = [34, 39, 48, 54, 56, 60, 62, 65, 66, 67, 69]
 let skips2 = [83, 92]
 let skips3 = [84, 87, 94]
 let start_from = 0
+
+
+  let skips = [...skips0, ...skips2, ...skips3, ...skips4]
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link
@@ -183,13 +222,16 @@ function minmax_solve_loose(n: number, rules: string, columns: string[]) {
       if (!a) {
         log(n)
         log(link)
-        log(puzzles[n].sans, 'expected but found', sans.slice(0, 3))
+        log(puzzles[n].sans, 'expected but found', [...sans.slice(0, 3), ...[sans.length > 3 ? '...' : ''].filter(Boolean)])
         log(column)
         result = false
       } else {
         result = true
         break
       }
+    } else {
+      log('No sans []')
+      result = false
     }
   }
 

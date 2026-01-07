@@ -822,8 +822,6 @@ class FactJoin {
                 relation = join(w_name, w_name2, (a, b) => {
 
                     //let ab_bindings = { [name]: a, [name2]: b }
-                    let ab_bindings_a = a
-                    let ab_bindings_b = b
 
                     let cond = true
 
@@ -833,13 +831,19 @@ class FactJoin {
                             continue
                         }
 
-                        let [name, rest] = path_split(m.path_a)
-                        let [name2, rest2] = path_split(m.path_b)
+                        let [b_name, rest] = path_split(m.path_a)
+                        let [b_name2, rest2] = path_split(m.path_b)
+
+                        let ab_bindings_a = b_name === name ? a : b
+                        let ab_bindings_b = b_name2 === name ? a : b
 
                         let x = ab_bindings_a.get(rest)
                         let y
 
-                        if (!rest2) {
+
+                        if (name2 === 'KING') {
+                            y = KING
+                        } else if (!rest2) {
                             let turn = 0
                             y = turn
                         } else {
@@ -847,11 +851,10 @@ class FactJoin {
                         }
 
                         cond &&= m.is_different ? x !== y : x === y
+                        if (!cond) {
+                            break
+                        }
                     }
-
-
-
-
 
                     return cond
                         ? (() => {
@@ -860,7 +863,7 @@ class FactJoin {
                             for (let ass of p.assigns) {
                                 let [key] = Object.keys(ass)
                                 let [r_rel, r_path] = path_split(ass[key])
-                                let ab_bindings_r_rel = r_rel === name ? ab_bindings_a : ab_bindings_b
+                                let ab_bindings_r_rel = r_rel === name ? a : b
                                 r.set(
                                     `${key}`,
                                     ab_bindings_r_rel.get(`${r_path}`))
