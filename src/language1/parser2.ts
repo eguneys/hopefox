@@ -435,8 +435,8 @@ class Parser {
 
 
     public parse_program(): Program {
-        let facts = []
-        let ideas = []
+        let facts = new Map()
+        let ideas = new Map()
         let legals = []
         let motives = []
 
@@ -459,13 +459,13 @@ class Parser {
 
             let fact = this.parse_fact()
             if (fact) {
-                facts.push(fact)
+                facts.set(fact.name, fact)
                 continue
             }
 
             let idea = this.parse_idea()
             if (idea) {
-                ideas.push(idea)
+                ideas.set(idea.name, idea)
                 continue
             }
 
@@ -541,8 +541,8 @@ export type Motif = {
 }
 
 export type Program = {
-    ideas: Idea[]
-    facts: Fact[]
+    ideas: Map<string, Idea>
+    facts: Map<string, Fact>
     legals: string[]
     motives: Motif[]
 }

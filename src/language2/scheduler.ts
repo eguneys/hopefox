@@ -121,8 +121,8 @@ class Scheduler {
         }
     }
 
-    resume_waiting_prefixes(fact: Fact) {
-        const waiting = this.pending_prefixes.get(fact.key)
+    resume_waiting_prefixes(fact_key: FactKey) {
+        const waiting = this.pending_prefixes.get(fact_key)
         if (!waiting) {
             return
         }
@@ -130,9 +130,10 @@ class Scheduler {
         for (const prefix of waiting) {
             prefix.owner.worklist.push(prefix)
             this.active_ideas.add(prefix.owner)
+            prefix.owner.notify_resume_idea()
         }
 
-        this.pending_prefixes.delete(fact.key)
+        this.pending_prefixes.delete(fact_key)
     }
 
     resume_waiting_facts(fact: Fact) {
@@ -150,28 +151,17 @@ class Scheduler {
     complete_fact(fact: Fact) {
         fact.state = FactLifecycleState.COMPLETE
         this.resume_waiting_facts(fact)
-        this.resume_waiting_prefixes(fact)
+        this.resume_waiting_prefixes(fact.key)
+    }
+
+    complete_idea(idea: IdeaJoin) {
+        this.active_ideas.delete(idea)
+        this.complete_fact(idea.fact)
     }
 
     is_facts_joined(key: FactKey) {
         const fact = this.facts.get(key)
         return fact?.state === FactLifecycleState.COMPLETE
-    }
-
-    request_idea(idea_column: Column, world_id: WorldId) {
-        let idea_spec = this.program.ideas.find(_ => _.name === idea_column)
-
-        if (!idea_spec) {
-            throw `No such idea: ${idea_column}`
-        }
-
-        const idea = new IdeaJoin(
-            idea_spec,
-            world_id,
-            this
-        )
-
-        this.active_ideas.add(idea)
     }
 
     request_fact(column: Column, world_id: WorldId) {
@@ -196,6 +186,33 @@ class Scheduler {
         this.active_fact_joins.add(fact_join)
     }
 
+    request_idea_join(fact: Fact) {
+        let idea_spec = this.program.ideas.get(fact.column)
+
+        if (!idea_spec) {
+            this.request_fact_join(fact)
+            return
+        }
+
+        let existing = this.facts.get(fact.key)
+        if (existing && existing.state === FactLifecycleState.MATERIALIZING) {
+            return
+        }
+
+        fact.state = FactLifecycleState.MATERIALIZING
+
+        const idea = new IdeaJoin(
+            fact,
+            idea_spec,
+            this
+        )
+
+        this.facts.set(fact.key, fact)
+        this.active_ideas.add(idea)
+    }
+
+
+
     suspend_fact_join_to_request_facts(fact_join: FactJoin, fact_key: FactKey) {
         let set = this.pending_fact_joins.get(fact_key)
         if (!set) {
@@ -215,7 +232,7 @@ class Scheduler {
             if (this.fact_queue.length > 0) {
                 let fact = this.fact_queue.shift()!
                 if (fact.state === FactLifecycleState.UNREQUESTED) {
-                    this.request_fact_join(fact)
+                    this.request_idea_join(fact)
                 }
             }
 
@@ -318,9 +335,11 @@ class IdeaJoin {
 
     private scheduler: Scheduler
     worklist: Prefix[]
-    private initial_world_id: WorldId
 
-    private spec: Idea
+    spec: Idea
+
+    private waiting_on_facts: number
+
 
     private get line() {
         return this.spec.line
@@ -328,11 +347,15 @@ class IdeaJoin {
 
     private Ms: RelationManager[]
 
-    constructor(spec: Idea, world_id: WorldId, scheduler: Scheduler) {
+    fact: Fact
+
+    constructor(fact: Fact, spec: Idea, scheduler: Scheduler) {
+
+        this.fact = fact
+        this.waiting_on_facts = 0
 
         this.spec = spec
         this.scheduler = scheduler
-        this.initial_world_id = world_id
 
         this.worklist = [{ owner: this, length: 0, bindings: [], env: new Map() }]
 
@@ -357,19 +380,51 @@ class IdeaJoin {
         row.set('end_world_id', last.get('end_world_id'))
 
 
+        let i_move = 0
         for (let i = 0; i < prefix.bindings.length; i++) {
             const r = this.get_row(i, prefix.bindings[i])
-            row.set(`from${i+1}`, r.get('from'))
-            row.set(`to${i+1}`, r.get('to'))
+
+            for (let j = 0; j < 8; j++) {
+                let key = j === 0 ? '' : j + 1
+                let key2 = i_move === 0 ? '' : i_move + 1
+                if (!r.has(`from${key}`)) {
+                    break
+                }
+                i_move++
+                row.set(`from${key2}`, r.get(`from${key}`))
+                row.set(`to${key2}`, r.get(`to${key}`))
+            }
+        }
+
+        for (let ass of this.spec.assigns) {
+            let [key] = Object.keys(ass)
+            let [r_rel, r_path] = path_split(ass[key])
+
+            let step_index = this.spec.line.findIndex(_ => _ === r_rel)
+            const r = this.get_row(step_index, prefix.bindings[step_index])
+            row.set(`${key}`, r.get(`${r_path}`))
         }
 
         this.scheduler.get_or_create_M(this.spec.name)?.add_row(row)
     }
 
+    notify_resume_idea() {
+        this.waiting_on_facts--
+    }
+
     step() {
+        let a = this.worklist.length
+        let b = this.waiting_on_facts
+        let c = this.spec.name
+        let d = this.spec.name
+
 
         if (this.worklist.length === 0) {
-            this.scheduler.active_ideas.delete(this)
+            if (this.waiting_on_facts === 0) {
+                this.scheduler.complete_idea(this)
+            } else {
+                this.scheduler.active_ideas.delete(this)
+            }
             return
         }
 
@@ -384,19 +439,18 @@ class IdeaJoin {
         let M0 = this.Ms[stepIndex - 1]
         let M = this.Ms[stepIndex]
 
-        let next_world_id = prefix_required_last_world_id(M0, prefix, this.initial_world_id)
+        let next_world_id = prefix_required_last_world_id(M0, prefix, this.fact.world_id)
 
         let needs_fact_key = hash_fact_key(M.name, next_world_id)
 
         if (!this.scheduler.is_facts_joined(needs_fact_key)) {
+            this.waiting_on_facts++
             this.scheduler.suspend_prefix_to_request_facts(prefix, needs_fact_key)
             this.scheduler.request_fact(M.name, next_world_id)
             return
         }
-
         for (let row_id of M.get_row_ids_starting_at_world_id(next_world_id)) {
             let new_prefix = extend_prefix(prefix, row_id, this)
-
             if (this.constraints_hold(new_prefix)) {
                 this.worklist.push(new_prefix)
             }
@@ -419,6 +473,8 @@ class IdeaJoin {
 
             let a_step_index = this.spec.line.findIndex(_ => _ === name)
             let b_step_index = this.spec.line.findIndex(_ => _ === name2)
+
+
 
             if (!rest) {
 
@@ -447,6 +503,10 @@ class IdeaJoin {
 
             let ab_bindings = { [name]: a, [name2]: b }
 
+            if (this.spec.name === 'check_to_lure_into_double_capture') {
+                debugger
+            }
+
             let x = ab_bindings[name].get(rest)
             let y
 
@@ -458,7 +518,11 @@ class IdeaJoin {
             }
 
             cond &&= m.is_different ? x !== y : x === y
+            if (!cond) {
+                return false
+            }
         }
+
         return cond
     }
 }
@@ -531,7 +595,7 @@ class FactJoin {
 
         if (!fact_join) {
             this.scheduler.suspend_fact_join_to_request_facts(this, fact.key)
-            this.scheduler.request_fact_join(fact)
+            this.scheduler.request_idea_join(fact)
             return undefined
         }
         return fact_join.Rs.get(fact.column)?.get_relation_starting_at_world_id(fact.world_id)
@@ -577,7 +641,7 @@ class FactJoin {
 
 
     join_with_program(fact: Fact) {
-        let p = this.program.facts.find(_ => _.name === fact.column)
+        let p = this.program.facts.get(fact.column)
 
         let ok = true
 
@@ -707,8 +771,6 @@ class FactJoin {
         this.add_rows(fact.column, fact.world_id, relation.rows)
         return true
     }
-
-
 
     join_fact_with_p(fact: Fact, p: FactAlias) {
 
@@ -916,10 +978,10 @@ class FactJoin {
 }
 
 
-export function search(m: PositionManager, pos: PositionC, rules: string, pull_column: string) {
+export function search(m: PositionManager, pos: PositionC, rules: string, pull_column: string = 'moves') {
     let scheduler = new Scheduler(m, pos, rules)
 
-    scheduler.request_idea(pull_column, 0)
+    scheduler.request_fact(pull_column, 0)
     scheduler.run()
     return scheduler.get_continuations(pull_column)
 }

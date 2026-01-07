@@ -506,10 +506,11 @@ export function extract_lines(moves: Relation) {
     for (let row of moves.rows) {
         let aa: MoveC[] = []
         for (let i = 1; i < 8; i++) {
-            if (!row.has('from' + i)) {
+            let key = i == 1 ? '' : i
+            if (!row.has('from' + key)) {
                 break
             }
-            aa.push(make_move_from_to(row.get('from' + i)!, row.get('to' + i)!))
+            aa.push(make_move_from_to(row.get('from' + key)!, row.get('to' + key)!))
         }
         // todo fix
         //res.push([... new Set(aa)])

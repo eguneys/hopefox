@@ -56,14 +56,13 @@ idea double_captures
   exchange_square = c2.to
   exchange_square = c3.to
 
+idea check_to_lure_into_double_capture
+  line blockable_checks double_captures
+  blockable_checks.check_to = double_captures.from
+  blockable_checks.block_to = double_captures.to
 `.trim()
 
 ;`
-motif check_to_lure_into_double_capture
-  line blockable_checks double_captures
-  blockable_checks.check_from = double_captures.from
-  blockable_checks.to = double_captures.to
-
 
 idea double_capture
   alias c2 captures_moves
@@ -75,7 +74,10 @@ idea double_capture
     .from2 = c2.from
   c3.to = _.to
 
-
+idea check_to_lure_into_double_capture
+  line blockable_checks double_captures
+  blockable_checks.check_from = double_captures.from
+  blockable_checks.to = double_captures.to
 
 `
 
@@ -85,9 +87,9 @@ idea double_capture
   console.log(link)
   let fen = puzzles[0].move_fens[0]
 
-  fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
+  //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
   let pos = m.create_position(fen)
-  let res = search(m, pos, rules, 'double_captures')
+  let res = search(m, pos, rules, 'check_to_lure_into_double_capture')
   console.log(dedup_sans(flat_san_moves_c(m, pos, res)))
   m.delete_position(pos)
 
