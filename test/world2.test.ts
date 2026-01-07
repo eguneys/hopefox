@@ -48,6 +48,10 @@ idea blockable_checks
   blocks_moves.block_from = checks_moves.to
   blocks_moves.block_to = checks_moves.check
 
+`.trim()
+
+;`
+
 idea double_captures
   alias c2 captures_moves
   alias c3 captures_moves
@@ -59,9 +63,8 @@ motif check_to_lure_into_double_capture
   line blockable_checks double_captures
   blockable_checks.check_from = double_captures.from
   blockable_checks.to = double_captures.to
-`.trim()
 
-;`
+
 idea double_capture
   alias c2 captures_moves
   alias c3 captures_moves

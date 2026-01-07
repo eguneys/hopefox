@@ -1,7 +1,8 @@
-import { move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../hopefox_c"
+import { between } from "../attacks"
+import { KING, move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../hopefox_c"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { Alias, Idea } from "../language1/parser2"
-import { Relation, Row } from "../language1/relational"
+import { Alias, Fact as FactAlias, Idea, is_matches_between, parse_program, Program } from "../language1/parser2"
+import { join, Relation, Row, select } from "../language1/relational"
 import { extract_lines } from "../language1/world"
 import { SquareSet } from "../squareSet"
 
@@ -26,8 +27,18 @@ type Fact = {
 
 type FactKey = number
 
+
+const generateHash = (s: string) => {
+  let hash = 0;
+  for (const char of s) {
+    hash = (hash << 5) - hash + char.charCodeAt(0);
+    hash |= 0; // Constrain to 32bit integer
+  }
+  return hash;
+};
+
 function hash_fact_key(column: Column, world_id: WorldId) {
-    return 0
+    return generateHash(column) + world_id
 }
 
 function make_fact_with_key(column: Column, world_id: WorldId) {
@@ -49,22 +60,32 @@ class Scheduler {
     private facts: Map<FactKey, Fact>
     private fact_queue: Fact[]
 
-    private materializer: Materialize_Manager
+    active_fact_joins: Set<FactJoin>
+    private pending_fact_joins: Map<FactKey, Set<FactJoin>>
+
+    private program: Program
 
     get_continuations(column: Column) {
-        let rm = this.materializer.Rms.get(column)
-        if (!rm) {
-            throw new Error('No such column ' + column)
-        }
-       return extract_lines(rm.base)
+        return []
     }
 
-    constructor(m: PositionManager, pos: PositionC) {
+    private m: PositionManager
+    private pos: PositionC
+
+    constructor(m: PositionManager, pos: PositionC, rules: string) {
+
+        this.m = m
+        this.pos = pos
+
         this.active_ideas = new Set()
         this.pending_prefixes = new Map()
         this.facts = new Map()
         this.fact_queue = []
-        this.materializer = new Materialize_Manager(m, pos)
+
+        this.active_fact_joins = new Set()
+        this.pending_fact_joins = new Map()
+
+        this.program = parse_program(rules)
     }
 
 
@@ -90,18 +111,43 @@ class Scheduler {
         this.pending_prefixes.delete(fact.key)
     }
 
+    resume_waiting_facts(fact: Fact) {
+
+        let waiting = this.pending_fact_joins.get(fact.key)
+        if (!waiting) {
+            return
+        }
+        for (const fact_join of waiting) {
+            fact_join.dependencies.set(fact.key, fact_join)
+        }
+        this.pending_fact_joins.delete(fact.key)
+    }
+
+    complete_fact(fact: Fact) {
+        fact.state = FactLifecycleState.COMPLETE
+        this.resume_waiting_facts(fact)
+        this.resume_waiting_prefixes(fact)
+    }
+
     is_facts_joined(key: FactKey) {
         const fact = this.facts.get(key)
         return fact?.state === FactLifecycleState.COMPLETE
     }
 
-    request_idea(idea_spec: Idea, world_id: WorldId) {
+    request_idea(idea_column: Column, world_id: WorldId) {
+        let idea_spec = this.program.ideas.find(_ => _.name === idea_column)
+
+        if (!idea_spec) {
+            throw `No such idea: ${idea_column}`
+        }
 
         const idea = new IdeaJoin(
             idea_spec,
             world_id,
             this
         )
+
+        this.active_ideas.add(idea)
     }
 
     request_fact(column: Column, world_id: WorldId) {
@@ -114,20 +160,35 @@ class Scheduler {
         }
     }
 
+    request_fact_join(fact: Fact) {
+        fact.state = FactLifecycleState.MATERIALIZING
+        let fact_join = new FactJoin(fact, this.m, this.pos, this.program, this)
+
+        this.active_fact_joins.add(fact_join)
+    }
+
+    suspend_fact_join_to_request_facts(fact_join: FactJoin, fact_key: FactKey) {
+        let set = this.pending_fact_joins.get(fact_key)
+        if (!set) {
+            this.pending_fact_joins.set(fact_key, new Set([fact_join]))
+        } else {
+            set.add(fact_join)
+        }
+    }
+
     run() {
         while (this.fact_queue.length > 0 || this.active_ideas.size > 0) {
 
             if (this.fact_queue.length > 0) {
                 let fact = this.fact_queue.shift()!
                 if (fact.state === FactLifecycleState.UNREQUESTED) {
-                    fact.state = FactLifecycleState.MATERIALIZING
-
-                    this.materializer.materialize_fact(fact)
-                    fact.state = FactLifecycleState.COMPLETE
-                    this.resume_waiting_prefixes(fact)
+                    this.request_fact_join(fact)
                 }
             }
 
+            for (const fact_join of this.active_fact_joins) {
+                fact_join.step()
+            }
 
             for (const idea of this.active_ideas) {
                 idea.step()
@@ -152,7 +213,7 @@ class RelationManager {
 
     add_rows(world_id: WorldId, rows: Row[]) {
         for (const row of rows) {
-            const row_id = this.add_rows.length
+            const row_id = this.base.rows.length
             this.base.rows.push(row)
 
             if (!this.index_start_world.has(world_id)) {
@@ -175,6 +236,10 @@ class RelationManager {
                 list.push(row_id)
             }
         }
+    }
+
+    get_relation_starting_at_world_id(world_id: WorldId): Relation {
+        return { rows: this.get_row_ids_starting_at_world_id(world_id).map(row_id => this.base.rows[row_id]) }
     }
 
     get_row_ids_starting_at_world_id(world_id: WorldId): RowId[] {
@@ -218,17 +283,23 @@ class IdeaJoin {
     worklist: Prefix[]
     private initial_world_id: WorldId
 
-    private line: string[]
+    private spec: Idea
+
+    private get line() {
+        return this.spec.line
+    }
 
     private Ms: RelationManager[]
 
     constructor(spec: Idea, world_id: WorldId, scheduler: Scheduler) {
 
-        this.line = spec.line
+        this.spec = spec
         this.scheduler = scheduler
         this.initial_world_id = world_id
 
         this.worklist = [{ owner: this, length: 0, bindings: [] }]
+
+        //this.Ms = this.line.map(_ => materializer.materialize_fact(make_fact_with_key(_, 0)))
     }
 
 
@@ -253,7 +324,7 @@ class IdeaJoin {
             row.set(`to${i+1}`, r.get('to'))
         }
 
-        // output.emit(row)
+        //this.output_manager.add_row(this.spec.name, row)
     }
 
     step() {
@@ -295,57 +366,371 @@ class IdeaJoin {
 
 
     constraints_hold(prefix: Prefix) {
-        return false
+
+        let cond = true
+
+        for (let m of this.spec.matches) {
+
+            if (is_matches_between(m)) {
+                return false
+            }
+
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
+
+
+            let step_index = this.Ms.findIndex(_ => _.name === name)
+            let a = this.get_row(step_index, prefix.bindings[step_index]);
+            step_index = this.Ms.findIndex(_ => _.name === name2)
+            let b = this.get_row(step_index, prefix.bindings[step_index]);
+
+            if (a === undefined || b === undefined) {
+                return true
+            }
+
+            let ab_bindings = { [name]: a, [name2]: b }
+
+            let cond = true
+
+            let x = ab_bindings[name].get(rest)
+            let y
+
+            if (!rest2) {
+                let turn = 0
+                y = turn
+            } else {
+                y = ab_bindings[name2].get(rest2)
+            }
+
+            cond &&= m.is_different ? x !== y : x === y
+        }
+        return cond
     }
 }
 
-class Materialize_Manager {
+
+class MaterializeError extends Error {
+    constructor(column: Column, id: WorldId) {
+        super(`Materialize failed for ${column}:${id}`)
+    }
+}
+
+class FactJoin {
 
     nodes: NodeManager
     m: PositionManager
     pos: PositionC
 
-    Rms: Map<string, RelationManager>
+    program: Program
 
-    constructor(m: PositionManager, pos: PositionC) {
+    Rs: Map<string, RelationManager>
+
+    dependencies: Map<FactKey, FactJoin>
+
+    scheduler: Scheduler
+
+    fact: Fact
+
+    constructor(fact: Fact, m: PositionManager, pos: PositionC, program: Program, scheduler: Scheduler) {
+
+        this.fact = fact
+        this.scheduler = scheduler
 
         this.m = m
         this.pos = pos
+        this.program = program
 
         this.nodes = new NodeManager()
-        this.Rms = new Map()
+        this.Rs = new Map()
+
+        this.dependencies = new Map()
+    }
+
+    define_column(column: Column) {
+        this.Rs.set(column, new RelationManager(column))
     }
 
     add_row(column: Column, row: Row) {
-        let rm = this.Rms.get(column)
+        let rm = this.Rs.get(column)
         if (!rm) {
             rm = new RelationManager(column)
-            this.Rms.set(column, rm)
+            this.Rs.set(column, rm)
         }
         rm.add_row(row)
     }
 
-    materialize_fact(fact: Fact) {
-        this.make_moves_to_world(fact.world_id)
-
-        switch (fact.column) {
-            case 'occupies':
-                this.materialize_occupies(fact.world_id)
-                break
-            case 'moves':
-                this.materialize_moves(fact.world_id)
-                break
-            case 'attacks':
-                this.materialize_attacks(fact.world_id)
-                break
-            case 'attacks2':
-                this.materialize_attacks2(fact.world_id)
-                break
+    add_rows(column: Column, world_id: WorldId, rows: Row[]) {
+        let rm = this.Rs.get(column)
+        if (!rm) {
+            rm = new RelationManager(column)
+            this.Rs.set(column, rm)
         }
-
-        this.unmake_moves_to_base(fact.world_id)
+        rm.add_rows(world_id, rows)
     }
 
+    worklist_check_fact(fact: Fact) {
+
+        let fact_join = this.dependencies.get(fact.key)
+
+        if (!fact_join) {
+            this.scheduler.request_fact_join(fact)
+            this.scheduler.suspend_fact_join_to_request_facts(this, fact.key)
+            return undefined
+        }
+        fact_join.Rs.get(fact.column)?.get_relation_starting_at_world_id(fact.world_id)
+    }
+
+    step() {
+
+        let ok = true
+        let fact = this.fact
+        switch (fact.column) {
+            case 'occupies':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_occupies(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
+            case 'moves':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_moves(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
+            case 'attacks':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_attacks(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
+            case 'attacks2':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_attacks2(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
+            default: {
+                ok = this.join_with_program(fact)
+            }
+        }
+
+        if (!ok) {
+            return false
+        }
+
+        this.scheduler.active_fact_joins.delete(this)
+        this.scheduler.complete_fact(this.fact)
+    }
+
+
+    join_with_program(fact: Fact) {
+        let p = this.program.facts.find(_ => _.name === fact.column)
+
+        let ok = true
+
+        if (p) {
+            ok = this.join_fact_with_p(fact, p)
+        }
+        if (!ok) {
+            return false
+        }
+
+        let l = this.program.legals.find(_ => _ === fact.column)
+
+        if (l) {
+            ok = this.join_legal_with_p(fact, l)
+        }
+        if (!ok) {
+            return false
+        }
+
+        return true
+    }
+
+    join_legal_with_p(fact: Fact, l: Column) {
+
+        let name = l.replace('_moves', '')
+        let name2 = 'moves'
+
+        let w_name = this.worklist_check_fact(make_fact_with_key(name, fact.world_id))
+        if (w_name === undefined) {
+            return false
+        }
+        let w_name2 = this.worklist_check_fact(make_fact_with_key(name2, fact.world_id))
+        if (w_name2 === undefined) {
+            return false
+        }
+
+        let relation = join(w_name, w_name2, (a, b) => {
+
+            let ab_bindings = { [name]: a, [name2]: b }
+
+            let cond = ab_bindings[name].get('from') === ab_bindings[name2].get('from')
+                && ab_bindings[name].get('to') === ab_bindings[name2].get('to')
+
+            return cond
+                ? (() => {
+                    const r = new Map()
+                    r.set('start_world_id', fact.world_id)
+                    r.set('end_world_id', b.get('end_world_id'))
+                    for (let [key, value] of ab_bindings[name]) {
+                        r.set(key, value)
+                    }
+                    return r
+                })() : null
+        })
+
+        this.add_rows(fact.column, fact.world_id, relation.rows)
+        return true
+    }
+
+
+    join_fact_between_p(fact: Fact, p: FactAlias) {
+
+        let relation
+
+        let m = p.matches[0]
+
+        {
+            if (!is_matches_between(m)) {
+                return false
+            }
+
+
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
+            let [name3, rest3] = path_split(m.path_c)
+
+            let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
+            if (w_name === undefined) {
+                return false
+            }
+            let w_name2 = this.worklist_check_fact(make_fact_with_key(fix_alias(name2, p.aliases), fact.world_id))
+            if (w_name2 === undefined) {
+                return false
+            }
+
+            relation = join(w_name, w_name2, (a, b) => {
+
+                let ab_bindings = { [name]: a, [name2]: b }
+
+                let cond = true
+
+                for (let m of p.matches) {
+
+                    if (!is_matches_between(m)) {
+                        continue
+                    }
+
+                    let [name, rest] = path_split(m.path_a)
+                    let [name2, rest2] = path_split(m.path_b)
+                    let [name3, rest3] = path_split(m.path_c)
+
+
+                    let x = ab_bindings[name].get(rest)!
+                    let y = ab_bindings[name2].get(rest2)!
+                    let z = ab_bindings[name3].get(rest3)!
+
+                    cond &&= between(y, z).has(x)
+                }
+
+                return cond
+                    ? (() => {
+                        const r = new Map()
+                        r.set('start_world_id', fact.world_id)
+                        for (let ass of p.assigns) {
+                            let [key] = Object.keys(ass)
+                            let [r_rel, r_path] = path_split(ass[key])
+                            r.set(
+                                `${key}`,
+                                ab_bindings[r_rel].get(`${r_path}`))
+                        }
+
+                        return r
+                    })() : null
+            })
+        }
+
+        this.add_rows(fact.column, fact.world_id, relation.rows)
+        return true
+    }
+
+
+
+    join_fact_with_p(fact: Fact, p: FactAlias) {
+
+        let relation
+
+        let m = p.matches[0]
+
+        {
+            if (is_matches_between(m)) {
+                return this.join_fact_between_p(fact, p)
+            }
+
+            let [name, rest] = path_split(m.path_a)
+            let [name2, rest2] = path_split(m.path_b)
+
+            if (name2 === 'KING') {
+                let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
+                if (w_name === undefined) {
+                    return false
+                }
+                relation = select(w_name, a => a.get(rest) === KING)
+            } else {
+                let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
+                if (w_name === undefined) {
+                    return false
+                }
+                let w_name2 = this.worklist_check_fact(make_fact_with_key(fix_alias(name2, p.aliases), fact.world_id))
+                if (w_name2 === undefined) {
+                    return false
+                }
+                relation = join(w_name, w_name2, (a, b) => {
+
+                    let ab_bindings = { [name]: a, [name2]: b }
+
+                    let cond = true
+
+                    for (let m of p.matches) {
+
+                        if (is_matches_between(m)) {
+                            continue
+                        }
+
+                        let [name, rest] = path_split(m.path_a)
+                        let [name2, rest2] = path_split(m.path_b)
+
+                        let x = ab_bindings[name].get(rest)
+                        let y
+
+                        if (!rest2) {
+                            let turn = 0
+                            y = turn
+                        } else {
+                            y = ab_bindings[name2].get(rest2)
+                        }
+
+                        cond &&= m.is_different ? x !== y : x === y
+                    }
+
+                    return cond
+                        ? (() => {
+                            const r = new Map()
+                            r.set('start_world_id', fact.world_id)
+                            for (let ass of p.assigns) {
+                                let [key] = Object.keys(ass)
+                                let [r_rel, r_path] = path_split(ass[key])
+                                r.set(
+                                    `${key}`,
+                                    ab_bindings[r_rel].get(`${r_path}`))
+                            }
+
+                            return r
+                        })() : null
+                })
+            }
+        }
+
+        this.add_rows(fact.column, fact.world_id, relation.rows)
+        return true
+    }
 
     materialize_attacks2(world_id: WorldId) {
 
@@ -373,6 +758,8 @@ class Materialize_Manager {
                 }
             }
         }
+
+        return true
     }
 
     materialize_attacks(world_id: WorldId) {
@@ -398,6 +785,8 @@ class Materialize_Manager {
 
             }
         }
+
+        return true
     }
 
     materialize_vacants(world_id: WorldId) {
@@ -412,6 +801,8 @@ class Materialize_Manager {
                 ]))
             }
         }
+
+        return true
     }
 
     materialize_occupies(world_id: WorldId) {
@@ -428,6 +819,8 @@ class Materialize_Manager {
                 ]))
             }
         }
+
+        return true
     }
 
     make_moves_to_world(world_id: WorldId) {
@@ -441,7 +834,7 @@ class Materialize_Manager {
         let history = this.nodes.history_moves(world_id)
         for (let i = history.length - 1; i >= 0; i--) {
             let move = history[i]
-            this.m.make_move(this.pos, move)
+            this.m.unmake_move(this.pos, move)
         }
     }
 
@@ -461,14 +854,28 @@ class Materialize_Manager {
             ]))
 
         }
+        return true
     }
 }
 
 
 export function search(m: PositionManager, pos: PositionC, rules: string) {
-    let scheduler = new Scheduler(m, pos)
+    let scheduler = new Scheduler(m, pos, rules)
 
-    scheduler.request_fact('moves', 0)
+    let pull_column = 'blockable_checks'
+
+    scheduler.request_idea(pull_column, 0)
     scheduler.run()
-    return scheduler.get_continuations('moves')
+    return scheduler.get_continuations(pull_column)
+}
+
+
+type Path = string
+function path_split(path: Path) {
+    let [name, ...rest] = path.split('.')
+    return [name, rest.join('.')]
+}
+
+function fix_alias(line: string, aliases: Alias[]) {
+    return aliases.find(_ => _.alias === line)?.column ?? line
 }
