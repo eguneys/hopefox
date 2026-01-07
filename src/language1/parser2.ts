@@ -368,16 +368,25 @@ class Parser {
 
             while (true) {
                 let current_token = this.current_token
-                if (current_token.type === TokenType.Eof) {
-                    break
-                }
+
                 if (this.current_token.type === TokenType.Newline) {
                     this.advance_tokens()
                 }
-
-                if (this.current_token.type === TokenType.Newline) {
+                if (current_token.type === TokenType.Eof) {
                     break
                 }
+
+                current_token = this.current_token
+                if (current_token.type === TokenType.Newline) {
+                    break
+                }
+
+                current_token = this.current_token
+                if (current_token.type === TokenType.Eof) {
+                    break
+                }
+
+
 
                 matches.push(this.parse_match())
 

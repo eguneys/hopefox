@@ -62,16 +62,20 @@ idea check_evade_check_sacrifice_second_check
   line check_moves evade_moves check_sacrifice_second_check
 
 
+idea captures_3
+  line capture_moves capture_moves capture_moves
+
 `
 
   let patterns = [
     'check_and_double_block',
     'double_check',
     'check_sacrifice_second_check',
-    'check_evade_check_sacrifice_second_check'
+    'check_evade_check_sacrifice_second_check',
+    'captures_3'
   ]
 
-  let start_from = 6
+  let start_from = 9
 
   let passed = 0
   let total = skips.length - start_from
