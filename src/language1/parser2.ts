@@ -371,13 +371,17 @@ class Parser {
                 if (current_token.type === TokenType.Eof) {
                     break
                 }
-                matches.push(this.parse_match())
                 if (this.current_token.type === TokenType.Newline) {
                     this.advance_tokens()
                 }
+
                 if (this.current_token.type === TokenType.Newline) {
                     break
                 }
+                console.log(this.current_token)
+
+                matches.push(this.parse_match())
+
             }
 
             return {

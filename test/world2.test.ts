@@ -85,22 +85,25 @@ fact fork
   pressures2.to = p2.to
   pressures2.to2 != p2.to2
 
-fact evade_king
+fact king_evade
   .from = attacks.from
   .to = attacks.to
   attacks.piece = KING
 
 legal fork_moves
-legal evade_king_moves
+legal king_evade_moves
 
 idea fork_and_capture
-  line fork_moves evade_king_moves captures_moves
-  fork_moves.fork1 = evade_king_moves.from
+  line fork_moves king_evade_moves captures_moves
+  fork_moves.fork1 = king_evade_moves.from
   fork_moves.fork2 = captures_moves.to
 
 idea double_capture_block
   line captures_moves captures_moves check_to_lure_into_hanging_capture
 
+
+idea check_check_mate
+  line checks_moves king_evade_moves checks_moves
 
 `.trim()
 
@@ -110,9 +113,9 @@ let patterns = [
     'double_captures',
     'checks_moves',
     'fork_and_capture',
-    'double_capture_block'
+    'double_capture_block',
+    'check_check_mate'
   ]
-
 
 
   let n
@@ -139,7 +142,8 @@ let patterns = [
     return res2
   }
 
-  for (let i = 34; i < 100; i++) {
+  let skips = [...skips0, ...skips2]
+  for (let i = start_from; i < 100; i++) {
 
     if (skips.includes(i)) {
       continue
@@ -155,7 +159,9 @@ let patterns = [
 })
 
 
-let skips = [34, 39, 48]
+let skips0 = [34, 39, 48, 54, 56, 60, 62, 65, 66, 67, 69]
+let skips2 = [0]
+let start_from = 73
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link

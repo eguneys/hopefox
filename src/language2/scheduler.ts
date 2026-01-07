@@ -504,20 +504,24 @@ class IdeaJoin {
                 return true
             }
 
-            let ab_bindings = { [name]: a, [name2]: b }
+            //let ab_bindings = { [name]: a, [name2]: b }
+            let ab_bindings_a = a
+            let ab_bindings_b = b
 
             if (this.spec.name === 'check_to_lure_into_double_capture') {
                 debugger
             }
 
-            let x = ab_bindings[name].get(rest)
+            //let x = ab_bindings[name].get(rest)
+            let x = ab_bindings_a.get(rest)
             let y
 
             if (!rest2) {
                 let turn = 0
                 y = turn
             } else {
-                y = ab_bindings[name2].get(rest2)
+                //y = ab_bindings[name2].get(rest2)
+                y = ab_bindings_b.get(rest2)
             }
 
             cond &&= m.is_different ? x !== y : x === y
@@ -683,17 +687,24 @@ class FactJoin {
 
         let relation = join(w_name, w_name2, (a, b) => {
 
-            let ab_bindings = { [name]: a, [name2]: b }
+            //let ab_bindings = { [name]: a, [name2]: b }
+            let ab_bindings_a = a
+            let ab_bindings_b = b
 
+            /*
             let cond = ab_bindings[name].get('from') === ab_bindings[name2].get('from')
                 && ab_bindings[name].get('to') === ab_bindings[name2].get('to')
+                */
+
+            let cond = ab_bindings_a.get('from') === ab_bindings_b.get('from')
+                && ab_bindings_a.get('to') === ab_bindings_b.get('to')
 
             return cond
                 ? (() => {
                     const r = new Map()
                     r.set('start_world_id', fact.world_id)
                     r.set('end_world_id', b.get('end_world_id'))
-                    for (let [key, value] of ab_bindings[name]) {
+                    for (let [key, value] of ab_bindings_a) {
                         r.set(key, value)
                     }
                     return r
@@ -732,7 +743,9 @@ class FactJoin {
 
             relation = join(w_name, w_name2, (a, b) => {
 
-                let ab_bindings = { [name]: a, [name2]: b }
+                //let ab_bindings = { [name]: a, [name2]: b }
+                let ab_bindings_a = a
+                let ab_bindings_b = b
 
                 let cond = true
 
@@ -746,10 +759,11 @@ class FactJoin {
                     let [name2, rest2] = path_split(m.path_b)
                     let [name3, rest3] = path_split(m.path_c)
 
+                    let ab_bindings_c = name3 === name ? ab_bindings_a : ab_bindings_b
 
-                    let x = ab_bindings[name].get(rest)!
-                    let y = ab_bindings[name2].get(rest2)!
-                    let z = ab_bindings[name3].get(rest3)!
+                    let x = ab_bindings_a.get(rest)!
+                    let y = ab_bindings_b.get(rest2)!
+                    let z = ab_bindings_c.get(rest3)!
 
                     cond &&= between(y, z).has(x)
                 }
@@ -761,9 +775,10 @@ class FactJoin {
                         for (let ass of p.assigns) {
                             let [key] = Object.keys(ass)
                             let [r_rel, r_path] = path_split(ass[key])
+                            let ab_bindings_r_rel = r_rel === name ? ab_bindings_a : ab_bindings_b
                             r.set(
                                 `${key}`,
-                                ab_bindings[r_rel].get(`${r_path}`))
+                                ab_bindings_r_rel.get(`${r_path}`))
                         }
 
                         return r
@@ -806,7 +821,9 @@ class FactJoin {
                 }
                 relation = join(w_name, w_name2, (a, b) => {
 
-                    let ab_bindings = { [name]: a, [name2]: b }
+                    //let ab_bindings = { [name]: a, [name2]: b }
+                    let ab_bindings_a = a
+                    let ab_bindings_b = b
 
                     let cond = true
 
@@ -819,14 +836,14 @@ class FactJoin {
                         let [name, rest] = path_split(m.path_a)
                         let [name2, rest2] = path_split(m.path_b)
 
-                        let x = ab_bindings[name].get(rest)
+                        let x = ab_bindings_a.get(rest)
                         let y
 
                         if (!rest2) {
                             let turn = 0
                             y = turn
                         } else {
-                            y = ab_bindings[name2].get(rest2)
+                            y = ab_bindings_b.get(rest2)
                         }
 
                         cond &&= m.is_different ? x !== y : x === y
@@ -843,9 +860,10 @@ class FactJoin {
                             for (let ass of p.assigns) {
                                 let [key] = Object.keys(ass)
                                 let [r_rel, r_path] = path_split(ass[key])
+                                let ab_bindings_r_rel = r_rel === name ? ab_bindings_a : ab_bindings_b
                                 r.set(
                                     `${key}`,
-                                    ab_bindings[r_rel].get(`${r_path}`))
+                                    ab_bindings_r_rel.get(`${r_path}`))
                             }
 
                             return r
