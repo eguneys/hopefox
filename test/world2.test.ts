@@ -88,14 +88,19 @@ fact fork
 fact evade_king
   .from = attacks.from
   .to = attacks.to
-  attacks.from = KING
+  attacks.piece = KING
 
 legal fork_moves
+legal evade_king_moves
 
 idea fork_and_capture
-  line fork_moves evade_king captures_moves
-  fork_moves.fork1 = evade_king.from
+  line fork_moves evade_king_moves captures_moves
+  fork_moves.fork1 = evade_king_moves.from
   fork_moves.fork2 = captures_moves.to
+
+idea double_capture_block
+  line captures_moves captures_moves check_to_lure_into_hanging_capture
+
 
 `.trim()
 
@@ -104,13 +109,31 @@ let patterns = [
     'check_to_lure_into_hanging_capture',
     'double_captures',
     'checks_moves',
-    'fork_and_capture'
+    'fork_and_capture',
+    'double_capture_block'
   ]
 
-  console.log(solve_n(3, rules, 'fork_and_capture'))
-  return
+  let n
+  n = 50
+  if (n) {
+    let fen = '4k3/1R6/6N1/5p1p/7P/6rK/5b2/8 w - - 0 48'// ?? puzzles[n].move_fens[0]
+    let column = 'attacks'
 
-  for (let i = 0; i < 100; i++) {
+    let pos = m.create_position(fen)
+    let res = search(m, pos, rules, [column])
+    let res2 = dedup_sans(flat_san_moves_c(m, pos, res.get(column)!))
+    m.delete_position(pos)
+    console.log(res2)
+    return res2
+  }
+
+  for (let i = 34; i < 100; i++) {
+
+    if (skips.includes(i)) {
+      continue
+    }
+
+
     render('' + i + ' ' + puzzles[i].link)
     let res = minmax_solve_loose(i, rules, patterns)
     if (!res) {
@@ -120,6 +143,7 @@ let patterns = [
 })
 
 
+let skips = [34, 39]
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link

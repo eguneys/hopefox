@@ -251,6 +251,9 @@ class Parser {
         this.eat(TokenType.Line)
         let res = []
         while (this.current_token.type !== TokenType.Newline) {
+            if (this.current_token.type === TokenType.Eof) {
+                break
+            }
             res.push(this.path())
         }
         return res
@@ -344,6 +347,15 @@ class Parser {
                 this.eat(TokenType.Newline)
             }
             let line = this.parse_line()
+            if (this.current_token.type === TokenType.Eof) {
+                return {
+                    name,
+                    line,
+                    assigns: [],
+                    matches: [],
+                    aliases
+                }
+            }
             this.eat(TokenType.Newline)
 
             let assigns = []
@@ -355,14 +367,14 @@ class Parser {
             let matches: Matches[] = []
 
             while (true) {
+                if (this.current_token.type === TokenType.Eof) {
+                    break
+                }
                 matches.push(this.parse_match())
                 if (this.current_token.type === TokenType.Newline) {
                     this.advance_tokens()
                 }
                 if (this.current_token.type === TokenType.Newline) {
-                    break
-                }
-                if (this.current_token.type === TokenType.Eof) {
                     break
                 }
             }

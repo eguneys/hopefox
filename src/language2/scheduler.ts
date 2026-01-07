@@ -43,6 +43,11 @@ const generateHash = (s: string) => {
 };
 
 function hash_fact_key(column: Column, world_id: WorldId) {
+    let res = generateHash(column) + world_id
+    if (isNaN(res)) {
+        console.trace(column, world_id)
+        throw res
+    }
     return generateHash(column) + world_id
 }
 
@@ -807,13 +812,6 @@ class FactJoin {
                     let ab_bindings = { [name]: a, [name2]: b }
 
                     let cond = true
-
-
-                    if (this.fact.column === 'fork') {
-                        if (cond) {
-                            debugger
-                        }
-                    }
 
                     for (let m of p.matches) {
 
