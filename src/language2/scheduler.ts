@@ -6,6 +6,11 @@ import { join, Relation, Row, select } from "../language1/relational"
 import { extract_lines } from "../language1/world"
 import { SquareSet } from "../squareSet"
 
+class NoSuchColumn extends Error {
+    constructor(name: Column) {
+        super(`No such column ${name}.`)
+    }
+}
 
 enum FactLifecycleState {
     UNREQUESTED,
@@ -65,10 +70,6 @@ class Scheduler {
 
     private program: Program
 
-    get_continuations(column: Column) {
-        return []
-    }
-
     private m: PositionManager
     private pos: PositionC
 
@@ -86,8 +87,26 @@ class Scheduler {
         this.pending_fact_joins = new Map()
 
         this.program = parse_program(rules)
+
+        this.RMs = new Map()
     }
 
+    RMs: Map<Column, RelationManager>
+
+    get_continuations(column: Column) {
+        let rs = this.RMs.get(column)
+        if (!rs) {
+            throw new NoSuchColumn(column)
+        }
+        return extract_lines(rs.base)
+    }
+
+    get_or_create_M(column: Column) {
+        if (!this.RMs.has(column)) {
+            this.RMs.set(column, new RelationManager(column))
+        }
+        return this.RMs.get(column)!
+    }
 
     suspend_prefix_to_request_facts(prefix: Prefix, fact_key: FactKey) {
         let list = this.pending_prefixes.get(fact_key)
@@ -177,7 +196,11 @@ class Scheduler {
     }
 
     run() {
-        while (this.fact_queue.length > 0 || this.active_ideas.size > 0) {
+        while (
+            this.fact_queue.length > 0 
+            || this.active_ideas.size > 0 
+            || this.active_fact_joins.size > 0
+        ) {
 
             if (this.fact_queue.length > 0) {
                 let fact = this.fact_queue.shift()!
@@ -299,7 +322,7 @@ class IdeaJoin {
 
         this.worklist = [{ owner: this, length: 0, bindings: [] }]
 
-        //this.Ms = this.line.map(_ => materializer.materialize_fact(make_fact_with_key(_, 0)))
+        this.Ms = this.line.map(_ => this.scheduler.get_or_create_M(_))
     }
 
 
@@ -324,7 +347,7 @@ class IdeaJoin {
             row.set(`to${i+1}`, r.get('to'))
         }
 
-        //this.output_manager.add_row(this.spec.name, row)
+        this.scheduler.get_or_create_M(this.spec.name)?.add_row(row)
     }
 
     step() {
@@ -423,7 +446,9 @@ class FactJoin {
 
     program: Program
 
-    Rs: Map<string, RelationManager>
+    get Rs() {
+        return this.scheduler.RMs
+    }
 
     dependencies: Map<FactKey, FactJoin>
 
@@ -441,13 +466,11 @@ class FactJoin {
         this.program = program
 
         this.nodes = new NodeManager()
-        this.Rs = new Map()
-
         this.dependencies = new Map()
-    }
 
-    define_column(column: Column) {
-        this.Rs.set(column, new RelationManager(column))
+        if (this.Rs.get(fact.column) === undefined) {
+            this.Rs.set(fact.column, new RelationManager(fact.column))
+        }
     }
 
     add_row(column: Column, row: Row) {
