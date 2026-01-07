@@ -1,4 +1,5 @@
 import { between } from "../attacks"
+import { squareSet } from "../debug"
 import { KING, move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../hopefox_c"
 import { NodeId, NodeManager } from "../language1/node_manager"
 import { Alias, Fact as FactAlias, Idea, is_matches_between, parse_program, Program } from "../language1/parser2"
@@ -44,10 +45,6 @@ const generateHash = (s: string) => {
 
 function hash_fact_key(column: Column, world_id: WorldId) {
     let res = generateHash(column) + world_id
-    if (isNaN(res)) {
-        console.trace(column, world_id)
-        throw res
-    }
     return generateHash(column) + world_id
 }
 
@@ -901,6 +898,7 @@ class FactJoin {
                 let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
 
                 for (let a of aa) {
+
                     this.add_row('attacks', new Map([
                         ['start_world_id', world_id],
                         ['from', on],

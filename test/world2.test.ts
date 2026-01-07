@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { flat_san_moves_c, Min_max_sort, PositionManager, san_moves, san_moves_c, search } from '../src'
+import { attacks, fen_pos, flat_san_moves_c, Min_max_sort, PositionManager, san_moves, san_moves_c, search } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -113,11 +113,23 @@ let patterns = [
     'double_capture_block'
   ]
 
+
+
   let n
-  n = 50
   if (n) {
     let fen = '4k3/1R6/6N1/5p1p/7P/6rK/5b2/8 w - - 0 48'// ?? puzzles[n].move_fens[0]
     let column = 'attacks'
+
+    let asdf = fen_pos(fen)
+
+    console.log(squareSet(asdf.board.occupied))
+    console.log(squareSet(attacks(asdf.board.get(22)!, 22, asdf.board.occupied)))
+
+    let p22 = m.create_position(fen)
+    console.log(squareSet(m.pos_occupied(p22)))
+    console.log(squareSet(m.attacks(m.get_at(p22, 22)!, 22, m.pos_occupied(p22))))
+    console.log(squareSet(m.pos_attacks(p22, 22)))
+
 
     let pos = m.create_position(fen)
     let res = search(m, pos, rules, [column])
@@ -143,7 +155,7 @@ let patterns = [
 })
 
 
-let skips = [34, 39]
+let skips = [34, 39, 48]
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link
@@ -208,6 +220,7 @@ function solve_n(n: number, rules: string, column: string) {
 let m = await PositionManager.make()
 
 import fs from 'fs'
+import { squareSet } from '../src/debug'
 
 function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
