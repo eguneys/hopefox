@@ -207,7 +207,7 @@ class Parser {
     
     private parse_assigns() {
         this.eat(TokenType.Dot)
-        let path = this.path()
+        let path = this.word()
         this.eat(TokenType.Equal)
         let path2 = this.path()
 
@@ -254,7 +254,7 @@ class Parser {
             if (this.current_token.type === TokenType.Eof) {
                 break
             }
-            res.push(this.path())
+            res.push(this.word())
         }
         return res
     }
@@ -263,7 +263,7 @@ class Parser {
         return this.eat(TokenType.Word)
     }
 
-    private path() {
+    private path(): Path {
         let res = ''
         while (true) {
             res += this.word()
@@ -274,12 +274,12 @@ class Parser {
                 break
             }
         }
-        return res
+        return path_split(res)
     }
 
-    private path_or_constant() {
+    private path_or_constant(): Path {
         if (this.current_token.type === TokenType.Const) {
-            return this.eat(TokenType.Const)
+            return [this.eat(TokenType.Const), '']
         } else {
             return this.path()  
         }
@@ -289,7 +289,7 @@ class Parser {
         let current_token = this.current_token
         if (current_token.type === TokenType.BeginFact) {
             this.eat(TokenType.BeginFact)
-            let name = this.path()
+            let name = this.word()
 
             this.eat(TokenType.Newline)
             let aliases = []
@@ -503,8 +503,8 @@ class Parser {
 
 }
 
-type Path = string
-type Assignment = Record<Path, Path>
+type Path = [string, string]
+type Assignment = Record<string, Path>
 
 type MatchesEqual = {
     is_different?: true
@@ -525,8 +525,8 @@ export function is_matches_between(m: Matches): m is MatchesBetween {
 }
 
 export type Alias = {
-    alias: string
-    column: string
+    alias: Path
+    column: Path
 }
 
 export type Fact = {
@@ -563,4 +563,11 @@ export type Program = {
 export function parse_program(text: string) {
     let p = new Parser(new Lexer(text))
     return p.parse_program()
+}
+
+
+
+function path_split(path: string): Path {
+    let [name, ...rest] = path.split('.')
+    return [name, rest.join('.')]
 }

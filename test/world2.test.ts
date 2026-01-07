@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { attacks, fen_pos, flat_san_moves_c, Min_max_sort, PositionManager, san_moves, san_moves_c, search } from '../src'
+import { attacks, fen_pos, flat_san_moves_c, PositionManager, san_moves, san_moves_c, search } from '../src'
 import { puzzles } from './fixture'
 
 
@@ -146,7 +146,7 @@ let patterns = [
     }
 
 
-    render('' + i + ' ' + puzzles[i].link)
+    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
     let res = minmax_solve_loose(i, rules, patterns)
     if (!res) {
       break

@@ -994,12 +994,11 @@ export function search(m: PositionManager, pos: PositionC, rules: string, pull_c
     return new Map(pull_columns.map(_ => [_, scheduler.get_continuations(_)]))
 }
 
-type Path = string
-function path_split(path: Path) {
-    let [name, ...rest] = path.split('.')
-    return [name, rest.join('.')]
+function fix_alias(line: string, aliases: Alias[]) {
+    return aliases.find(_ => _.alias[0] === line)?.column[0] ?? line
 }
 
-function fix_alias(line: string, aliases: Alias[]) {
-    return aliases.find(_ => _.alias === line)?.column ?? line
+type Path = [string, string]
+function path_split(p: Path) {
+    return p
 }
