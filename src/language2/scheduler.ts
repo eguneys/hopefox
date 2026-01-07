@@ -283,6 +283,8 @@ class RelationManager {
     }
 }
 
+type ConstraintVar = string
+type Value = number
 // M is a move-fact relation
 // line M c1 c2 c3
 // A prefix is a partially matched line.
@@ -290,6 +292,7 @@ type Prefix = {
     owner: IdeaJoin
     length: number
     bindings: RowId[]
+    env: Map<ConstraintVar, Value>
 }
 
 
@@ -305,7 +308,8 @@ function extend_prefix(prefix: Prefix, row_id: RowId, owner: IdeaJoin): Prefix {
     return {
         owner,
         length: prefix.length + 1,
-        bindings: [...prefix.bindings, row_id]
+        bindings: [...prefix.bindings, row_id],
+        env: prefix.env
     }
 }
 
@@ -330,9 +334,11 @@ class IdeaJoin {
         this.scheduler = scheduler
         this.initial_world_id = world_id
 
-        this.worklist = [{ owner: this, length: 0, bindings: [] }]
+        this.worklist = [{ owner: this, length: 0, bindings: [], env: new Map() }]
 
-        this.Ms = this.line.map(_ => this.scheduler.get_or_create_M(_))
+        this.Ms = this.line.map(_ => this.scheduler.get_or_create_M(fix_alias(_, this.spec.aliases)))
+
+        this.scheduler.get_or_create_M(this.spec.name)
     }
 
 
@@ -388,7 +394,6 @@ class IdeaJoin {
             return
         }
 
-        
         for (let row_id of M.get_row_ids_starting_at_world_id(next_world_id)) {
             let new_prefix = extend_prefix(prefix, row_id, this)
 
@@ -412,19 +417,35 @@ class IdeaJoin {
             let [name, rest] = path_split(m.path_a)
             let [name2, rest2] = path_split(m.path_b)
 
+            let a_step_index = this.spec.line.findIndex(_ => _ === name)
+            let b_step_index = this.spec.line.findIndex(_ => _ === name2)
 
-            let step_index = this.Ms.findIndex(_ => _.name === name)
-            let a = this.get_row(step_index, prefix.bindings[step_index]);
-            step_index = this.Ms.findIndex(_ => _.name === name2)
-            let b = this.get_row(step_index, prefix.bindings[step_index]);
+            if (!rest) {
+
+                let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
+
+                if (b === undefined) {
+                    return true
+                }
+
+                let a_var = prefix.env.get(name)
+
+                if (a_var === undefined) {
+                    prefix.env.set(name, b.get(rest2)!)
+                } else {
+                    cond &&= a_var === b.get(rest2)
+                }
+                continue
+            }
+
+            let a = this.get_row(a_step_index, prefix.bindings[a_step_index]);
+            let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
 
             if (a === undefined || b === undefined) {
                 return true
             }
 
             let ab_bindings = { [name]: a, [name2]: b }
-
-            let cond = true
 
             let x = ab_bindings[name].get(rest)
             let y
@@ -895,10 +916,8 @@ class FactJoin {
 }
 
 
-export function search(m: PositionManager, pos: PositionC, rules: string) {
+export function search(m: PositionManager, pos: PositionC, rules: string, pull_column: string) {
     let scheduler = new Scheduler(m, pos, rules)
-
-    let pull_column = 'blockable_checks'
 
     scheduler.request_idea(pull_column, 0)
     scheduler.run()
