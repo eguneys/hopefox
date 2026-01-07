@@ -3,8 +3,8 @@ import { squareSet } from "../debug"
 import { KING, move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../hopefox_c"
 import { NodeId, NodeManager } from "../language1/node_manager"
 import { Alias, Fact as FactAlias, Idea, is_matches_between, parse_program, Program } from "../language1/parser2"
-import { join, Relation, Row, select } from "../language1/relational"
-import { extract_lines } from "../language1/world"
+import { join, Relation, Row, select } from "./relational"
+import { extract_lines } from "./extract"
 import { SquareSet } from "../squareSet"
 
 class NoSuchColumn extends Error {

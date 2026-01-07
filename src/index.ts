@@ -90,13 +90,4 @@ export * from './mor_gen6'
 
 export * from './short/mor_short'
 
-
-
-export * from './features/node_tree'
-export * from './language1/relational'
-export * from './language1/parser2'
-export * from './language1/linker'
-export * from './language1/runner'
-export * from './language1/san_moves_helper'
-
 export * from './language2/scheduler'

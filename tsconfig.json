@@ -13,5 +13,5 @@
     "allowJs": true
   },
   "include": ["src"],
-  "exclude": ["src/old", "src/features/deprecated"]
+  "exclude": ["src/old", "src/features", "src/language1"]
 }

@@ -367,7 +367,8 @@ class Parser {
             let matches: Matches[] = []
 
             while (true) {
-                if (this.current_token.type === TokenType.Eof) {
+                let current_token = this.current_token
+                if (current_token.type === TokenType.Eof) {
                     break
                 }
                 matches.push(this.parse_match())
