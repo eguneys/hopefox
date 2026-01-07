@@ -73,7 +73,11 @@ class Scheduler {
     private m: PositionManager
     private pos: PositionC
 
+    nodes: NodeManager
+
     constructor(m: PositionManager, pos: PositionC, rules: string) {
+
+        this.nodes = new NodeManager()
 
         this.m = m
         this.pos = pos
@@ -125,6 +129,7 @@ class Scheduler {
 
         for (const prefix of waiting) {
             prefix.owner.worklist.push(prefix)
+            this.active_ideas.add(prefix.owner)
         }
 
         this.pending_prefixes.delete(fact.key)
@@ -180,9 +185,14 @@ class Scheduler {
     }
 
     request_fact_join(fact: Fact) {
+        let existing = this.facts.get(fact.key)
+        if (existing && existing.state === FactLifecycleState.MATERIALIZING) {
+            return
+        }
         fact.state = FactLifecycleState.MATERIALIZING
         let fact_join = new FactJoin(fact, this.m, this.pos, this.program, this)
 
+        this.facts.set(fact.key, fact)
         this.active_fact_joins.add(fact_join)
     }
 
@@ -365,9 +375,10 @@ class IdeaJoin {
         }
 
         const stepIndex = prefix.length
+        let M0 = this.Ms[stepIndex - 1]
         let M = this.Ms[stepIndex]
 
-        let next_world_id = prefix_required_last_world_id(M, prefix, this.initial_world_id)
+        let next_world_id = prefix_required_last_world_id(M0, prefix, this.initial_world_id)
 
         let needs_fact_key = hash_fact_key(M.name, next_world_id)
 
@@ -440,7 +451,6 @@ class MaterializeError extends Error {
 
 class FactJoin {
 
-    nodes: NodeManager
     m: PositionManager
     pos: PositionC
 
@@ -448,6 +458,10 @@ class FactJoin {
 
     get Rs() {
         return this.scheduler.RMs
+    }
+
+    get nodes() {
+        return this.scheduler.nodes
     }
 
     dependencies: Map<FactKey, FactJoin>
@@ -465,7 +479,6 @@ class FactJoin {
         this.pos = pos
         this.program = program
 
-        this.nodes = new NodeManager()
         this.dependencies = new Map()
 
         if (this.Rs.get(fact.column) === undefined) {
@@ -496,11 +509,11 @@ class FactJoin {
         let fact_join = this.dependencies.get(fact.key)
 
         if (!fact_join) {
-            this.scheduler.request_fact_join(fact)
             this.scheduler.suspend_fact_join_to_request_facts(this, fact.key)
+            this.scheduler.request_fact_join(fact)
             return undefined
         }
-        fact_join.Rs.get(fact.column)?.get_relation_starting_at_world_id(fact.world_id)
+        return fact_join.Rs.get(fact.column)?.get_relation_starting_at_world_id(fact.world_id)
     }
 
     step() {
