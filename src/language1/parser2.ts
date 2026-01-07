@@ -378,7 +378,6 @@ class Parser {
                 if (this.current_token.type === TokenType.Newline) {
                     break
                 }
-                console.log(this.current_token)
 
                 matches.push(this.parse_match())
 

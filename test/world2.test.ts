@@ -114,25 +114,18 @@ let patterns = [
     'checks_moves',
     'fork_and_capture',
     'double_capture_block',
-    'check_check_mate'
+    'check_check_mate',
+    'captures_moves'
   ]
 
+  if (single_out) {
+    console.log(solve_n(single_out[0], rules, single_out[1]))
+    return
+  }
 
-  let n
   if (n) {
     let fen = '4k3/1R6/6N1/5p1p/7P/6rK/5b2/8 w - - 0 48'// ?? puzzles[n].move_fens[0]
     let column = 'attacks'
-
-    let asdf = fen_pos(fen)
-
-    console.log(squareSet(asdf.board.occupied))
-    console.log(squareSet(attacks(asdf.board.get(22)!, 22, asdf.board.occupied)))
-
-    let p22 = m.create_position(fen)
-    console.log(squareSet(m.pos_occupied(p22)))
-    console.log(squareSet(m.attacks(m.get_at(p22, 22)!, 22, m.pos_occupied(p22))))
-    console.log(squareSet(m.pos_attacks(p22, 22)))
-
 
     let pos = m.create_position(fen)
     let res = search(m, pos, rules, [column])
@@ -142,7 +135,7 @@ let patterns = [
     return res2
   }
 
-  let skips = [...skips0, ...skips2]
+  let skips = [...skips0, ...skips2, ...skips3, ...skips4]
   for (let i = start_from; i < 100; i++) {
 
     if (skips.includes(i)) {
@@ -158,10 +151,16 @@ let patterns = [
   }
 })
 
+let single_out: any
 
+//single_out = [74, 'fork_and_capture']
+
+let n
+let skips4 = [70, 72, 74, 75, 80]
 let skips0 = [34, 39, 48, 54, 56, 60, 62, 65, 66, 67, 69]
-let skips2 = [0]
-let start_from = 73
+let skips2 = [83, 92]
+let skips3 = [84, 87, 94]
+let start_from = 0
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link
