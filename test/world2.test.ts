@@ -18,23 +18,73 @@ fact check
  .to = check0.to
  check0.piece = KING
 
-
 legal check_moves
+
+fact block
+ .from = attacks.from
+ .to = attacks.to
+ attacks.to between attacks2.from attacks2.to2
+
+ legal block_moves
+
+idea check_and_block
+  line check_moves block_moves
+
+
+
+idea check_and_double_block
+  line check_and_block check_and_block check_moves
+
+
+fact capture
+ .from = attacks.from
+ .to = attacks.to
+ attacks.to = occupies.square
+
+legal capture_moves
+
+
+idea check_sacrifice
+  line check_moves capture_moves
+
+
+idea check_sacrifice_second_check
+  line check_sacrifice check_moves
+
+
+idea evade
+ line moves
+
+
+legal evade_moves
+
+idea check_evade_check_sacrifice_second_check
+  line check_moves evade_moves check_sacrifice_second_check
+
 
 `
 
   let patterns = [
-    'check_moves'
+    'check_and_double_block',
+    'double_check',
+    'check_sacrifice_second_check',
+    'check_evade_check_sacrifice_second_check'
   ]
 
-  let start_from = 4
+  let start_from = 6
+
+  let passed = 0
+  let total = skips.length - start_from
   for (let j = start_from; j < skips.length; j++) {
     let i = skips[j]
     render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
     let res = minmax_solve_loose(i, rules, patterns)
     if (!res) {
-      console.log(puzzles[i].link)
+      console.log(j + ' : ' + puzzles[i].link)
+      console.log(`Passed: ${passed}/${total}`)
       break
+    } else {
+      passed++
     }
   }
 

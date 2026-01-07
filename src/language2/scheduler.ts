@@ -451,6 +451,11 @@ class IdeaJoin {
             this.scheduler.request_fact(M.name, next_world_id)
             return
         }
+
+        if (this.spec.name === 'check_evade_check_sacrifice_second_check') {
+            debugger
+        }
+
         for (let row_id of M.get_row_ids_starting_at_world_id(next_world_id)) {
             let new_prefix = extend_prefix(prefix, row_id, this)
             if (this.constraints_hold(new_prefix)) {
@@ -701,6 +706,12 @@ class FactJoin {
 
             return cond
                 ? (() => {
+                    if (l === 'evade_moves') {
+
+                        debugger
+                    }
+
+
                     const r = new Map()
                     r.set('start_world_id', fact.world_id)
                     r.set('end_world_id', b.get('end_world_id'))
