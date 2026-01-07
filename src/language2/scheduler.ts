@@ -462,6 +462,7 @@ class IdeaJoin {
 
         let cond = true
 
+        let local_env = new Map()
         for (let m of this.spec.matches) {
 
             if (is_matches_between(m)) {
@@ -484,10 +485,10 @@ class IdeaJoin {
                     return true
                 }
 
-                let a_var = prefix.env.get(name)
+                let a_var = local_env.get(name)
 
                 if (a_var === undefined) {
-                    prefix.env.set(name, b.get(rest2)!)
+                    local_env.set(name, b.get(rest2)!)
                 } else {
                     cond &&= a_var === b.get(rest2)
                 }
@@ -807,6 +808,13 @@ class FactJoin {
 
                     let cond = true
 
+
+                    if (this.fact.column === 'fork') {
+                        if (cond) {
+                            debugger
+                        }
+                    }
+
                     for (let m of p.matches) {
 
                         if (is_matches_between(m)) {
@@ -828,6 +836,10 @@ class FactJoin {
 
                         cond &&= m.is_different ? x !== y : x === y
                     }
+
+
+
+
 
                     return cond
                         ? (() => {

@@ -10,6 +10,14 @@ fact pressures
      .to = attacks.to
   attacks.to = occupies.square
 
+fact pressures2
+     .from = attacks2.from
+     .to = attacks2.to
+     .to2 = attacks2.to2
+  attacks2.to2 = occupies.square
+  attacks2.from != attacks2.to2
+
+
 fact checks0
      .from = attacks2.from
      .to = attacks2.to
@@ -66,6 +74,29 @@ idea check_to_lure_into_hanging_capture
   line blockable_checks captures_moves
   blockable_checks.block_to = captures_moves.to
 
+
+fact fork
+  alias p2 pressures2
+  .from = pressures2.from
+  .to = pressures2.to
+  .fork1 = pressures2.to2
+  .fork2 = p2.to2
+  pressures2.from = p2.from
+  pressures2.to = p2.to
+  pressures2.to2 != p2.to2
+
+fact evade_king
+  .from = attacks.from
+  .to = attacks.to
+  attacks.from = KING
+
+legal fork_moves
+
+idea fork_and_capture
+  line fork_moves evade_king captures_moves
+  fork_moves.fork1 = evade_king.from
+  fork_moves.fork2 = captures_moves.to
+
 `.trim()
 
 let patterns = [
@@ -73,12 +104,14 @@ let patterns = [
     'check_to_lure_into_hanging_capture',
     'double_captures',
     'checks_moves',
+    'fork_and_capture'
   ]
 
-  console.log(solve_n(5, rules, 'double_captures'))
+  console.log(solve_n(3, rules, 'fork_and_capture'))
   return
 
   for (let i = 0; i < 100; i++) {
+    render('' + i + ' ' + puzzles[i].link)
     let res = minmax_solve_loose(i, rules, patterns)
     if (!res) {
       break
@@ -95,6 +128,10 @@ function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let pos = m.create_position(fen)
   let res = search(m, pos, rules, columns)
 
+
+  let log_trace: any[] = []
+  const log = (...s: any) => log_trace.push(...s)
+
   let result = true
 
   for (let [column, moves] of res.entries()) {
@@ -103,16 +140,20 @@ function minmax_solve_loose(n: number, rules: string, columns: string[]) {
 
       let a = sans.find(_ => _.join(' ').startsWith(puzzles[n].sans.join(' ')))
       if (!a) {
-        console.log(n)
-        console.log(link)
-        console.log(puzzles[n].sans, '\nexpected but found\n', sans.slice(0, 3))
-        console.log(column)
+        log(n)
+        log(link)
+        log(puzzles[n].sans, 'expected but found', sans.slice(0, 3))
+        log(column)
         result = false
       } else {
         result = true
         break
       }
     }
+  }
+
+  if (!result) {
+    console.log(log_trace)
   }
 
   m.delete_position(pos)
