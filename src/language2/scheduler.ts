@@ -978,14 +978,13 @@ class FactJoin {
 }
 
 
-export function search(m: PositionManager, pos: PositionC, rules: string, pull_column: string = 'moves') {
+export function search(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
     let scheduler = new Scheduler(m, pos, rules)
 
-    scheduler.request_fact(pull_column, 0)
+    pull_columns.forEach(_ => scheduler.request_fact(_, 0))
     scheduler.run()
-    return scheduler.get_continuations(pull_column)
+    return new Map(pull_columns.map(_ => [_, scheduler.get_continuations(_)]))
 }
-
 
 type Path = string
 function path_split(path: Path) {
