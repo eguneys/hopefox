@@ -2,6 +2,87 @@ import { it } from 'vitest'
 import { attacks, fen_pos, flat_san_moves_c, PositionManager, san_moves, san_moves_c, search } from '../src'
 import { puzzles } from './fixture'
 
+let patterns_skips = [
+  'check_and_double_block',
+  'double_check',
+  'check_sacrifice_second_check',
+  'check_evade_check_sacrifice_second_check',
+  'captures_3',
+  //'double_check_evade_capture'
+]
+
+
+let patterns1 = [
+  'check_to_lure_into_double_capture',
+  'check_to_lure_into_hanging_capture',
+  'double_captures',
+  'checks_moves',
+  'fork_and_capture',
+  'double_capture_block',
+  'check_check_mate',
+  'captures_moves'
+]
+
+
+
+
+it.skip('0-1000 full mega', () => {
+
+  let rules = rules1 + '\n' + rules_only_skips
+
+  let patterns = [...patterns1, ...patterns_skips]
+
+  //let skips = [108, 109, 113, 120, 124, 125, 134]
+
+  //go_range_100(100, rules, patterns, skips)
+
+  let skips = find_skips(0, rules, patterns, 1000)
+
+  let done = 1000 - skips.length
+  console.log(skips)
+  console.log(`Done ${done}/1000 .`)
+
+})
+
+function find_skips(start_from: number, rules: string,  patterns: string[], end_from?: number) {
+  let skips = []
+  for (let i = start_from; i < (end_from ?? (start_from + 100)); i++) {
+    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
+    let res = minmax_solve_loose(i, rules, patterns)
+    if (!res) {
+      skips.push(i)
+      continue
+    }
+  }
+
+  return skips
+}
+
+function go_range_100(start_from: number, rules: string,  patterns: string[], skips30: number[]) {
+
+  let passed = 0
+  let total = 100
+  for (let i = start_from; i < start_from + 100; i++) {
+    if (skips30.includes(i)) {
+      continue
+    }
+    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
+    let res = minmax_solve_loose(i, rules, patterns)
+    if (!res) {
+      console.log(i + ' : ' + puzzles[i].link + ' <' + puzzles[i].sans.join(' ') + '>')
+      console.log(`Passed: ${passed}/${total}`)
+      break
+    } else {
+      passed++
+    }
+  }
+
+  console.log(`Done: ${passed}/${total}`)
+}
+
+
+
+
     let rules1 = `
 fact pressures
      .from = attacks.from
@@ -187,7 +268,7 @@ idea double_check_evade_capture
 
 
 
-it('full integration', () => {
+it.skip('full integration 0-100', () => {
 
   let rules = rules1 + '\n' + rules_only_skips
 

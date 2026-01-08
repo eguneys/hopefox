@@ -1,0 +1,21 @@
+1. Instrument the misses before extending the language
+
+Before adding more ideas, add diagnostics for skipped puzzles:
+
+Which facts existed but no idea matched?
+
+Which idea almost matched (failed constraints)?
+
+Which required fact was never materialized?
+
+Was depth insufficient, or was the idea absent?
+
+This will tell you whether you need:
+
+richer constraints
+
+deeper lines
+
+or entirely new idea families
+
+Do not guess — measure.
