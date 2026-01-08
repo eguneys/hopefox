@@ -2,100 +2,7 @@ import { it } from 'vitest'
 import { attacks, fen_pos, flat_san_moves_c, PositionManager, san_moves, san_moves_c, search } from '../src'
 import { puzzles } from './fixture'
 
-it('only skips', () => {
-
-  let rules = `
-fact check0
-  .from = attacks2.from
-  .to = attacks2.to
-  .piece = occupies.piece
-  attacks2.to2 = occupies.square
-  attacks2.to2 != attacks2.from
-  attacks2.color != occupies.color
-
-fact check
- .from = check0.from
- .to = check0.to
- check0.piece = KING
-
-legal check_moves
-
-fact block
- .from = attacks.from
- .to = attacks.to
- attacks.to between attacks2.from attacks2.to2
-
- legal block_moves
-
-idea check_and_block
-  line check_moves block_moves
-
-
-
-idea check_and_double_block
-  line check_and_block check_and_block check_moves
-
-
-fact capture
- .from = attacks.from
- .to = attacks.to
- attacks.to = occupies.square
-
-legal capture_moves
-
-
-idea check_sacrifice
-  line check_moves capture_moves
-
-
-idea check_sacrifice_second_check
-  line check_sacrifice check_moves
-
-
-idea evade
- line moves
-
-
-legal evade_moves
-
-idea check_evade_check_sacrifice_second_check
-  line check_moves evade_moves check_sacrifice_second_check
-
-
-idea captures_3
-  line capture_moves capture_moves capture_moves
-
-`
-
-  let patterns = [
-    'check_and_double_block',
-    'double_check',
-    'check_sacrifice_second_check',
-    'check_evade_check_sacrifice_second_check',
-    'captures_3'
-  ]
-
-  let start_from = 9
-
-  let passed = 0
-  let total = skips.length - start_from
-  for (let j = start_from; j < skips.length; j++) {
-    let i = skips[j]
-    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
-    let res = minmax_solve_loose(i, rules, patterns)
-    if (!res) {
-      console.log(j + ' : ' + puzzles[i].link)
-      console.log(`Passed: ${passed}/${total}`)
-      break
-    } else {
-      passed++
-    }
-  }
-
-})
-
-it.skip('solving', () => {
-    let rules = `
+    let rules1 = `
 fact pressures
      .from = attacks.from
      .to = attacks.to
@@ -196,7 +103,202 @@ idea double_capture_block
 idea check_check_mate
   line checks_moves king_evade_moves checks_moves
 
-`.trim()
+`
+
+
+
+  let rules_only_skips = `
+fact check0
+  .from = attacks2.from
+  .to = attacks2.to
+  .piece = occupies.piece
+  .to2 = attacks2.to2
+  attacks2.to2 = occupies.square
+  attacks2.to2 != attacks2.from
+  attacks2.color != occupies.color
+
+fact check
+ .from = check0.from
+ .to = check0.to
+ check0.piece = KING
+
+legal check_moves
+
+fact block
+ .from = attacks.from
+ .to = attacks.to
+ attacks.to between attacks2.from attacks2.to2
+
+ legal block_moves
+
+idea check_and_block
+  line check_moves block_moves
+
+
+
+idea check_and_double_block
+  line check_and_block check_and_block check_moves
+
+
+fact capture
+ .from = attacks.from
+ .to = attacks.to
+ attacks.to = occupies.square
+
+legal capture_moves
+
+
+idea check_sacrifice
+  line check_moves capture_moves
+
+
+idea check_sacrifice_second_check
+  line check_sacrifice check_moves
+
+
+idea evade
+ line moves
+
+
+legal evade_moves
+
+idea check_evade_check_sacrifice_second_check
+  line check_moves evade_moves check_sacrifice_second_check
+
+
+idea captures_3
+  line capture_moves capture_moves capture_moves
+
+
+fact double_attack
+  alias c2 check0
+  .from = c2.from
+  .to = c2.to
+  c2.from = check0.from
+  c2.to = check0.to
+  c2.to2 != check0.to2
+
+legal double_attack_moves
+
+idea double_check_evade_capture
+  line double_attack_moves evade_moves capture_moves
+`
+
+
+
+
+it('full integration', () => {
+
+  let rules = rules1 + '\n' + rules_only_skips
+
+  let patterns_skips = [
+    'check_and_double_block',
+    'double_check',
+    'check_sacrifice_second_check',
+    'check_evade_check_sacrifice_second_check',
+    'captures_3',
+    //'double_check_evade_capture'
+  ]
+
+
+let patterns1 = [
+    'check_to_lure_into_double_capture',
+    'check_to_lure_into_hanging_capture',
+    'double_captures',
+    'checks_moves',
+    'fork_and_capture',
+    'double_capture_block',
+    'check_check_mate',
+    'captures_moves'
+  ]
+
+
+  let skip_to_puzzle
+  skip_to_puzzle = 39
+
+  let single_out = ['captures_moves']
+  let patterns = [...patterns_skips, ...patterns1]
+
+  patterns = single_out !== undefined ? single_out : patterns
+
+  if (skip_to_puzzle !== undefined) {
+
+    let patterns = [
+    'fork_and_capture',
+    'captures_moves'
+    ]
+    console.log('only puzzle ', skip_to_puzzle)
+    let res = minmax_solve_loose(skip_to_puzzle, rules, patterns)
+    console.log(res)
+    return
+  }
+
+  let start_from = 38
+  let passed = 0
+  let total = 100
+  for (let i = start_from; i < 100; i++) {
+    if (skips30.includes(i)) {
+      continue
+    }
+    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
+    let res = minmax_solve_loose(i, rules, patterns)
+    if (!res) {
+      console.log(i + ' : ' + puzzles[i].link)
+      console.log(`Passed: ${passed}/${total}`)
+      break
+    } else {
+      passed++
+    }
+  }
+
+  console.log('Done ', passed)
+})
+
+
+
+it.skip('only skips', () => {
+  let start_from = 0
+  let single_out
+
+
+  let rules = rules_only_skips
+
+  let patterns = [
+    'check_and_double_block',
+    'double_check',
+    'check_sacrifice_second_check',
+    'check_evade_check_sacrifice_second_check',
+    'captures_3',
+    'double_check_evade_capture'
+  ]
+
+  patterns = single_out !== undefined ? single_out : patterns
+
+
+  let passed = 0
+  let total = skips.length - start_from
+  for (let j = start_from; j < skips.length; j++) {
+    if (skips30.includes(j)) {
+      continue
+    }
+    let i = skips[j]
+    render('' + i + ' ' + puzzles[i].link + ' ' + puzzles[i].move_fens[0])
+    let res = minmax_solve_loose(i, rules, patterns)
+    if (!res) {
+      console.log(j + ' : ' + puzzles[i].link)
+      console.log(`Passed: ${passed}/${total}`)
+      break
+    } else {
+      passed++
+    }
+  }
+})
+
+
+
+it.skip('solving', () => {
+
+  let rules = rules1
 
 let patterns = [
     'check_to_lure_into_double_capture',
@@ -254,6 +356,18 @@ let start_from = 0
 
 
   let skips = [...skips0, ...skips2, ...skips3, ...skips4]
+
+
+
+let comp_skips = [0]
+let pawn_skips = [2, 8, 11, 12, 13]
+let skewer_skips = [19, 20]
+
+
+
+let skips30 = [...comp_skips, ...pawn_skips, ...skewer_skips].map(_ => skips[_])
+
+
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link

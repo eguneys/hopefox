@@ -231,6 +231,16 @@ class Scheduler {
             || this.active_fact_joins.size > 0
         ) {
 
+            let aa 
+            let res = []
+            for (let [key, value] of this.RMs) {
+                //res.push(`${key} : ${value.base.rows.length}`)
+                if (value.base.rows.length > 10000) {
+                    //aa = extract_lines(value.base)
+                    //value.dedup()
+                }
+            }
+
             if (this.fact_queue.length > 0) {
                 let fact = this.fact_queue.shift()!
                 if (fact.state === FactLifecycleState.UNREQUESTED) {
@@ -250,6 +260,7 @@ class Scheduler {
 
 }
 
+type RowKey = number
 type RowId = number
 
 class RelationManager {
@@ -257,16 +268,39 @@ class RelationManager {
     name: string
     private index_start_world: Map<WorldId, RowId[]>
 
+    private key_index: Map<RowKey, RowId>
+
     constructor(name: string) {
         this.base = { rows: [] }
         this.name = name
         this.index_start_world = new Map()
+        this.key_index = new Map()
+    }
+
+    compute_key(row: Row) {
+        let res = 1
+
+        for (let [key, value] of row) {
+            res += (value + 1)
+            res *= (value + 1)
+            res += (Math.sin(value) + 1 + Math.sin(value + 1))
+        }
+        res = Math.floor(res)
+        return res
     }
 
     add_rows(world_id: WorldId, rows: Row[]) {
         for (const row of rows) {
+            const key = this.compute_key(row)
+
+            if (this.key_index.has(key)) {
+                continue
+            }
+
             const row_id = this.base.rows.length
             this.base.rows.push(row)
+
+            this.key_index.set(key, row_id)
 
             if (!this.index_start_world.has(world_id)) {
                 this.index_start_world.set(world_id, [])
@@ -276,8 +310,18 @@ class RelationManager {
     }
 
     add_row(row: Row) {
+
+        const key = this.compute_key(row)
+
+        if (this.key_index.has(key)) {
+            return
+        }
+
+
         let row_id = this.base.rows.length
         this.base.rows.push(row)
+
+        this.key_index.set(key, row_id)
 
         const w = row.get('start_world_id')!
         if (w !== undefined) {
@@ -452,10 +496,6 @@ class IdeaJoin {
             return
         }
 
-        if (this.spec.name === 'check_evade_check_sacrifice_second_check') {
-            debugger
-        }
-
         for (let row_id of M.get_row_ids_starting_at_world_id(next_world_id)) {
             let new_prefix = extend_prefix(prefix, row_id, this)
             if (this.constraints_hold(new_prefix)) {
@@ -512,10 +552,6 @@ class IdeaJoin {
             //let ab_bindings = { [name]: a, [name2]: b }
             let ab_bindings_a = a
             let ab_bindings_b = b
-
-            if (this.spec.name === 'check_to_lure_into_double_capture') {
-                debugger
-            }
 
             //let x = ab_bindings[name].get(rest)
             let x = ab_bindings_a.get(rest)
@@ -706,11 +742,6 @@ class FactJoin {
 
             return cond
                 ? (() => {
-                    if (l === 'evade_moves') {
-
-                        debugger
-                    }
-
 
                     const r = new Map()
                     r.set('start_world_id', fact.world_id)
