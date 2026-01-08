@@ -214,9 +214,9 @@ let patterns1 = [
 
 
   let skip_to_puzzle
-  skip_to_puzzle = 39
+  //skip_to_puzzle = 69
 
-  let single_out = ['captures_moves']
+  let single_out
   let patterns = [...patterns_skips, ...patterns1]
 
   patterns = single_out !== undefined ? single_out : patterns
@@ -225,7 +225,6 @@ let patterns1 = [
 
     let patterns = [
     'fork_and_capture',
-    'captures_moves'
     ]
     console.log('only puzzle ', skip_to_puzzle)
     let res = minmax_solve_loose(skip_to_puzzle, rules, patterns)
@@ -233,7 +232,7 @@ let patterns1 = [
     return
   }
 
-  let start_from = 38
+  let start_from = 0
   let passed = 0
   let total = 100
   for (let i = start_from; i < 100; i++) {
@@ -367,6 +366,9 @@ let skewer_skips = [19, 20]
 
 let skips30 = [...comp_skips, ...pawn_skips, ...skewer_skips].map(_ => skips[_])
 
+let pawn_skips_33 = [39, 93]
+let block_check_skips_33 = [69]
+skips30 = [...skips30, ...pawn_skips_33, ...block_check_skips_33]
 
 
 function minmax_solve_loose(n: number, rules: string, columns: string[]) {

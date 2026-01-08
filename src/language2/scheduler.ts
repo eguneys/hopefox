@@ -104,7 +104,7 @@ class Scheduler {
         if (!rs) {
             throw new NoSuchColumn(column)
         }
-        return extract_lines(rs.base)
+        return extract_lines(rs.get_relation_starting_at_world_id(0))
     }
 
     get_or_create_M(column: Column) {
