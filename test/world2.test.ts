@@ -23,7 +23,47 @@ let patterns1 = [
   'captures_moves'
 ]
 
+it.skip('cover 500-600', () => {
+  let skips = [
+    501, 502, 504, 506, 507, 508, 509, 510, 512,
+    513, 514, 516, 517, 519, 521, 522, 524, 528,
+    529, 534, 535, 537, 538, 539, 540, 541, 542,
+    544, 546, 547, 549, 554, 555, 556, 557, 558,
+    559, 560, 561, 562, 565, 568, 570, 571, 573,
+    574, 575, 576, 577, 578, 580, 581, 583, 584,
+    585, 587, 588, 590, 591, 593, 594, 595, 596,
+    597, 598, 599
+  ]
 
+  console.log(skips.map(_ => puzzles[_].link))
+  return
+
+  let rules = rules1 + '\n' + rules_only_skips
+
+  let patterns = [...patterns1, ...patterns_skips]
+
+  let done = 0
+
+  for (let i of skips) {
+
+    let res = minmax_solve_loose(i, rules, patterns)
+    console.log(res)
+    if (!res) {
+      break
+    }
+  }
+})
+
+
+it.skip('500-600', () => {
+  let rules = rules1 + '\n' + rules_only_skips
+
+  let patterns = [...patterns1, ...patterns_skips]
+
+  let skips = find_skips(500, rules, patterns, 600)
+
+  console.log(skips)
+})
 
 
 it.skip('0-1000 full mega', () => {

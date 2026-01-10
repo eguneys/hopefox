@@ -1,12 +1,12 @@
-import HM from '../wasm/hopefox.js'
+import HM from '../../wasm/hopefox.js'
 import { Chess, Position } from './chess.js'
 import { parseCastlingFen, parseFen } from './fen.js'
 import { fen_pos } from './hopefox.js'
-import { FEN } from './mor3_hope1.js'
 import { makeSan } from './san.js'
 import { SquareSet } from './squareSet.js'
 import { Color, Move, Piece, Role, Square } from './types.js'
 
+type FEN = string
 
 export type PositionC = number
 export type MoveC = number

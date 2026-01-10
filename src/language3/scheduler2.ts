@@ -1,11 +1,16 @@
-import { between } from "../distill/attacks"
-import { squareSet } from "../distill/debug"
-import { KING, move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c"
-import { NodeId, NodeManager } from "../language1/node_manager"
-import { Alias, Fact as FactAlias, Idea, is_matches_between, parse_program, Program } from "../language1/parser2"
-import { join, Relation, Row, select } from "./relational"
-import { extract_lines } from "./extract"
-import { SquareSet } from "../distill/squareSet"
+'rook skewers queen and bishop'
+
+import { move_c_to_Move, piece_c_color_of, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c";
+import { SquareSet } from "../distill/squareSet";
+import { NodeId, NodeManager } from "../language1/node_manager";
+import { extract_lines } from "../language2/extract";
+import { join, Row, select, semiJoin } from "../language2/relational";
+import { RelationManager, RowId } from "../language2/scheduler";
+import {  Line, Lines, parse_program2, Program, Skewers } from "./parser";
+
+type WorldId = NodeId
+
+type Column = string
 
 class NoSuchColumn extends Error {
     constructor(name: Column) {
@@ -20,9 +25,6 @@ enum FactLifecycleState {
     COMPLETE
 }
 
-type WorldId = NodeId
-
-type Column = string
 
 type Fact = {
     key: FactKey
@@ -59,6 +61,7 @@ function make_fact_with_key(column: Column, world_id: WorldId) {
     }
 }
 
+
 class Scheduler {
 
     active_ideas: Set<IdeaJoin>
@@ -70,12 +73,12 @@ class Scheduler {
     active_fact_joins: Set<FactJoin>
     private pending_fact_joins: Map<FactKey, Set<FactJoin>>
 
-    private program: Program
-
     private m: PositionManager
     private pos: PositionC
 
     nodes: NodeManager
+
+    program: Program
 
     constructor(m: PositionManager, pos: PositionC, rules: string) {
 
@@ -92,9 +95,9 @@ class Scheduler {
         this.active_fact_joins = new Set()
         this.pending_fact_joins = new Map()
 
-        this.program = parse_program(rules)
-
         this.RMs = new Map()
+
+        this.program = parse_program2(rules)
     }
 
     RMs: Map<Column, RelationManager>
@@ -189,6 +192,7 @@ class Scheduler {
     }
 
     request_idea_join(fact: Fact) {
+        /*
         let idea_spec = this.program.ideas.get(fact.column)
 
         if (!idea_spec) {
@@ -211,6 +215,7 @@ class Scheduler {
 
         this.facts.set(fact.key, fact)
         this.active_ideas.add(idea)
+        */
     }
 
 
@@ -260,91 +265,6 @@ class Scheduler {
 
 }
 
-export type RowKey = number
-export type RowId = number
-
-export class RelationManager {
-    base: Relation
-    name: string
-    private index_start_world: Map<WorldId, RowId[]>
-
-    private key_index: Map<RowKey, RowId>
-
-    constructor(name: string) {
-        this.base = { rows: [] }
-        this.name = name
-        this.index_start_world = new Map()
-        this.key_index = new Map()
-    }
-
-    compute_key(row: Row) {
-        let res = 1
-
-        for (let [key, value] of row) {
-            res += (value + 1)
-            res *= (value + 1)
-            res += (Math.sin(value) + 1 + Math.sin(value + 1))
-        }
-        res = Math.floor(res)
-        return res
-    }
-
-    add_rows(world_id: WorldId, rows: Row[]) {
-        for (const row of rows) {
-            const key = this.compute_key(row)
-
-            if (this.key_index.has(key)) {
-                continue
-            }
-
-            const row_id = this.base.rows.length
-            this.base.rows.push(row)
-
-            this.key_index.set(key, row_id)
-
-            if (!this.index_start_world.has(world_id)) {
-                this.index_start_world.set(world_id, [])
-            }
-            this.index_start_world.get(world_id)!.push(row_id)
-        }
-    }
-
-    add_row(row: Row) {
-
-        const key = this.compute_key(row)
-
-        if (this.key_index.has(key)) {
-            return
-        }
-
-
-        let row_id = this.base.rows.length
-        this.base.rows.push(row)
-
-        this.key_index.set(key, row_id)
-
-        const w = row.get('start_world_id')!
-        if (w !== undefined) {
-            let list = this.index_start_world.get(w)
-            if (!list) {
-                this.index_start_world.set(w, [row_id])
-            } else {
-                list.push(row_id)
-            }
-        }
-    }
-
-    get_relation_starting_at_world_id(world_id: WorldId): Relation {
-        return { rows: this.get_row_ids_starting_at_world_id(world_id).map(row_id => this.base.rows[row_id]) }
-    }
-
-    get_row_ids_starting_at_world_id(world_id: WorldId): RowId[] {
-        return this.index_start_world.get(world_id) ?? []
-    }
-    get_row(row_id: RowId) {
-        return this.base.rows[row_id]
-    }
-}
 
 type ConstraintVar = string
 type Value = number
@@ -382,32 +302,26 @@ class IdeaJoin {
     private scheduler: Scheduler
     worklist: Prefix[]
 
-    spec: Idea
-
     private waiting_on_facts: number
-
-
-    private get line() {
-        return this.spec.line
-    }
 
     private Ms: RelationManager[]
 
     fact: Fact
 
-    constructor(fact: Fact, spec: Idea, scheduler: Scheduler) {
+    line: []
+
+    constructor(fact: Fact, scheduler: Scheduler) {
 
         this.fact = fact
         this.waiting_on_facts = 0
 
-        this.spec = spec
         this.scheduler = scheduler
 
         this.worklist = [{ owner: this, length: 0, bindings: [], env: new Map() }]
 
-        this.Ms = this.line.map(_ => this.scheduler.get_or_create_M(fix_alias(_, this.spec.aliases)))
+        //this.Ms = this.line.map(_ => this.scheduler.get_or_create_M(fix_alias(_, this.spec.aliases)))
 
-        this.scheduler.get_or_create_M(this.spec.name)
+        //this.scheduler.get_or_create_M(this.spec.name)
     }
 
 
@@ -442,6 +356,7 @@ class IdeaJoin {
             }
         }
 
+        /*
         for (let ass of this.spec.assigns) {
             let [key] = Object.keys(ass)
             let [r_rel, r_path] = path_split(ass[key])
@@ -452,6 +367,7 @@ class IdeaJoin {
         }
 
         this.scheduler.get_or_create_M(this.spec.name)?.add_row(row)
+        */
     }
 
     notify_resume_idea() {
@@ -500,72 +416,7 @@ class IdeaJoin {
 
 
     constraints_hold(prefix: Prefix) {
-
-        let cond = true
-
-        let local_env = new Map()
-        for (let m of this.spec.matches) {
-
-            if (is_matches_between(m)) {
-                return false
-            }
-
-            let [name, rest] = path_split(m.path_a)
-            let [name2, rest2] = path_split(m.path_b)
-
-            let a_step_index = this.spec.line.findIndex(_ => _ === name)
-            let b_step_index = this.spec.line.findIndex(_ => _ === name2)
-
-
-
-            if (!rest) {
-
-                let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
-
-                if (b === undefined) {
-                    return true
-                }
-
-                let a_var = local_env.get(name)
-
-                if (a_var === undefined) {
-                    local_env.set(name, b.get(rest2)!)
-                } else {
-                    cond &&= a_var === b.get(rest2)
-                }
-                continue
-            }
-
-            let a = this.get_row(a_step_index, prefix.bindings[a_step_index]);
-            let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
-
-            if (a === undefined || b === undefined) {
-                return true
-            }
-
-            //let ab_bindings = { [name]: a, [name2]: b }
-            let ab_bindings_a = a
-            let ab_bindings_b = b
-
-            //let x = ab_bindings[name].get(rest)
-            let x = ab_bindings_a.get(rest)
-            let y
-
-            if (!rest2) {
-                let turn = 0
-                y = turn
-            } else {
-                //y = ab_bindings[name2].get(rest2)
-                y = ab_bindings_b.get(rest2)
-            }
-
-            cond &&= m.is_different ? x !== y : x === y
-            if (!cond) {
-                return false
-            }
-        }
-
-        return cond
+        return true
     }
 }
 
@@ -668,6 +519,11 @@ class FactJoin {
                 ok = this.materialize_attacks2(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
+            case 'attack_throughs':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_attacks_throughs(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
             default: {
                 ok = this.join_with_program(fact)
             }
@@ -681,34 +537,17 @@ class FactJoin {
         this.scheduler.complete_fact(this.fact)
     }
 
-
     join_with_program(fact: Fact) {
-        let p = this.program.facts.get(fact.column)
+        let line = this.program[0][0]
 
-        let ok = true
-
-        if (p) {
-            ok = this.join_fact_with_p(fact, p)
+        if (line.type === 'skewers') {
+            return this.join_with_skewers(fact, line)
         }
-        if (!ok) {
-            return false
-        }
-
-        let l = this.program.legals.find(_ => _ === fact.column)
-
-        if (l) {
-            ok = this.join_legal_with_p(fact, l)
-        }
-        if (!ok) {
-            return false
-        }
-
-        return true
     }
 
-    join_legal_with_p(fact: Fact, l: Column) {
-
-        let name = l.replace('_moves', '')
+    //'rook skewers queen and bishop'
+    join_with_skewers(fact: Fact, line: Skewers) {
+        let name = 'attack_throughs'
         let name2 = 'moves'
 
         let w_name = this.worklist_check_fact(make_fact_with_key(name, fact.world_id))
@@ -722,198 +561,46 @@ class FactJoin {
 
         let relation = join(w_name, w_name2, (a, b) => {
 
-            //let ab_bindings = { [name]: a, [name2]: b }
-            let ab_bindings_a = a
-            let ab_bindings_b = b
-
-            /*
-            let cond = ab_bindings[name].get('from') === ab_bindings[name2].get('from')
-                && ab_bindings[name].get('to') === ab_bindings[name2].get('to')
-                */
-
-            let cond = ab_bindings_a.get('from') === ab_bindings_b.get('from')
-                && ab_bindings_a.get('to') === ab_bindings_b.get('to')
-
-            return cond
-                ? (() => {
-
-                    const r = new Map()
-                    r.set('start_world_id', fact.world_id)
-                    r.set('end_world_id', b.get('end_world_id'))
-                    for (let [key, value] of ab_bindings_a) {
-                        r.set(key, value)
-                    }
-                    return r
-                })() : null
         })
 
-        this.add_rows(fact.column, fact.world_id, relation.rows)
-        return true
     }
 
+    materialize_attacks_throughs(world_id: WorldId) {
 
-    join_fact_between_p(fact: Fact, p: FactAlias) {
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
 
-        let relation
+            if (piece) {
 
-        let m = p.matches[0]
+                let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
 
-        {
-            if (!is_matches_between(m)) {
-                return false
-            }
+                for (let a of aa) {
 
+                    let piece2 = this.m.get_at(this.pos, a)
 
-            let [name, rest] = path_split(m.path_a)
-            let [name2, rest2] = path_split(m.path_b)
-            let [name3, rest3] = path_split(m.path_c)
+                    if (piece2) {
 
-            let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
-            if (w_name === undefined) {
-                return false
-            }
-            let w_name2 = this.worklist_check_fact(make_fact_with_key(fix_alias(name2, p.aliases), fact.world_id))
-            if (w_name2 === undefined) {
-                return false
-            }
+                        let aa2 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(on))
+                        let aa3 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(on).without(a))
 
-            relation = join(w_name, w_name2, (a, b) => {
+                        let aa4 = aa3.diff(aa2)
 
-                //let ab_bindings = { [name]: a, [name2]: b }
-                let ab_bindings_a = a
-                let ab_bindings_b = b
-
-                let cond = true
-
-                for (let m of p.matches) {
-
-                    if (!is_matches_between(m)) {
-                        continue
-                    }
-
-                    let [name, rest] = path_split(m.path_a)
-                    let [name2, rest2] = path_split(m.path_b)
-                    let [name3, rest3] = path_split(m.path_c)
-
-                    let ab_bindings_c = name3 === name ? ab_bindings_a : ab_bindings_b
-
-                    let x = ab_bindings_a.get(rest)!
-                    let y = ab_bindings_b.get(rest2)!
-                    let z = ab_bindings_c.get(rest3)!
-
-                    cond &&= between(y, z).has(x)
-                }
-
-                return cond
-                    ? (() => {
-                        const r = new Map()
-                        r.set('start_world_id', fact.world_id)
-                        for (let ass of p.assigns) {
-                            let [key] = Object.keys(ass)
-                            let [r_rel, r_path] = path_split(ass[key])
-                            let ab_bindings_r_rel = r_rel === name ? ab_bindings_a : ab_bindings_b
-                            r.set(
-                                `${key}`,
-                                ab_bindings_r_rel.get(`${r_path}`))
-                        }
-
-                        return r
-                    })() : null
-            })
-        }
-
-        this.add_rows(fact.column, fact.world_id, relation.rows)
-        return true
-    }
-
-    join_fact_with_p(fact: Fact, p: FactAlias) {
-
-        let relation
-
-        let m = p.matches[0]
-
-        {
-            if (is_matches_between(m)) {
-                return this.join_fact_between_p(fact, p)
-            }
-
-            let [name, rest] = path_split(m.path_a)
-            let [name2, rest2] = path_split(m.path_b)
-
-            if (name2 === 'KING') {
-                let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
-                if (w_name === undefined) {
-                    return false
-                }
-                relation = select(w_name, a => a.get(rest) === KING)
-            } else {
-                let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
-                if (w_name === undefined) {
-                    return false
-                }
-                let w_name2 = this.worklist_check_fact(make_fact_with_key(fix_alias(name2, p.aliases), fact.world_id))
-                if (w_name2 === undefined) {
-                    return false
-                }
-                relation = join(w_name, w_name2, (a, b) => {
-
-                    //let ab_bindings = { [name]: a, [name2]: b }
-
-                    let cond = true
-
-                    for (let m of p.matches) {
-
-                        if (is_matches_between(m)) {
-                            continue
-                        }
-
-                        let [b_name, rest] = path_split(m.path_a)
-                        let [b_name2, rest2] = path_split(m.path_b)
-
-                        let ab_bindings_a = b_name === name ? a : b
-                        let ab_bindings_b = b_name2 === name ? a : b
-
-                        let x = ab_bindings_a.get(rest)
-                        let y
-
-
-                        if (name2 === 'KING') {
-                            y = KING
-                        } else if (!rest2) {
-                            let turn = 0
-                            y = turn
-                        } else {
-                            y = ab_bindings_b.get(rest2)
-                        }
-
-                        cond &&= m.is_different ? x !== y : x === y
-                        if (!cond) {
-                            break
+                        for (let a2 of aa4) {
+                            this.add_row('attacks_throughs', new Map([
+                                ['start_world_id', world_id],
+                                ['from', on],
+                                ['to', a2],
+                                ['block', a]
+                            ]))
                         }
                     }
-
-                    return cond
-                        ? (() => {
-                            const r = new Map()
-                            r.set('start_world_id', fact.world_id)
-                            for (let ass of p.assigns) {
-                                let [key] = Object.keys(ass)
-                                let [r_rel, r_path] = path_split(ass[key])
-                                let ab_bindings_r_rel = r_rel === name ? a : b
-                                r.set(
-                                    `${key}`,
-                                    ab_bindings_r_rel.get(`${r_path}`))
-                            }
-
-                            return r
-                        })() : null
-                })
+                }
             }
         }
 
-        this.add_rows(fact.column, fact.world_id, relation.rows)
         return true
     }
+
 
     materialize_attacks2(world_id: WorldId) {
 
@@ -1043,7 +730,7 @@ class FactJoin {
 }
 
 
-export function search(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
+export function search3(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
     let scheduler = new Scheduler(m, pos, rules)
 
     pull_columns.forEach(_ => scheduler.request_fact(_, 0))
@@ -1051,11 +738,3 @@ export function search(m: PositionManager, pos: PositionC, rules: string, pull_c
     return new Map(pull_columns.map(_ => [_, scheduler.get_continuations(_)]))
 }
 
-function fix_alias(line: string, aliases: Alias[]) {
-    return aliases.find(_ => _.alias[0] === line)?.column[0] ?? line
-}
-
-type Path = [string, string]
-function path_split(p: Path) {
-    return p
-}

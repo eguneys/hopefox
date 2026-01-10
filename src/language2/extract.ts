@@ -1,4 +1,4 @@
-import { make_move_from_to, MoveC } from "../hopefox_c"
+import { make_move_from_to, MoveC } from "../distill/hopefox_c"
 import { Relation } from "./relational"
 
 export function extract_lines(moves: Relation) {

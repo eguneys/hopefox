@@ -1,0 +1,24 @@
+X captures Y _with_check_
+X captures Y _to_lure_X_into_a_pin
+X captures Y _with_uncapturable_zone_check_with_ X _support
+X captures Y _with_an_inbetween_check_resource _and_ discovers_attack_on_Z
+X recaptures Y
+X recaptures and _walks_into_a_discovered_check
+X forks Y and Z
+X escapes _with_check_ _protected_by_ C
+X skewers Y and Z
+X escapes skewer
+X defends Y
+X _defends_ zone_mate_threat _but_hangs_the_ Y
+X attacks Y _and_supports_X_to _bring_fork_on_X_and_Y
+check_with X
+X blocks_check
+X checks_in_between and _captures_a_ Z
+X discovers_check _and_ attacks Z
+X sacrifice_with_a_zone_check _and_ _forks_ X and Y
+sacrifice_X _with_check_
+            _to_deflect_king_from_defending_queen
+X sacrifice _and _fork_
+X deflects_to_hang_the Y
+skewer X and _loose_ Y _defended_by_ Z
+X checks_in_between _and_ captures_a Z

@@ -1,0 +1,32 @@
+### 1
+
+rook_skewers_queen_and_bishop queen_escapes_skewer rook_captures_bishop_to_lure_queen_into_a_pin queen_recaptures bishop_pins_queen_to_king
+queen_captures_bishop queen_recaptures
+
+
+rook skewers queen and bishop
+queen escapes skewer
+rook captures bishop
+queen recaptures
+bishop pins queen to king
+queen captures bishop
+queen recaptures
+
+
+### 2
+
+check_with_rook
+queen_blocks_check
+sacrifice_rook_with_check_to_deflect_king_from_defending_queen
+king_deflects_to_hang_the_queen
+queen_captures_hanging_queen
+
+
+check with rook
+queen blocks check
+sacrifice rook with check to deflect king from defending queen
+king deflects to hang the queen
+queen captures hanging queen
+
+
+###

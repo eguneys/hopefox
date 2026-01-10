@@ -1,0 +1,33 @@
+X = piece
+X and Y = piece[]
+hanging X = piece with zero defenders
+loose X = piece with a defender and an attacker
+
+with_check = checks king
+protected_by C = defended by C
+with_a_zone_check = checks king in the king zone
+sacrifice = hang
+
+
+
+rook skewers queen and bishop
+queen escapes skewer
+rook captures bishop
+queen recaptures
+bishop pins queen to king
+queen captures bishop
+queen recaptures
+
+X skewers Y and Z
+A pins B to C
+X escapes S
+X captures Y
+X recaptures
+
+
+
+
+
+
+
+

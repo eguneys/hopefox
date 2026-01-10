@@ -1,7 +1,7 @@
-import { Position } from "../chess"
-import { move_c_to_Move, MoveC, PositionC, PositionManager } from "../hopefox_c"
-import { makeSan } from "../san"
-import { Move } from "../types"
+import { Position } from "../distill/chess"
+import { move_c_to_Move, MoveC, PositionC, PositionManager } from "../distill/hopefox_c"
+import { makeSan } from "../distill/san"
+import { Move } from "../distill/types"
 
 type SAN = string
 

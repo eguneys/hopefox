@@ -1,0 +1,66 @@
+Hello I am designing a language for describing chess tactics. In it's final form it looks like this:
+
+a_captures b_captures a_captures_with_check recaptures_a recaptures_b
+
+x_forks_a_b a_escapes_with_check_protected_by_c q_captures_a c_recaptures x_captures_b
+
+so the actions and variables are embedded with underscores and spaces into each other.
+but maybe a and b might be replaced with piece roles like this:
+
+
+rook_skewers_queen_and_bishop queen_escapes_skewer rook_captures_bishop_to_lure_queen_into_a_pin queen_recaptures bishop_pins_queen_to_king
+queen_captures_bishop queen_recaptures
+
+
+or this sequence
+
+
+bishop_skewers_queen_and_hanging_rook queen_captures_bishop queen_recaptures
+
+
+or longer
+
+
+queen_captures_rook_with_uncapturable_zone_check_with_knight_support king_escapes
+knight_forks_queen_and_supports_zone_mate_threat_with_queen
+queen_defends_zone_mate_threat_but_hangs_the_knight
+queen_captures_hanging_knight
+
+
+and I have a lot more like this:
+
+
+queen_forks_hanging_bishop_and_king_exposition_threat
+queen_defends_king_exposition
+queen_captures_bishop
+
+
+check_with_rook king_evade check_with_queen queen_blocks_check
+sacrifice_rook_with_check_to_deflect_king_from_defending_queen
+king_deflects_and_hangs_the_queen
+queen_captures_hanging_queen
+
+
+skewer_hanging_bishop_and_loose_knight_defended_by_queen
+queen_defends_bishop_but_hangs_the_knight
+capture_hanging_knight
+
+
+bishop_attacks_queen_and_supports_knight_to_bring_fork_on_king_and_rook
+captures_knight
+bishop_captures_queen
+
+
+rook_captures_bishop_with_an_inbetween_check_resource_and_discovers_attack_on_hanging_queen
+queen_captures_queen
+rook_checks_in_between_and_captures_a_rook
+captures_rook
+captures_queen
+
+bishop_sacrifice_with_a_zone_check_and_forks_king_and_rook
+king_recaptures_and_walks_into_a_discovered_check
+knight_discovers_check_and_attacks_queen
+
+
+
+do you think this is feasible, precise, flexible or limited in certain ways?

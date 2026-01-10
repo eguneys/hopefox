@@ -1,0 +1,49 @@
+a_ captures _b _with_check_
+a_ recaptures _b
+
+a_ forks b_and_c
+
+a_ escapes _with_check_ _protected_by_c
+
+rook _skewers_ queen_and_bishop
+
+queen _escapes_ skewer
+
+rook _captures_ bishop _to_lure_X_into_a_pin
+
+X_skewers_Y_and_Z
+
+X _captures_ Y _with_uncapturable_zone_check_with_X_support
+
+X _defends_ zone_mate_threat _but_hangs_the_ Y
+
+X _forks_ Z _and_ _king_exposition_threat_
+
+X _defends_ Y
+
+check _with_ X
+X _blocks_check
+
+sacrifice_X _with_check_ _to_deflect_king_from_defending_queen
+
+king_deflects_to_hang_the_queen
+
+skewer X and _looose_ Y _defended_by_ Z
+
+X _defends Y _but_hangs_the_ Z
+
+
+X _attacks_ Y _and_ supports_X_to_bring_fork_on_X_and_Y
+
+X_captures_Y _with_an_inbetween_check_resource_
+             _and_discovers_attack_on_Z
+
+X_checks_in_between _and_ _captures_a_Z
+
+X _sacrifice_with_a_zone_check_ _and_ _forks_X_and_Y
+
+X _recaptures_ _and_ _walks_into_a_discovered_check
+
+X _discovers_check_and_attacks_queen
+
+X _sacrifice_and _fork_

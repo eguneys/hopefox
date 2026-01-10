@@ -1,0 +1,12 @@
+rook skewers queen and bishop
+queen escapes skewer
+rook captures bishop
+queen recaptures
+bishop pins queen to king
+queen captures bishop
+queen recaptures
+
+
+
+fact skewers
+ attacks_through.

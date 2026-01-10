@@ -1,0 +1,21 @@
+I've decided on some format like this:
+
+rook skewers queen and bishop
+queen escapes skewer
+rook captures bishop
+queen recaptures
+bishop pins queen to king
+queen captures bishop
+queen recaptures
+
+
+and another this:
+
+check with rook
+queen blocks check
+sacrifice rook with check to deflect king from defending queen
+king deflects to hang the queen
+queen captures hanging queen
+
+So these rook queen bishop definitions are bindings of squares and occupancies of the accompanied roles. While skewers checks and pins define the attacking relationships and the actual moves being played. each line indicates a move with some property constraints. subsequent moves references either bindings or attacking relationships to expand the constraints even more on an ongoing position while being played out that specific line it mentions. 
+And if a certain line is found that satisfies all constraints that's how you match a position with the existence of a tactic described by this language.

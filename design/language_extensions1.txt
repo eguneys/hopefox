@@ -1,0 +1,45 @@
+https://lichess.org/training/00JYV
+captures_a captures_b captures_a_captures_with_check recaptures_a recaptures_b
+
+https://lichess.org/training/00QqI
+fork escape_fork_with_check capture_escape recapture capture_fork2
+
+https://lichess.org/training/00J1t
+threaten_mate defend_mate blockable_check block capture_block_with_mate
+
+
+https://lichess.org/training/01Aty
+skewer_queen_bishop evade_skewer capture_bishop_to_lure_into_pin recapture pin_queen_to_king
+
+https://lichess.org/training/00GYk
+pin_queen_to_hanging_rook capture_pin recapture_win
+
+https://lichess.org/training/00Ivf
+checks_until_mate
+
+https://lichess.org/training/019R9
+capture_with_unblockable_uncapturable_check evade_king
+fork_knight_queen_and_mate_threat
+queen_defends_mate_hangs_knight
+capture_hanging_knight
+
+
+https://lichess.org/training/00WbE
+fork_hanging_bishop_and_mate_in_2 defend_mate_in_2 capture_hanging_bishop
+
+http://lichess.org/training/006E1
+unblockable_check_with_rook king_evade queen_check block_check
+sacrifice_rook_check_to_deflect_king_from_defending_queen force_king_deflect_and_hangs_queen capture_hanging_queen
+
+
+https://lichess.org/training/01GAH
+attack_hanging_bishop_and_skewer_loose_knight_behind queen_defends_bishop_but_hangs_knight capture_hanging_knight
+
+https://lichess.org/training/00s23
+bishop_attacks_queen_and_reinforces_knight_to_bring_fork captures_knight bishop_captures_queen
+
+https://lichess.org/training/01C8M
+rook_captures_bishop_with_an_inbetween_check_resource_and_discovers_attack_on_hanging_queen queen_captures_queen rook_checks_in_between_with_a_rook_capture evades_check recaptures_queen
+
+https://lichess.org/training/0066C
+bishop_sacrifice_and_fork_king_and_rook king_recaptures_and_walks_into_discovered_check knight_discovers_check_and_attacks_queen evades_check captures_queen

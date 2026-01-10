@@ -1,7 +1,8 @@
 import fs from 'fs'
-import { Chess, parseUci } from '../src'
-import { makeFen, parseFen } from '../src/fen'
-import { makeSan } from '../src/san'
+import { Chess } from '../src/distill/chess'
+import { makeFen, parseFen } from '../src/distill/fen'
+import { makeSan } from '../src/distill/san'
+import { parseUci } from '../src/distill/util'
 
 export const a_hundred = parse_puzzles(fs.readFileSync('data/a_hundred_puzzles.csv').toString())
 
