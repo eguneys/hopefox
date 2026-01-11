@@ -47,11 +47,39 @@ idea exchange_queens
   capture_moves.piece2 = Queen
   capture_moves.to = recapture.to
 
+
+
+fact kick
+  .from = push.from
+  .to = push.to
+  .to2 = push.to2
+  .kicked = occupies.piece
+  push.to2 = occupies.square
+
+
+fact kick_knight
+  .from = kick.from
+  .to = kick.to
+  kick.kicked = Knight
+
+idea exchange_and_kick
+  line exchange_queens kick_knight
 `
 
     console.log(puzzles[501].link)
-    solve_n(501, rules, 'exchange_queens')
+    solve_n(501, rules, 'exchange_and_kick')
+    //let fen = 'r4rk1/1p1b1pbp/p1pp2p1/8/2PN4/1P1RP2P/PB3PP1/R5K1 b - - 0 20'
+    //solve_fen(fen, rules, 'kick_knight')
 })
+
+function solve_fen(fen: string, rules: string, column: string) {
+  let pos = m.create_position(fen)
+  let res = search3(m, pos, rules, [column])
+  let res2 = dedup_sans(flat_san_moves_c(m, pos, res.get(column)!))
+  console.log(res2)
+  m.delete_position(pos)
+  return res2
+}
 
 function solve_n(n: number, rules: string, column: string) {
   let link = puzzles[n].link

@@ -257,6 +257,18 @@ export class PositionManager {
         return new SquareSet(lo, hi)
     }
 
+    pawn_pushes(pos: PositionC, sq: Square) {
+        const bbPtr = this.m._malloc(4 * 2)
+
+        this.m._pawn_pushes(pos, sq, bbPtr)
+
+        const lo = this.m.getValue(bbPtr, 'i32')
+        const hi = this.m.getValue(bbPtr + 4, 'i32')
+
+        this.m._free(bbPtr)
+
+        return new SquareSet(lo, hi)
+    }
 
     get_pieces_color_bb(pos: PositionC, color: ColorC) {
         const bbPtr = this.m._malloc(4 * 2)

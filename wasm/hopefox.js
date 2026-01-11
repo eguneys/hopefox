@@ -4447,6 +4447,7 @@ var _free_legal_moves = Module['_free_legal_moves'] = makeInvalidEarlyAccess('_f
 var _free = Module['_free'] = makeInvalidEarlyAccess('_free');
 var _attacks = Module['_attacks'] = makeInvalidEarlyAccess('_attacks');
 var _pos_attacks = Module['_pos_attacks'] = makeInvalidEarlyAccess('_pos_attacks');
+var _pawn_pushes = Module['_pawn_pushes'] = makeInvalidEarlyAccess('_pawn_pushes');
 var _get_pieces_bb = Module['_get_pieces_bb'] = makeInvalidEarlyAccess('_get_pieces_bb');
 var _get_pieces_color_bb = Module['_get_pieces_color_bb'] = makeInvalidEarlyAccess('_get_pieces_color_bb');
 var _get_occupied = Module['_get_occupied'] = makeInvalidEarlyAccess('_get_occupied');
@@ -4491,6 +4492,8 @@ function assignWasmExports(wasmExports) {
   _attacks = Module['_attacks'] = createExportWrapper('attacks', 5);
   assert(wasmExports['pos_attacks'], 'missing Wasm export: pos_attacks');
   _pos_attacks = Module['_pos_attacks'] = createExportWrapper('pos_attacks', 3);
+  assert(wasmExports['pawn_pushes'], 'missing Wasm export: pawn_pushes');
+  _pawn_pushes = Module['_pawn_pushes'] = createExportWrapper('pawn_pushes', 3);
   assert(wasmExports['get_pieces_bb'], 'missing Wasm export: get_pieces_bb');
   _get_pieces_bb = Module['_get_pieces_bb'] = createExportWrapper('get_pieces_bb', 4);
   assert(wasmExports['get_pieces_color_bb'], 'missing Wasm export: get_pieces_color_bb');

@@ -642,22 +642,22 @@ function convert_to_plan(fact: FactAlias) {
 
     for (let m of fact.matches) {
         let left_alias = m.path_a[0]
-        let left_colum = m.path_a[1]
+        let left_column = m.path_a[1]
 
-        if (!sources.find(_ => _.alias === left_alias)) {
+        if (left_column !== '' && !sources.find(_ => _.alias === left_alias)) {
             sources.push({ alias: left_alias, relation: left_alias })
         }
 
         let right_alias = m.path_b[0]
-        let right_colum = m.path_b[1]
+        let right_column = m.path_b[1]
 
-        if (!sources.find(_ => _.alias === right_alias)) {
+        if (right_column !== '' && !sources.find(_ => _.alias === right_alias)) {
             sources.push({ alias: right_alias, relation: right_alias })
         }
 
         joins.push({
-            left: { alias: left_alias, relation: left_colum },
-            right: { alias: right_alias, relation: right_colum }
+            left: { alias: left_alias, relation: left_column },
+            right: { alias: right_alias, relation: right_column }
         })
     }
 
@@ -772,6 +772,11 @@ class FactJoin {
                 ok = this.materialize_occupies(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
+            case 'push':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_pushes(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
             case 'moves':
                 this.make_moves_to_world(fact.world_id)
                 ok = this.materialize_moves(fact.world_id)
@@ -802,12 +807,12 @@ class FactJoin {
     }
 
     emitRow(fact: Fact, binding: Binding, output: OutputExpr[]) {
-
         let row = new Map()
         for (let {column, expr} of output) {
             row.set(column, binding.get(expr.alias)?.get(expr.relation))
         }
         row.set('start_world_id', this.fact.world_id)
+        //console.log(fact.column, row)
         this.scheduler.get_or_create_M(fact.column).add_row(row)
     }
 
@@ -826,16 +831,22 @@ class FactJoin {
             const filters = []
 
             for (const j of joins) {
-                if (j.left.alias === source.alias && binding.has(j.right.alias)) {
+                //console.log(j, source, binding)
+                if (j.left.alias === source.alias && is_constant(j.right.alias)) {
                     filters.push({
-                        column: j.left.alias,
-                        value: binding.get(j.right.alias)!.get(j.right.alias)
+                        column: j.left.relation,
+                        value: Constants_by_name[j.right.alias]
+                    })
+                } else if (j.left.alias === source.alias && binding.has(j.right.alias)) {
+                    filters.push({
+                        column: j.left.relation,
+                        value: binding.get(j.right.alias)!.get(j.right.relation)
                     })
                 }
                 if (j.right.alias === source.alias && binding.has(j.left.alias)) {
                     filters.push({
-                        column: j.right.alias,
-                        value: binding.get(j.left.alias)!.get(j.left.alias)
+                        column: j.right.relation,
+                        value: binding.get(j.left.alias)!.get(j.left.relation)
                     })
                 }
             }
@@ -1186,6 +1197,34 @@ class FactJoin {
 
         return true
     }
+
+
+    materialize_pushes(world_id: WorldId) {
+
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (piece && piece_c_type_of(piece) === PAWN) {
+                let pp = this.m.pawn_pushes(this.pos, on)
+                for (let p of pp) {
+                    let aa = this.m.attacks(piece, p, this.m.pos_occupied(this.pos).without(on).with(p))
+
+                    for (let a of aa) {
+                        this.add_row('push', new Map([
+                            ['start_world_id', world_id],
+                            ['from', on],
+                            ['to', p],
+                            ['to2', a]
+                        ]))
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+
+
 
     materialize_occupies(world_id: WorldId) {
 
