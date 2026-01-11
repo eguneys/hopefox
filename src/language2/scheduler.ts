@@ -812,7 +812,6 @@ class FactJoin {
             row.set(column, binding.get(expr.alias)?.get(expr.relation))
         }
         row.set('start_world_id', this.fact.world_id)
-        //console.log(fact.column, row)
         this.scheduler.get_or_create_M(fact.column).add_row(row)
     }
 

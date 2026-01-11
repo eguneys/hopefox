@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { attacks, fen_pos, flat_san_moves_c, PositionManager, san_moves, san_moves_c, search } from '../src'
+import { flat_san_moves_c, PositionManager, san_moves, san_moves_c, search3 } from '../src'
 import { puzzles } from './fixture'
 
 let patterns_skips = [
@@ -35,8 +35,8 @@ it.skip('cover 500-600', () => {
     597, 598, 599
   ]
 
-  console.log(skips.map(_ => puzzles[_].link))
-  return
+  //console.log(skips.map(_ => puzzles[_].link))
+  //return
 
   let rules = rules1 + '\n' + rules_only_skips
 
@@ -441,7 +441,7 @@ let patterns = [
     let column = 'attacks'
 
     let pos = m.create_position(fen)
-    let res = search(m, pos, rules, [column])
+    let res = search3(m, pos, rules, [column])
     let res2 = dedup_sans(flat_san_moves_c(m, pos, res.get(column)!))
     m.delete_position(pos)
     console.log(res2)
@@ -492,12 +492,12 @@ let block_check_skips_33 = [69]
 skips30 = [...skips30, ...pawn_skips_33, ...block_check_skips_33]
 
 
-function minmax_solve_loose(n: number, rules: string, columns: string[]) {
+export function minmax_solve_loose(n: number, rules: string, columns: string[]) {
   let link = puzzles[n].link
   let fen = puzzles[n].move_fens[0]
 
   let pos = m.create_position(fen)
-  let res = search(m, pos, rules, columns)
+  let res = search3(m, pos, rules, columns)
 
 
   let log_trace: any[] = []
@@ -549,7 +549,7 @@ function solve_n(n: number, rules: string, column: string) {
 
   //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
   let pos = m.create_position(fen)
-  let res = search(m, pos, rules, [column])
+  let res = search3(m, pos, rules, [column])
   let res2 = dedup_sans(flat_san_moves_c(m, pos, res.get(column)!))
   m.delete_position(pos)
   return res2
@@ -558,7 +558,6 @@ function solve_n(n: number, rules: string, column: string) {
 let m = await PositionManager.make()
 
 import fs from 'fs'
-import { squareSet } from '../src/debug'
 
 function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)

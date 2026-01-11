@@ -1,8 +1,107 @@
 import { it } from 'vitest'
 import { flat_san_moves_c, PositionManager ,  search3 } from '../src'
 import { puzzles } from './fixture'
+import { minmax_solve_loose } from './world2.test'
 
-it.skip('logs 500', () => {
+it('logs 500', () => {
+
+    let rules1 = `
+
+fact capture
+    alias occupies2 occupies
+     .from = attacks.from
+     .to = attacks.to
+     .piece = occupies.piece
+     .piece2 = occupies2.piece
+    attacks.from = occupies.square
+    attacks.to = occupies2.square
+    
+legal capture_moves
+
+idea exchange_queens
+  alias recapture capture_moves
+  line capture_moves recapture
+  capture_moves.piece = Queen
+  capture_moves.piece2 = Queen
+  capture_moves.to = recapture.to
+
+
+
+fact kick
+  .from = push.from
+  .to = push.to
+  .to2 = push.to2
+  .kicked = occupies.piece
+  push.to2 = occupies.square
+
+
+fact kick_knight
+  .from = kick.from
+  .to = kick.to
+  kick.kicked = Knight
+
+legal kick_knight_moves
+
+
+fact protect_bishop
+  alias covers attacks
+  alias occ2 occupies
+  .from = attacks.from
+  .to = attacks.to
+  occupies.piece = Rook
+  covers.from = occupies.square
+  attacks.to = covers.to
+  attacks.from = occ2.square
+  occ2.piece = Bishop
+
+legal protect_bishop_moves
+
+idea pawn_captures_piece
+  line capture_moves
+  capture_moves.piece = Pawn
+  capture_moves.piece2 = Knight
+
+idea exchange_and_kick
+  line exchange_queens kick_knight_moves protect_bishop_moves pawn_captures_piece
+
+
+fact capture_plus
+    alias occupies2 occupies
+    alias occupies3 occupies
+    alias occupies4 occupies
+    alias attacks2 attacks
+    alias attacks3 attacks
+     .from = attacks.from
+     .to = attacks.to
+     .piece = occupies.piece
+     .piece2 = occupies2.piece
+     .piece3 = occupies3.piece
+     .piece4 = occupies4.piece
+    attacks.from = occupies.square
+    attacks.to = occupies2.square
+    attacks2.from = attacks.to
+    attacks2.to = occupies3.square
+    attacks3.from = attacks2.to
+    attacks3.to = occupies4.square
+    
+legal capture_plus_moves
+
+
+
+
+idea sadf
+  alias capture_checking capture_plus_moves
+  alias counter_capture capture_plus_moves
+  alias capture_with_check capture_moves
+  line capture_checking counter_capture capture_with_check
+  capture_checking.piece3 = Bishop
+  capture_checking.piece4 = King
+  counter_capture.capture2 = Queen
+  capture_checking.capture2 = capture_with_check.to
+
+`
+
+
 
   let skips = [
     501, 502, 504, 506, 507, 508, 509, 510, 512,
@@ -12,13 +111,24 @@ it.skip('logs 500', () => {
     559, 560, 561, 562, 565, 568, 570, 571, 573,
     574, 575, 576, 577, 578, 580, 581, 583, 584,
     585, 587, 588, 590, 591, 593, 594, 595, 596,
-    597, 598, 599
+      597, 598, 599
   ]
 
+  //let fen = 'r4rk1/1p1b1pbp/p2p2p1/2p5/2PN4/1P1RP2P/PB3PP1/R5K1 w - - 0 21'
+  //solve_fen(fen, rules1, 'exchange_and_kick')
+    //return
+
   console.log(skips.map(_ => puzzles[_].link))
+
+  let patterns = ['capture_plus_moves']
+
+  console.log(puzzles[502].link)
+  let res = minmax_solve_loose(502, rules1, patterns)
+  console.log(res)
+
 })
 
-it('solves 502', () => {
+it.skip('solves 502', () => {
 
     `
 exchange_queens
