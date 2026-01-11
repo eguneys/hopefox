@@ -1283,7 +1283,7 @@ export function relations(m: PositionManager, pos: PositionC, rules: string) {
     let scheduler = new Scheduler(m, pos, rules)
 
     let program = parse_program(rules)
-    let pull_columns = [...program.facts.keys(), ...program.ideas.keys()]
+    let pull_columns = [...program.facts.keys(), ...program.ideas.keys(), ...program.legals]
     pull_columns.forEach(_ => scheduler.request_fact(_, 0))
     scheduler.run()
     return scheduler.RMs
