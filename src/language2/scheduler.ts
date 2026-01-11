@@ -13,6 +13,12 @@ class NoSuchColumn extends Error {
     }
 }
 
+class NoEndWorldIdError extends Error {
+    constructor(name: Column) {
+        super(`No end world id ${name}.`)
+    }
+}
+
 enum FactLifecycleState {
     UNREQUESTED,
     REQUESTED,
@@ -231,16 +237,6 @@ class Scheduler {
             || this.active_fact_joins.size > 0
         ) {
 
-            let aa 
-            let res = []
-            for (let [key, value] of this.RMs) {
-                //res.push(`${key} : ${value.base.rows.length}`)
-                if (value.base.rows.length > 10000) {
-                    //aa = extract_lines(value.base)
-                    //value.dedup()
-                }
-            }
-
             if (this.fact_queue.length > 0) {
                 let fact = this.fact_queue.shift()!
                 if (fact.state === FactLifecycleState.UNREQUESTED) {
@@ -380,7 +376,11 @@ function prefix_required_last_world_id(M: RelationManager, prefix: Prefix, initi
         return initial_world
     }
     const last_row = M.get_row(prefix.bindings[prefix.length - 1])
-    return last_row.get('end_world_id')!
+    let end_world_id = last_row.get('end_world_id')
+    if (!end_world_id) {
+        throw new NoEndWorldIdError(M.name)
+    }
+    return end_world_id
 }
 
 function extend_prefix(prefix: Prefix, row_id: RowId, owner: IdeaJoin): Prefix {
@@ -1278,6 +1278,16 @@ class FactJoin {
     }
 }
 
+
+export function relations(m: PositionManager, pos: PositionC, rules: string) {
+    let scheduler = new Scheduler(m, pos, rules)
+
+    let program = parse_program(rules)
+    let pull_columns = [...program.facts.keys(), ...program.ideas.keys()]
+    pull_columns.forEach(_ => scheduler.request_fact(_, 0))
+    scheduler.run()
+    return scheduler.RMs
+}
 
 export function search3(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
     let scheduler = new Scheduler(m, pos, rules)
