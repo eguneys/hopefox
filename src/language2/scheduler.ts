@@ -344,6 +344,22 @@ export class RelationManager {
     get_row(row_id: RowId) {
         return this.base.rows[row_id]
     }
+
+    lookupRows(
+        world_id: WorldId,
+        constraints: { column: string; value: any }[]
+    ): RowId[] {
+        let candidates = this.get_row_ids_starting_at_world_id(world_id)
+
+        for (const { column, value } of constraints) {
+            candidates = candidates.filter(row_id => {
+                return this.base.rows[row_id].get(column) === value
+            })
+        }
+
+        return candidates
+    }
+
 }
 
 type ConstraintVar = string
@@ -576,6 +592,83 @@ class MaterializeError extends Error {
     }
 }
 
+type AliasColumn = { alias: Column, relation: Column }
+
+type OutputExpr = { column: Column, expr: AliasColumn}
+
+type FactPlan = {
+    name: Column
+    sources: AliasColumn[]
+    joins: { left: AliasColumn, right: AliasColumn }[]
+
+    output: OutputExpr[]
+}
+
+function convert_to_plan(fact: FactAlias) {
+
+    let sources = []
+    let joins = []
+    let output: OutputExpr[] = []
+
+    for (let alias of fact.aliases) {
+        sources.push({ alias: alias.alias[0], relation: alias.column[0] })
+    }
+
+    for (let m of fact.matches) {
+        let left_alias = m.path_a[0]
+        let left_colum = m.path_a[1]
+
+        if (!sources.find(_ => _.alias === left_alias)) {
+            sources.push({ alias: left_alias, relation: left_alias })
+        }
+
+        let right_alias = m.path_b[0]
+        let right_colum = m.path_b[1]
+
+        if (!sources.find(_ => _.alias === right_alias)) {
+            sources.push({ alias: right_alias, relation: right_alias })
+        }
+
+        joins.push({
+            left: { alias: left_alias, relation: left_colum },
+            right: { alias: right_alias, relation: right_colum }
+        })
+    }
+
+    for (let assign of fact.assigns) {
+        for (let [alias, column] of Object.entries(assign)) {
+            output.push({ column: alias, expr: { alias: column[0], relation: column[1] } })
+        }
+    }
+
+    let plan: FactPlan = {
+        name: fact.name,
+        sources,
+        joins,
+        output
+    }
+
+    return plan
+}
+
+type Binding = Map<string, Row>
+
+function joinsSatisfiedSoFar(binding: Binding, joins: { left: AliasColumn, right: AliasColumn }[]) {
+    for (const join of joins) {
+        const l = binding.get(join.left.alias)
+        const r = binding.get(join.right.alias)
+        if (l === undefined || r === undefined) {
+            continue
+        }
+        if (l.get(join.left.relation) !== r.get(join.right.relation)) {
+            return false
+        }
+    }
+    return true
+}
+
+
+
 class FactJoin {
 
     m: PositionManager
@@ -670,6 +763,7 @@ class FactJoin {
                 break
             default: {
                 ok = this.join_with_program(fact)
+                //ok = this.join_with_execute_fact(fact)
             }
         }
 
@@ -681,6 +775,83 @@ class FactJoin {
         this.scheduler.complete_fact(this.fact)
     }
 
+    emitRow(fact: Fact, binding: Binding, output: OutputExpr[]) {
+
+        let row = new Map()
+        for (let {column, expr} of output) {
+            row.set(column, binding.get(expr.alias)?.get(expr.relation))
+        }
+        row.set('start_world_id', this.fact.world_id)
+        this.scheduler.get_or_create_M(fact.column).add_row(row)
+    }
+
+    join_with_execute_fact(fact: Fact) {
+        let plan = this.program.facts.get(fact.column)!
+
+        return this.executeFact(fact, convert_to_plan(plan), fact.world_id)
+    }
+
+    executeFact(fact: Fact, plan: FactPlan, world_id: WorldId) {
+        const sources = plan.sources
+        const joins = plan.joins
+
+        let self = this
+        function getRows(source: AliasColumn, world_id: WorldId, binding: Binding) {
+            const filters = []
+
+            for (const j of joins) {
+                if (j.left.alias === source.alias && binding.has(j.right.alias)) {
+                    filters.push({
+                        column: j.left.alias,
+                        value: binding.get(j.right.alias)!.get(j.right.alias)
+                    })
+                }
+                if (j.right.alias === source.alias && binding.has(j.left.alias)) {
+                    filters.push({
+                        column: j.right.alias,
+                        value: binding.get(j.left.alias)!.get(j.left.alias)
+                    })
+                }
+            }
+
+            return self.Rs.get(source.relation)!.lookupRows(world_id, filters)
+        }
+
+
+
+
+        function extend(binding: Binding, sourceIndex: number) {
+            if (sourceIndex === sources.length) {
+                self.emitRow(fact, binding, plan.output)
+                return
+            }
+
+            const source = sources[sourceIndex]
+            const rows = getRows(source, world_id, binding)
+
+            for (const row_id of rows) {
+                let row = self.Rs.get(source.relation)!.get_row(row_id)
+                binding.set(source.alias, row)
+
+
+                if (joinsSatisfiedSoFar(binding, joins)) {
+                    extend(binding, sourceIndex + 1)
+                }
+
+                binding.delete(source.alias)
+            }
+        }
+
+        for (let source of sources) {
+            if (this.worklist_check_fact(make_fact_with_key(source.relation, world_id)) === undefined) {
+                return false
+            }
+        }
+
+        extend(new Map(), 0)
+        return true
+    }
+
 
     join_with_program(fact: Fact) {
         let p = this.program.facts.get(fact.column)
@@ -688,7 +859,8 @@ class FactJoin {
         let ok = true
 
         if (p) {
-            ok = this.join_fact_with_p(fact, p)
+            //ok = this.join_fact_with_p(fact, p)
+            ok = this.join_with_execute_fact(fact)
         }
         if (!ok) {
             return false
@@ -1043,7 +1215,7 @@ class FactJoin {
 }
 
 
-export function search(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
+export function search3(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
     let scheduler = new Scheduler(m, pos, rules)
 
     pull_columns.forEach(_ => scheduler.request_fact(_, 0))

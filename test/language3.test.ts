@@ -1,8 +1,115 @@
 import { it } from 'vitest'
-import { PositionManager, search3 } from '../src'
+import { flat_san_moves_c, PositionManager ,  search3 } from '../src'
+import { puzzles } from './fixture'
+
+it.skip('logs 500', () => {
+
+  let skips = [
+    501, 502, 504, 506, 507, 508, 509, 510, 512,
+    513, 514, 516, 517, 519, 521, 522, 524, 528,
+    529, 534, 535, 537, 538, 539, 540, 541, 542,
+    544, 546, 547, 549, 554, 555, 556, 557, 558,
+    559, 560, 561, 562, 565, 568, 570, 571, 573,
+    574, 575, 576, 577, 578, 580, 581, 583, 584,
+    585, 587, 588, 590, 591, 593, 594, 595, 596,
+    597, 598, 599
+  ]
+
+  console.log(skips.map(_ => puzzles[_].link))
+})
+
+it('solves 502', () => {
+
+    `
+exchange_queens
+kick_pinned_piece_on_hanging_bishop
+defend_bishop
+capture_pinned_piece
+`
+
+    let rules = `
+
+fact capture
+    alias occupies2 occupies
+     .from = attacks.from
+     .to = attacks.to
+     .piece = occupies.piece
+     .piece2 = occupies2.piece
+    attacks.from = occupies.square
+    attacks.to = occupies2.square
+    
+legal capture_moves
+`;
+
+`
+idea exchange_queens
+  alias recapture capture
+  line capture recapture
+  capture.piece = Queen
+  capture.piece2 = Queen
+  capture.to = recapture.to
 
 
-it('works', () => {
+    `
+
+    console.log(puzzles[502].link)
+    solve_n(502, rules, 'capture_moves')
+})
+
+function solve_n(n: number, rules: string, column: string) {
+  let link = puzzles[n].link
+  console.log(link)
+  let fen = puzzles[n].move_fens[0]
+
+  //fen = '8/3Qnk1p/8/4B2b/Pp2p3/1P2P3/5PPP/2rR2K1 b - - 6 33'
+  let pos = m.create_position(fen)
+  let res = search3(m, pos, rules, [column])
+  let res2 = dedup_sans(flat_san_moves_c(m, pos, res.get(column)!))
+  console.log(res2)
+  m.delete_position(pos)
+  return res2
+}
+
+
+
+type SAN = string
+function dedup_sans(m: SAN[][]) {
+    return [...new Set(m.map(_ => _.join(' ')))].map(_ => _.split(" "))
+}
+
+const find_solving_sans = (a: SAN[][], b: SAN[]) => {
+    if (a.length === 0) {
+        return false
+    }
+    if (b.length === 0) {
+        return true
+    }
+    let head = a[0][0]
+
+    if (head !== b[0]) {
+        return false
+    }
+
+    if (b.length === 1) {
+        return true
+    }
+
+    a = a.filter(_ => _[0] === head)
+
+    a = a.filter(_ => _[1] === b[1])
+
+
+    if (!find_solving_sans(a.map(_ => _.slice(2)), b.slice(2))) {
+        return false
+    }
+
+    return true
+}
+
+
+
+
+it.skip('works', () => {
 
     let rules = `
 rook skewers queen and bishop
