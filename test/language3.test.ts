@@ -39,21 +39,18 @@ fact capture
     attacks.to = occupies2.square
     
 legal capture_moves
-`;
+
+idea exchange_queens
+  alias recapture capture_moves
+  line capture_moves recapture
+  capture_moves.piece = Queen
+  capture_moves.piece2 = Queen
+  capture_moves.to = recapture.to
 
 `
-idea exchange_queens
-  alias recapture capture
-  line capture recapture
-  capture.piece = Queen
-  capture.piece2 = Queen
-  capture.to = recapture.to
 
-
-    `
-
-    console.log(puzzles[502].link)
-    solve_n(502, rules, 'capture_moves')
+    console.log(puzzles[501].link)
+    solve_n(501, rules, 'exchange_queens')
 })
 
 function solve_n(n: number, rules: string, column: string) {

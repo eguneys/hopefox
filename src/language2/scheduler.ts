@@ -1,8 +1,8 @@
 import { between } from "../distill/attacks"
 import { squareSet } from "../distill/debug"
-import { KING, move_c_to_Move, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c"
+import { BISHOP, KING, KNIGHT, move_c_to_Move, PAWN, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager, QUEEN, ROOK } from "../distill/hopefox_c"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { Alias, Fact as FactAlias, Idea, is_matches_between, parse_program, Program } from "../language1/parser2"
+import { Alias, Fact as FactAlias, Idea, is_constant, is_matches_between, parse_program, Program } from "../language1/parser2"
 import { join, Relation, Row, select } from "./relational"
 import { extract_lines } from "./extract"
 import { SquareSet } from "../distill/squareSet"
@@ -533,8 +533,52 @@ class IdeaJoin {
             let b_step_index = this.spec.line.findIndex(_ => _ === name2)
 
 
+            let b_const
+            if (is_constant(name2)) {
+                b_const = Constants_by_name[name2]
+            }
+
 
             if (!rest) {
+
+                if (b_const !== undefined) {
+                    let a_var = local_env.get(name)
+                    if (a_var === undefined) {
+                        a_var.set(name, b_const)
+                    } else {
+                        cond &&= a_var === b_const
+                    }
+                } else {
+                    let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
+
+                    if (b === undefined) {
+                        return true
+                    }
+
+                    let a_var = local_env.get(name)
+
+                    if (a_var === undefined) {
+                        local_env.set(name, b.get(rest2)!)
+                    } else {
+                        cond &&= a_var === b.get(rest2)
+                    }
+                }
+                continue
+            }
+
+            let a = this.get_row(a_step_index, prefix.bindings[a_step_index]);
+            if (a === undefined) {
+                return true
+            }
+
+
+            if (b_const !== undefined) {
+
+                let x = a.get(rest)
+                let y = b_const
+
+                cond &&= m.is_different ? x !== y : x === y
+            } else {
 
                 let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
 
@@ -542,40 +586,22 @@ class IdeaJoin {
                     return true
                 }
 
-                let a_var = local_env.get(name)
+                let ab_bindings_a = a
+                let ab_bindings_b = b
 
-                if (a_var === undefined) {
-                    local_env.set(name, b.get(rest2)!)
+                let x = ab_bindings_a.get(rest)
+                let y
+
+                if (!rest2) {
+                    let turn = 0
+                    y = turn
                 } else {
-                    cond &&= a_var === b.get(rest2)
+                    y = ab_bindings_b.get(rest2)
                 }
-                continue
+
+                cond &&= m.is_different ? x !== y : x === y
             }
 
-            let a = this.get_row(a_step_index, prefix.bindings[a_step_index]);
-            let b = this.get_row(b_step_index, prefix.bindings[b_step_index]);
-
-            if (a === undefined || b === undefined) {
-                return true
-            }
-
-            //let ab_bindings = { [name]: a, [name2]: b }
-            let ab_bindings_a = a
-            let ab_bindings_b = b
-
-            //let x = ab_bindings[name].get(rest)
-            let x = ab_bindings_a.get(rest)
-            let y
-
-            if (!rest2) {
-                let turn = 0
-                y = turn
-            } else {
-                //y = ab_bindings[name2].get(rest2)
-                y = ab_bindings_b.get(rest2)
-            }
-
-            cond &&= m.is_different ? x !== y : x === y
             if (!cond) {
                 return false
             }
@@ -1230,4 +1256,14 @@ function fix_alias(line: string, aliases: Alias[]) {
 type Path = [string, string]
 function path_split(p: Path) {
     return p
+}
+
+
+const Constants_by_name = {
+    King: KING,
+    Queen: QUEEN,
+    Rook: ROOK,
+    Bishop: BISHOP,
+    Knight: KNIGHT,
+    Pawn: PAWN,
 }

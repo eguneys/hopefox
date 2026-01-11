@@ -1,3 +1,5 @@
+import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from "../distill/hopefox_c"
+
 class ParserError extends Error {}
 class LexerError extends Error {}
 
@@ -23,13 +25,18 @@ type Token = {
     value: string
 }
 
-enum Constants {
-    KING = 'KING'
+export enum Constants {
+    King = 'King',
+    Queen = 'Queen',
+    Bishop = 'Bishop',
+    Rook = 'Rook',
+    Knight = 'Knight',
+    Pawn =  'Pawn'
 }
 
-const All_Constants: Constants[] = [Constants.KING]
+const All_Constants: Constants[] = [Constants.King, Constants.Queen, Constants.Bishop, Constants.Rook, Constants.Knight, Constants.Pawn]
 
-function is_constant(s: string): s is Constants {
+export function is_constant(s: string): s is Constants {
     return All_Constants.includes(s as Constants)
 }
 
@@ -80,9 +87,13 @@ class Lexer {
 
     private constant() {
         let result = ''
-        while (this.current_char !== undefined && this.is_uppercase_num(this.current_char)) {
+        if (this.current_char !== undefined && this.is_uppercase_num(this.current_char)) {
             result += this.current_char
             this.advance()
+            while (this.current_char !== undefined && this.is_lowercase_num(this.current_char)) {
+                result += this.current_char
+                this.advance()
+            }
         }
         return result
     }
