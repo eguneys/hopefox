@@ -625,7 +625,7 @@ type OutputExpr = { column: Column, expr: AliasColumn}
 type FactPlan = {
     name: Column
     sources: AliasColumn[]
-    joins: { left: AliasColumn, right: AliasColumn }[]
+    joins: { left: AliasColumn, right: AliasColumn, is_different: boolean }[]
 
     output: OutputExpr[]
 }
@@ -655,9 +655,11 @@ function convert_to_plan(fact: FactAlias) {
             sources.push({ alias: right_alias, relation: right_alias })
         }
 
+        let is_different = is_matches_between(m) ? false : m.is_different === true
         joins.push({
             left: { alias: left_alias, relation: left_column },
-            right: { alias: right_alias, relation: right_column }
+            right: { alias: right_alias, relation: right_column },
+            is_different
         })
     }
 
@@ -679,15 +681,22 @@ function convert_to_plan(fact: FactAlias) {
 
 type Binding = Map<string, Row>
 
-function joinsSatisfiedSoFar(binding: Binding, joins: { left: AliasColumn, right: AliasColumn }[]) {
+function joinsSatisfiedSoFar(binding: Binding, joins: { is_different: boolean, left: AliasColumn, right: AliasColumn }[]) {
     for (const join of joins) {
         const l = binding.get(join.left.alias)
         const r = binding.get(join.right.alias)
         if (l === undefined || r === undefined) {
             continue
         }
-        if (l.get(join.left.relation) !== r.get(join.right.relation)) {
-            return false
+        if (join.is_different) {
+            if (l.get(join.left.relation) === r.get(join.right.relation)) {
+                return false
+
+            }
+        } else {
+            if (l.get(join.left.relation) !== r.get(join.right.relation)) {
+                return false
+            }
         }
     }
     return true
