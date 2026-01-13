@@ -804,6 +804,11 @@ class FactJoin {
                 ok = this.materialize_attacks2(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
+            case 'attacks_through':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_attack_throughs(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
             default: {
                 ok = this.join_with_program(fact)
                 //ok = this.join_with_execute_fact(fact)
@@ -906,7 +911,6 @@ class FactJoin {
         let ok = true
 
         if (p) {
-            //ok = this.join_fact_with_p(fact, p)
             ok = this.join_with_execute_fact(fact)
         }
         if (!ok) {
@@ -971,168 +975,41 @@ class FactJoin {
     }
 
 
-    join_fact_between_p(fact: Fact, p: FactAlias) {
+    materialize_attack_throughs(world_id: WorldId) {
 
-        let relation
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
 
-        let m = p.matches[0]
+            if (piece) {
 
-        {
-            if (!is_matches_between(m)) {
-                return false
-            }
+                let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
 
+                for (let a of aa) {
+                    let piece2 = this.m.get_at(this.pos, a)
 
-            let [name, rest] = path_split(m.path_a)
-            let [name2, rest2] = path_split(m.path_b)
-            let [name3, rest3] = path_split(m.path_c)
+                    if (piece2) {
 
-            let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
-            if (w_name === undefined) {
-                return false
-            }
-            let w_name2 = this.worklist_check_fact(make_fact_with_key(fix_alias(name2, p.aliases), fact.world_id))
-            if (w_name2 === undefined) {
-                return false
-            }
+                        let aa2 = this.m.attacks(piece, on, this.m.pos_occupied(this.pos).without(a))
 
-            relation = join(w_name, w_name2, (a, b) => {
-
-                //let ab_bindings = { [name]: a, [name2]: b }
-                let ab_bindings_a = a
-                let ab_bindings_b = b
-
-                let cond = true
-
-                for (let m of p.matches) {
-
-                    if (!is_matches_between(m)) {
-                        continue
-                    }
-
-                    let [name, rest] = path_split(m.path_a)
-                    let [name2, rest2] = path_split(m.path_b)
-                    let [name3, rest3] = path_split(m.path_c)
-
-                    let ab_bindings_c = name3 === name ? ab_bindings_a : ab_bindings_b
-
-                    let x = ab_bindings_a.get(rest)!
-                    let y = ab_bindings_b.get(rest2)!
-                    let z = ab_bindings_c.get(rest3)!
-
-                    cond &&= between(y, z).has(x)
-                }
-
-                return cond
-                    ? (() => {
-                        const r = new Map()
-                        r.set('start_world_id', fact.world_id)
-                        for (let ass of p.assigns) {
-                            let [key] = Object.keys(ass)
-                            let [r_rel, r_path] = path_split(ass[key])
-                            let ab_bindings_r_rel = r_rel === name ? ab_bindings_a : ab_bindings_b
-                            r.set(
-                                `${key}`,
-                                ab_bindings_r_rel.get(`${r_path}`))
-                        }
-
-                        return r
-                    })() : null
-            })
-        }
-
-        this.add_rows(fact.column, fact.world_id, relation.rows)
-        return true
-    }
-
-    join_fact_with_p(fact: Fact, p: FactAlias) {
-
-        let relation
-
-        let m = p.matches[0]
-
-        {
-            if (is_matches_between(m)) {
-                return this.join_fact_between_p(fact, p)
-            }
-
-            let [name, rest] = path_split(m.path_a)
-            let [name2, rest2] = path_split(m.path_b)
-
-            if (name2 === 'KING') {
-                let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
-                if (w_name === undefined) {
-                    return false
-                }
-                relation = select(w_name, a => a.get(rest) === KING)
-            } else {
-                let w_name = this.worklist_check_fact(make_fact_with_key(fix_alias(name, p.aliases), fact.world_id))
-                if (w_name === undefined) {
-                    return false
-                }
-                let w_name2 = this.worklist_check_fact(make_fact_with_key(fix_alias(name2, p.aliases), fact.world_id))
-                if (w_name2 === undefined) {
-                    return false
-                }
-                relation = join(w_name, w_name2, (a, b) => {
-
-                    //let ab_bindings = { [name]: a, [name2]: b }
-
-                    let cond = true
-
-                    for (let m of p.matches) {
-
-                        if (is_matches_between(m)) {
-                            continue
-                        }
-
-                        let [b_name, rest] = path_split(m.path_a)
-                        let [b_name2, rest2] = path_split(m.path_b)
-
-                        let ab_bindings_a = b_name === name ? a : b
-                        let ab_bindings_b = b_name2 === name ? a : b
-
-                        let x = ab_bindings_a.get(rest)
-                        let y
-
-
-                        if (name2 === 'KING') {
-                            y = KING
-                        } else if (!rest2) {
-                            let turn = 0
-                            y = turn
-                        } else {
-                            y = ab_bindings_b.get(rest2)
-                        }
-
-                        cond &&= m.is_different ? x !== y : x === y
-                        if (!cond) {
-                            break
+                        for (let a2 of aa2) {
+                            this.add_row('attacks_through', new Map([
+                                ['start_world_id', world_id],
+                                ['from', on],
+                                ['to', a2],
+                                ['block', a],
+                                ['piece', piece_c_type_of(piece)],
+                                ['color', piece_c_color_of(piece)]
+                            ]))
                         }
                     }
-
-                    return cond
-                        ? (() => {
-                            const r = new Map()
-                            r.set('start_world_id', fact.world_id)
-                            for (let ass of p.assigns) {
-                                let [key] = Object.keys(ass)
-                                let [r_rel, r_path] = path_split(ass[key])
-                                let ab_bindings_r_rel = r_rel === name ? a : b
-                                r.set(
-                                    `${key}`,
-                                    ab_bindings_r_rel.get(`${r_path}`))
-                            }
-
-                            return r
-                        })() : null
-                })
+                }
             }
         }
 
-        this.add_rows(fact.column, fact.world_id, relation.rows)
         return true
     }
+
+
 
     materialize_attacks2(world_id: WorldId) {
 
