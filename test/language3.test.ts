@@ -1,9 +1,34 @@
 import { it } from 'vitest'
-import { flat_san_moves_c, PositionManager ,  search3 } from '../src'
+import { flat_san_moves_c, PositionManager ,  relations,  search3 } from '../src'
 import { puzzles } from './fixture'
 import { minmax_solve_loose } from './world2.test'
 
-it('logs 500', () => {
+it('regression != doesnt work', () => {
+
+  let rules = `
+fact fork
+  alias a2a attacks2
+  alias a2b attacks2
+  .from = a2a.from
+  .to = a2a.to
+  a2a.from != a2b.from
+`
+
+
+  console.log(puzzles[502].link)
+  let fen = puzzles[502].move_fens[0]
+  let pos = m.create_position(fen)
+  let res = relations(m, pos, rules)
+  m.delete_position(pos)
+
+  console.log(res.get('fork'))
+
+
+
+
+})
+
+it.skip('logs 500', () => {
 
     let rules1 = `
 

@@ -343,12 +343,15 @@ export class RelationManager {
 
     lookupRows(
         world_id: WorldId,
-        constraints: { column: string; value: any }[]
+        constraints: { column: string; value: number, is_different?: boolean }[]
     ): RowId[] {
         let candidates = this.get_row_ids_starting_at_world_id(world_id)
 
-        for (const { column, value } of constraints) {
+        for (const { column, value, is_different } of constraints) {
             candidates = candidates.filter(row_id => {
+                if (is_different) {
+                    return this.base.rows[row_id].get(column) !== value
+                }
                 return this.base.rows[row_id].get(column) === value
             })
         }
@@ -839,22 +842,22 @@ class FactJoin {
             const filters = []
 
             for (const j of joins) {
-                //console.log(j, source, binding)
                 if (j.left.alias === source.alias && is_constant(j.right.alias)) {
                     filters.push({
                         column: j.left.relation,
-                        value: Constants_by_name[j.right.alias]
+                        value: Constants_by_name[j.right.alias]!
                     })
                 } else if (j.left.alias === source.alias && binding.has(j.right.alias)) {
                     filters.push({
                         column: j.left.relation,
-                        value: binding.get(j.right.alias)!.get(j.right.relation)
+                        value: binding.get(j.right.alias)!.get(j.right.relation)!
                     })
                 }
                 if (j.right.alias === source.alias && binding.has(j.left.alias)) {
                     filters.push({
                         column: j.right.relation,
-                        value: binding.get(j.left.alias)!.get(j.left.relation)
+                        value: binding.get(j.left.alias)!.get(j.left.relation)!,
+                        is_different: j.is_different
                     })
                 }
             }
@@ -873,7 +876,6 @@ class FactJoin {
 
             const source = sources[sourceIndex]
             const rows = getRows(source, world_id, binding)
-
             for (const row_id of rows) {
                 let row = self.Rs.get(source.relation)!.get_row(row_id)
                 binding.set(source.alias, row)
