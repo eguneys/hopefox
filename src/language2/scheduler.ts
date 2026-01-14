@@ -989,7 +989,7 @@ class FactJoin {
 
                     if (piece2) {
 
-                        let aa2 = this.m.attacks(piece, on, this.m.pos_occupied(this.pos).without(a))
+                        let aa2 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(a))
 
                         for (let a2 of aa2) {
                             this.add_row('attacks_through', new Map([
