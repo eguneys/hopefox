@@ -809,6 +809,11 @@ class FactJoin {
                 ok = this.materialize_attack_throughs(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
+            case 'attacks2_through':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_attack2_throughs(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
             default: {
                 ok = this.join_with_program(fact)
                 //ok = this.join_with_execute_fact(fact)
@@ -975,6 +980,54 @@ class FactJoin {
     }
 
 
+    materialize_attack2_throughs(world_id: WorldId) {
+
+
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (piece) {
+
+                let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
+
+                for (let a of aa) {
+
+                    let aa2 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(on))
+
+                    for (let a2 of aa2) {
+
+                        let piece2 = this.m.get_at(this.pos, a2)
+
+                        if (piece2) {
+
+                            let aa3 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(on).without(a2))
+                            aa3 = aa3.diff(aa2)
+
+                            for (let a3 of aa3) {
+
+                                this.add_row('attacks2_through', new Map([
+                                    ['start_world_id', world_id],
+                                    ['from', on],
+                                    ['to', a],
+                                    ['block', a2],
+                                    ['to2', a3],
+                                    ['piece', piece_c_type_of(piece)],
+                                    ['color', piece_c_color_of(piece)]
+                                ]))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        return true
+    }
+
+
+
     materialize_attack_throughs(world_id: WorldId) {
 
         for (let on of SquareSet.full()) {
@@ -989,7 +1042,9 @@ class FactJoin {
 
                     if (piece2) {
 
-                        let aa2 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(a))
+                        let aa2 = this.m.attacks(piece, on, this.m.pos_occupied(this.pos).without(a))
+                        aa2 = aa2.diff(aa)
+
 
                         for (let a2 of aa2) {
                             this.add_row('attacks_through', new Map([
