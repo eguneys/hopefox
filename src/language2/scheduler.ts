@@ -902,7 +902,8 @@ class FactJoin {
                 } else if (j.left.alias === source.alias && binding.has(j.right.alias)) {
                     filters.push({
                         column: j.left.relation,
-                        value: binding.get(j.right.alias)!.get(j.right.relation)!
+                        value: binding.get(j.right.alias)!.get(j.right.relation)!,
+                        is_different: j.is_different
                     })
                 }
                 if (j.right.alias === source.alias && binding.has(j.left.alias)) {

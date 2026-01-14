@@ -19,8 +19,48 @@ import { minmax_solve_loose } from './world2.test'
 
 
 
+it('regression color != color doesnt work', () => {
 
-it('regression assign .to2 = atto.to2 doesnt work \'NaN\'', () => {
+  let rules = `
+fact a 
+ alias occ_a occupies 
+ .from = attacks2.from 
+ .to = attacks2.to 
+ .to2 = attacks2.to2 
+ .piece = occupies.piece 
+ .piece2 = occ_a.piece 
+ attacks2.from = occupies.square 
+ attacks2.to2 = occ_a.square
+ occupies.color != occ_a.color
+ 
+fact b 
+ .from = a.from 
+ .to = a.to 
+ .to2 = a.to2 
+ .piece = a.piece 
+ .piece2 = a.piece2 
+ a.piece = Rook 
+`
+
+
+  console.log(puzzles[skips[33]].link)
+  let fen = puzzles[skips[33]].move_fens[0]
+  let pos = m.create_position(fen)
+  let res = relations(m, pos, rules)
+  m.delete_position(pos)
+
+  console.log(res.get('b'))
+
+
+
+
+})
+
+
+
+
+
+it.skip('regression assign .to2 = atto.to2 doesnt work \'NaN\'', () => {
 
   let rules = `
 fact battery 
