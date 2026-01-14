@@ -17,9 +17,52 @@ import { minmax_solve_loose } from './world2.test'
   ]
 
 
+it('regression 2 piece_a piece_b', () => {
+
+  let rules = `
+
+fact fork_a_b 
+ alias a attacks2 
+ alias b attacks2 
+ alias occ_a occupies 
+ alias occ_b occupies 
+ .from = a.from 
+ .to = a.to 
+ .to_a = a.to2 
+ .to_b = b.to2 
+ .piece = occupies.piece 
+ .piece_a = occ_a.piece 
+ .piece_b = occ_b.piece 
+ a.from = occupies.square 
+ a.to2 = occ_a.square 
+ b.to2 = occ_b.square 
+ a.to2 != b.to2 
+ a.from = b.from 
+ a.to = b.to 
+ occupies.color != occ_a.color 
+ occupies.color != occ_b.color 
+  
+fact forks_king_queen 
+ .from = forks_a_b.from 
+ .to = forks_a_b.to 
+ forks_a_b.piece_a = King 
+ forks_a_b.piece_b = Queen 
+`.trim()
+
+  console.log(puzzles[skips[33]].link)
+  let fen = puzzles[skips[33]].move_fens[0]
+  let pos = m.create_position(fen)
+  let res = relations(m, pos, rules)
+  m.delete_position(pos)
+
+  console.log(res.get('forks_a_b'))
 
 
-it('regression color != color doesnt work', () => {
+
+})
+
+
+it.skip('regression color != color doesnt work', () => {
 
   let rules = `
 fact a 

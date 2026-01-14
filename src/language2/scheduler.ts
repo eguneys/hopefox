@@ -899,6 +899,7 @@ class FactJoin {
                         column: j.left.relation,
                         value: Constants_by_name[j.right.alias]!
                     })
+                    console.log(filters)
                 } else if (j.left.alias === source.alias && binding.has(j.right.alias)) {
                     filters.push({
                         column: j.left.relation,
