@@ -525,8 +525,50 @@ class IdeaJoin {
         let local_env = new Map()
         for (let m of this.spec.matches) {
 
-            if (is_matches_between(m)) {
+            if (!cond) {
                 return false
+            }
+
+            if (is_matches_between(m)) {
+
+                let [name, rest] = m.path_a
+                let [name2, rest2] = m.path_b
+                let [name3, rest3] = m.path_c
+
+
+                let a_step_index = this.spec.line.findIndex(_ => _ === name)
+                let b_step_index = this.spec.line.findIndex(_ => _ === name2)
+                let c_step_index = this.spec.line.findIndex(_ => _ === name3)
+
+
+
+                let x_row = this.get_row(a_step_index, prefix.bindings[a_step_index]);
+                if (x_row === undefined) {
+                    return true
+                }
+
+
+                let y_row = this.get_row(b_step_index, prefix.bindings[b_step_index]);
+
+                if (y_row === undefined) {
+                    return true
+                }
+
+
+                let z_row = this.get_row(c_step_index, prefix.bindings[c_step_index]);
+
+                if (z_row === undefined) {
+                    return true
+                }
+
+                let x = x_row.get(rest)!
+                let y = y_row.get(rest2)!
+                let z = z_row.get(rest3)!
+
+                let yz = between(y, z)
+
+                cond &&= m.is_different ? !yz.has(x) : yz.has(x)
+                continue
             }
 
             let [name, rest] = path_split(m.path_a)

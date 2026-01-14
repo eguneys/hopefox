@@ -16,6 +16,7 @@ enum TokenType {
     Const = 'Const',
     Dot = 'Dot',
     Between = 'Between',
+    NotBetween = 'NotBetween',
     Newline = 'Newline',
     Eof = 'Eof'
 }
@@ -135,6 +136,11 @@ class Lexer {
             if (word === 'between') {
                 return { type: TokenType.Between, value: 'between' }
             }
+            if (word === 'not_between') {
+                return { type: TokenType.NotBetween, value: 'notbetween' }
+            }
+
+
 
             if (word === 'fact') {
                 return { type: TokenType.BeginFact, value: 'fact' }
@@ -228,6 +234,18 @@ class Parser {
     private parse_match(): Matches {
 
         let path_a = this.path_or_constant()
+
+        if (this.current_token.type === TokenType.NotBetween) {
+            this.eat(TokenType.NotBetween)
+
+            let path_b = this.path_or_constant()
+
+            let path_c = this.path_or_constant()
+
+            return { path_a, path_b, path_c, is_different: true }
+        }
+
+
 
         if (this.current_token.type === TokenType.Between) {
             this.eat(TokenType.Between)
@@ -539,6 +557,7 @@ type MatchesBetween = {
     path_a: Path
     path_b: Path
     path_c: Path
+    is_different?: true
 }
 
 type Matches = MatchesEqual | MatchesBetween
