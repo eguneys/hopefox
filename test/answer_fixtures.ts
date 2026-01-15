@@ -1,4 +1,96 @@
+export let rules_skips0_13 = `
+
+`
+
 export let rules_skips0_12 = `
+idea fork_king_blockable
+  alias fork fork_king_and_b_moves
+  alias block moves
+  line fork block
+  .to_b = fork.to_b
+  block.to between fork.to fork.to_a
+
+idea check_blockable
+  alias check check_king_moves
+  alias block moves
+  line check block
+  block.to between check.to check.to2
+  
+fact check
+ alias occ occupies
+ .from = attacks2.from
+ .to = attacks2.to
+ .to2 = attacks2.to2
+ .piece = occupies.piece
+ .to_piece = occ.piece
+ attacks2.from = occupies.square
+ attacks2.to2 = occ.square
+ attacks2.from != attacks2.to2
+ occupies.color != occ.color
+
+
+fact check_king
+ .from = check.from
+ .to = check.to
+ .to2 = check.to2
+ .piece = check.piece
+ check.to_piece = King
+
+
+legal check_king_moves
+
+
+idea solution
+ alias one fork_king_blockable
+ alias three captures_moves
+ line one three
+ one.to_b = three.to
+
+
+
+fact captures
+ alias occ occupies
+ .from = attacks.from
+ .to = attacks.to
+ attacks.from = occupies.square
+ attacks.to = occ.square
+
+
+legal captures_moves
+
+
+fact fork_a_b
+  alias occ_a occupies
+  alias occ_b occupies
+  alias fork_a attacks2
+  alias fork_b attacks2
+  .from = fork_a.from
+  .to = fork_a.to
+  .to_a = fork_a.to2
+  .to_b = fork_b.to2
+  .piece_a = occ_a.piece
+  .piece_b = occ_b.piece
+  fork_a.from = fork_b.from
+  fork_a.to = fork_b.to
+  fork_a.to2 != fork_b.to2
+  fork_a.from = occupies.square
+  fork_a.to2 = occ_a.square
+  fork_b.to2 = occ_b.square
+  occupies.color != occ_a.color
+  occupies.color != occ_b.color
+
+
+fact fork_king_and_b
+  .from = fork_a_b.from
+  .to = fork_a_b.to
+  .to_a = fork_a_b.to_a
+  .to_b = fork_a_b.to_b
+  .piece_b = fork_a_b.piece_b
+  fork_a_b.piece_a = King
+
+
+legal fork_king_and_b_moves
+
 `
 
 
