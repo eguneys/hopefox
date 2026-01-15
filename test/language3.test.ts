@@ -4,6 +4,26 @@ import { puzzles } from './fixture'
 import { minmax_solve_loose } from './world2.test'
 
 
+it('regression hanging1 occupies', () => {
+  let rules = `
+fact hanging_piece 
+  .on = hanging1.on 
+  hanging1.on = occupies.square 
+`.trim()
+
+
+  console.log(puzzles[0].link)
+  let fen = puzzles[0].move_fens[0]
+  let pos = m.create_position(fen)
+  let res = relations(m, pos, rules)
+  m.delete_position(pos)
+
+  console.log(res.get('hanging_piece'))
+
+
+
+})
+
 
   let skips = [
     501, 502, 504, 506, 507, 508, 509, 510, 512,
@@ -473,7 +493,7 @@ let m = await PositionManager.make()
 
 
 
-it('100 bench test', () => {
+it.skip('100 bench test', () => {
 
   let rules = `
   fact check

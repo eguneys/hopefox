@@ -893,7 +893,8 @@ class FactJoin {
                 ok = this.materialize_vacants(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
-            case 'hanging':
+            case 'hanging1':
+            case 'hanging0':
                 this.make_moves_to_world(fact.world_id)
                 ok = this.materialize_hanging(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
@@ -1280,16 +1281,30 @@ class FactJoin {
 
     materialize_hanging(world_id: WorldId) {
 
-        let occ = this.m.pos_occupied(this.pos)
 
-        let aa = SquareSet.empty()
+        let occ = SquareSet.empty()
+        let more_than_one = SquareSet.empty()
+        let carry = SquareSet.empty()
 
-        for (let on of occ) {
-            aa = aa.union(this.m.pos_attacks(this.pos, on))
+
+        for (let on of this.m.pos_occupied(this.pos)) {
+            let aa = this.m.pos_attacks(this.pos, on)
+            more_than_one = more_than_one.union(carry.intersect(aa))
+            carry = carry.union(aa)
         }
+        occ = carry
+        let exactly_one = occ.intersect(more_than_one.complement())
 
-        for (let on of aa.complement()) {
-            this.add_row('hanging', new Map([
+        let zero = occ.complement()
+
+        for (let on of zero) {
+            this.add_row('hanging0', new Map([
+                ['start_world_id', world_id],
+                ['square', on]
+            ]))
+        }
+        for (let on of exactly_one) {
+            this.add_row('hanging1', new Map([
                 ['start_world_id', world_id],
                 ['square', on]
             ]))
