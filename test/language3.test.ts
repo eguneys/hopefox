@@ -1088,6 +1088,39 @@ it.skip('100 bench skips01', () => {
 
 })
 
+
+it.skip('100 bench full from fixture', () => {
+
+  let rules = rules01.trim() + '\n' + rules00.trim()
+
+
+  let two = bench(rules, [], 100, 200)
+  let three = bench(rules, [], 200, 300)
+  let four = bench(rules, [], 300, 400)
+
+  console.log('200 ' + `[${two.length}/100]`)
+  console.log(two)
+  console.log('300 ' + `[${three.length}/100]`)
+  console.log(three)
+  console.log('400 ' + `[${four.length}/100]`)
+  console.log(four)
+})
+
+
+it('100-200 bench skips0', () => {
+  let rules = `
+`
+
+  let skips = skips_200_0_44
+
+  let one = solve_n2(skips[0], rules)
+
+  let only = bench_only(rules, skips)
+
+  console.log(only)
+})
+
+
 function solve_n2(n: number, rules: string) {
   let link = puzzles[n].link
   let fen = puzzles[n].move_fens[0]
@@ -1180,6 +1213,8 @@ function bench(rules: string, skips: number[], start = 0, end = 100) {
 }
 
 import fs from 'fs'
+import { rules00, rules01 } from './rules_100_skips0'
+import { skips_200_0_44 } from './skip_fixtures'
 
 function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
