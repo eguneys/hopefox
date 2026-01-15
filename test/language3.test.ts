@@ -1108,12 +1108,13 @@ it.skip('100 bench full from fixture', () => {
 
 
 it('100-200 bench skips0', () => {
-  let rules = `
-`
+  let rules = rules_200_skip0.trim()
 
   let skips = skips_200_0_44
 
-  let one = solve_n2(skips[0], rules)
+  //let one = solve_n2(skips[0], rules)
+
+  skips = skips_300_0_52
 
   let only = bench_only(rules, skips)
 
@@ -1214,7 +1215,8 @@ function bench(rules: string, skips: number[], start = 0, end = 100) {
 
 import fs from 'fs'
 import { rules00, rules01 } from './rules_100_skips0'
-import { skips_200_0_44 } from './skip_fixtures'
+import { skips_200_0_44, skips_300_0_52 } from './skip_fixtures'
+import { rules_200_skip0 } from './answer_fixtures'
 
 function render(data: string) {
     fs.writeFileSync(__dirname + '/_output.txt', data)
