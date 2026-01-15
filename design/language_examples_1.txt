@@ -1,0 +1,113 @@
+fact forks_a_b
+ alias a attacks2
+ alias b attacks2
+ alias occ_a occupies
+ alias occ_b occupies
+ .from = a.from
+ .to = a.to
+ .to_a = a.to2
+ .to_b = b.to2
+ .piece = occupies.piece
+ .piece_a = occ_a.piece
+ .piece_b = occ_b.piece
+ a.from = occupies.square
+ a.to2 = occ_a.square
+ b.to2 = occ_b.square
+ a.to2 != b.to2
+ a.from = b.from
+ a.to = b.to
+ occupies.color != occ_a.color
+ occupies.color != occ_b.color
+ 
+ 
+fact forks_king_queen
+ .from = forks_a_b.from
+ .to = forks_a_b.to
+ forks_a_b.piece_a = King
+ forks_a_b.piece_b = Queen
+
+fact captures
+  alias occ occupies
+ .from = attacks.from
+ .to = attacks.to
+ .piece = occupies.piece
+ .piece_a = occ.piece
+ attacks.from = occupies.square
+ attacks.to = occ.square
+ occupies.color != occ.color
+
+
+legal forks_king_queen_moves
+
+legal captures_moves
+ 
+ 
+fact undefends_piece
+  alias occ occupies
+  .from = un_attacks2.from
+  .to = un_attacks2.to
+  .to2 = un_attacks2.to2
+  .piece = occupies.piece
+  .piece2 = occ.piece
+  un_attacks2.from = occupies.square
+  un_attacks2.to2 = occ.square
+  occupies.color = occ.color
+
+
+legal undefends_piece_moves
+
+
+fact captures_and_undefends
+  alias c captures_moves
+  alias u undefends_piece_moves
+  .from = c.from
+  .to = c.to
+  .undefends = u.to2
+  c.from = u.from
+  c.to = u.to
+
+legal captures_and_undefends_moves
+
+
+idea solution_a
+ alias one forks_king_queen_moves
+ alias two captures_and_undefends_moves
+ alias three captures_moves
+ line one two three
+ two.undefends = three.to
+
+
+fact forks_queen_bishop
+  .from = forks_a_b.from
+  .to = forks_a_b.to
+  .to_a = forks_a_b.to_a
+  .to_b = forks_a_b.to_b
+  forks_a_b.piece_a = Queen
+  forks_a_b.piece_b = Bishop
+
+
+legal forks_queen_bishop_moves
+
+fact defends_bishop
+ .from = attacks2.from
+ .to = attacks2.to
+ .to2 = attacks2.to2
+ attacks2.to2 = occupies.square
+ 
+
+legal defends_bishop_moves
+
+idea solution_b
+  alias one forks_queen_bishop_moves
+  alias two defends_bishop_moves
+  alias three captures_moves
+  alias four captures_moves
+  line one two three four
+  one.to_a = two.from
+  one.to_b = two.to2
+  three.to = one.to_b
+  four.to = three.to
+
+
+idea solution
+  line solution_a solution_b

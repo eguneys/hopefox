@@ -1,0 +1,32 @@
+capture_queen recapture_x
+
+capture_x_with_check evade_check
+
+capture_queen x_capture_y_with_check
+
+capture_x_with_check evade_check
+capture_queen
+
+
+
+53
+zone_in_mate_threat_on_pawn
+defend_pawn 0
+block_zone_in 0
+capture_supporter_with_sacrifice accept
+
+
+59
+kick_pinned_piece
+counter_attack_queen
+capture_kicked_piece lose_queen
+exchange_queens capture_kicked_piece
+
+
+60
+attack_queen with_zone_mate_threat_y
+evade_queen_and_undefend_y zone_mate
+king_safety_sacrifice_queen win_queen
+
+
+

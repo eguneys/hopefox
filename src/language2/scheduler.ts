@@ -566,6 +566,7 @@ class IdeaJoin {
                 let z = z_row.get(rest3)!
 
                 let yz = between(y, z)
+                //console.log(x, y, z)
 
                 cond &&= m.is_different ? !yz.has(x) : yz.has(x)
                 continue
@@ -671,6 +672,7 @@ type FactPlan = {
     name: Column
     sources: AliasColumn[]
     joins: { left: AliasColumn, right: AliasColumn, is_different: boolean }[]
+    between_joins: { left: AliasColumn, right: AliasColumn, right2: AliasColumn, is_different: boolean }[]
 
     output: OutputExpr[]
 }
@@ -680,12 +682,48 @@ function convert_to_plan(fact: FactAlias) {
     let sources = []
     let joins = []
     let output: OutputExpr[] = []
+    let between_joins = []
 
     for (let alias of fact.aliases) {
         sources.push({ alias: alias.alias[0], relation: alias.column[0] })
     }
 
     for (let m of fact.matches) {
+
+        if (is_matches_between(m)) {
+
+            let left_alias = m.path_a[0]
+            let left_column = m.path_a[1]
+
+            if (left_column !== '' && !sources.find(_ => _.alias === left_alias)) {
+                sources.push({ alias: left_alias, relation: left_alias })
+            }
+
+            let right_alias = m.path_b[0]
+            let right_column = m.path_b[1]
+
+            if (right_column !== '' && !sources.find(_ => _.alias === right_alias)) {
+                sources.push({ alias: right_alias, relation: right_alias })
+            }
+
+            let right2_alias = m.path_c[0]
+            let right2_column = m.path_c[1]
+
+            if (right2_column !== '' && !sources.find(_ => _.alias === right2_alias)) {
+                sources.push({ alias: right2_alias, relation: right2_alias })
+            }
+
+            let is_different = m.is_different === true
+            between_joins.push({
+                left: { alias: left_alias, relation: left_column },
+                right: { alias: right_alias, relation: right_column },
+                right2: { alias: right2_alias, relation: right2_column },
+                is_different
+            })
+
+            continue
+        }
+
         let left_alias = m.path_a[0]
         let left_column = m.path_a[1]
 
@@ -700,7 +738,7 @@ function convert_to_plan(fact: FactAlias) {
             sources.push({ alias: right_alias, relation: right_alias })
         }
 
-        let is_different = is_matches_between(m) ? false : m.is_different === true
+        let is_different = m.is_different === true
         joins.push({
             left: { alias: left_alias, relation: left_column },
             right: { alias: right_alias, relation: right_column },
@@ -718,6 +756,7 @@ function convert_to_plan(fact: FactAlias) {
         name: fact.name,
         sources,
         joins,
+        between_joins,
         output
     }
 
@@ -726,7 +765,30 @@ function convert_to_plan(fact: FactAlias) {
 
 type Binding = Map<string, Row>
 
-function joinsSatisfiedSoFar(binding: Binding, joins: { is_different: boolean, left: AliasColumn, right: AliasColumn }[]) {
+function joinsSatisfiedSoFar(binding: Binding, 
+    joins: { is_different: boolean, left: AliasColumn, right: AliasColumn }[],
+    between_joins: { is_different: boolean, left: AliasColumn, right: AliasColumn, right2: AliasColumn }[],
+) {
+    for (const join of between_joins) {
+        const l = binding.get(join.left.alias)
+        const r = binding.get(join.right.alias)
+        const r2 = binding.get(join.right2.alias)
+        if (l === undefined || r === undefined || r2 === undefined) {
+            continue
+        }
+        let ray = between(r.get(join.right.relation)!, r2.get(join.right2.relation)!)
+        if (join.is_different) {
+            if (ray.has(l.get(join.left.relation)!)) {
+                return false
+            }
+        } else {
+            if (!ray.has(l.get(join.left.relation)!)) {
+                return false
+            }
+        }
+    }
+
+
     for (const join of joins) {
         const l = binding.get(join.left.alias)
         const r = binding.get(join.right.alias)
@@ -856,6 +918,11 @@ class FactJoin {
                 ok = this.materialize_attack2_throughs(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
+            case 'un_attacks2':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_un_attacks2(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
             default: {
                 ok = this.join_with_program(fact)
                 //ok = this.join_with_execute_fact(fact)
@@ -888,6 +955,7 @@ class FactJoin {
     executeFact(fact: Fact, plan: FactPlan, world_id: WorldId) {
         const sources = plan.sources
         const joins = plan.joins
+        const between_joins = plan.between_joins
 
         let self = this
         function getRows(source: AliasColumn, world_id: WorldId, binding: Binding) {
@@ -899,7 +967,6 @@ class FactJoin {
                         column: j.left.relation,
                         value: Constants_by_name[j.right.alias]!
                     })
-                    console.log(filters)
                 } else if (j.left.alias === source.alias && binding.has(j.right.alias)) {
                     filters.push({
                         column: j.left.relation,
@@ -935,7 +1002,7 @@ class FactJoin {
                 binding.set(source.alias, row)
 
 
-                if (joinsSatisfiedSoFar(binding, joins)) {
+                if (joinsSatisfiedSoFar(binding, joins, between_joins)) {
                     extend(binding, sourceIndex + 1)
                 }
 
@@ -1100,6 +1167,38 @@ class FactJoin {
                                 ['color', piece_c_color_of(piece)]
                             ]))
                         }
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+
+
+    materialize_un_attacks2(world_id: WorldId) {
+
+        for (let on of SquareSet.full()) {
+            let piece = this.m.get_at(this.pos, on)
+
+            if (piece) {
+
+                let aa = this.m.attacks(piece, on, this.m.pos_occupied(this.pos))
+
+                for (let a of aa) {
+
+                    let aa2 = this.m.attacks(piece, a, this.m.pos_occupied(this.pos).without(on))
+                    aa2 = aa.diff(aa2).without(a)
+
+                    for (let a2 of aa2) {
+                        this.add_row('un_attacks2', new Map([
+                            ['start_world_id', world_id],
+                            ['from', on],
+                            ['to', a],
+                            ['to2', a2],
+                            ['piece', piece_c_type_of(piece)],
+                            ['color', piece_c_color_of(piece)]
+                        ]))
                     }
                 }
             }

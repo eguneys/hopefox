@@ -17,7 +17,59 @@ import { minmax_solve_loose } from './world2.test'
   ]
 
 
-it('regression 2 piece_a piece_b', () => {
+
+
+it('regression between check block', () => {
+
+  let rules = `
+fact check
+ alias occ occupies
+ .from = attacks2.from
+ .to = attacks2.to
+ .to2 = attacks2.to2
+ .piece = occupies.piece
+ .to_piece = occ.piece
+ attacks2.from = occupies.square
+ attacks2.to2 = occ.square
+ attacks2.from != attacks2.to2
+ occupies.color != occ.color
+
+
+fact check_king
+ .from = check.from
+ .to = check.to
+ .to2 = check.to2
+ .piece = check.piece
+ check.to_piece = King
+
+legal check_king_moves
+
+
+fact blockable
+  alias block attacks
+  alias check check_king_moves
+  .from = block.from
+  .to = block.to
+  block.to between check.to check.to2
+`.trim()
+
+  console.log(puzzles[0].link)
+  let fen = puzzles[0].move_fens[0]
+  let pos = m.create_position(fen)
+  let res = relations(m, pos, rules)
+  m.delete_position(pos)
+
+  console.log(res.get('blockable'))
+
+
+
+})
+
+
+
+
+
+it.skip('regression 2 piece_a piece_b', () => {
 
   let rules = `
 

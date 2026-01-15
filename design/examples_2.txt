@@ -1,0 +1,53 @@
+check uncapturable unevadable blockable
+block
+capture block and fork queen unblockable capturable evadable
+     check unevadable unblockable capturable
+capture sacrifice queen
+accept sacrifice
+
+
+check uncapturable unevadable unblockable mate
+
+
+check
+block sacrifice rook
+accept check mate
+
+
+double_loose
+capture capture capture
+
+
+fork king queen uncapturable unblockable evadable
+evade king sacrifice queen
+accept sacrifice capture queen
+
+liquidate 4
+capture capture capture capture
+bishop_trap_rook
+
+fork king rook
+
+check capturable unevadable unblockable
+capture
+capture check mate
+
+
+check capturable unevadable blockable
+block capture mate
+capture
+check uncapturable unevadable blockable
+capture mate
+
+
+check uncapturable unblockable evadable
+evade
+check mate
+
+check uncapturable unblockable unevadable zone mate
+
+
+capture hanging threaten zone mate
+fork king queen capturable
+capture
+
