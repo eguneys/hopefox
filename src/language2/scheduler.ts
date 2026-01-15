@@ -888,6 +888,16 @@ class FactJoin {
                 ok = this.materialize_occupies(fact.world_id)
                 this.unmake_moves_to_base(fact.world_id)
                 break
+            case 'vacants':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_vacants(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
+            case 'hanging':
+                this.make_moves_to_world(fact.world_id)
+                ok = this.materialize_hanging(fact.world_id)
+                this.unmake_moves_to_base(fact.world_id)
+                break
             case 'push':
                 this.make_moves_to_world(fact.world_id)
                 ok = this.materialize_pushes(fact.world_id)
@@ -1266,6 +1276,29 @@ class FactJoin {
 
         return true
     }
+
+
+    materialize_hanging(world_id: WorldId) {
+
+        let occ = this.m.pos_occupied(this.pos)
+
+        let aa = SquareSet.empty()
+
+        for (let on of occ) {
+            aa = aa.union(this.m.pos_attacks(this.pos, on))
+        }
+
+        for (let on of aa.complement()) {
+            this.add_row('hanging', new Map([
+                ['start_world_id', world_id],
+                ['square', on]
+            ]))
+        }
+
+        return true
+    }
+
+
 
     materialize_vacants(world_id: WorldId) {
         for (let on of SquareSet.full()) {

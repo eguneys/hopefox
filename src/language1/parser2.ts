@@ -147,7 +147,7 @@ class Lexer {
             }
 
             if (word === 'idea') {
-                return { type: TokenType.BeginIdea, value: 'fact' }
+                return { type: TokenType.BeginIdea, value: 'idea' }
             }
 
             if (word === 'motif') {
@@ -416,6 +416,9 @@ class Parser {
                 }
 
 
+                if (current_token.type === TokenType.BeginFact || current_token.type === TokenType.BeginIdea || current_token.type === TokenType.Legal) {
+                    break
+                }
 
                 matches.push(this.parse_match())
 
@@ -519,6 +522,9 @@ class Parser {
 
             let idea = this.parse_idea()
             if (idea) {
+                if (idea.name === 'solution6') {
+                    debugger
+                }
                 ideas.set(idea.name, idea)
                 continue
             }

@@ -1,0 +1,45 @@
+captures_hanging
+forks_king_queen
+captures_fork
+
+
+skewers_king_b
+king_evades
+captures_skewer
+
+fork_a_b check_king_blockable
+push_block
+capture_b
+
+captures_moves _hanging_
+
+captures_moves _hanging_ unpins_queen counter_attacks_queen
+captures_queen captures_queen attacks_rook
+- captures_b captures_c
+
+push_check unblockable evadable
+evade_king check mate
+
+capture_moves _hanging_
+captures_exchange recapture
+
+forks_king_b blocks captures_b
+
+
+check capture remove_defender_of_b
+capture_check capture_b
+
+pin_queen_to_king
+unpin_queen capture_queen
+
+
+check discover_attack_on_double_capture
+push block_check counter_attack_bishop
+double_capture sacrifice_bishop
+
+capture_hanging
+exchange_bishops
+
+
+capture_defender attack_rook
+recapture capture_undefended_piece

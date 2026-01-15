@@ -1,0 +1,4 @@
+check_blockable block_capturable
+capture and check_capturable 
+capture and sacrifice_capturable
+capture and accept_sacrifice_uncapturable
