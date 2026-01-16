@@ -125,7 +125,10 @@ it('works 2 binding', () => {
 
     let rules = `
 binding
-  sacrifice_bishop_to_pawn_moves skewer_queen_rook_moves setup_discovered_check_on_king_moves
+  sacrifice_bishop_to_pawn_moves 
+  skewer_queen_rook_moves 
+  setup_discovered_check_on_king_moves
+
   accept_sacrifice_moves
 `
 
