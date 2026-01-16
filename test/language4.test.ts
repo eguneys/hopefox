@@ -130,6 +130,7 @@ binding
   setup_discovered_check_on_king_moves
 
   accept_sacrifice_moves
+
 `
 
     rules += base_rules

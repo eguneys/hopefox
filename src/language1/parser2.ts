@@ -562,7 +562,9 @@ class Parser {
 
 
                 if (this.current_token.type === TokenType.Newline) {
-                    binds.push(res)
+                    if (res.length > 0) {
+                        binds.push(res)
+                    }
                     this.advance_tokens()
                     continue
                 }
