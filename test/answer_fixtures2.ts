@@ -1,3 +1,9 @@
+export let rules2_1 = `
+
+`
+
+
+export let rules2_0 = `
 binding
   knight_attacks_rook_moves
 
@@ -443,3 +449,4 @@ fact sacrifice_to_pawn
  att.from = occ.square
  occ.piece = Pawn
  occ.color != occupies.color
+`

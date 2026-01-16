@@ -1,0 +1,29 @@
+15
+rook_sacrifice_check(capturable, evadable, blockable)
+accept_by_pinned_bishop
+
+capture_check
+accept_sacrifice
+unblock_rook_attack_on_queen
+sacrifice_queen
+
+accept_sacrifice
+capture_queen
+
+counter_collection_captures_rook_vs_bishop
+
+
+16
+rook_check(uncapturable, blockable, evadable)
+
+evade_king
+
+queen_joins check_threat(uncapturable, unevadable, blockable)
+
+queen_check(evadable) defends_through_checks
+
+evade_king
+
+
+## Note
+Pawn Push Attacks not Attacks2

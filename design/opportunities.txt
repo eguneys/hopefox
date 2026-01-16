@@ -1,0 +1,9 @@
+I have a few dimensions of productive engineering opportunities:
+
+Improve code editor intellisense extra IDE features debugging error messages autocomplete
+Improve styling layout polish website in a user friendly way
+Improve language design focus on anchors and how they can be encoded without obstrusive messiness
+Focus on puzzle coverage and explore latent language feature extensions
+Grind down existing low fruit puzzles to solidify and mature the language improve the confidence on it.
+
+Definitely for the future optimizations, I haven't hit the unresponsive performance bottleneck yet.

@@ -1,10 +1,62 @@
-import { it } from 'vitest'
-import { bindings, extract_line, extract_sans, fen_pos, PositionManager, relations } from '../src'
-import { puzzles } from './fixture'
+binding
+  setup_discovered_check_on_king_moves
+  sacrifice_bishop_to_pawn_moves
+  skewer_queen_rook_moves
 
-let m = await PositionManager.make()
+  accept_sacrifice_moves
+  
+  rook_check_moves
 
-let base_rules = `
+  queen_sacrifice_vs_rook
+
+
+idea queen_sacrifice_vs_rook
+  alias one captures_rook_moves
+  alias two captures_moves
+  line one two
+  one.to = two.to
+
+
+legal captures_rook_moves
+legal captures_moves
+
+fact captures_rook 
+  .from = captures.from
+  .to = captures.to
+  captures.to_piece = Rook
+
+fact captures
+  alias occ occupies
+  .from = attacks.from
+  .to = attacks.to
+  .to_piece = occ.piece
+  attacks.from = occupies.square
+  attacks.to = occ.square
+  occupies.color != occ.color
+
+
+legal rook_check_moves
+
+fact rook_check
+  .from = check.from
+  .to = check.to
+  check.piece = Rook
+
+fact check
+  alias occ occupies
+  .from = attacks2.from
+  .to = attacks2.to
+  .piece = occupies.piece
+  attacks2.from = occupies.square
+  attacks2.to2 = occ.square
+  occ.piece = King
+  occ.color != occupies.color
+  
+  
+
+legal accept_sacrifice_moves
+
+
 fact accept_sacrifice
   alias occ occupies
   .from = attacks.from
@@ -15,7 +67,6 @@ fact accept_sacrifice
   occupies.piece = Pawn
   
 
-legal accept_sacrifice_moves
 
 legal setup_discovered_check_on_king_moves
 
@@ -84,73 +135,3 @@ fact sacrifice_to_pawn
  att.from = occ.square
  occ.piece = Pawn
  occ.color != occupies.color
-
-
-`
-
-it.skip('works', () => {
-
-    let rules = `
-idea this_example_1
-  align one sacrifice_bishop_to_pawn_moves | skewer_queen_rook_moves | setup_discovered_check_on_king_moves
-  alias two accept_sacrifice_moves
-  line one two
-`
-
-    rules += base_rules
-
-    let pos2 = fen_pos(puzzles[902].move_fens[0])
-    let pos = m.create_position(puzzles[902].move_fens[0])
-    let res = relations(m, pos, rules)
-
-    let lines: string[] = []
-    let rows = res.get('this_example_1')!.get_relation_starting_at_world_id(0).rows.map(row => {
-        let aa = extract_line(row)
-
-        let resaa = extract_sans(pos2, aa)
-        if (resaa.length > 0) {
-            lines.push(resaa.join(' '))
-        }
-    })
-
-
-    console.log(lines)
-
-
-})
-
-
-
-it.skip('works 2 binding', () => {
-
-    let rules = `
-binding
-  sacrifice_bishop_to_pawn_moves 
-  skewer_queen_rook_moves 
-  setup_discovered_check_on_king_moves
-
-  accept_sacrifice_moves
-
-`
-
-    rules += base_rules
-
-    let pos2 = fen_pos(puzzles[902].move_fens[0])
-    let pos = m.create_position(puzzles[902].move_fens[0])
-    let res = bindings(m, pos, rules)
-
-    let lines: string[] = []
-    let rows = res.get('binding0')!.get_relation_starting_at_world_id(0).rows.map(row => {
-        let aa = extract_line(row)
-
-        let resaa = extract_sans(pos2, aa)
-        if (resaa.length > 0) {
-            lines.push(resaa.join(' '))
-        }
-    })
-
-
-    console.log(lines)
-
-
-})

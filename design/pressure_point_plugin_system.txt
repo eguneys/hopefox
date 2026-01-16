@@ -1,0 +1,13 @@
+I have identified another focal point, that needs to be somehow encoded into the system to expand the features. Here's what it looks like:
+
+3
+knight_exchange_check (capturable)
+remove_defender_of_bishop (bishop_becomes_hanging)
+
+capture_exchange
+
+capture_hanging_bishop
+
+in this causal bindings, the semantic relationships are more than just one move comes after another but, for example "capture_exchange" happens on the square of where "knight_exchange" has happened previously.
+"capture_hanging_bishop" is available on a relation where the bishop happens to be is the defense of the knight that just got exchanged. 
+If I can come up with a flat indication style of these plug points everything should start clicking.

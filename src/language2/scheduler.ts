@@ -1514,7 +1514,7 @@ function fix_aligns(line: string, aligns: Align[]) {
 }
 
 function fix_alias(line: string, aliases: Alias[]) {
-    return aliases.find(_ => _.alias[0] === line)?.column[0]
+    return aliases.find(_ => _.alias[0] === line)?.column[0] ?? line
 }
 
 type Path = [string, string]
