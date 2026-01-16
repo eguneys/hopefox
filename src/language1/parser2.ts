@@ -549,13 +549,17 @@ class Parser {
                 ) {
                     break
                 }
-                while (this.current_token.type !== TokenType.Newline) {
+                let current_token = this.current_token
+                while (current_token.type !== TokenType.Newline) {
                     res.push(this.path())
+
+                    if (this.current_token.type === TokenType.Newline) {
+                        this.advance_tokens()
+                    }
+                    current_token = this.current_token
                 }
 
-                if (this.current_token.type === TokenType.Newline) {
-                    this.advance_tokens()
-                }
+
 
                 if (this.current_token.type === TokenType.Newline) {
                     binds.push(res)
