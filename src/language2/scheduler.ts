@@ -2,7 +2,7 @@ import { between } from "../distill/attacks"
 import { squareSet } from "../distill/debug"
 import { BISHOP, KING, KNIGHT, move_c_to_Move, PAWN, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager, QUEEN, ROOK } from "../distill/hopefox_c"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { Alias, Fact as FactAlias, Idea, is_constant, is_matches_between, parse_program, Program } from "../language1/parser2"
+import { Alias, Align, Fact as FactAlias, Idea, is_constant, is_matches_between, parse_program, Program } from "../language1/parser2"
 import { join, Relation, Row, select } from "./relational"
 import { extract_lines } from "./extract"
 import { SquareSet } from "../distill/squareSet"
@@ -410,7 +410,9 @@ class IdeaJoin {
         return this.spec.line
     }
 
-    private Ms: RelationManager[]
+    private Ms: (RelationManager | undefined)[]
+
+    private AMs: (RelationManager[] | undefined)[]
 
     fact: Fact
 
@@ -424,13 +426,29 @@ class IdeaJoin {
 
         this.worklist = [{ owner: this, length: 0, bindings: [], env: new Map() }]
 
-        this.Ms = this.line.map(_ => this.scheduler.get_or_create_M(fix_alias(_, this.spec.aliases)))
+        this.Ms = this.line.map(_ => {
+            let res = fix_alias(_, this.spec.aliases)
+            if (!res) {
+                return undefined
+            }
+            return this.scheduler.get_or_create_M(res)
+        })
+        this.AMs = this.line.map(_ => {
+            let res = fix_aligns(_, this.spec.aligns)
+            if (!res) {
+                return undefined
+            }
+            return res.map(_ => this.scheduler.get_or_create_M(_))
+        })
 
         this.scheduler.get_or_create_M(this.spec.name)
     }
 
 
     get_row(step_index: number, row_id: RowId) {
+        if (this.Ms[step_index] === undefined) {
+            return this.AMs[step_index]![0].get_row(row_id)
+        }
         return this.Ms[step_index].get_row(row_id)
     }
 
@@ -477,6 +495,30 @@ class IdeaJoin {
         this.waiting_on_facts--
     }
 
+    align_AMs(name: Column, Ms: RelationManager[], next_world_id: WorldId) {
+
+        let M = new RelationManager(name)
+
+        let Mi = Ms[0]
+
+        outer2: for (let row_id of Mi.get_row_ids_starting_at_world_id(next_world_id)) {
+            let row = Mi.get_row(row_id)
+            outer: for (let i = 1; i < Ms.length; i++) {
+                for (let row_id2 of Ms[i].get_row_ids_starting_at_world_id(next_world_id)) {
+                    let row2 = Ms[i].get_row(row_id2)
+
+                    if (row.get('from') === row2.get('from') && row.get('to') === row2.get('to')) {
+                        continue outer
+                    }
+                }
+                continue outer2
+            }
+            M.add_row(row)
+        }
+
+        return M
+    }
+
     step() {
         if (this.worklist.length === 0) {
             if (this.waiting_on_facts === 0) {
@@ -496,9 +538,30 @@ class IdeaJoin {
 
         const stepIndex = prefix.length
         let M0 = this.Ms[stepIndex - 1]
+
+        let next_world_id = prefix_required_last_world_id(M0!, prefix, this.fact.world_id)
+
         let M = this.Ms[stepIndex]
 
-        let next_world_id = prefix_required_last_world_id(M0, prefix, this.fact.world_id)
+
+
+        if (!M) {
+            let needs_columns  = this.AMs[stepIndex]!.map(_ => _.name)
+            for (let name of needs_columns) {
+                let needs_fact_key = hash_fact_key(name, next_world_id)
+
+                if (!this.scheduler.is_facts_joined(needs_fact_key)) {
+                    this.waiting_on_facts++
+                    this.scheduler.suspend_prefix_to_request_facts(prefix, needs_fact_key)
+                    this.scheduler.request_fact(name, next_world_id)
+                    return
+                }
+            }
+
+            let name = this.line[stepIndex]
+            M = this.align_AMs(name, this.AMs[stepIndex]!, next_world_id)
+            this.Ms[stepIndex] = M
+        }
 
         let needs_fact_key = hash_fact_key(M.name, next_world_id)
 
@@ -1431,8 +1494,12 @@ export function search3(m: PositionManager, pos: PositionC, rules: string, pull_
     return new Map(pull_columns.map(_ => [_, scheduler.get_continuations(_)]))
 }
 
+function fix_aligns(line: string, aligns: Align[]) {
+    return aligns.find(_ => _.align[0] === line)?.columns.map(_ => _[0])
+}
+
 function fix_alias(line: string, aliases: Alias[]) {
-    return aliases.find(_ => _.alias[0] === line)?.column[0] ?? line
+    return aliases.find(_ => _.alias[0] === line)?.column[0]
 }
 
 type Path = [string, string]

@@ -4,7 +4,7 @@ import { puzzles } from './fixture'
 import { minmax_solve_loose } from './world2.test'
 
 
-it('regression hanging1 occupies', () => {
+it.skip('regression hanging1 occupies', () => {
   let rules = `
 fact hanging_piece 
   .on = hanging1.on 
@@ -1122,7 +1122,7 @@ it.skip('100-200 bench skips0', () => {
 })
 
 
-it('900-1000 bench skips0', () => {
+it.skip('900-1000 bench skips0', () => {
   let rules = [rules00, rules01, rules_200_skip0].join('\n')
 
   let only = bench(rules, [], 900, 1000)

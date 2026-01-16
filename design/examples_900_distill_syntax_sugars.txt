@@ -9,7 +9,7 @@ Second the syntactic sugar concept for this structure:
 
 idea example_1
  alias one fact_1
- align two fact_a fact_b
+ align two fact_a | fact_b
  alias three fact_d
  line one two three
 

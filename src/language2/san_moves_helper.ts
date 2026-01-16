@@ -1,7 +1,35 @@
 import { Position } from "../distill/chess"
-import { move_c_to_Move, MoveC, PositionC, PositionManager } from "../distill/hopefox_c"
+import { make_move_from_to, move_c_to_Move, MoveC, PositionC, PositionManager } from "../distill/hopefox_c"
 import { makeSan } from "../distill/san"
 import { Move } from "../distill/types"
+
+
+export function extract_sans(pos: Position, aa: MoveC[]) {
+
+  let resaa = []
+  let p2 = pos.clone()
+  for (let a = 0; a < aa.length; a++) {
+    let move = move_c_to_Move(aa[a])
+    resaa.push(makeSan(p2, move))
+    p2.play(move)
+  }
+  return resaa
+}
+
+type Column = string
+type Row = Map<Column, number>
+export function extract_line(row: Row) {
+  let res = []
+  for (let i = 1; i < 8; i++) {
+    let key = i == 1 ? '' : i
+    if (!row.has('from' + key)) {
+      break
+    }
+    res.push(make_move_from_to(row.get('from' + key)!, row.get('to' + key)!))
+  }
+  return res
+}
+
 
 type SAN = string
 

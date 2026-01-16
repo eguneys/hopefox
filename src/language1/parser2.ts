@@ -11,6 +11,8 @@ enum TokenType {
     BeginMotif = 'BeginMotif',
     Legal = 'Legal',
     Alias = 'Alias',
+    Align = 'Align',
+    Union = 'Union',
     Line = 'Line',
     Word = 'Word',
     Const = 'Const',
@@ -125,6 +127,11 @@ class Lexer {
                 return { type: TokenType.Dot, value: '.' }
             }
 
+            if (this.current_char === '|') {
+                this.advance()
+                return { type: TokenType.Union, value: '|' }
+            }
+
             let constant = this.constant()
 
             if (is_constant(constant)) {
@@ -154,6 +161,9 @@ class Lexer {
                 return { type: TokenType.BeginMotif, value: 'motif' }
             }
 
+            if (word === 'align') {
+                return { type: TokenType.Align, value: 'align' }
+            }
 
 
             if (word === 'alias') {
@@ -269,6 +279,24 @@ class Parser {
         return { path_a, path_b }
     }
 
+    private parse_align() {
+        this.eat(TokenType.Align)
+        let align = this.path()
+        let columns = []
+        do {
+            let column = this.path()
+            columns.push(column)
+            if (this.current_token.type === TokenType.Union) {
+                this.eat(TokenType.Union)
+            } else {
+                break
+            }
+        } while (true)
+        return { align, columns }
+    }
+
+
+
     private parse_alias() {
         this.eat(TokenType.Alias)
         let alias = this.path()
@@ -353,7 +381,7 @@ class Parser {
                 name,
                 assigns,
                 matches,
-                aliases
+                aliases,
             }
         }
     }
@@ -366,6 +394,14 @@ class Parser {
 
             this.eat(TokenType.Newline)
             let aliases = []
+            let aligns = []
+
+            while (this.current_token.type === TokenType.Align) {
+                aligns.push(this.parse_align())
+                this.eat(TokenType.Newline)
+            }
+
+
 
             while (this.current_token.type === TokenType.Alias) {
                 aliases.push(this.parse_alias())
@@ -382,7 +418,8 @@ class Parser {
                     line,
                     assigns: [],
                     matches: [],
-                    aliases
+                    aliases,
+                    aligns
                 }
             }
             this.eat(TokenType.Newline)
@@ -429,7 +466,8 @@ class Parser {
                 line,
                 assigns,
                 matches,
-                aliases
+                aliases,
+                aligns
             }
         }
 
@@ -572,6 +610,11 @@ export function is_matches_between(m: Matches): m is MatchesBetween {
     return (m as MatchesBetween).path_c !== undefined
 }
 
+export type Align = {
+    align: Path
+    columns: Path[]
+}
+
 export type Alias = {
     alias: Path
     column: Path
@@ -590,6 +633,7 @@ export type Idea = {
     assigns: Assignment[]
     matches: Matches[]
     aliases: Alias[]
+    aligns: Align[]
 }
 
 
