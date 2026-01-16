@@ -1,6 +1,337 @@
 export let rules2_1 = `
+binding 
+  check_king_blockable
+
+  check_king_blockable
+
+  checkmate
+
+
+binding
+  check_king_evadable
+
+  captures_moves
+
+binding 
+  check_king_blockable
+
+  captures_moves
+
+
+binding
+  captures_moves
+
+binding
+  captures_moves
+
+  sacrifice_queen_moves_acceptable
+
+binding
+  skewer_king_and_rook_moves_evadable
+
+  captures_moves
+
+binding
+  captures_moves
+
+  fork_king_and_queen_moves
+
+  captures_moves
+
+binding
+  fork_king_and_bishop_evadable
+
+  captures_moves
+
+binding 
+  check_king_evadable
+
+  checkmate
+
+binding
+  check_king_capturable
+
+  check_king_blockable
+
+  checkmate
+
+binding
+  check_king_capturable
+
+  checkmate
+
+binding
+  fork_king_and_rook_evadable
+
+  captures_moves
+
+
+binding
+  liquidation_moves
+
+
+binding
+  fork_king_and_queen_evadable
+
+  captures_moves
+
+
+binding
+  capture_recapturable
+
+binding
+  check_king_blockable
+
+  checkmate
+
+binding
+  checkmate
+
+binding
+  check_king_blockable
+
+  fork_king_and_queen_recapturable
+
+idea sacrifice_queen_moves_acceptable
+  alias one captures_moves
+  alias two captures_moves
+  line one two
+  one.piece = Queen
+  one.to = two.to
+
+
+
+idea liquidation_moves
+  alias one captures_moves
+  alias two captures_moves
+  alias three captures_moves
+  alias four captures_moves
+  line one two three four
+  one.to = two.to
+  two.to = three.to
+  three.to = four.to
+
+idea capture_recapturable
+  alias one captures_moves
+  alias two captures_moves
+  alias three captures_moves
+  line one two three
+  one.to = two.to
+  two.to = three.to
+
+idea checkmate
+  line check_king_moves
+
+idea fork_king_and_bishop_evadable
+  alias one fork_king_and_bishop_moves
+  alias two evade_king_moves
+  line one two
+
+idea fork_king_and_rook_evadable
+  alias one fork_king_and_rook_moves
+  alias two evade_king_moves
+  line one two
+
+idea fork_king_and_queen_evadable
+  alias one fork_king_and_queen_moves
+  alias two evade_king_moves
+  line one two
+
+idea fork_king_and_queen_recapturable
+  alias one fork_king_and_queen_moves
+  alias two captures_moves
+  alias three captures_moves
+  line one two three
+  one.to = two.to
+  two.to = three.to
+
+idea check_king_evadable
+  alias one check_king_moves
+  alias two evade_king_moves
+  line one two
+  
+
+idea check_king_blockable
+  alias one check_king_moves
+  alias two moves
+  line one two
+  two.to between one.to one.to2
+
+idea check_king_capturable
+  alias one check_king_moves
+  alias two captures_moves
+  line one two
+  one.to = two.to
+
+
+legal evade_king_moves
+legal evade_rook_moves
+legal evade_bishop_moves
+
+fact evade_piece
+  .from = attacks.from
+  .to = attacks.to
+  .piece = occupies.piece
+  attacks.from = occupies.square
+
+
+fact evade_king
+  .from = evade_piece.from
+  .to = evade_piece.to
+  evade_piece.piece = King
+
+
+legal check_king_moves
+
+fact check_king
+ alias check attacks2_plus
+ .from = check.from
+ .to = check.to
+ .to2 = check.to2
+ .piece = check.piece
+ check.to2_piece = King
+ check.color != check.to2_color
+
+fact attacks2_plus
+  alias occ occupies
+  alias occ2 occupies
+  .from = attacks2.from
+  .to = attacks2.to
+  .to2 = attacks2.to2
+  .piece = occupies.piece
+  .to2_piece = occ2.piece
+  .color = occupies.color
+  .to2_color = occ2.color
+  attacks2.from = occupies.square
+  attacks2.to2 = occ2.square
+
+
+legal captures_moves
+
+fact captures
+  alias occ occupies
+  .from = attacks.from
+  .to = attacks.to
+  .piece = occupies.piece
+  .to_piece = occ.piece
+  attacks.from = occupies.square
+  attacks.to = occ.square
+  occupies.color != occ.color
+
+legal fork_king_and_bishop_moves
+
+fact fork_king_and_bishop
+  .from = fork_a_b.from
+  .to = fork_a_b.to
+  fork_a_b.piece_a = King
+  fork_a_b.piece_b = Bishop
+
+legal fork_king_and_queen_moves
+
+fact fork_king_and_queen
+  .from = fork_a_b.from
+  .to = fork_a_b.to
+  fork_a_b.piece_a = King
+  fork_a_b.piece_b = Queen
+
+legal fork_king_and_rook_moves
+
+fact fork_king_and_rook
+  .from = fork_a_b.from
+  .to = fork_a_b.to
+  fork_a_b.piece_a = King
+  fork_a_b.piece_b = Rook
+
+fact fork_a_b
+  alias occ_a occupies
+  alias occ_b occupies
+  alias fork_a attacks2
+  alias fork_b attacks2
+  .from = fork_a.from
+  .to = fork_a.to
+  .to_a = fork_a.to2
+  .to_b = fork_b.to2
+  .piece = occupies.piece
+  .piece_a = occ_a.piece
+  .piece_b = occ_b.piece
+  fork_a.from = fork_b.from
+  fork_a.to = fork_b.to
+  fork_a.to2 != fork_b.to2
+  fork_a.from = occupies.square
+  fork_a.to2 = occ_a.square
+  fork_b.to2 = occ_b.square
+  occupies.color != occ_a.color
+  occupies.color != occ_b.color
+
+idea skewer_king_and_rook_moves_evadable
+  alias one skewer_king_and_rook_moves
+  alias two evade_king_moves
+  line one two
+
+legal skewer_king_and_rook_moves
+
+
+fact skewer_king_and_rook
+  .from = skewer.from
+  .to = skewer.to
+  skewer.through_piece = Rook
+  skewer.block_piece = King
+
+fact skewer
+  alias occ occupies
+  alias occ2 occupies
+  .from = attacks2_through.from
+  .to = attacks2_through.to
+  .to2 = attacks2_through.to2
+  .piece = occupies.piece
+  .through_piece = occ.piece
+  .block_piece = occ2.piece
+  attacks2_through.from = occupies.square
+  attacks2_through.to2 = occ.square
+  attacks2_through.block = occ2.square
+
 
 `
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 export let rules2_0 = `
