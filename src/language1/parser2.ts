@@ -545,6 +545,7 @@ class Parser {
                 if (
                     this.current_token.type === TokenType.BeginFact ||
                     this.current_token.type === TokenType.BeginIdea ||
+                    this.current_token.type === TokenType.BeginBinding ||
                     this.current_token.type === TokenType.Legal
                 ) {
                     break
