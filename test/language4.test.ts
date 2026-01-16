@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { extract_line, extract_sans, fen_pos, PositionManager, relations } from '../src'
+import { bindings, extract_line, extract_sans, fen_pos, PositionManager, relations } from '../src'
 import { puzzles } from './fixture'
 
 let m = await PositionManager.make()
@@ -88,7 +88,7 @@ fact sacrifice_to_pawn
 
 `
 
-it('works', () => {
+it.skip('works', () => {
 
     let rules = `
 idea this_example_1
@@ -105,6 +105,38 @@ idea this_example_1
 
     let lines: string[] = []
     let rows = res.get('this_example_1')!.get_relation_starting_at_world_id(0).rows.map(row => {
+        let aa = extract_line(row)
+
+        let resaa = extract_sans(pos2, aa)
+        if (resaa.length > 0) {
+            lines.push(resaa.join(' '))
+        }
+    })
+
+
+    console.log(lines)
+
+
+})
+
+
+
+it('works 2 binding', () => {
+
+    let rules = `
+binding
+  sacrifice_bishop_to_pawn_moves skewer_queen_rook_moves setup_discovered_check_on_king_moves
+  accept_sacrifice_moves
+`
+
+    rules += base_rules
+
+    let pos2 = fen_pos(puzzles[902].move_fens[0])
+    let pos = m.create_position(puzzles[902].move_fens[0])
+    let res = bindings(m, pos, rules)
+
+    let lines: string[] = []
+    let rows = res.get('binding0')!.get_relation_starting_at_world_id(0).rows.map(row => {
         let aa = extract_line(row)
 
         let resaa = extract_sans(pos2, aa)

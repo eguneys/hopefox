@@ -2,10 +2,11 @@ import { between } from "../distill/attacks"
 import { squareSet } from "../distill/debug"
 import { BISHOP, KING, KNIGHT, move_c_to_Move, PAWN, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager, QUEEN, ROOK } from "../distill/hopefox_c"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { Alias, Align, Fact as FactAlias, Idea, is_constant, is_matches_between, parse_program, Program } from "../language1/parser2"
+import { Alias, Align, desugar_binding, Fact as FactAlias, Idea, is_constant, is_matches_between, parse_program, Program } from "../language1/parser2"
 import { join, Relation, Row, select } from "./relational"
 import { extract_lines } from "./extract"
 import { SquareSet } from "../distill/squareSet"
+import { Binding as IdeaBinding } from '../language1/parser2'
 
 class NoSuchColumn extends Error {
     constructor(name: Column) {
@@ -83,7 +84,7 @@ class Scheduler {
 
     nodes: NodeManager
 
-    constructor(m: PositionManager, pos: PositionC, rules: string) {
+    constructor(m: PositionManager, pos: PositionC, program: Program) {
 
         this.nodes = new NodeManager()
 
@@ -98,7 +99,7 @@ class Scheduler {
         this.active_fact_joins = new Set()
         this.pending_fact_joins = new Map()
 
-        this.program = parse_program(rules)
+        this.program = program
 
         this.RMs = new Map()
     }
@@ -1476,10 +1477,24 @@ class FactJoin {
 }
 
 
-export function relations(m: PositionManager, pos: PositionC, rules: string) {
-    let scheduler = new Scheduler(m, pos, rules)
-
+export function bindings(m: PositionManager, pos: PositionC, rules: string) {
     let program = parse_program(rules)
+    let pull_columns = program.bindings.map((_, i) => {
+        let idea = desugar_binding(_, i)
+        program.ideas.set(idea.name, idea)
+        return idea.name
+    })
+    let scheduler = new Scheduler(m, pos, program)
+
+    pull_columns.forEach(_ => scheduler.request_fact(_, 0))
+    scheduler.run()
+    return scheduler.RMs
+}
+
+export function relations(m: PositionManager, pos: PositionC, rules: string) {
+    let program = parse_program(rules)
+    let scheduler = new Scheduler(m, pos, program)
+
     let pull_columns = [...program.facts.keys(), ...program.ideas.keys(), ...program.legals]
     pull_columns.forEach(_ => scheduler.request_fact(_, 0))
     scheduler.run()
@@ -1487,7 +1502,7 @@ export function relations(m: PositionManager, pos: PositionC, rules: string) {
 }
 
 export function search3(m: PositionManager, pos: PositionC, rules: string, pull_columns: string[] = []) {
-    let scheduler = new Scheduler(m, pos, rules)
+    let scheduler = new Scheduler(m, pos, parse_program(rules))
 
     pull_columns.forEach(_ => scheduler.request_fact(_, 0))
     scheduler.run()
@@ -1495,7 +1510,7 @@ export function search3(m: PositionManager, pos: PositionC, rules: string, pull_
 }
 
 function fix_aligns(line: string, aligns: Align[]) {
-    return aligns.find(_ => _.align[0] === line)?.columns.map(_ => _[0])
+    return aligns.find(_ => _.align === line)?.columns.map(_ => _)
 }
 
 function fix_alias(line: string, aliases: Alias[]) {

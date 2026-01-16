@@ -9,6 +9,7 @@ enum TokenType {
     BeginFact = 'BeginFact',
     BeginIdea = 'BeginIdea',
     BeginMotif = 'BeginMotif',
+    BeginBinding = 'BeginBinding',
     Legal = 'Legal',
     Alias = 'Alias',
     Align = 'Align',
@@ -160,6 +161,9 @@ class Lexer {
             if (word === 'motif') {
                 return { type: TokenType.BeginMotif, value: 'motif' }
             }
+            if (word === 'binding') {
+                return { type: TokenType.BeginBinding, value: 'binding' }
+            }
 
             if (word === 'align') {
                 return { type: TokenType.Align, value: 'align' }
@@ -281,10 +285,10 @@ class Parser {
 
     private parse_align() {
         this.eat(TokenType.Align)
-        let align = this.path()
+        let align = this.word()
         let columns = []
         do {
-            let column = this.path()
+            let column = this.word()
             columns.push(column)
             if (this.current_token.type === TokenType.Union) {
                 this.eat(TokenType.Union)
@@ -527,6 +531,39 @@ class Parser {
     }
 
 
+    private parse_binding(): Binding | undefined {
+
+        let current_token = this.current_token
+        if (current_token.type === TokenType.BeginBinding) {
+            this.eat(TokenType.BeginBinding)
+            this.eat(TokenType.Newline)
+            
+            let binds: Path[][] = []
+
+            while (true) {
+                let res = []
+                while (this.current_token.type !== TokenType.Newline) {
+                    res.push(this.path())
+                }
+                binds.push(res)
+
+                if (this.current_token.type === TokenType.Newline) {
+                    this.advance_tokens()
+                }
+                if (this.current_token.type === TokenType.Newline) {
+                    break
+                }
+                if (this.current_token.type === TokenType.Eof) {
+                    break
+                }
+            }
+
+
+            return {
+                binds
+            }
+        }
+    }
 
 
     public parse_program(): Program {
@@ -534,6 +571,7 @@ class Parser {
         let ideas = new Map()
         let legals = []
         let motives = []
+        let bindings = []
 
         let current_token = this.current_token
         while (current_token.type !== TokenType.Eof) {
@@ -549,6 +587,12 @@ class Parser {
             if (this.current_token.type === TokenType.Legal) {
                 this.eat(TokenType.Legal)
                 legals.push(this.word())
+                continue
+            }
+
+            let binding = this.parse_binding()
+            if (binding) {
+                bindings.push(binding)
                 continue
             }
 
@@ -582,7 +626,8 @@ class Parser {
             facts,
             ideas,
             motives,
-            legals
+            legals,
+            bindings
         }
     }
 
@@ -610,9 +655,11 @@ export function is_matches_between(m: Matches): m is MatchesBetween {
     return (m as MatchesBetween).path_c !== undefined
 }
 
+type Column = string
+
 export type Align = {
-    align: Path
-    columns: Path[]
+    align: Column
+    columns: Column[]
 }
 
 export type Alias = {
@@ -645,11 +692,39 @@ export type Motif = {
     aliases: Alias[]
 }
 
+export type Binding = {
+    binds: Path[][]
+}
+
 export type Program = {
     ideas: Map<string, Idea>
     facts: Map<string, Fact>
     legals: string[]
     motives: Motif[]
+    bindings: Binding[]
+}
+
+
+export function desugar_binding(_: Binding, i: number): Idea {
+    let name = `binding${i}`
+
+    let line = _.binds.map((_, i) => `line${i}`)
+    let assigns: Assignment[] = []
+    let matches: Matches[] = []
+    let aliases: Alias[] = _.binds
+        .flatMap((column, i) => column.length === 1 ? [{ alias: [line[i], ''], column: column[0] }] : [])
+    let aligns: Align[] = _.binds
+        .flatMap((columns, i) => columns.length === 1 ? [] : [{ align: line[i], columns: columns.map(_ => _[0]) }])
+
+    let res: Idea = {
+        name,
+        line,
+        assigns,
+        matches,
+        aliases,
+        aligns
+    }
+    return res
 }
 
 export function parse_program(text: string) {
