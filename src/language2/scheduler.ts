@@ -427,19 +427,23 @@ class IdeaJoin {
 
         this.worklist = [{ owner: this, length: 0, bindings: [], env: new Map() }]
 
-        this.Ms = this.line.map(_ => {
-            let res = fix_alias(_, this.spec.aliases)
-            if (!res) {
-                return undefined
-            }
-            return this.scheduler.get_or_create_M(res)
-        })
         this.AMs = this.line.map(_ => {
             let res = fix_aligns(_, this.spec.aligns)
             if (!res) {
                 return undefined
             }
             return res.map(_ => this.scheduler.get_or_create_M(_))
+        })
+
+        this.Ms = this.line.map((_, i) => {
+            if (this.AMs[i] !== undefined) {
+                return undefined
+            }
+            let res = fix_alias(_, this.spec.aliases)
+            if (!res) {
+                return undefined
+            }
+            return this.scheduler.get_or_create_M(res)
         })
 
         this.scheduler.get_or_create_M(this.spec.name)

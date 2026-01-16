@@ -1,0 +1,73 @@
+2
+binding
+  unpin_expose sac+queen
+  capture cap+knight
+  attack att+-queen
+
+  counter_exchange cap+-queen
+                   att+rook
+                   att+bishop hanging
+
+4
+binding
+  unpin_expose sac+queen
+  capture cap+knight
+  attack att+-queen
+  attack att+bishop
+
+  capture cap+knight
+
+  capture cap+bishop
+
+
+6
+binding
+  capture cap+rook
+  ignore att+rook
+
+  exchange cap-rook
+           cap+bishop
+
+
+
+7
+binding
+  capture cap+knight
+  remove def-queen hanging
+  check +cap
+
+  capture_check cap-bishop
+
+  capture cap+queen
+
+8
+binding
+  pin pin+queen-king
+
+  unpin -pin
+
+  capture cap+queen
+
+10
+binding
+  capture cap+knight
+  expose exp+king
+
+  exchange cap+-bishop
+
+11
+binding
+  push_passed_pawn promotion+
+  sacrifice sac+knight
+
+  capture cap+knight
+  
+  promote
+
+12
+binding
+  capture cap+bishop
+  remove def-knight hanging
+
+  counter_exchange exc+-knight
+

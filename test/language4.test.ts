@@ -119,6 +119,67 @@ idea this_example_1
 
 })
 
+it('align regression', () => {
+
+  let rules = `
+  
+binding
+  knight_unpins_bishop_queen_moves
+  knight_attacks_queen_moves
+
+legal knight_attacks_queen_moves
+
+fact knight_attacks_queen
+  alias occ occupies
+  .from = attacks2.from
+  .to = attacks2.to
+  attacks2.from = occupies.square
+  attacks2.to2 = occ.square
+  occupies.piece = Knight
+  occ.piece = Queen
+
+legal knight_unpins_bishop_queen_moves
+
+fact knight_unpins_bishop_queen
+  .from = unpins.from
+  .to = unpins.to
+  unpins.piece = Knight
+  unpins.pin_piece = Bishop
+  unpins.to_piece = Queen
+
+fact unpins
+  alias pin attacks_through
+  alias occ occupies
+  alias occ_to occupies
+  .from = attacks.from
+  .to = attacks.to
+  .piece = occupies.piece
+  .pin_piece = occ.piece
+  .to_piece = occ_to.piece
+  pin.block = attacks.from
+  attacks.from = occupies.square
+  pin.from = occ.square
+  pin.to = occ_to.square
+
+`
+
+    let pos2 = fen_pos(puzzles[54].move_fens[0])
+    let pos = m.create_position(puzzles[54].move_fens[0])
+    let res = bindings(m, pos, rules)
+
+    let lines: string[] = []
+    let rows = res.get('binding0')!.get_relation_starting_at_world_id(0).rows.map(row => {
+        let aa = extract_line(row)
+
+        let resaa = extract_sans(pos2, aa)
+        if (resaa.length > 0) {
+            lines.push(resaa.join(' '))
+        }
+    })
+
+    console.log(lines)
+
+})
 
 
 it.skip('works 2 binding', () => {
