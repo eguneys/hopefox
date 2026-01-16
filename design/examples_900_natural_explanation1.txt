@@ -1,0 +1,48 @@
+1
+bishop_sacrifice
+skewer_queen_rook
+setup_discovered_check
+
+accept_sacrifice
+
+rook_check (capturable)
+
+queen_sacrifice_vs_rook
+
+
+## Fact definitions underlying concrete relational logic
+
+fact bishop_sacrifice
+  attacks.from = occupies.square
+  attacks.to = "capturable"
+  occupies.piece = Bishop
+
+fact skewer_queen_rook
+  .from = attacks_through.from
+  .to = attacks_through.to
+  attacks_through.to = Queen
+  attacks_through.to2 = Rook
+
+fact setup_discovered_check
+  .from // these from and to are assignments to the fact
+  .to  // and for the given example all three facts above this one
+       // has to have the same .from .to fields in order to satisfy one first move
+
+
+fact accept_sacrifice
+  // another fact references bishop_sacrifice fact defined earlier
+
+fact rook_check (capturable)
+  // definition again with .from .to properties that describes a move
+  // this time a check has capturable modifier which is a constraint we have to enforce
+
+
+then the binding of all of these becomes some form of an idea join similar to this
+
+idea this_example_1
+  alias one bishop_sacrifice | skewer_queen_rook | setup_discovered_check
+  alias two accept_sacrifice
+  alias three rook_check (capturable)
+  line one two three
+
+so the idea and the line is reintroduced and used as the driving force for move generation and search expansion.

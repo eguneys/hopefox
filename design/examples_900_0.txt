@@ -1,0 +1,66 @@
+1
+bishop_sacrifice skewer_queen_rook setup_discovered_check
+(queen and rook eyes sacrifice square)
+accept_sacrifice
+rook_check(unblockable unevadable capturable)
+forced queen_sacrifice_vs_rook
+
+2
+knight_sacrifice expose_discovered_attack_on_queen fork_rook_and_queen
+accept_counter_sacrifices_knight_vs_queen
+
+3
+knight_exchange_check(capturable) remove_defender_of_bishop bishop_hanging
+capture_exchange
+capture_hanging_bishop
+
+4
+evade_check no_further_checks(unblockable, uncapturable) existing_mate_threat_queen_with_knight_support
+forced defend_mate_threat_by_capturing_supporter_knight queen_sacrifice_vs_knight
+
+
+5
+
+6
+rook_sacrifice_check(capturable) fork_king_and_rook rook_xray_hanging
+accept_sacrifice deflect_defense_of_queen queen_hanging
+capture_hanging_queen
+
+7
+pawn_capture_material fork_queen_and_knight
+queen_evades_fork
+pawn_captures_knight
+
+8
+evade_check attack_bishop existing_attack_on_hanging_rook
+evade_attack_on_rook
+capture_bishop
+
+9-14
+
+15
+rook_sacrifice_check(capturable, evadable, blockable) accept_by_pinned_bishop
+capture_check accept_sacrifice unblock_rook_attack_on_queen sacrifice_queen bishop_hanging
+accept_sacrifice capture_queen
+counter_collection_captures_rook_vs_bishop
+
+16
+rook_check(uncapturable, blockable, evadable)
+evade_king
+queen_joins check_threat(uncapturable, unevadable, blockable)
+queen_check(evadable) defends_through_checks
+evade_king
+push_pawn expose_sacrifice_hanging_rook unblock_defense_through_checks
+accept_sacrifice
+
+17
+pawn_capture kick_bishop
+evade_bishop
+pawn_push fork_pieces
+
+18
+knight_attacks_rook unblock_queen_attack_on_hanging_knight
+queen_defends_knight sacrifices_exchange
+knight_captures_rook
+
+19-20

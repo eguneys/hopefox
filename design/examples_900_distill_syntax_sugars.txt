@@ -1,0 +1,25 @@
+Basically I introduce 2 new concepts. First this align concept
+
+align one bishop_sacrifice | skewer_queen_rook | setup_discovered_check
+
+
+align "one" means all three facts are unified on the same .from .to move relationship and aliased to "one".
+
+Second the syntactic sugar concept for this structure:
+
+idea example_1
+ alias one fact_1
+ align two fact_a fact_b
+ alias three fact_d
+ line one two three
+
+
+rewritten as in a simpler form ¿(without naming it)
+
+binding
+  fact_1
+  fact_a fact_b
+  fact_d
+
+
+The only remaining unspecified feature being the check modifiers where a check can be given (un/capturable, un/blockable, un/evadable) modifiers.

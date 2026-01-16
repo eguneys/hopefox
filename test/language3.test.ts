@@ -1107,7 +1107,7 @@ it.skip('100 bench full from fixture', () => {
 })
 
 
-it('100-200 bench skips0', () => {
+it.skip('100-200 bench skips0', () => {
   let rules = rules_200_skip0.trim()
 
   let skips = skips_200_0_44
@@ -1120,6 +1120,17 @@ it('100-200 bench skips0', () => {
 
   console.log(only)
 })
+
+
+it('900-1000 bench skips0', () => {
+  let rules = [rules00, rules01, rules_200_skip0].join('\n')
+
+  let only = bench(rules, [], 900, 1000)
+
+  console.log(only)
+})
+
+
 
 
 function solve_n2(n: number, rules: string) {
