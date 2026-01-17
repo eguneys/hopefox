@@ -77,7 +77,6 @@ attacks bishop hanging
   captures rook2
    rook
    captures bishop
-
 bishop
 checks king
   only evades
