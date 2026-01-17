@@ -1,0 +1,48 @@
+rook_captures_pawn (with_check, uncapturable)
+
+
+modifier uncapturable
+  captures.to != .to
+
+modifier with_check
+  checks.from = .from
+  checks.to = .to
+
+modifier unblockable
+  attacks.to not_between .to .to2
+
+modifier unevadable
+  attacks.from != .to2  
+
+idea checkmate
+  alias one moves (with_check,
+         uncapturable,
+         unblockable,
+         unevadable)
+  line one
+
+
+idea
+  (bishop is_hanging)
+
+
+
+Let's define what a modifier does exactly, because I don't want it to be just mean "They assert all reply classes failed"
+I want it to be a modifier or some sort of a filter over the source relation
+
+
+This one for example attempts to:
+
+modifier uncapturable
+  captures.to != .to
+
+means, take the source relation, join it with captures.to relation and apply constraint
+  captures.to != source.to
+pass those that pass this constraint
+
+And yes right now this seems off. Let me try again how about this:
+
+  modifier capturable
+    captures.to = .to
+
+And yes there seems to be a missing indication of this captures relation before the move, or after the move, so I need to be able to indicate that as well. Also define how "uncapturable" filters those that capturable list is empty.

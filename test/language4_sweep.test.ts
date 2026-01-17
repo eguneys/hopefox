@@ -82,7 +82,7 @@ it.skip('works', () => {
 
     let pass = []
     for (let i = 0; i < 1000; i++) {
-        if (solve_lines_4(i, rules_0)) {
+        if (loose_solve_lines_4(i, rules_0)) {
             render(i + `+ PASS #${pass.length}`)
             pass.push(i)
         } else {
@@ -94,14 +94,77 @@ it.skip('works', () => {
 })
 
 
+it.skip('knight unpin sweep', () => {
+    let rules = `
+binding
+  knight_unpins_bishop_queen_moves
+  knight_attacks_queen_moves
 
+legal knight_attacks_queen_moves
+
+fact knight_attacks_queen
+  alias occ occupies
+  .from = attacks2.from
+  .to = attacks2.to
+  attacks2.from = occupies.square
+  attacks2.to2 = occ.square
+  occupies.piece = Knight
+  occ.piece = Queen
+
+legal knight_unpins_bishop_queen_moves
+
+fact knight_unpins_bishop_queen
+  .from = unpins.from
+  .to = unpins.to
+  unpins.piece = Knight
+  unpins.pin_piece = Bishop
+  unpins.to_piece = Queen
+
+fact unpins
+  alias pin attacks_through
+  alias occ occupies
+  alias occ_to occupies
+  .from = attacks.from
+  .to = attacks.to
+  .piece = occupies.piece
+  .pin_piece = occ.piece
+  .to_piece = occ_to.piece
+  pin.block = attacks.from
+  attacks.from = occupies.square
+  pin.from = occ.square
+  pin.to = occ_to.square
+
+`
+
+    let res = sweep(rules)
+
+    console.log(res)
+    console.log(res.map(_ => puzzles[_].link))
+
+})
+
+
+function sweep(rules: string) {
+    let pass = []
+    for (let i = 0; i < 1000; i++) {
+        if (loose_solve_lines_4(i, rules)) {
+            render(i + `+ PASS #${pass.length}`)
+            pass.push(i)
+        } else {
+            render(i + `- PASS #${pass.length}`)
+        }
+    }
+    return pass
+}
+
+type SAN = string
 let m = await PositionManager.make()
-function solve_lines_4(i: number, rules: string) {
+function loose_solve_lines_4(i: number, rules: string) {
     let pos2 = fen_pos(puzzles[i].move_fens[0])
     let pos = m.create_position(puzzles[i].move_fens[0])
     let res = bindings(m, pos, rules)
 
-    let lines: string[] = []
+    let lines: SAN[][] = []
     for (let i = 0; i < 150; i++) {
         let binding = res.get('binding' + i)
         if (!binding) {
@@ -112,25 +175,19 @@ function solve_lines_4(i: number, rules: string) {
 
             let resaa = extract_sans(pos2, aa)
             if (resaa.length > 0) {
-                lines.push(resaa.join(' '))
+                lines.push(resaa)
             }
         })
     }
 
 
-    let sans = puzzles[i].sans.join(' ')
+    let sans = puzzles[i].sans
 
-    //console.log(lines, sans, lines.includes(sans))
-    if (!lines.includes(sans)) {
-
-        //console.log(puzzles[i].link)
-
-        //console.log(sans, `expected [#${i}] got: `, lines)
+    if (!lines.find(line => line[0] === sans[0])) {
         return false
-  }
+    }
 
-
-  return true
+    return true
 }
 
 

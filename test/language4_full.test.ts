@@ -10,8 +10,8 @@ it.skip('works', () => {
 })
 
 
-it('works bench', () => {
-    let res = bench_only(Array.from(Array(100).keys()))
+it.skip('works bench', () => {
+    let res = bench_only(Array.from(Array(100).keys()).map(_ => _ + 600))
     console.log(res)
 })
 

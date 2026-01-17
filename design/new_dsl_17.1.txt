@@ -1,0 +1,70 @@
+rook
+checks king
+ uncapturable
+ unevadable
+ blocks on
+  captures on
+  forks king and queen
+  checks king
+   unevadable
+   unblockable
+    queen
+    captures on
+     bishop captures on
+      uncapturable
+
+queen
+checks king
+  uncapturable
+  unblockable
+  unevadable
+
+pawn
+checks king
+  uncapturable
+  unblockable
+  evades
+   rook
+   checks king
+     uncapturable
+     unblockable
+     unevadable
+
+
+mates
+ checks king
+  uncapturable
+  unblockable
+  unevadable
+
+
+queen
+checks king
+  uncapturable
+  evades
+    queen
+    mates
+  blocks on
+   queen
+   captures on
+   checks king
+    unblockable
+    uncapturable
+    evades
+     queen
+     mates
+
+
+knight
+ forks king and rook
+ checks king
+   unblockable
+   uncapturable
+   evades
+    knight
+    captures rook
+     
+
+
+
+
