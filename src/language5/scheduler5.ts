@@ -502,16 +502,22 @@ function analyzeMove(Rs: Rs, world_id: WorldId, move: FromTo): Candidate {
     }
 }
 
+const MAX_DEPTH = 3
 export function search5(m: PositionManager, pos: PositionC) {
     let rs = new Rs(m, pos)
     return search(rs, 0, baseQuery(0), 1)
 }
 
-export function searchWithPv(Rs: Rs, world_id: WorldId, depth: number) {
+export function searchWithPv(Rs: Rs, world_id: WorldId, depth = 0) {
     let rootQuery = baseQuery(world_id)
 
 
     let moves = evaluate(Rs, rootQuery)
+
+    if (depth > 1 && rootQuery.constraints.length === 0) {
+        //return { score: 0, pv: [] }
+    }
+
     while (moves === undefined) {
         Rs.run()
         moves = evaluate(Rs, rootQuery)
@@ -533,7 +539,7 @@ export function searchWithPv(Rs: Rs, world_id: WorldId, depth: number) {
         }
 
 
-        let score = -search(Rs, nextWorldId, nextQuery, depth - 1)
+        let score = -search(Rs, nextWorldId, nextQuery, depth + 1)
 
         if (score > bestScore) {
             bestScore = score
@@ -544,19 +550,26 @@ export function searchWithPv(Rs: Rs, world_id: WorldId, depth: number) {
     let pv: MoveC[] = []
     if (bestMove) {
         pv.push(make_move_from_to(bestMove.from, bestMove.to))
-        pv.push(...reconstructPV(Rs, world_id, make_move_from_to(bestMove.from, bestMove.to), depth - 1))
+        pv.push(...reconstructPV(Rs, world_id, make_move_from_to(bestMove.from, bestMove.to), depth + 1))
     }
 
     return { score: bestScore, pv }
 }
 
 function reconstructPV(Rs: Rs, world_id: WorldId, move: MoveC, depth: number): MoveC[] {
-    if (depth === 0) {
+    if (depth === MAX_DEPTH) {
         return []
     }
 
+
+    
+
     let nextWorldId = Rs.nodes.add_move(world_id, move)
     let query = baseQuery(nextWorldId)
+
+    if (depth > 1 && query.constraints.length === 0) {
+        //return []
+    }
 
     let moves = evaluate(Rs, query)
     while (moves === undefined) {
@@ -571,13 +584,13 @@ function reconstructPV(Rs: Rs, world_id: WorldId, move: MoveC, depth: number): M
 
     let best = make_move_from_to(candidates[0].move.from, candidates[0].move.to)
 
-    return [best, ...reconstructPV(Rs, nextWorldId, best, depth - 1)]
+    return [best, ...reconstructPV(Rs, nextWorldId, best, depth + 1)]
 
 }
 
 function search(Rs: Rs, world_id: WorldId, query: Query, depth: number) {
 
-    if (depth === 0) {
+    if (depth === MAX_DEPTH) {
         return 0
     }
 
@@ -607,7 +620,7 @@ function search(Rs: Rs, world_id: WorldId, query: Query, depth: number) {
         }
 
 
-        let score = -search(Rs, nextWorldId, nextQuery, depth - 1)
+        let score = -search(Rs, nextWorldId, nextQuery, depth + 1)
 
         best = Math.max(best, score)
     }
