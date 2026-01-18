@@ -10,7 +10,7 @@ export type BaseRow = {
     end_world_id: WorldId
 }
 
-type Relation<R extends BaseRow> = { rows: R[] }
+export type Relation<R extends BaseRow> = { rows: R[] }
 
 
 
@@ -113,4 +113,97 @@ export class RelationManager<R extends BaseRow> {
         return candidates
     }
 
+}
+
+
+
+
+
+export function select<T extends BaseRow>(
+  rel: Relation<T>,
+  predicate: (r: T) => boolean
+): Relation<T> {
+  return {
+    rows: rel.rows.filter(predicate)
+  }
+}
+
+
+export function project<T extends BaseRow>(
+  rel: Relation<T>,
+  fn: (r: T) => T
+): Relation<T> {
+  return {
+    rows: rel.rows.map(fn)
+  }
+}
+
+export function mergeRows<Row extends BaseRow, RowB extends BaseRow, RowC extends Row | RowB>(a: Row, b: RowB): RowC | null {
+  const out: RowC = {...a} as RowC
+
+  for (const k of Object.keys(b)) {
+    let v = b[k as keyof RowB]
+    if (out[k as keyof RowC] !== undefined && out[k as keyof RowC] !== v) return null
+    out[k as keyof RowC] = v as RowC[keyof RowC]
+  }
+
+  return out
+}
+
+export function join<RowA extends BaseRow, RowB extends BaseRow, RowC extends BaseRow>(
+  a: Relation<RowA>,
+  b: Relation<RowB>,
+  on?: (a: RowA, b: RowB) => RowC | null
+): Relation<RowC> {
+  const rows: RowC[] = []
+
+  for (const ra of a.rows) {
+    for (const rb of b.rows) {
+      const merged = on
+        ? on(ra, rb)
+        : mergeRows(ra, rb) as (RowC | null)
+
+      if (merged) rows.push(merged)
+    }
+  }
+
+  return { rows }
+}
+
+export function semiJoin<RowA extends BaseRow, RowB extends BaseRow>(
+  a: Relation<RowA>,
+  b: Relation<RowB>,
+  predicate: (a: RowA, b: RowB) => boolean
+): Relation<RowA> {
+  return {
+    rows: a.rows.filter(ra =>
+      b.rows.some(rb => predicate(ra, rb))
+    )
+  }
+}
+
+export function extend<RowA extends BaseRow, RowB extends BaseRow>(
+  rel: Relation<RowA>,
+  fn: (r: RowA) => RowB
+): Relation<RowB> {
+  return {
+    rows: rel.rows.map(r => mergeRows(r, fn(r))!)
+  }
+}
+
+
+export function flatExtend<RowA extends BaseRow, RowB extends BaseRow>(
+  rel: Relation<RowA>,
+  fn: (r: RowA) => RowB[]
+): Relation<RowA | RowB> {
+  const rows: (RowA | RowB)[] = []
+
+  for (const r of rel.rows) {
+    for (const ext of fn(r)) {
+      const merged = mergeRows(r, ext)
+      if (merged) rows.push(merged)
+    }
+  }
+
+  return { rows }
 }
