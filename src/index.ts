@@ -10,3 +10,5 @@ export * from './distill/fen'
 export * from './distill/san'
 export * from './distill/chess'
 export * from './distill/hopefox'
+
+export * from './language5/scheduler5'

@@ -1,0 +1,60 @@
+rook
+checks king
+unblockable
+uncapturable
+evades
+  knight
+  checks queen
+  unblockable
+  uncapturable
+  evades
+
+queen
+forks king and rook
+checks king
+uncapturable
+blocks or evades
+  queen
+  captures rook
+
+knight
+checks queen
+unblockable
+uncapturable
+evades
+  pawn
+  forks queen and knight
+
+
+## mating net
+bishop
+restrict king
+unblock rook backrank mate
+  rook
+  defend backrank
+  hang to bishop
+    bishop
+    captures rook
+
+queen
+threaten mate with bishop battery
+  queen
+  skewers king and rook
+  checks king
+  only evades
+    queen is attacked by rook
+      rook
+      exchange sacrifice
+      forks king and queen
+      checks king
+        queen
+        captures
+
+bishop
+skewers queen g2
+checks queen
+unblockable
+evades bishop g2
+  queen
+  mates on g2
+sacrifices vs bishop

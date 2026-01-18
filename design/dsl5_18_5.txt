@@ -1,0 +1,74 @@
+rook
+checks king
+unblockable
+uncapturable
+ evades
+  knight
+  checks queen
+  unblockable
+  uncapturable
+   evades
+
+
+queen
+forks king and rook
+checks king
+uncapturable
+ blocks or evades
+  queen
+  captures rook
+
+
+knight
+checks queen
+ only evades
+  pawn
+  forks knight and queen
+
+bishop
+nets king
+opens rook backrank checkmate
+  rook
+  defends backrank
+  hangs to bishop
+   bishop
+   captures hanging rook
+
+queen
+forks king and rook
+checks king
+ uncapturable
+ unblockable
+  evades
+   queen
+   sacrifices vs rook
+   forks rook and king
+   checks king
+    captures queen
+    removes pin on pawn
+     pawn
+     captures queen
+
+
+queen
+eyes zone mate with bishop battery
+ queen
+ checks
+ unblockable
+ uncapturable
+  evades
+  rook discovers attack on queen
+   rook
+   exchange sacrifice
+   forks king and queen
+   checks king
+    queen
+    captures rook
+    accepts sacrifice
+     queen
+      sacrifices vs rook
+      checks king
+       king
+       captures queen
+       accepts sacrifice       
+

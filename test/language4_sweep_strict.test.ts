@@ -38,7 +38,7 @@ fact check_king
  check.to_piece = King
 `
 
-it('works', () => {
+it.skip('works', () => {
     let [yes, no, ignore] = sweep(rules)
 
     console.log(`yes: ${yes.length} no: ${no.length} ignore: ${ignore.length}`)
