@@ -1,6 +1,6 @@
-import { ColorC, PieceTypeC } from "../distill/hopefox_c"
+import { ColorC, PieceTypeC, PositionC, PositionManager } from "../distill/hopefox_c"
 import { Square } from "../distill/types"
-import { NodeId } from "../language1/node_manager"
+import { NodeId, NodeManager } from "../language1/node_manager"
 import { BaseRow, RelationManager } from "./relation_manager"
 
 
@@ -58,12 +58,15 @@ type Row =
 
 
 enum MaterializeState {
-    None,
     Materializing,
     Complete
 }
 
 export class Rs {
+
+    nodes: NodeManager
+    m: PositionManager
+    pos: PositionC
 
     legals: StatefulRelationManager<Legals>
     attacks: StatefulRelationManager<Attacks>
@@ -95,13 +98,30 @@ export class Rs {
         this.forks.step()
         this.evades.step()
     }
+
+
+
+    make_moves_to_world(world_id: WorldId) {
+        let history = this.nodes.history_moves(world_id)
+        for (let move of history) {
+            this.m.make_move(this.pos, move)
+        }
+    }
+
+    unmake_moves_to_base(world_id: WorldId) {
+        let history = this.nodes.history_moves(world_id)
+        for (let i = history.length - 1; i >= 0; i--) {
+            let move = history[i]
+            this.m.unmake_move(this.pos, move)
+        }
+    }
 }
 
-type MaterializeFn = <T extends Row>(r: StatefulRelationManager<T>) => boolean
+type MaterializeFn = (world_id: WorldId, r: Rs) => boolean
 type WorldId = NodeId
 
 export class StatefulRelationManager<T extends Row> {
-    public state: MaterializeState
+    public states: Map<WorldId, MaterializeState>
     public relation: RelationManager<T>
 
     private fn: MaterializeFn
@@ -111,7 +131,7 @@ export class StatefulRelationManager<T extends Row> {
 
     constructor(Rs: Rs, fn: MaterializeFn) {
         this.relation = new RelationManager()
-        this.state = MaterializeState.None
+        this.states = new Map()
         this.fn = fn
         this.Rs = Rs
 
@@ -119,56 +139,60 @@ export class StatefulRelationManager<T extends Row> {
     }
 
     get(world_id: WorldId) {
-        if (this.state === MaterializeState.Complete) {
+        let state = this.states.get(world_id)
+        if (state === MaterializeState.Complete) {
             this.nb_used++
             return this.relation.get_relation_starting_at_world_id(world_id)
         }
-        if (this.state === MaterializeState.None) {
-            this.state = MaterializeState.Materializing
+        if (state === undefined) {
+            this.states.set(world_id, MaterializeState.Materializing)
         }
     }
 
     step() {
 
-        if (this.state === MaterializeState.Materializing) {
-            let complete = this.fn(this)
-            if (complete) {
-                this.state = MaterializeState.Complete
+        for (let [world_id, state] of this.states) {
+            if (state === MaterializeState.Materializing) {
+                let complete = this.fn(world_id, this.Rs)
+                if (complete) {
+                    this.states.set(world_id, MaterializeState.Complete)
+                }
+
             }
         }
     }
 }
 
-function materialize_legals<T extends Row>(r: StatefulRelationManager<T>): boolean {
+function materialize_legals(world_id: WorldId, Rs: Rs): boolean {
+    return true
+}
+
+function materialize_attacks(world_id: WorldId, Rs: Rs): boolean {
     throw new Error("Function not implemented.")
 }
 
-function materialize_attacks<T extends Row>(r: StatefulRelationManager<T>): boolean {
-    throw new Error("Function not implemented.")
-}
-
-function materialize_attacks2<T extends Row>(r: StatefulRelationManager<T>): boolean {
-    throw new Error("Function not implemented.")
-}
-
-
-
-function materialize_occupies<T extends Row>(r: StatefulRelationManager<T>): boolean {
-    throw new Error("Function not implemented.")
-}
-function materialize_checks<T extends Row>(r: StatefulRelationManager<T>): boolean {
-    throw new Error("Function not implemented.")
-}
-function materialize_captures<T extends Row>(r: StatefulRelationManager<T>): boolean {
-    throw new Error("Function not implemented.")
-}
-function materialize_evades<T extends Row>(r: StatefulRelationManager<T>): boolean {
+function materialize_attacks2(world_id: WorldId, Rs: Rs): boolean {
     throw new Error("Function not implemented.")
 }
 
 
 
+function materialize_occupies(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_checks(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_captures(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_evades(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
 
-function materialize_forks<T extends Row>(r: StatefulRelationManager<T>): boolean {
+
+
+
+function materialize_forks(world_id: WorldId, Rs: Rs): boolean {
     throw new Error("Function not implemented.")
 }
