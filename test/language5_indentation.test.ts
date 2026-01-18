@@ -1,11 +1,16 @@
 import { it } from 'vitest'
-import { PositionManager, Rs } from '../src'
+import { extract_sans, fen_pos, PositionManager, Rs, search5, searchWithPv } from '../src'
 import { puzzles } from './fixture'
 
 let m = await PositionManager.make()
 
 it('works', () => {
-    let pos = m.create_position(puzzles[0].move_fens[0])
+    let i = 3
+    let pos2 = fen_pos(puzzles[i].move_fens[0])
+    let pos = m.create_position(puzzles[i].move_fens[0])
+
     let rs = new Rs(m, pos)
-    rs.search()
+    let res = searchWithPv(rs, 0, 3)
+    console.log(extract_sans(pos2, res.pv))
+
 })
