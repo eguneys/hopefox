@@ -10,81 +10,19 @@ export type BaseRow = {
     end_world_id: WorldId
 }
 
-export type Legals = BaseRow & {
-    from: Square
-    to: Square
-}
-export type Attacks = BaseRow & {
-    from: Square
-    to: Square
-}
-export type Attacks2 = BaseRow & {
-    from: Square
-    to: Square
-    to2: Square
-}
-export type Occupies = BaseRow & {
-    on: Square
-    piece: PieceTypeC
-    color: ColorC
-}
-
-export type Captures = BaseRow & {
-    from: Square
-    to: Square
-}
-export type Checks = BaseRow & {
-    from: Square
-    to: Square
-    to2: Square
-}
-
-export type Forks = BaseRow & {
-    from: Square
-    to: Square
-    a: Square
-    b: Square
-}
-
-export type Evades = BaseRow & {
-    from: Square
-    to: Square
-}
-
-type Row =
-    | Legals
-    | Attacks
-    | Attacks2
-    | Occupies
-    | Captures
-    | Checks
-    | Forks
-    | Evades
+type Relation<R extends BaseRow> = { rows: R[] }
 
 
-export type Column = 
-    | 'legals'
-    | 'attacks'
-    | 'attacks2'
-    | 'occupies'
-    | 'captures'
-    | 'checks'
-    | 'forks'
-    | 'evades'
 
+export class RelationManager<R extends BaseRow> {
 
-type Relation<R extends Row> = { rows: R[] }
-
-export class RelationManager<R extends Row> {
-    base: Relation<R>
-    name: Column
+    private base: Relation<R>
     private index_start_world: Map<WorldId, RowId[]>
 
     private key_index: Map<number, RowId>
 
-    constructor(name: Column) {
+    constructor() {
         this.base = { rows: [] }
-        this.name = name
         this.index_start_world = new Map()
         this.key_index = new Map()
     }
@@ -176,4 +114,3 @@ export class RelationManager<R extends Row> {
     }
 
 }
-
