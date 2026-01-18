@@ -2,8 +2,29 @@ import { ColorC, move_c_to_Move, piece_c_color_of, piece_c_type_of, PieceTypeC, 
 import { SquareSet } from "../distill/squareSet"
 import { Square } from "../distill/types"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { BaseRow, join, Relation, RelationManager, semiJoin } from "./relation_manager"
+import { BaseRow, join, Relation, RelationManager } from "./relation_manager"
 
+export type AttackThroughs2 = BaseRow & {
+    from: Square
+    to: Square
+    to2: Square
+    to3: Square
+}
+export type Unevadable = BaseRow & {
+    from: Square
+    to: Square
+    to2: Square
+    to3: Square
+}
+export type Uncapturable = BaseRow & {
+    from: Square
+    to: Square
+}
+export type Unblockable = BaseRow & {
+    from: Square
+    to: Square
+    to2: Square
+}
 
 export type Legals = BaseRow & {
     from: Square
@@ -63,6 +84,10 @@ type Row =
     | Checks
     | Forks
     | Evades
+    | Unevadable
+    | Uncapturable
+    | Unblockable
+    | AttackThroughs2
 
 
 
@@ -85,8 +110,16 @@ export class Rs {
     checks: StatefulRelationManager<Checks>
     forks: StatefulRelationManager<Forks>
     evades: StatefulRelationManager<Evades>
+    unblockables: StatefulRelationManager<Unblockable>
+    uncapturables: StatefulRelationManager<Uncapturable>
+    unevadables: StatefulRelationManager<Unevadable>
+    attack_throughs2: StatefulRelationManager<AttackThroughs2>
 
-    constructor() {
+    constructor(m: PositionManager, pos: PositionC) {
+        this.m = m
+        this.pos = pos
+        this.nodes = new NodeManager()
+
         this.legals = new StatefulRelationManager(this, materialize_legals)
         this.attacks = new StatefulRelationManager(this, materialize_attacks)
         this.attacks2 = new StatefulRelationManager(this, materialize_attacks2)
@@ -95,19 +128,34 @@ export class Rs {
         this.checks = new StatefulRelationManager(this, materialize_checks)
         this.forks = new StatefulRelationManager(this, materialize_forks)
         this.evades = new StatefulRelationManager(this, materialize_evades)
+        this.unblockables = new StatefulRelationManager(this, materialize_unblockables)
+        this.uncapturables = new StatefulRelationManager(this, materialize_uncapturables)
+        this.unevadables = new StatefulRelationManager(this, materialize_unevadables)
+        this.attack_throughs2 = new StatefulRelationManager(this, materialize_attack_throughs2)
     }
 
-    step() {
-        this.legals.step()
-        this.attacks.step()
-        this.attacks2.step()
-        this.occupies.step()
-        this.captures.step()
-        this.checks.step()
-        this.forks.step()
-        this.evades.step()
+    run() {
+        let there_is_more
+        do  {
+            there_is_more = false
+            there_is_more ||= this.legals.step()
+            there_is_more ||= this.attacks.step()
+            there_is_more ||= this.attacks2.step()
+            there_is_more ||= this.occupies.step()
+            there_is_more ||= this.captures.step()
+            there_is_more ||= this.checks.step()
+            there_is_more ||= this.forks.step()
+            there_is_more ||= this.evades.step()
+            there_is_more ||= this.unblockables.step()
+            there_is_more ||= this.unevadables.step()
+            there_is_more ||= this.uncapturables.step()
+            there_is_more ||= this.attack_throughs2.step()
+        } while (there_is_more)
     }
 
+    search() {
+
+    }
 
 
     make_moves_to_world(world_id: WorldId) {
@@ -159,16 +207,19 @@ export class StatefulRelationManager<T extends Row> {
     }
 
     step() {
+        let there_is_more = false
 
         for (let [world_id, state] of this.states) {
             if (state === MaterializeState.Materializing) {
                 let complete = this.fn(world_id, this.Rs)
                 if (complete) {
                     this.states.set(world_id, MaterializeState.Complete)
+                } else {
+                    there_is_more = true
                 }
-
             }
         }
+        return there_is_more
     }
 }
 
@@ -223,7 +274,7 @@ function materialize_attacks2(world_id: WorldId, Rs: Rs): boolean {
         if (piece) {
             let aa = Rs.m.pos_attacks(Rs.pos, on)
             for (let a of aa) {
-                let aa2 = Rs.m.attacks(Rs.pos, a, occupied.without(on))
+                let aa2 = Rs.m.attacks(piece, a, occupied.without(on))
                 for (let a2 of aa2) {
                     Rs.attacks2.relation.add_row({
                         start_world_id: world_id,
@@ -298,6 +349,7 @@ function materialize_checks(world_id: WorldId, Rs: Rs): boolean {
             color: a2.color,
             to_piece: occ.piece,
             to_color: occ.color
+
         } : null
     )
 
@@ -346,5 +398,17 @@ function materialize_evades(world_id: WorldId, Rs: Rs): boolean {
     throw new Error("Function not implemented.")
 }
 function materialize_forks(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_unblockables(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_uncapturables(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_unevadables(world_id: WorldId, Rs: Rs): boolean {
+    throw new Error("Function not implemented.")
+}
+function materialize_attack_throughs2(world_id: WorldId, Rs: Rs): boolean {
     throw new Error("Function not implemented.")
 }
