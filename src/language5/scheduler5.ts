@@ -3,7 +3,8 @@ import { ColorC, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, pie
 import { SquareSet } from "../distill/squareSet"
 import { Square } from "../distill/types"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { BaseRow, join, Relation, RelationManager, select, semiJoin } from "./relation_manager"
+import { san_moves_c } from "../language2/san_moves_helper"
+import { BaseRow, concat, join, mergeRows, Relation, RelationManager, select, semiJoin } from "./relation_manager"
 
 export type AttackThroughs2 = BaseRow & {
     from: Square
@@ -93,6 +94,12 @@ export type Row =
 
 export type FromTo = { from: Square, to: Square } & BaseRow
 
+export type FromToTo2 = { from: Square, to: Square, to2: Square } & BaseRow
+
+export type FromToTo3 = { from: Square, to: Square, to2: Square, to3: Square } & BaseRow
+
+export type FromToAndBeyond = { from: Square, to: Square, to2?: Square, to3?: Square } & BaseRow
+
 enum MaterializeState {
     Materializing,
     Complete
@@ -141,21 +148,45 @@ export class Rs {
         let there_is_more
         do  {
             there_is_more = false
-            there_is_more ||= this.legals.step()
-            there_is_more ||= this.attacks.step()
-            there_is_more ||= this.attacks2.step()
-            there_is_more ||= this.occupies.step()
-            there_is_more ||= this.captures.step()
-            there_is_more ||= this.checks.step()
-            there_is_more ||= this.forks.step()
-            there_is_more ||= this.evades.step()
-            there_is_more ||= this.unblockables.step()
-            there_is_more ||= this.unevadables.step()
-            there_is_more ||= this.uncapturables.step()
-            there_is_more ||= this.attack_throughs2.step()
+            there_is_more = this.legals.step() || there_is_more
+            there_is_more = this.attacks.step() || there_is_more
+            there_is_more = this.attacks2.step() || there_is_more
+            there_is_more = this.occupies.step() || there_is_more
+            there_is_more = this.captures.step() || there_is_more
+            there_is_more = this.checks.step() || there_is_more
+            there_is_more = this.forks.step() || there_is_more
+            there_is_more = this.evades.step() || there_is_more
+            there_is_more = this.unblockables.step() || there_is_more
+            there_is_more = this.unevadables.step() || there_is_more
+            there_is_more = this.uncapturables.step() || there_is_more
+            there_is_more = this.attack_throughs2.step() || there_is_more
         } while (there_is_more)
     }
 
+
+    mates(world_id: WorldId) {
+
+        let checks = this.checks.get(world_id)
+        let legals = this.legals.get(world_id)
+        let unblockables = this.unblockables.get(world_id)
+        let uncapturables = this.uncapturables.get(world_id)
+        let unevadables = this.unevadables.get(world_id)
+
+        if (!checks || !legals || !unblockables || !uncapturables || !unevadables) {
+            return undefined
+        }
+
+        let aa = intersect_all_from_to_and_beyond([
+            checks, legals, 
+            unblockables, uncapturables,
+            unevadables
+        ])
+
+
+        console.log(extract_sans(this.m, this.pos, unevadables))
+
+        return aa
+    }
 
     make_moves_to_world(world_id: WorldId) {
         let history = this.nodes.history_moves(world_id)
@@ -448,7 +479,7 @@ function materialize_unblockables(world_id: WorldId, Rs: Rs): boolean {
     }
 
     let res = anti_join(attacks2, attacks, (a2, a) =>
-        between(a2.to, a2.to2).has(a.to)
+        a.from !== a2.to2 && between(a2.to, a2.to2).has(a.to)
     )
 
     Rs.unblockables.relation.add_rows(world_id, res.rows)
@@ -461,7 +492,7 @@ function materialize_uncapturables(world_id: WorldId, Rs: Rs): boolean {
     }
 
     let res = anti_join(attacks, attacks, (a, c) =>
-        a.to === c.to
+        a.from !== c.from && a.to === c.to
     )
 
     Rs.uncapturables.relation.add_rows(world_id, res.rows)
@@ -469,24 +500,7 @@ function materialize_uncapturables(world_id: WorldId, Rs: Rs): boolean {
 }
 
 function materialize_unevadables(world_id: WorldId, Rs: Rs): boolean {
-    let attacks = Rs.attacks.get(world_id)
-    if (!attacks) {
-        return false
-    }
-
-    let athru2 = Rs.attack_throughs2.get(world_id)
-    if (!athru2) {
-        return false
-    }
-
-    let _ = semiJoin(attacks, athru2, (a, a2) => a.from === a2.to2)
-
-    let res = anti_join(athru2, _, (a2, a) =>
-        between(a2.to, a2.to3).has(a.to)
-    )
-
-    Rs.unevadables.relation.add_rows(world_id, res.rows)
-    return true
+    throw new Error("Function not implemented.")
 }
 
 function anti_join<Row extends BaseRow, RowB extends BaseRow>(a: Relation<Row>, b: Relation<RowB>, predicate: (a: Row, b: RowB) => boolean): Relation<Row> {
@@ -495,4 +509,40 @@ function anti_join<Row extends BaseRow, RowB extends BaseRow>(a: Relation<Row>, 
             b.rows.every(rb => !predicate(ra, rb))
         )
     }
+}
+
+
+function intersect_from_to(a: Relation<FromTo>, b: Relation<FromTo>) {
+    return {
+        rows: semiJoin(a, b, (a, b) => a.from === b.from && a.to === b.to).rows
+    }
+}
+
+function intersect_all_from_to(bs: Relation<FromTo>[]) {
+    return bs.reduce((a, b) => intersect_from_to(a, b))
+}
+
+
+function intersect_from_to_and_beyond(a: Relation<FromToAndBeyond>, b: Relation<FromToAndBeyond>) {
+    const beyond = (a: number | undefined, b: number | undefined) => (a !== undefined && b !== undefined) ? a === b : true
+
+    return {
+        rows: semiJoin(a, b, (a, b) => a.from === b.from && a.to === b.to && beyond(a.to2, b.to2)).rows
+    }
+}
+
+
+function intersect_all_from_to_and_beyond(bs: Relation<FromTo>[]) {
+    return bs.reduce((a, b) => intersect_from_to_and_beyond(a, b))
+}
+
+
+
+
+export function extract_moves(relation: Relation<FromTo>) {
+    return relation.rows.map(_ => make_move_from_to(_.from, _.to))
+}
+
+export function extract_sans(m: PositionManager, pos: PositionC, relation: Relation<FromTo>) {
+    return extract_moves(relation).map(_ => san_moves_c(m, pos, [_]))
 }

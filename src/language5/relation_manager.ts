@@ -207,3 +207,9 @@ export function flatExtend<RowA extends BaseRow, RowB extends BaseRow>(
 
   return { rows }
 }
+
+export function concat<Row extends BaseRow>(a: Relation<Row>, b: Relation<Row>): Relation<Row> {
+  return {
+    rows: [...a.rows, ...b.rows]
+  }
+}
