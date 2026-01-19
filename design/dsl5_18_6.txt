@@ -9,3 +9,50 @@ legals
 unblockable
 uncapturable
  evades
+
+forks king and rook
+checks king
+uncapturable
+ blocks or evades
+  captures rook
+
+checks queen
+ only evades
+  forks knight and queen
+
+nets king
+opens rook for backrank checkmate
+ defends backrank
+ hangs to bishop
+  captures hanging
+
+forks king and rook
+checks king
+ only evades
+  sacrifices vs rook
+  forks rook and king 
+  checks king
+   captures queen
+   removes pin on pawn
+    captures queen
+
+eyes zone mate with bishop battery
+ checks
+  only evades
+   discovers attack on queen
+    exchange sacrifice
+    forks king and queen
+    checks king
+     captures rook
+     accepts sacrifice
+      sacrifices vs rook
+      checks king
+       captures queen
+       accepts sacrifice
+
+
+
+
+
+
+

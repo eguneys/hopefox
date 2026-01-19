@@ -1,8 +1,9 @@
+import { between } from "../distill/attacks"
 import { ColorC, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceTypeC, PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
 import { Square } from "../distill/types"
 import { NodeId, NodeManager } from "../language1/node_manager"
-import { BaseRow, join, Relation, RelationManager, select } from "./relation_manager"
+import { BaseRow, join, Relation, RelationManager, select, semiJoin } from "./relation_manager"
 
 export type AttackThroughs2 = BaseRow & {
     from: Square
@@ -129,10 +130,11 @@ export class Rs {
         this.checks = new StatefulRelationManager(this, materialize_checks)
         this.forks = new StatefulRelationManager(this, materialize_forks)
         this.evades = new StatefulRelationManager(this, materialize_evades)
+        this.attack_throughs2 = new StatefulRelationManager(this, materialize_attack_throughs2)
+
         this.unblockables = new StatefulRelationManager(this, materialize_unblockables)
         this.uncapturables = new StatefulRelationManager(this, materialize_uncapturables)
         this.unevadables = new StatefulRelationManager(this, materialize_unevadables)
-        this.attack_throughs2 = new StatefulRelationManager(this, materialize_attack_throughs2)
     }
 
     run() {
@@ -290,6 +292,44 @@ function materialize_attacks2(world_id: WorldId, Rs: Rs): boolean {
 }
 
 
+function materialize_attack_throughs2(world_id: WorldId, Rs: Rs): boolean {
+    Rs.make_moves_to_world(world_id)
+    let end_world_id = world_id
+    let occupied = Rs.m.pos_occupied(Rs.pos)
+    for (let on of FullSquares) {
+        let piece = Rs.m.get_at(Rs.pos, on)
+        if (piece) {
+            let aa = Rs.m.pos_attacks(Rs.pos, on)
+            for (let a of aa) {
+                let aa2 = Rs.m.attacks(piece, a, occupied.without(on))
+                for (let a2 of aa2) {
+
+                    let piece2 = Rs.m.get_at(Rs.pos, a2)
+
+                    if (piece2) {
+                        let aa3 = Rs.m.attacks(piece, a, occupied.without(on).without(a2))
+                        aa3 = aa3.diff(aa2)
+
+                        for (let a3 of aa3) {
+                            Rs.attack_throughs2.relation.add_row({
+                                start_world_id: world_id,
+                                end_world_id: end_world_id,
+                                from: on,
+                                to: a,
+                                to2: a2,
+                                to3: a3
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Rs.unmake_moves_to_base(world_id)
+    return true
+}
+
 
 function materialize_occupies(world_id: WorldId, Rs: Rs): boolean {
     Rs.make_moves_to_world(world_id)
@@ -322,7 +362,6 @@ function materialize_checks(world_id: WorldId, Rs: Rs): boolean {
     if (!attacks2) {
         return false
     }
-
     let _ = join(attacks2, occupies, (a2, occ) =>
         a2.from === occ.on ? {
             start_world_id: a2.start_world_id,
@@ -398,17 +437,62 @@ function materialize_forks(world_id: WorldId, Rs: Rs): boolean {
     throw new Error("Function not implemented.")
 }
 function materialize_unblockables(world_id: WorldId, Rs: Rs): boolean {
-    throw new Error("Function not implemented.")
+    let attacks = Rs.attacks.get(world_id)
+    if (!attacks) {
+        return false
+    }
+
+    let attacks2 = Rs.attacks2.get(world_id)
+    if (!attacks2) {
+        return false
+    }
+
+    let res = anti_join(attacks2, attacks, (a2, a) =>
+        between(a2.to, a2.to2).has(a.to)
+    )
+
+    Rs.unblockables.relation.add_rows(world_id, res.rows)
+    return true
 }
 function materialize_uncapturables(world_id: WorldId, Rs: Rs): boolean {
-    throw new Error("Function not implemented.")
+    let attacks = Rs.attacks.get(world_id)
+    if (!attacks) {
+        return false
+    }
+
+    let res = anti_join(attacks, attacks, (a, c) =>
+        a.to === c.to
+    )
+
+    Rs.uncapturables.relation.add_rows(world_id, res.rows)
+    return true
 }
+
 function materialize_unevadables(world_id: WorldId, Rs: Rs): boolean {
-    throw new Error("Function not implemented.")
+    let attacks = Rs.attacks.get(world_id)
+    if (!attacks) {
+        return false
+    }
+
+    let athru2 = Rs.attack_throughs2.get(world_id)
+    if (!athru2) {
+        return false
+    }
+
+    let _ = semiJoin(attacks, athru2, (a, a2) => a.from === a2.to2)
+
+    let res = anti_join(athru2, _, (a2, a) =>
+        between(a2.to, a2.to3).has(a.to)
+    )
+
+    Rs.unevadables.relation.add_rows(world_id, res.rows)
+    return true
 }
-function materialize_attack_throughs2(world_id: WorldId, Rs: Rs): boolean {
-    throw new Error("Function not implemented.")
+
+function anti_join<Row extends BaseRow, RowB extends BaseRow>(a: Relation<Row>, b: Relation<RowB>, predicate: (a: Row, b: RowB) => boolean): Relation<Row> {
+    return {
+        rows: a.rows.filter(ra =>
+            b.rows.every(rb => !predicate(ra, rb))
+        )
+    }
 }
-
-
-
