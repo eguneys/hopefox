@@ -1,0 +1,49 @@
+fact friendly_goes
+ alias occ occupies
+ attacks.from = occupies.square
+ attacks.to = occ.square
+ occ.color = occupies.color
+
+fact unsafe_goes
+ alias occ occupies
+ alias att2 attacks
+ attacks.from = occupies.square
+ attacks.to = att2.to
+ att2.from = occ.square
+ occ.color != occupies.color
+
+fact safe_goes
+ alias _ attacks - friendly_goes
+ alias _ _ - unsafe_goes
+
+idea checks
+  move checks attacks
+  checks.attacks.to = occupies.square
+  occupies.square = King
+
+idea check_replies
+  move evades checks.safe_goes
+  move captures checks.captures
+  move blocks checks.blocks
+
+idea checkmate
+  move check_replies.checks
+  !check_replies.blocks
+  !check_replies.captures
+  !check_replies.evades
+
+idea only_blockable_checks
+  !check_replies.captures
+  !check_replies.evades
+  move check_replies.blocks
+
+idea checkmate2
+  move check_blocks only_blockable_checks
+  move capture_checks check_blocks.captures and
+                      check_blocks.checks
+  capture_checks.to = check_blocks.to
+
+idea block_or_capture_checks
+  !check_replies.evades
+  move check_replies.blocks or
+       check_replies.captures

@@ -1,11 +1,9 @@
 checks king
-legals
 unblockable
 uncapturable
 unevadable
 
 checks king
-legals
 unblockable
 uncapturable
  evades

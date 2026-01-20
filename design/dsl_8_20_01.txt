@@ -1,0 +1,16 @@
+idea
+ move one unblocks_attack_on_queen and
+          forks_queen_and_rook and
+          sacrifices_knight
+ move two one.accepts_sacrifice and
+          one.sacrifices_queen
+ move thr two.accepts_sacrifice
+
+
+idea
+ move one check_replies.evades and
+          ignore_mate_threat
+ side one.only_capturable_checks
+ move two one.sacrifice_queen and
+          one.remove_mating_support
+ move three two.accepts_sacrifice

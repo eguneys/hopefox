@@ -1,0 +1,19 @@
+move-open an attack line
+  blockable
+  capturable
+  evadable
+  ignorable
+
+move-create attack line
+  blockable
+  capturable
+  evadable
+  ignorable
+
+move-remove attack line
+
+existing attack line
+  blockable
+  capturable
+  evadable
+  ignorable
