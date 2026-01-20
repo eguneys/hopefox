@@ -9,6 +9,7 @@ export type Row = Map<Field, number>
 export type Relation = { rows: Row[] }
 
 
+export type LookupFilter = { field: Field; value: number, is_different?: boolean }
 
 export class RelationManager {
 
@@ -93,7 +94,7 @@ export class RelationManager {
 
     lookupRows(
         world_id: WorldId,
-        constraints: { field: Field; value: number, is_different?: boolean }[]
+        constraints: LookupFilter[]
     ): RowId[] {
         let candidates = this.get_row_ids_starting_at_world_id(world_id)
 

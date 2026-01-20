@@ -16,6 +16,7 @@ enum TokenType {
     Side = 'Side',
     Const = 'Const',
     Dot = 'Dot',
+    NewlineDot = 'NewlineDot',
     Between = 'Between',
     NotBetween = 'NotBetween',
     Eof = 'Eof'
@@ -99,7 +100,7 @@ class Lexer {
 
     public get_next_token(): Token {
         while (this.current_char !== undefined) {
-            this.skip_whitespace()
+            let has_newline = this.skip_whitespace()
             let current_char = this.current_char
 
             if (current_char === '-') {
@@ -120,6 +121,9 @@ class Lexer {
 
             if (this.current_char === '.') {
                 this.advance()
+                if (has_newline) {
+                    return { type: TokenType.NewlineDot, value: "\n." }
+                }
                 return { type: TokenType.Dot, value: '.' }
             }
 
@@ -190,17 +194,20 @@ class Parser {
 
     private current_token: Token
     private lookahead_token: Token
+    private lookahead_token2: Token
 
     constructor(lexer: Lexer) {
         this.lexer = lexer
         this.current_token = this.lexer.get_next_token()
         this.lookahead_token = this.lexer.get_next_token()
+        this.lookahead_token2 = this.lexer.get_next_token()
     }
 
 
     private advance_tokens() {
         this.current_token = this.lookahead_token
-        this.lookahead_token = this.lexer.get_next_token()
+        this.lookahead_token = this.lookahead_token2
+        this.lookahead_token2 = this.lexer.get_next_token()
     }
 
 
@@ -268,7 +275,8 @@ class Parser {
                 continue
             }
 
-            if (this.current_token.type === TokenType.Dot) {
+            if (this.current_token.type === TokenType.NewlineDot) {
+                this.eat(TokenType.NewlineDot)
                 assigns.push(this.parse_assign())
                 continue
             } 
@@ -476,7 +484,7 @@ class Parser {
 
     parse_move_list_right(): MoveListRight | undefined {
         let aa = []
-        let type: any = 'single'
+        let type: any
         while (true) {
             let a = this.parse_dotted_path()
 
@@ -503,7 +511,10 @@ class Parser {
             break
         }
 
-        if (type === 'single') {
+        if (aa.length === 0) {
+            return undefined
+        }
+        if (aa.length === 1) {
             return {
                 type: 'single',
                 a: aa[0]
@@ -542,27 +553,49 @@ type Alias = {
     right: MoveListRight
  }
 
- type Match = {
+ type Match = Normal | Const
+ type Normal = {
     left: DotedPath
     right: DotedPath
     is_different: boolean
     right2?: DotedPath
- } | {
+ } 
+ 
+ export type Const = {
     left: DotedPath
     const: Constants
  }
 
- type DotedPath = {
-    columns: string[]
-    field: string
- } | {
-    column: string
-    field: string
- } | {
-    field: string
+ export function is_const_match(m: Match): m is Const {
+    return (m as Const).const !== undefined
  }
 
-type MoveListRight = {
+
+
+export type DotedPath = Columns | Column | Field
+
+type Columns = {
+    columns: string[]
+    field: string
+}
+
+type Column = {
+    column: string
+    field: string
+}
+
+export type Field = {
+    field: string
+}
+
+export function is_columns(d: DotedPath): d is Columns {
+    return (d as Columns).columns !== undefined
+}
+export function is_column(d: DotedPath): d is Column {
+    return (d as Column).column !== undefined
+}
+
+export type MoveListRight = {
     type: 'single'
     a: DotedPath
 } | {
@@ -588,7 +621,7 @@ type MoveListRight = {
     right: DotedPath
  }
 
-type Definition = {
+export type Definition = {
     fact?: string
     idea?: string
 

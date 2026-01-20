@@ -13,14 +13,29 @@ it.skip('links', () => {
 })
 
 it('works', () => {
-    let i = 0
-    let fen = '7k/pb4pp/2p5/5p2/3P4/8/PPP2PPP/4R1K1 w - - 2 23'
+    let i = 1
     let pos = m.create_position(puzzles[i].move_fens[0])
-    pos = m.create_position(fen)
+    pos = m.create_position(puzzles[i].move_fens[0])
 
+    let rules = `
+fact friendly_goes
+ alias occ occupies
+ .from = attacks.from
+ .to = attacks.to
+ attacks.from = occupies.square
+ attacks.to = occ.square
+ occ.color = occupies.color
+
+idea
+ move friendly_goes
+ 
+`
+
+    console.log(puzzles[i].link)
     let res = Search(m, pos, rules)
 
-    console.log(res)
+    //console.log(res[0].get_relation_starting_at_world_id(0))
+    //console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
 })
 
 

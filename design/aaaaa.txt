@@ -1,0 +1,14 @@
+fact friendly_goes
+ alias occ occupies
+ attacks.from = occupies.square
+ attacks.to = occ.square
+ occ.color = occupies.color
+
+idea checks
+  move checks attacks
+  checks.attacks.to = occupies.square
+  occupies.square = King
+
+
+idea
+ move friendly_goes
