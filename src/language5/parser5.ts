@@ -404,7 +404,7 @@ class Parser {
                 }
             }
             return {
-                columns: columns.slice(-1),
+                columns: columns.slice(0, -1),
                 field: columns[columns.length - 1]
             }
         }

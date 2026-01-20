@@ -21,20 +21,28 @@ fact friendly_goes
  alias occ occupies
  .from = attacks.from
  .to = attacks.to
- attacks.from = occupies.square
- attacks.to = occ.square
+ attacks.from = occupies.on
+ attacks.to = occ.on
  occ.color = occupies.color
 
+idea checks
+  move checks attacks
+  .from = checks.from
+  .to = checks.to
+  checks.to = checks.attacks.from
+  checks.attacks.to = occupies.on
+  occupies.piece = King
+
+
 idea
- move friendly_goes
- 
+  move checks
 `
 
     console.log(puzzles[i].link)
     let res = Search(m, pos, rules)
 
-    console.log(res[0].get_relation_starting_at_world_id(0))
     console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
+    console.log(puzzles[i].link)
 })
 
 

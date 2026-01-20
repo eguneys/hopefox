@@ -5,7 +5,7 @@ import { Square } from "../distill/types"
 import { NodeId, NodeManager } from "../language1/node_manager"
 import { san_moves_c } from "../language2/san_moves_helper"
 import { Constants, Definition, DotedPath, Field, is_column, is_columns, is_const_match, MoveListRight, parse_defs6 } from "./parser5"
-import { concat, join, LookupFilter, mergeRows, Relation, RelationManager, Row, select, semiJoin } from "./relation_manager"
+import { concat, join, LookupFilter, mergeRows, project, Relation, RelationManager, Row, select, semiJoin } from "./relation_manager"
 
 enum MaterializeState {
     Materializing,
@@ -50,6 +50,21 @@ export class Rs {
                 there_is_more = R[1].step() || there_is_more
             }
         } while (there_is_more)
+    }
+
+    expand_legal_worlds(expand: Column, world_id: WorldId): Relation | false {
+        let r = this.relation(expand).get(world_id)
+        if (!r) {
+            return false
+        }
+
+        let legals = this.relation('legals').get(world_id)
+        if (!legals) {
+            return false
+        }
+
+        return semiJoin(legals, r, (a, b) => a.get('from') === b.get('from') && a.get('to') === b.get('to'))
+
     }
 
     make_moves_to_world(world_id: WorldId) {
@@ -225,9 +240,9 @@ type Binding = Map<Column, Row>
 
 type RelationCompound = MoveListRight
 
-type RawSourceAliasRelation = { alias: Column, relation: RelationCompound }
+type RawSourceAliasRelation = { alias: Column, relation: RelationCompound, expand_legalize?: true }
 
-type JoinColumnField = { column: Column, field: string }
+type JoinColumnField = { expand?: Column, column: Column, field: string }
 
 type OutputExpr = { column: Column, expr: JoinColumnField }
 
@@ -254,154 +269,176 @@ type FactPlan = {
     output: OutputExpr[]
 }
 
+function convert_to_plan(d: Definition) {
 
-function set_materialize_f(Rs: Rs, d: Definition) {
-    function convert_to_plan() {
+    let raw_sources: RawSourceAliasRelation[] = []
+    let joins: Join[] = []
+    let output: OutputExpr[] = []
+    let between_joins: BetweenJoin[] = []
 
-        let raw_sources: RawSourceAliasRelation[] = []
-        let joins: Join[] = []
-        let output: OutputExpr[] = []
-        let between_joins: BetweenJoin[] = []
+    for (let alias of d.alias) {
+        raw_sources.push({ alias: alias.left, relation: alias.right })
+    }
 
-        for (let alias of d.alias) {
-            raw_sources.push({ alias: alias.left, relation: alias.right })
+    for (let m of d.matches) {
+
+        let left = dotted_path_join_column_path(m.left)
+        if (left.expand) {
+            let alias = `${left.expand}.${left.column}`
+            if (!raw_sources.find(_ => _.alias === alias)) {
+                raw_sources.push({ alias, relation: { type: 'single', a: m.left } })
+            }
+        } else {
+            if (!raw_sources.find(_ => _.alias === left.column)) {
+                raw_sources.push({ alias: left.column, relation: { type: 'single', a: m.left } })
+            }
         }
 
-        for (let m of d.matches) {
-
-            if (is_const_match(m)) {
-
-                continue
-            }
-
-            let left = dotted_path_join_column_path(m.left)
-            let right = dotted_path_join_column_path(m.right)
-
-
-            if (!raw_sources.find(_ => _.alias === left.column)) {
-                raw_sources.push({ alias: left.column, relation: { type: 'single', a: left } })
-            }
-
-            if (!raw_sources.find(_ => _.alias === right.column)) {
-                raw_sources.push({ alias: right.column, relation: { type: 'single', a: right } })
-            }
-
-            let is_different = m.is_different === true
-
-            if (m.right2 !== undefined) {
-                let right2 = dotted_path_join_column_path(m.right2)
-
-                if (!raw_sources.find(_ => _.alias === right2.column)) {
-                    raw_sources.push({ alias: right2.column, relation: { type: 'single', a: right2 } })
-                }
-
-
-
-                between_joins.push({
-                    left,
-                    right,
-                    right2,
-                    is_different
-                })
-                continue
-            }
-
-
+        if (is_const_match(m)) {
             joins.push({
                 left,
+                right_as_const: m.const,
+                is_different: false
+            })
+
+            continue
+        }
+
+        let right = dotted_path_join_column_path(m.right)
+        if (right.expand) {
+            let alias = `${right.expand}.${right.column}`
+            if (!raw_sources.find(_ => _.alias === alias)) {
+                raw_sources.push({ alias, relation: { type: 'single', a: m.right } })
+            }
+        } else {
+            if (!raw_sources.find(_ => _.alias === right.column)) {
+                raw_sources.push({ alias: right.column, relation: { type: 'single', a: m.right } })
+            }
+        }
+
+
+
+        let is_different = m.is_different === true
+
+        if (m.right2 !== undefined) {
+            let right2 = dotted_path_join_column_path(m.right2)
+
+            if (!raw_sources.find(_ => _.alias === right2.column)) {
+                raw_sources.push({ alias: right2.column, relation: { type: 'single', a: m.right2 } })
+            }
+
+
+
+            between_joins.push({
+                left,
                 right,
+                right2,
                 is_different
             })
+            continue
         }
 
-        for (let assign of d.assigns) {
-            output.push({ column: assign.left.field, expr: dotted_path_join_column_path(assign.right) })
-        }
 
-        let plan: FactPlan = {
-            name: d.fact!,
-            raw_sources,
-            sources: [],
-            joins,
-            between_joins,
-            output
-        }
-
-        return plan
+        joins.push({
+            left,
+            right,
+            is_different
+        })
     }
 
-    const worklist_check_fact = (Rs: Rs, column: Column, world_id: WorldId) => {
-        return Rs.relation(column).get(world_id)
+    for (let assign of d.assigns) {
+        output.push({ column: assign.left.field, expr: dotted_path_join_column_path(assign.right) })
     }
 
-    const emitRow = (Rs: Rs, binding: Binding, output: OutputExpr[], world_id: WorldId) => {
-        let row = new Map()
-        for (let {column, expr} of output) {
-            row.set(column, binding.get(expr.column)?.get(expr.field))
+    let plan: FactPlan = {
+        name: d.fact ?? d.idea!,
+        raw_sources,
+        sources: [],
+        joins,
+        between_joins,
+        output
+    }
+
+    return plan
+}
+
+const worklist_check_fact = (Rs: Rs, column: Column, world_id: WorldId) => {
+    return Rs.relation(column).get(world_id)
+}
+
+const emitRow = (plan: FactPlan, Rs: Rs, binding: Binding, output: OutputExpr[], world_id: WorldId) => {
+    let row = new Map()
+    for (let { column, expr } of output) {
+        row.set(column, binding.get(expr.column)?.get(expr.field))
+    }
+    row.set('start_world_id', world_id)
+    Rs.relation(plan.name).relation.add_row(row)
+}
+
+
+
+function joinsSatisfiedSoFar(binding: Binding,
+    joins: Join[],
+    between_joins: BetweenJoin[],
+) {
+    for (const join of between_joins) {
+        const l = binding.get(join.left.column)
+        const r = binding.get(join.right.column)
+        const r2 = binding.get(join.right2.column)
+        if (l === undefined || r === undefined || r2 === undefined) {
+            continue
         }
-        row.set('start_world_id', world_id)
-        Rs.relation(plan.name).relation.add_row(row)
-    } 
-
-    let plan = convert_to_plan()
-
-
-    function joinsSatisfiedSoFar(binding: Binding,
-        joins: Join[],
-        between_joins: BetweenJoin[],
-    ) {
-        for (const join of between_joins) {
-            const l = binding.get(join.left.column)
-            const r = binding.get(join.right.column)
-            const r2 = binding.get(join.right2.column)
-            if (l === undefined || r === undefined || r2 === undefined) {
-                continue
+        let ray = between(r.get(join.right.field)!, r2.get(join.right2.field)!)
+        if (join.is_different) {
+            if (ray.has(l.get(join.left.field)!)) {
+                return false
             }
-            let ray = between(r.get(join.right.field)!, r2.get(join.right2.field)!)
-            if (join.is_different) {
-                if (ray.has(l.get(join.left.field)!)) {
-                    return false
-                }
-            } else {
-                if (!ray.has(l.get(join.left.field)!)) {
-                    return false
-                }
-            }
-        }
-
-
-        for (const join of joins) {
-            const l = binding.get(join.left.column)
-            if (l === undefined) {
-                continue
-            }
-            if (is_const_join(join)) {
-                if (l.get(join.left.field) !== Constants_by_name[join.right_as_const]) {
-                    return false
-                }
-                continue
-            }
-
-            const r = binding.get(join.right.column)
-            if (r === undefined) {
-                continue
-            }
-            if (join.is_different) {
-                if (l.get(join.left.field) === r.get(join.right.field)) {
-                    return false
-
-                }
-            } else {
-                if (l.get(join.left.field) !== r.get(join.right.field)) {
-                    return false
-                }
+        } else {
+            if (!ray.has(l.get(join.left.field)!)) {
+                return false
             }
         }
-        return true
     }
 
 
+    for (const join of joins) {
+        let join_left_alias = join.left.expand ? `${join.left.expand}.${join.left.column}` : join.left.column
+        const l = binding.get(join_left_alias)
+        if (l === undefined) {
+            continue
+        }
+        if (is_const_join(join)) {
+            if (l.get(join.left.field) !== Constants_by_name[join.right_as_const]) {
+                return false
+            }
+            continue
+        }
 
+        let join_right_alias = join.right.expand ? `${join.right.expand}.${join.right.column}` : join.right.column
+        const r = binding.get(join_right_alias)
+        if (r === undefined) {
+            continue
+        }
+        if (join.is_different) {
+            if (l.get(join.left.field) === r.get(join.right.field)) {
+                return false
+
+            }
+        } else {
+            if (l.get(join.left.field) !== r.get(join.right.field)) {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+
+
+
+function set_materialize_f(Rs: Rs, d: Definition) {
+
+    let plan = convert_to_plan(d)
     let fn = (world_id: WorldId, Rs: Rs) => {
         const sources = plan.sources
         const raw_sources = plan.raw_sources
@@ -414,12 +451,14 @@ function set_materialize_f(Rs: Rs, d: Definition) {
             for (const j of joins) {
 
                 if (is_const_join(j)) {
-                    filters.push({
-                        field: j.left.field,
-                        value: Constants_by_name[j.right_as_const]
-                    })
+                    if (j.left.column === source.alias) {
+                        filters.push({
+                            field: j.left.field,
+                            value: Constants_by_name[j.right_as_const]
+                        })
+                    }
                 } else {
-                    if (binding.has(j.right.column)) {
+                    if (j.left.column === source.alias && binding.has(j.right.column)) {
                         filters.push({
                             field: j.left.field,
                             value: binding.get(j.right.column)!.get(j.right.field)!,
@@ -427,7 +466,7 @@ function set_materialize_f(Rs: Rs, d: Definition) {
                         })
                     }
 
-                    if (binding.has(j.left.column)) {
+                    if (j.right.column === source.alias && binding.has(j.left.column)) {
                         filters.push({
                             field: j.right.field,
                             value: binding.get(j.left.column)!.get(j.left.field)!,
@@ -442,7 +481,7 @@ function set_materialize_f(Rs: Rs, d: Definition) {
 
         function extend(binding: Binding, sourceIndex: number) {
             if (sourceIndex === sources.length) {
-                emitRow(Rs, binding, plan.output, world_id)
+                emitRow(plan, Rs, binding, plan.output, world_id)
                 return
             }
 
@@ -465,7 +504,7 @@ function set_materialize_f(Rs: Rs, d: Definition) {
             if (plan.sources[i] !== undefined) {
                 continue
             }
-            let relation = workout_movelist_relation(Rs, raw_sources[i].relation, world_id)
+            let relation = workout_movelist_relation(Rs, sources, raw_sources[i].relation, world_id, raw_sources[i].expand_legalize === true)
             if (!relation) {
                 return false
             }
@@ -487,9 +526,105 @@ function set_materialize_f(Rs: Rs, d: Definition) {
 
 function set_materialize_i(Rs: Rs, d: Definition) {
 
-    let fn = (world_id: WorldId, r: Rs) => {
+    let plan = convert_to_plan(d)
 
-        return false
+    let moves = d.moves
+
+
+    for (let move of moves) {
+        if (move.left) {
+            let alias = move.left.field
+            let i = plan.raw_sources.findIndex(_ => _.alias === alias)
+            if (i !== -1) {
+                plan.raw_sources.splice(i, 1)
+            }
+            plan.raw_sources.unshift({ alias: move.left.field, relation: move.right, expand_legalize: true })
+        } else {
+            plan.raw_sources.unshift({ alias: plan.name, relation: move.right, expand_legalize: true })
+        }
+    }
+
+
+
+    let fn = (world_id: WorldId, r: Rs) => {
+        const sources = plan.sources
+        const raw_sources = plan.raw_sources
+        const joins = plan.joins
+        const between_joins = plan.between_joins
+
+        function getRows(source: Source, world_id: WorldId, binding: Binding) {
+            const filters: LookupFilter[] = []
+
+            for (const j of joins) {
+
+                if (is_const_join(j)) {
+                    if (j.left.column === source.alias) {
+                        filters.push({
+                            field: j.left.field,
+                            value: Constants_by_name[j.right_as_const]
+                        })
+                    }
+                } else {
+                    if (j.left.column === source.alias && binding.has(j.right.column)) {
+                        filters.push({
+                            field: j.left.field,
+                            value: binding.get(j.right.column)!.get(j.right.field)!,
+                            is_different: j.is_different
+                        })
+                    }
+
+                    if (j.right.column === source.alias && binding.has(j.left.column)) {
+                        filters.push({
+                            field: j.right.field,
+                            value: binding.get(j.left.column)!.get(j.left.field)!,
+                            is_different: j.is_different
+                        })
+                    }
+                }
+            }
+
+            return source.relation.lookupRows(world_id, filters)
+        }
+
+        function extend(binding: Binding, sourceIndex: number) {
+            if (sourceIndex === sources.length) {
+                emitRow(plan, Rs, binding, plan.output, world_id)
+                return
+            }
+
+            const source = sources[sourceIndex]
+            const rows = getRows(source, world_id, binding)
+            for (const row_id of rows) {
+                let row = source.relation.get_row(row_id)
+                binding.set(source.alias, row)
+
+
+                if (joinsSatisfiedSoFar(binding, joins, between_joins)) {
+                    extend(binding, sourceIndex + 1)
+                }
+
+                binding.delete(source.alias)
+            }
+        }
+
+
+        for (let i = 0; i < raw_sources.length; i++) {
+            if (plan.sources[i] !== undefined) {
+                continue
+            }
+            let relation = workout_movelist_relation(Rs, sources, raw_sources[i].relation, world_id, raw_sources[i].expand_legalize === true)
+            if (!relation) {
+                return false
+            }
+            
+            plan.sources[i] = { alias: raw_sources[i].alias, relation }
+        }
+
+        extend(new Map(), 0)
+
+        
+
+        return true
     }
 
     Rs.set_relation(d.idea!, fn)
@@ -502,7 +637,7 @@ function materialize_d(d: Definition): (world_id: WorldId, Rs: Rs) => RelationMa
         for (let move of d.moves) {
             let right = move.right
 
-            res = workout_movelist_relation(Rs, right, world_id)
+            res = workout_movelist_relation(Rs, [], right, world_id, false)
         }
 
         if (!res) {
@@ -523,9 +658,9 @@ const Constants_by_name = {
 }
 
 
-const dotted_path_join_column_path = (d: DotedPath) => {
+const dotted_path_join_column_path = (d: DotedPath): JoinColumnField => {
     if (is_columns(d)) {
-        return { column: d.columns.join('.'), field: d.field }
+        return { expand: d.columns[d.columns.length - 2], column: d.columns[d.columns.length - 1], field: d.field }
     }
     if (is_column(d)) {
         return { column: d.column, field: d.field }
@@ -537,7 +672,7 @@ const dotted_path_join_column_path = (d: DotedPath) => {
 
 
 
-const workout_movelist_relation = (Rs: Rs, movelist: MoveListRight, world_id: WorldId): RelationManager | false => {
+const workout_movelist_relation = (Rs: Rs, sources: Source[], movelist: MoveListRight, world_id: WorldId, expand_legalize: boolean): RelationManager | false => {
 
     let res = new RelationManager()
     switch (movelist.type) {
@@ -545,14 +680,55 @@ const workout_movelist_relation = (Rs: Rs, movelist: MoveListRight, world_id: Wo
         case 'or': break
         case 'minus': break
         case 'single':
-            let column = dotted_path_join_column_path(movelist.a).column
-            let r = Rs.relation(column).get(world_id)
-            if (r === undefined) {
-                return false
+            let dd = dotted_path_join_column_path(movelist.a)
+            let column = dd.column
+
+            if (expand_legalize) {
+                let rr = Rs.expand_legal_worlds(column, world_id)
+                if (rr === false) {
+                    return false
+                }
+
+                res.add_rows(world_id, rr.rows)
+                break
             }
-            res.add_rows(world_id, r.rows)
+
+            let ww = [world_id]
+            let ee
+            if (dd.expand) {
+                let expand_from_source = sources.find(_ => _.alias === dd.expand)
+                if (expand_from_source) {
+                    ee = expand_from_source.relation.get_relation_starting_at_world_id(world_id)
+                } else {
+                    ee = Rs.expand_legal_worlds(dd.expand, world_id)
+                    if (ee === false) {
+                        return false
+                    }
+                }
+
+                ww = ee.rows.map(_ => _.get('end_world_id')!)
+            }
+
+            for (let w of ww) {
+                if (!Rs.relation(column).get(w)) {
+                    return false
+                }
+            }
+
+            for (let i = 0; i < ww.length; i++) {
+                let w = ww[i]
+                let r = Rs.relation(column).get(w)!
+
+                if (ee !== undefined) {
+                    let e = ee.rows[i]
+
+
+                    res.add_rows(w, r.rows)
+                } else {
+                    res.add_rows(w, r.rows)
+                }
+            }
             break
     }
     return res
 }
-
