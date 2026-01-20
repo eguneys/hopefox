@@ -13,6 +13,7 @@ enum TokenType {
     Minus = 'Minus',
     Word = 'Word',
     Move = 'Move',
+    Side = 'Side',
     Const = 'Const',
     Dot = 'Dot',
     Between = 'Between',
@@ -62,11 +63,6 @@ class Lexer {
     skip_whitespace() {
         let has_newline = false
         while (this.current_char !== undefined && /\s/.test(this.current_char)) {
-            if (this.current_char === '\n') {
-                has_newline = true
-                this.advance()
-                break
-            }
             this.advance()
         }
         return has_newline
@@ -105,6 +101,11 @@ class Lexer {
         while (this.current_char !== undefined) {
             this.skip_whitespace()
             let current_char = this.current_char
+
+            if (current_char === '-') {
+                this.advance()
+                return { type: TokenType.Minus, value: '-' }
+            }
 
             if (current_char === '!') {
                 this.advance()
@@ -154,7 +155,21 @@ class Lexer {
                 return { type: TokenType.Move, value: 'move' }
             }
 
-            if (word !== undefined) {
+            if (word === 'side') {
+                return { type: TokenType.Side, value: 'side' }
+            }
+
+
+            if (word === 'and') {
+                return { type: TokenType.And, value: 'and' }
+            }
+            if (word === 'or') {
+                return { type: TokenType.Or, value: 'or' }
+            }
+
+
+
+            if (word !== '') {
                 return { type: TokenType.Word, value: word }
             }
 
@@ -221,7 +236,10 @@ class Parser {
         }
         if (current_token.type === TokenType.BeginIdea) {
             this.eat(TokenType.BeginIdea)
-            idea = this.word()
+
+            if (this.current_token.type === TokenType.Word) {
+                idea = this.word()
+            }
         }
 
         let moves: Move[] = []
@@ -229,9 +247,14 @@ class Parser {
         let alias: Alias[] = []
         let matches: Match[] = []
         let assigns: Assign[] = []
+        let sides: Move[] = []
 
 
         while (true) {
+            if (this.current_token.type === TokenType.Side) {
+                sides.push(this.parse_side())
+                continue
+            }
             if (this.current_token.type === TokenType.Move) {
                 moves.push(this.parse_move())
                 continue
@@ -258,7 +281,13 @@ class Parser {
                 break
             }
             
-            matches.push(this.parse_match())
+            let m = this.parse_match()
+            if (m) {
+                matches.push(m)
+                continue
+            }
+
+            break
         }
 
 
@@ -268,15 +297,20 @@ class Parser {
             alias,
             matches,
             moves,
+            sides,
             zeros,
             assigns
 }
     }
 
 
-    parse_match(): Match {
+    parse_match(): Match | undefined {
 
-        let left = this.parse_dotted_path()!
+        let left = this.parse_dotted_path()
+
+        if (!left) {
+            return undefined
+        }
 
         let current_token = this.current_token
         if (current_token.type === TokenType.NotBetween) {
@@ -294,6 +328,7 @@ class Parser {
         }
         if (current_token.type === TokenType.Different) {
             this.eat(TokenType.Different)
+            this.eat(TokenType.Equal)
             if (this.current_token.type === TokenType.Const) {
                 let right = this.eat(TokenType.Const) as Constants
                 return { left, const: right, is_different: true }
@@ -365,10 +400,63 @@ class Parser {
         }
     }
 
+    parse_side(): Move {
+        this.eat(TokenType.Side)
+
+        let left
+        let right_only = this.parse_move_list_right()
+
+        if (right_only !== undefined){ 
+            
+            if (right_only.type !== 'single') {
+                return {
+                    right: right_only
+                }
+            }
+
+            left = right_only.a
+        } else {
+            left = this.parse_dotted_path()!
+        }
+
+        let right = this.parse_move_list_right()
+
+        if (right === undefined)  {
+            return {
+                right: {
+                    type: 'single',
+                    a: left
+                }
+            }
+        }
+
+        return {
+            left,
+            right
+        }
+    }
+
+
+
     parse_move(): Move {
         this.eat(TokenType.Move)
 
-        let left = this.parse_dotted_path()!
+        let left
+        let right_only = this.parse_move_list_right()
+
+        if (right_only !== undefined){ 
+            
+            if (right_only.type !== 'single') {
+                return {
+                    right: right_only
+                }
+            }
+
+            left = right_only.a
+        } else {
+            left = this.parse_dotted_path()!
+        }
+
         let right = this.parse_move_list_right()
 
         if (right === undefined)  {
@@ -388,7 +476,7 @@ class Parser {
 
     parse_move_list_right(): MoveListRight | undefined {
         let aa = []
-        let type: 'single' | 'and' | 'or' = 'single'
+        let type: any = 'single'
         while (true) {
             let a = this.parse_dotted_path()
 
@@ -405,6 +493,11 @@ class Parser {
             if (this.current_token.type === TokenType.Or) {
                 type = 'or'
                 this.eat(TokenType.Or)
+                continue
+            }
+            if (this.current_token.type === TokenType.Minus) {
+                type = 'minus'
+                this.eat(TokenType.Minus)
                 continue
             }
             break
@@ -433,11 +526,10 @@ class Parser {
             if (current_token.type === TokenType.BeginFact ||
                 current_token.type === TokenType.BeginIdea) {
                     res.push(this.parse_definition())
+                    continue
             }
 
-            if (current_token.type === TokenType.Eof) {
-                break
-            }
+            break
         }
 
         return res
@@ -479,6 +571,9 @@ type MoveListRight = {
 } | {
     type: 'or',
     aa: DotedPath[]
+} | {
+    type: 'minus'
+    aa: DotedPath[]
 }
 
  type Move = {
@@ -500,6 +595,14 @@ type Definition = {
     alias: Alias[]
     matches: Match[]
     moves: Move[]
+    sides: Move[]
     zeros: Zero[]
     assigns: Assign[]
+}
+
+
+export function parse_defs6(rules: string) {
+    let lexer = new Lexer(rules)
+    let parser = new Parser(lexer)
+    return parser.parse_definitions()
 }

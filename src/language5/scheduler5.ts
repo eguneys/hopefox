@@ -4,6 +4,7 @@ import { SquareSet } from "../distill/squareSet"
 import { Square } from "../distill/types"
 import { NodeId, NodeManager } from "../language1/node_manager"
 import { san_moves_c } from "../language2/san_moves_helper"
+import { parse_defs6 } from "./parser5"
 import { concat, join, mergeRows, Relation, RelationManager, select, semiJoin } from "./relation_manager"
 
 enum MaterializeState {
@@ -184,4 +185,10 @@ export function extract_moves(relation: Relation) {
 
 export function extract_sans(m: PositionManager, pos: PositionC, relation: Relation) {
     return extract_moves(relation).map(_ => san_moves_c(m, pos, [_]))
+}
+
+
+export function Search(m: PositionManager, pos: PositionC, rules: string) {
+    let p = parse_defs6(rules)
+    return p
 }
