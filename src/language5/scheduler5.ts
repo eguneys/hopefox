@@ -258,7 +258,7 @@ type FactPlan = {
 function set_materialize_f(Rs: Rs, d: Definition) {
     function convert_to_plan() {
 
-        let raw_sources = []
+        let raw_sources: RawSourceAliasRelation[] = []
         let joins: Join[] = []
         let output: OutputExpr[] = []
         let between_joins: BetweenJoin[] = []
@@ -277,10 +277,26 @@ function set_materialize_f(Rs: Rs, d: Definition) {
             let left = dotted_path_join_column_path(m.left)
             let right = dotted_path_join_column_path(m.right)
 
+
+            if (!raw_sources.find(_ => _.alias === left.column)) {
+                raw_sources.push({ alias: left.column, relation: { type: 'single', a: left } })
+            }
+
+            if (!raw_sources.find(_ => _.alias === right.column)) {
+                raw_sources.push({ alias: right.column, relation: { type: 'single', a: right } })
+            }
+
             let is_different = m.is_different === true
 
             if (m.right2 !== undefined) {
                 let right2 = dotted_path_join_column_path(m.right2)
+
+                if (!raw_sources.find(_ => _.alias === right2.column)) {
+                    raw_sources.push({ alias: right2.column, relation: { type: 'single', a: right2 } })
+                }
+
+
+
                 between_joins.push({
                     left,
                     right,
@@ -299,9 +315,7 @@ function set_materialize_f(Rs: Rs, d: Definition) {
         }
 
         for (let assign of d.assigns) {
-            for (let [alias, column] of Object.entries(assign)) {
-                output.push({ column: alias, expr: dotted_path_join_column_path(column) })
-            }
+            output.push({ column: assign.left.field, expr: dotted_path_join_column_path(assign.right) })
         }
 
         let plan: FactPlan = {
@@ -322,7 +336,6 @@ function set_materialize_f(Rs: Rs, d: Definition) {
 
     const emitRow = (Rs: Rs, binding: Binding, output: OutputExpr[], world_id: WorldId) => {
         let row = new Map()
-        console.log('hey', binding, output)
         for (let {column, expr} of output) {
             row.set(column, binding.get(expr.column)?.get(expr.field))
         }
@@ -518,7 +531,7 @@ const dotted_path_join_column_path = (d: DotedPath) => {
         return { column: d.column, field: d.field }
     }
     else {
-        return { column: '', field: d.field }
+        return { column: d.field, field: d.field }
     }
 }
 
@@ -532,7 +545,7 @@ const workout_movelist_relation = (Rs: Rs, movelist: MoveListRight, world_id: Wo
         case 'or': break
         case 'minus': break
         case 'single':
-            let column = dotted_path_join_column_path(movelist.a).field
+            let column = dotted_path_join_column_path(movelist.a).column
             let r = Rs.relation(column).get(world_id)
             if (r === undefined) {
                 return false

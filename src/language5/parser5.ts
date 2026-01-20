@@ -64,6 +64,9 @@ class Lexer {
     skip_whitespace() {
         let has_newline = false
         while (this.current_char !== undefined && /\s/.test(this.current_char)) {
+            if (this.current_char === '\n') {
+                has_newline = true
+            }
             this.advance()
         }
         return has_newline
@@ -357,7 +360,6 @@ class Parser {
     }
 
     parse_assign(): Assign {
-        this.eat(TokenType.Dot)
         let left = this.parse_dotted_path()!
         this.eat(TokenType.Equal)
         let right = this.parse_dotted_path()!

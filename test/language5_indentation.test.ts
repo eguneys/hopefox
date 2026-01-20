@@ -1,7 +1,6 @@
 import { it } from 'vitest'
 import { extract_sans, PositionManager, Rs, Search } from '../src'
 import { puzzles } from './fixture'
-import { parse_defs6 } from '../src/language5/parser5'
 
 let m = await PositionManager.make()
 
@@ -34,8 +33,8 @@ idea
     console.log(puzzles[i].link)
     let res = Search(m, pos, rules)
 
-    //console.log(res[0].get_relation_starting_at_world_id(0))
-    //console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
+    console.log(res[0].get_relation_starting_at_world_id(0))
+    console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
 })
 
 
