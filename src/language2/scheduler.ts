@@ -538,7 +538,7 @@ class IdeaJoin {
 
         if (prefix.length === this.line.length) {
             this.insert_line_into_relation(prefix)
-            return
+            // return
         }
 
         const stepIndex = prefix.length
