@@ -250,34 +250,176 @@ export function extract_sans(m: PositionManager, pos: PositionC, relation: Relat
 }
 
 
+
 export function Search(m: PositionManager, pos: PositionC, rules: string) {
     let dd = parse_defs6(rules)
 
-    let rs = new Rs(m, pos)
+    let rss = new RssManager(m, pos)
 
-    let ii = []
     for (let d of dd) {
         if (d.fact) {
-            set_materialize_f(rs, d)
+
         } else if (d.idea) {
-            set_materialize_i(rs, d)
+            rss.set_i(d)
         } else {
-
-            ii.push(materialize_d(rs, d))
+            rss.set_d(d)
         }
     }
 
-    let res = []
-    for (let mFn of ii) {
-        let r = mFn(0, rs)
-        while (!r) {
-            rs.run()
-            r = mFn(0, rs)
-        }
-        res.push(r)
-    }
-    return res
+
+    rss.run()
+
+    return rss.results
 }
+
+
+type Emit = (_: Relation) => void
+
+class RssManager {
+    Rs: Rs
+    R2s: Map<string, IR>
+
+    R2s_more: IR[]
+
+    d_steps: [FactPlan, IR][]
+    i_steps: [FactPlan, IR, Emit][]
+
+    results: RelationManager[]
+
+    constructor(m: PositionManager, pos: PositionC) {
+        this.Rs = new Rs(m, pos)
+        this.R2s = new Map()
+        this.d_steps = []
+        this.i_steps = []
+
+        this.results = []
+    }
+
+
+    set_i(i: Definition) {
+
+        let plan = convert_to_plan(i)
+
+        let R2 = new IR(this.Rs)
+
+        let res: Relation | undefined
+
+        const emit = (_: Relation) => {
+            res = _
+        }
+
+        this.Rs.set_relation(plan.name, () => {
+            if (res) {
+                this.Rs.add_rows(0, plan.name, res.rows)
+            }
+            return true
+        })
+
+        this.i_steps.push([plan, R2, emit])
+    }
+
+    set_d(d: Definition) {
+        let plan = convert_to_plan(d)
+        let R2 = new IR(this.Rs)
+
+        this.d_steps.push([plan, R2])
+    }
+
+
+    run() {
+        while (this.i_steps.length > 0 || this.d_steps.length > 0) {
+
+            this.Rs.run()
+
+            let i_steps = []
+            for (let i_step of this.i_steps) {
+                let i_result = this._i_step(i_step[0], i_step[1])
+                if (!i_result) {
+                    i_steps.push(i_step)
+                } else {
+                    i_step[2](i_result.get_relation_starting_at_world_id(0))
+                }
+            }
+            this.i_steps = i_steps
+
+            let d_steps = []
+            for (let d_step of this.d_steps) {
+                let result = this._d_step(d_step[0], d_step[1])
+                if (!result) {
+                    d_steps.push(d_step)
+                } else {
+                    this.results.push(result)
+                }
+
+            }
+            this.d_steps = d_steps
+        }
+    }
+
+    _i_step(plan: FactPlan, R2: IR) {
+        let world_id = 0
+        R2.step()
+
+        for (let move of plan.moves) {
+            if (move.left) {
+                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+            }
+        }
+
+        for (let alias of plan.sources) {
+            let res = R2.AliasResolve(alias, world_id)
+            if (!res) {
+                return false
+            }
+        }
+
+        let emitRows = new RelationManager()
+        R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
+
+        return emitRows
+    }
+
+    _d_step(plan: FactPlan, R2: IR) {
+        let world_id = 0
+
+        R2.step()
+
+        for (let move of plan.moves) {
+            if (move.left) {
+                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+            } else {
+                let relation = R2.LiftLegals('', extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+            }
+        }
+
+
+        for (let alias of plan.sources) {
+            let relation = R2.AliasResolve(alias, world_id)
+            if (!relation) {
+                return false
+            }
+        }
+
+
+        let emitRows = new RelationManager()
+        emitRows.add_rows(0, R2.Resolve('', 0)!.rows)
+        return emitRows
+
+    }
+}
+
+
+
+
 
 type Binding = Map<Column, Row>
 
@@ -304,7 +446,7 @@ type Join = NormalJoin | ConstJoin
 type NormalJoin = { left: DotedPathWithField, right: DotedPathWithField, is_different: boolean } 
 type ConstJoin = { left: DotedPathWithField, right_as_const: Constants, is_different: boolean }
 
-type Source = { path: string, relation: ResolvedMoveListRight }
+type Source = { path: DotedPathColumn, relation: ResolvedMoveListRight }
 
 function is_const_join(_: Join): _ is ConstJoin  {
     return (_ as ConstJoin).right_as_const !== undefined
@@ -331,15 +473,16 @@ function convert_to_plan(d: Definition) {
     let between_joins: BetweenJoin[] = []
 
     for (let alias of d.alias) {
-        sources.push({ path: alias.left[0], relation: resolve_movelist(alias.right) })
+        sources.push({ path: { columns: [alias.left], full_path: alias.left }, relation: resolve_movelist(alias.right) })
     }
 
     for (let m of d.matches) {
 
         let left = resolve_doted_path_with_field(m.left)
+        let left_source = { ...left, field: undefined }
 
-        if (!sources.find(_ => _.path === left.full_path)) {
-            sources.push({ path: left.full_path, relation: { type: 'single', a: left } })
+        if (!sources.find(_ => _.path.full_path === left.full_path)) {
+            sources.push({ path: left_source, relation: { type: 'single', a: left } })
         }
 
         if (is_const_match(m)) {
@@ -353,9 +496,10 @@ function convert_to_plan(d: Definition) {
         }
 
         let right = resolve_doted_path_with_field(m.right)
+        let right_source = { ...right, field: undefined }
 
-        if (!sources.find(_ => _.path === right.full_path)) {
-            sources.push({ path: right.full_path, relation: { type: 'single', a: right } })
+        if (!sources.find(_ => _.path.full_path === right.full_path)) {
+            sources.push({ path: right_source, relation: { type: 'single', a: right } })
         }
 
 
@@ -363,9 +507,10 @@ function convert_to_plan(d: Definition) {
 
         if (m.right2 !== undefined) {
             let right2 = resolve_doted_path_with_field(m.right2)
+            let right2_source = { ...right2, field: undefined}
 
-            if (!sources.find(_ => _.path === right2.full_path)) {
-                sources.push({ path: right2.full_path, relation: { type: 'single', a: right2 } })
+            if (!sources.find(_ => _.path.full_path === right2.full_path)) {
+                sources.push({ path: right2_source, relation: { type: 'single', a: right2 } })
             }
 
             between_joins.push({
@@ -478,7 +623,7 @@ class IR {
 
     getRows(source: Source, world_id: WorldId, binding: Binding, joins: Join[]) {
 
-        return this.Resolve(source.path, world_id)
+        return this.Resolve(source.path.full_path, world_id)
 
         /*
 
@@ -535,14 +680,14 @@ class IR {
         const { rows } = this.getRows(source, world_id, binding, joins)!
 
         for (const row of rows) {
-            binding.set(source.path, row)
+            binding.set(source.path.full_path, row)
 
 
             if (joins.every(join => this.IsJoinSatisfiedSofar(world_id, join, binding))) {
                 this.extendBinding(binding, sourceIndex + 1, sources, world_id, joins, output, emitRows)
             }
 
-            binding.delete(source.path)
+            binding.delete(source.path.full_path)
         }
     }
 
@@ -595,11 +740,17 @@ class IR {
 
 
     DotedPathResolve(path: DotedPathColumn, world_id: WorldId) {
+        if (path.columns.length === 1) {
+            return this.Resolve(path.columns[0], world_id)
+        }
         return this.ReResolve(path.columns[0], path.columns[1], world_id)
     }
 
     AliasResolve(alias: Source, world_id: WorldId) {
-        return this.resolve_Op(alias.path[0], world_id, { column: extract_single(alias.relation).full_path, world_id, type: 'column_resolve' })
+        if (alias.path.columns.length === 2) {
+            return this.ReResolve(alias.path.columns[0], alias.path.columns[1], world_id)
+        }
+        return this.resolve_Op(alias.path.full_path, world_id, { column: extract_single(alias.relation).full_path, world_id, type: 'column_resolve' })
     }
 
     ReResolve(column_a: Column, column_b: Column, world_id: WorldId) {
@@ -740,6 +891,84 @@ function double_join(a: Relation, b: Relation, fn: (a: Row, b: Row) => boolean) 
     return [{ rows: aa } , { rows: bb }]
 }
 
+
+
+const Constants_by_name = {
+    King: KING,
+    Queen: QUEEN,
+    Rook: ROOK,
+    Bishop: BISHOP,
+    Knight: KNIGHT,
+    Pawn: PAWN,
+}
+
+
+function resolve_movelist(d: MoveListRight): ResolvedMoveListRight {
+    switch (d.type) {
+        case 'single':
+            return {
+                type: 'single',
+                a: resolve_doted_path_column(d.a)
+            }
+    }
+    throw 'Not implemented'
+}
+
+
+function resolve_doted_path_column(d: DotedPath): DotedPathColumn {
+    if (is_columns(d)) {
+        return { columns: [...d.columns, d.field], full_path: `${d.columns.join('.')}.${d.field}` }
+    } else if (is_column(d)) {
+        return { columns: [d.column, d.field], full_path: `${d.column}.${d.field}` }
+    } else {
+        return {columns: [d.field], full_path: d.field}
+    }
+}
+
+function resolve_doted_path_with_field(d: DotedPath): DotedPathWithField {
+    if (is_columns(d)) {
+        return {field: d.field, columns: d.columns, full_path: d.columns.join('.') }
+    } else if (is_column(d)) {
+        return {field: d.field, columns: [d.column], full_path: d.column }
+    } else {
+        return {field: d.field, columns: [], full_path: d.field}
+    }
+}
+
+
+
+/**** Old */
+
+function Searcha(m: PositionManager, pos: PositionC, rules: string) {
+    let dd = parse_defs6(rules)
+
+    let rs = new Rs(m, pos)
+
+    let ii = []
+    for (let d of dd) {
+        if (d.fact) {
+            set_materialize_f(rs, d)
+        } else if (d.idea) {
+            set_materialize_i(rs, d)
+        } else {
+
+            ii.push(materialize_d(rs, d))
+        }
+    }
+
+    let res = []
+    for (let mFn of ii) {
+        let r = mFn(0, rs)
+        while (!r) {
+            rs.run()
+            r = mFn(0, rs)
+        }
+        res.push(r)
+    }
+    return res
+}
+
+
 function set_materialize_f(Rs: Rs, d: Definition) {
 
     let plan = convert_to_plan(d)
@@ -778,25 +1007,10 @@ function set_materialize_i(Rs: Rs, d: Definition) {
         }
 
         for (let alias of plan.sources) {
-            if (alias.path.length === 1) {
-                let relation = R2.AliasResolve(alias, world_id)
-                if (!relation) {
-                    return false
-                }
-            } else {
-                if (alias.path[alias.path.length - 1] === '') {
-                    let relation = R2.AliasResolve(alias, world_id)
-                    if (!relation) {
-                        return false
-                    }
-                } else {
-                    let relation = R2.Resolve(alias.path, world_id)
-                    if (!relation) {
-                        return false
-                    }
-                }
-            }
-            
+           let res = R2.AliasResolve(alias, world_id) 
+           if (!res) {
+            return false
+           }
         }
 
         let emitRows = new RelationManager()
@@ -844,54 +1058,8 @@ function materialize_d(Rs: Rs, d: Definition): (world_id: WorldId, Rs: Rs) => Re
 
 
         let emitRows = new RelationManager()
-        //R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
-
-        //Rs.add_rows(world_id, d.idea!, emitRows.get_relation_starting_at_world_id(world_id)!.rows)
-
         emitRows.add_rows(0, R2.Resolve('', 0)!.rows)
         return emitRows
     }
 
-}
-
-const Constants_by_name = {
-    King: KING,
-    Queen: QUEEN,
-    Rook: ROOK,
-    Bishop: BISHOP,
-    Knight: KNIGHT,
-    Pawn: PAWN,
-}
-
-
-function resolve_movelist(d: MoveListRight): ResolvedMoveListRight {
-    switch (d.type) {
-        case 'single':
-            return {
-                type: 'single',
-                a: resolve_doted_path_column(d.a)
-            }
-    }
-    throw 'Not implemented'
-}
-
-
-function resolve_doted_path_column(d: DotedPath): DotedPathColumn {
-    if (is_columns(d)) {
-        return { columns: [...d.columns, d.field], full_path: `${d.columns.join('.')}.${d.field}` }
-    } else if (is_column(d)) {
-        return { columns: [...d.column, d.field], full_path: `${d.column}.${d.field}` }
-    } else {
-        return {columns: [d.field], full_path: d.field}
-    }
-}
-
-function resolve_doted_path_with_field(d: DotedPath): DotedPathWithField {
-    if (is_columns(d)) {
-        return {field: d.field, columns: d.columns, full_path: d.columns.join('.') }
-    } else if (is_column(d)) {
-        return {field: d.field, columns: [d.column], full_path: d.column }
-    } else {
-        return {field: d.field, columns: [], full_path: d.field}
-    }
 }
