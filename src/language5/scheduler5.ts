@@ -281,35 +281,36 @@ export function Search(m: PositionManager, pos: PositionC, rules: string) {
 
 type Binding = Map<Column, Row>
 
-type ResolvedDotedPath = string[]
+type DotedPathWithField = { columns: string[], full_path: string, field: string }
+type DotedPathColumn = { columns: string[], full_path: string }
 
 type ResolvedMoveListRight = {
     type: 'single'
-    a: ResolvedDotedPath
+    a: DotedPathColumn
 } | {
     type: 'and',
-    aa: ResolvedDotedPath[]
+    aa: DotedPathColumn[]
 } | {
     type: 'or',
-    aa: ResolvedDotedPath[]
+    aa: DotedPathColumn[]
 } | {
     type: 'minus'
-    aa: ResolvedDotedPath[]
+    aa: DotedPathColumn[]
 }
 
-type OutputExpr = { left: ResolvedDotedPath, right: ResolvedDotedPath }
+type OutputExpr = { left: DotedPathWithField, right: DotedPathWithField }
 
 type Join = NormalJoin | ConstJoin
-type NormalJoin = { left: ResolvedDotedPath, right: ResolvedDotedPath, is_different: boolean } 
-type ConstJoin = { left: ResolvedDotedPath, right_as_const: Constants, is_different: boolean }
+type NormalJoin = { left: DotedPathWithField, right: DotedPathWithField, is_different: boolean } 
+type ConstJoin = { left: DotedPathWithField, right_as_const: Constants, is_different: boolean }
 
-type Source = { path: ResolvedDotedPath, relation: ResolvedMoveListRight }
+type Source = { path: string, relation: ResolvedMoveListRight }
 
 function is_const_join(_: Join): _ is ConstJoin  {
     return (_ as ConstJoin).right_as_const !== undefined
 }
 
-type BetweenJoin = { left: ResolvedDotedPath, right: ResolvedDotedPath, right2: ResolvedDotedPath, is_different: boolean }
+type BetweenJoin = { left: DotedPathWithField, right: DotedPathWithField, right2: DotedPathWithField, is_different: boolean }
 
 type PlanMove = { left?: string, right: ResolvedMoveListRight }
 
@@ -330,20 +331,20 @@ function convert_to_plan(d: Definition) {
     let between_joins: BetweenJoin[] = []
 
     for (let alias of d.alias) {
-        sources.push({ path: [alias.left, ''] , relation: resolve_movelist(alias.right) })
+        sources.push({ path: alias.left[0], relation: resolve_movelist(alias.right) })
     }
 
     for (let m of d.matches) {
 
-        let left = resolve_doted_path(m.left)
+        let left = resolve_doted_path_with_field(m.left)
 
-        if (!sources.find(_ => doted_equals(_.path, left))) {
-            sources.push({ path: left, relation: { type: 'single', a: left } })
+        if (!sources.find(_ => _.path === left.full_path)) {
+            sources.push({ path: left.full_path, relation: { type: 'single', a: left } })
         }
 
         if (is_const_match(m)) {
             joins.push({
-                left: resolve_doted_path(m.left),
+                left,
                 right_as_const: m.const,
                 is_different: false
             })
@@ -351,20 +352,20 @@ function convert_to_plan(d: Definition) {
             continue
         }
 
-        let right = resolve_doted_path(m.right)
+        let right = resolve_doted_path_with_field(m.right)
 
-        if (!sources.find(_ => doted_equals(_.path, right))) {
-            sources.push({ path: right, relation: { type: 'single', a: right } })
+        if (!sources.find(_ => _.path === right.full_path)) {
+            sources.push({ path: right.full_path, relation: { type: 'single', a: right } })
         }
 
 
         let is_different = m.is_different === true
 
         if (m.right2 !== undefined) {
-            let right2 = resolve_doted_path(m.right2)
+            let right2 = resolve_doted_path_with_field(m.right2)
 
-            if (!sources.find(_ => doted_equals(_.path, right2))) {
-                sources.push({ path: right2, relation: { type: 'single', a: right2 } })
+            if (!sources.find(_ => _.path === right2.full_path)) {
+                sources.push({ path: right2.full_path, relation: { type: 'single', a: right2 } })
             }
 
             between_joins.push({
@@ -385,14 +386,14 @@ function convert_to_plan(d: Definition) {
     }
 
     for (let assign of d.assigns) {
-        output.push({ left: resolve_doted_path(assign.left), right: resolve_doted_path(assign.right) })
+        output.push({ left: resolve_doted_path_with_field(assign.left), right: resolve_doted_path_with_field(assign.right) })
     }
 
     let moves: { left?: string, right: ResolvedMoveListRight }[]= []
     for (let move of d.moves) {
         if (move.left) {
 
-            sources.push({ path: resolve_doted_path(move.left), relation: resolve_movelist(move.right) })
+            //sources.push({ path: resolve_doted_path(move.left), relation: resolve_movelist(move.right) })
         }
         moves.push({
             left: move.left?.field,
@@ -439,7 +440,7 @@ type ColumnResolveOp = {
 
 type LiftLegalsOp = {
     type: 'lift_legals'
-    column: ResolvedDotedPath
+    column: DotedPathColumn
     world_id: WorldId
     completed_relation?: Relation
 }
@@ -447,10 +448,6 @@ type LiftLegalsOp = {
 
 
 type Operation = ColumnResolveOp | ExpandOp | LiftLegalsOp
-
-const doted_path_full = (d: ResolvedDotedPath) => d.join('.')
-const doted_path_alias = (d: ResolvedDotedPath) => d.slice(0, -1).join('.')
-const doted_path_field = (d: ResolvedDotedPath) => d[d.length - 1]
 
 class IR {
     
@@ -481,7 +478,7 @@ class IR {
 
     getRows(source: Source, world_id: WorldId, binding: Binding, joins: Join[]) {
 
-        return this.DotedPathResolve(source.path, world_id)
+        return this.Resolve(source.path, world_id)
 
         /*
 
@@ -523,7 +520,7 @@ class IR {
     emitRow(binding: Binding, output: OutputExpr[], emitRows: RelationManager) {
         let row = new Map()
         for (let { left, right } of output) {
-            row.set(doted_path_alias(left), binding.get(doted_path_alias(right))!.get(doted_path_field(right)))
+            row.set(left.field, binding.get(right.full_path)!.get(right.field))
         }
         emitRows.add_row(row)
     }
@@ -538,14 +535,14 @@ class IR {
         const { rows } = this.getRows(source, world_id, binding, joins)!
 
         for (const row of rows) {
-            binding.set(doted_path_alias(source.path), row)
+            binding.set(source.path, row)
 
 
             if (joins.every(join => this.IsJoinSatisfiedSofar(world_id, join, binding))) {
                 this.extendBinding(binding, sourceIndex + 1, sources, world_id, joins, output, emitRows)
             }
 
-            binding.delete(doted_path_alias(source.path))
+            binding.delete(source.path)
         }
     }
 
@@ -588,7 +585,7 @@ class IR {
         return res.completed_relation
     }
 
-    LiftLegals(alias: Column, column: ResolvedDotedPath, world_id: WorldId) {
+    LiftLegals(alias: Column, column: DotedPathColumn, world_id: WorldId) {
         return this.resolve_Op(alias, world_id, { column, world_id, type: 'lift_legals' })
     }
 
@@ -597,19 +594,12 @@ class IR {
     }
 
 
-    DotedPathResolve(path: ResolvedDotedPath, world_id: WorldId) {
-        if (path.length === 1) {
-            return this.Resolve(path[0], world_id)
-        } else if (path.length === 2) {
-            return this.Resolve(path[0], world_id)
-        } else {
-            return this.ReResolve(path[0], path[1], world_id)
-        }
+    DotedPathResolve(path: DotedPathColumn, world_id: WorldId) {
+        return this.ReResolve(path.columns[0], path.columns[1], world_id)
     }
 
     AliasResolve(alias: Source, world_id: WorldId) {
-
-        return this.resolve_Op(alias.path[0], world_id, { column: extract_single(alias.relation)[0], world_id, type: 'column_resolve' })
+        return this.resolve_Op(alias.path[0], world_id, { column: extract_single(alias.relation).full_path, world_id, type: 'column_resolve' })
     }
 
     ReResolve(column_a: Column, column_b: Column, world_id: WorldId) {
@@ -636,8 +626,8 @@ class IR {
     }
 
     private IsConstraintJoinSatisfiedSofar(world_id: WorldId, join: ConstJoin, binding: Binding) {
-        let a = binding.get(doted_path_alias(join.left))
-        let field_a = doted_path_field(join.left)
+        let a = binding.get(join.left.full_path)
+        let field_a = join.left.field
 
         if (a === undefined) {
             return true
@@ -648,10 +638,10 @@ class IR {
     }
 
     private IsEqNormalJoinSatisfiedSofar(world_id: WorldId, join: NormalJoin, binding: Binding) {
-        let a = binding.get(doted_path_alias(join.left))
-        let b = binding.get(doted_path_alias(join.right))
-        let field_a = doted_path_field(join.left)
-        let field_b = doted_path_field(join.right)
+        let a = binding.get(join.left.full_path)
+        let b = binding.get(join.right.full_path)
+        let field_a = join.left.field
+        let field_b = join.right.field
 
         if (a === undefined || b === undefined) {
             return true
@@ -800,7 +790,7 @@ function set_materialize_i(Rs: Rs, d: Definition) {
                         return false
                     }
                 } else {
-                    let relation = R2.DotedPathResolve(alias.path, world_id)
+                    let relation = R2.Resolve(alias.path, world_id)
                     if (!relation) {
                         return false
                     }
@@ -879,22 +869,29 @@ function resolve_movelist(d: MoveListRight): ResolvedMoveListRight {
         case 'single':
             return {
                 type: 'single',
-                a: resolve_doted_path(d.a)
+                a: resolve_doted_path_column(d.a)
             }
     }
     throw 'Not implemented'
 }
 
-function resolve_doted_path(d: DotedPath): ResolvedDotedPath {
+
+function resolve_doted_path_column(d: DotedPath): DotedPathColumn {
     if (is_columns(d)) {
-        return [...d.columns, d.field]
+        return { columns: [...d.columns, d.field], full_path: `${d.columns.join('.')}.${d.field}` }
     } else if (is_column(d)) {
-        return [d.column, d.field]
+        return { columns: [...d.column, d.field], full_path: `${d.column}.${d.field}` }
     } else {
-        return [d.field]
+        return {columns: [d.field], full_path: d.field}
     }
 }
 
-export function doted_equals(a: ResolvedDotedPath, b: ResolvedDotedPath) {
-    return a.slice(0, -1).join(' ') === b.slice(0, -1).join(' ')
+function resolve_doted_path_with_field(d: DotedPath): DotedPathWithField {
+    if (is_columns(d)) {
+        return {field: d.field, columns: d.columns, full_path: d.columns.join('.') }
+    } else if (is_column(d)) {
+        return {field: d.field, columns: [d.column], full_path: d.column }
+    } else {
+        return {field: d.field, columns: [], full_path: d.field}
+    }
 }

@@ -89,6 +89,7 @@ idea check_replies
   .end_world_id = one.end_world_id
   move one checks
   move blocks checks.unsafe_goes
+  one.from = one.from
 
 idea
  move checks
