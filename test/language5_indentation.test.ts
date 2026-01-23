@@ -121,8 +121,8 @@ it('idea more moves works', () => {
 let rules = `
 fact friendly_goes
  alias occ occupies
- attacks.from = occupies.square
- attacks.to = occ.square
+ attacks.from = occupies.on
+ attacks.to = occ.on
  occ.color = occupies.color
 
 fact unsafe_goes
@@ -136,6 +136,10 @@ fact unsafe_goes
 fact safe_goes
  alias _ attacks - friendly_goes
  alias _ _ - unsafe_goes
+ .from = _.from
+ .to = _.to
+ .start_world_id = _.start_world_id
+ .end_world_id = _.end_world_id
 
 
 idea checks
@@ -158,7 +162,7 @@ idea check_replies
   move blocks one.blocks
 
 idea
-  line check_replies.one
+  line check_replies.evades
 `
 
   let i = 0

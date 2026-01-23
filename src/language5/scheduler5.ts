@@ -755,10 +755,6 @@ class IR {
 
 
     getRows(source: Source, world_id: WorldId, binding: Binding, joins: Join[]) {
-
-        if (source.path.full_path === 'checks.attacks') {
-            debugger
-        }
         return this.Resolve(source.path.full_path, world_id)
 
         /*
@@ -902,10 +898,10 @@ class IR {
 
     AliasResolve(alias: Source, world_id: WorldId) {
         if (alias.path.columns.length === 2) {
-            if (alias.path.full_path === 'checks.attacks') {
-                debugger
-            }
             return this.ReResolve(alias.path.columns[0], { type: 'single', a: { columns: [alias.path.columns[1]], full_path: alias.path.columns[1] } } , world_id)
+        }
+        if (alias.path.full_path === get_movelist_alias(alias.relation)) {
+            return this.Resolve(alias.path.full_path, world_id)
         }
         return this.resolve_Op(alias.path.full_path, world_id, { column: alias.relation, world_id, type: 'relation_resolve' })
     }
