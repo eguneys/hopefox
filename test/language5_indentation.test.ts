@@ -11,11 +11,7 @@ it.skip('links', () => {
     console.log(puzzles[3].link)
 })
 
-it('works', () => {
-    let i = 1
-    let pos = m.create_position(puzzles[i].move_fens[0])
-    pos = m.create_position(puzzles[i].move_fens[0])
-
+it.skip('works', () => {
     let rules = `
 fact friendly_goes
  alias occ occupies
@@ -43,6 +39,10 @@ idea checks
 idea
   move checks
 `
+    let i = 1
+    let pos = m.create_position(puzzles[i].move_fens[0])
+    pos = m.create_position(puzzles[i].move_fens[0])
+
 
     console.log(puzzles[i].link)
     let res = Search(m, pos, rules)
@@ -51,6 +51,62 @@ idea
     console.log(puzzles[i].link)
 })
 
+it('move works', () => {
+
+let rules = `
+fact friendly_goes
+ alias occ occupies
+ attacks.from = occupies.square
+ attacks.to = occ.square
+ occ.color = occupies.color
+
+fact unsafe_goes
+ alias occ occupies
+ alias att2 attacks
+ attacks.from = occupies.square
+ attacks.to = att2.to
+ att2.from = occ.square
+ occ.color != occupies.color
+
+idea checks
+  alias occ occupies
+  move checks attacks
+  .from = checks.from
+  .to = checks.to
+  .start_world_id = checks.start_world_id
+  .end_world_id = checks.end_world_id
+  checks.end_world_id = checks.attacks.start_world_id
+  checks.to = checks.attacks.from
+  checks.attacks.to = occupies.on
+  occupies.piece = King
+  checks.from = occ.on
+  occupies.color != occ.color
+
+idea check_replies
+  .from = one.from
+  .to = one.to
+  .start_world_id = one.start_world_id
+  .end_world_id = one.end_world_id
+  move one checks
+  move blocks checks.blocks
+
+idea
+ move check_replies.blocks
+`
+
+  let i = 1
+  let pos = m.create_position(puzzles[i].move_fens[0])
+  pos = m.create_position(puzzles[i].move_fens[0])
+
+
+  console.log(puzzles[i].link)
+  let res = Search(m, pos, rules)
+
+  console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
+  console.log(puzzles[i].link)
+
+
+})
 
 
 let rules = `
@@ -78,6 +134,7 @@ idea checks
   occupies.square = King
 
 idea check_replies
+  move checks checks
   move evades checks.safe_goes
   move captures checks.captures
   move blocks checks.blocks

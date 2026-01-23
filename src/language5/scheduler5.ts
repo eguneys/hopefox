@@ -263,7 +263,7 @@ export function Search(m: PositionManager, pos: PositionC, rules: string) {
             set_materialize_i(rs, d)
         } else {
 
-            ii.push(materialize_d(d))
+            ii.push(materialize_d(rs, d))
         }
     }
 
@@ -281,7 +281,7 @@ export function Search(m: PositionManager, pos: PositionC, rules: string) {
 
 type Binding = Map<Column, Row>
 
-type ResolvedDotedPath = { column: Column, field?: string, source: DotedPath, expand?: Column, left_column_path: string }
+type ResolvedDotedPath = { full: string, column: Column, field?: string, source: DotedPath, expand?: Column, left_column_path: string }
 
 type ResolvedMoveListRight = {
     type: 'single'
@@ -330,7 +330,7 @@ function convert_to_plan(d: Definition) {
     let between_joins: BetweenJoin[] = []
 
     for (let alias of d.alias) {
-        sources.push({ path: { left_column_path: alias.left, column: alias.left, source: { field: alias.left } } , relation: resolve_movelist(alias.right) })
+        sources.push({ path: { full: alias.left, left_column_path: alias.left, column: alias.left, source: { field: alias.left } } , relation: resolve_movelist(alias.right) })
     }
 
     for (let m of d.matches) {
@@ -390,6 +390,10 @@ function convert_to_plan(d: Definition) {
 
     let moves: { left?: string, right: ResolvedMoveListRight }[]= []
     for (let move of d.moves) {
+        if (move.left) {
+
+            sources.push({ path: resolve_doted_path(move.left), relation: resolve_movelist(move.right) })
+        }
         moves.push({
             left: move.left?.field,
             right: resolve_movelist(move.right)
@@ -426,23 +430,23 @@ type ExpandOp = {
     i_b: number
 }
 
-type ResolveOp = {
-    type: 'resolve'
-    column: Column
+type ColumnResolveOp = {
+    type: 'column_resolve'
+    column: Column,
     world_id: WorldId
     completed_relation?: Relation
 }
 
 type LiftLegalsOp = {
     type: 'lift_legals'
-    column: Column
+    column: ResolvedDotedPath
     world_id: WorldId
     completed_relation?: Relation
 }
 
 
 
-type Operation = ResolveOp | ExpandOp | LiftLegalsOp
+type Operation = ColumnResolveOp | ExpandOp | LiftLegalsOp
 
 class IR {
     private Rs: Rs
@@ -556,8 +560,8 @@ class IR {
         if (op.type === 'expand') {
             this.step_ExpandOp(op)
         }
-        if (op.type === 'resolve') {
-            this.step_ResolveOp(op)
+        if (op.type === 'column_resolve') {
+            this.step_ColumnResolveOp(op)
         }
         if (op.type === 'lift_legals') {
             this.step_LiftMovesToLegals(op)
@@ -573,12 +577,31 @@ class IR {
         return res.completed_relation
     }
 
-    LiftLegals(alias: Column, column: Column, world_id: WorldId) {
+    LiftLegals(alias: Column, column: ResolvedDotedPath, world_id: WorldId) {
         return this.resolve_Op(alias, world_id, { column, world_id, type: 'lift_legals' })
     }
 
-    Resolve(alias: Column, world_id: WorldId, column = alias) {
-        return this.resolve_Op(alias, world_id, { column, world_id, type: 'resolve' })
+    Resolve(alias: Column, world_id: WorldId) {
+        return this.resolve_Op(alias, world_id, { column: alias, world_id, type: 'column_resolve' })
+    }
+
+
+    DotedResolveWithAlias(alias: Column, column: ResolvedDotedPath, world_id: WorldId) {
+        if (column.expand) {
+            return this.ReResolve(column.column, column.expand, world_id)
+        } else {
+            return this.resolve_Op(alias, world_id, { column: column.column, world_id, type: 'column_resolve' })
+        }
+    }
+
+
+
+    DotedResolve(column: ResolvedDotedPath, world_id: WorldId) {
+        if (column.expand) {
+            return this.ReResolve(column.column, column.expand, world_id)
+        } else {
+            return this.resolve_Op(column.column, world_id, { column: column.column, world_id, type: 'column_resolve' })
+        }
     }
 
 
@@ -643,7 +666,7 @@ class IR {
         if (!legals) {
             return
         }
-        let relation = this.Resolve(op.column, op.world_id)
+        let relation = this.DotedResolve(op.column, op.world_id)
 
         if (!relation) {
             return
@@ -659,7 +682,7 @@ class IR {
         return this.Resolve(column, next_world_id)
     }
 
-    private step_ResolveOp(op: ResolveOp) {
+    private step_ColumnResolveOp(op: ColumnResolveOp) {
         let relation = this.Rs.get_or_wait(op.column, op.world_id)
         if (!relation) {
             return
@@ -731,9 +754,9 @@ function set_materialize_f(Rs: Rs, d: Definition) {
     Rs.set_relation(d.fact!, fn)
 }
 
-function extract_column_asdf(l: ResolvedMoveListRight) {
+function extract_single(l: ResolvedMoveListRight) {
     if (l.type === 'single') {
-        return l.a.column
+        return l.a
     }
     throw 'Not implemented'
 }
@@ -750,7 +773,7 @@ function set_materialize_i(Rs: Rs, d: Definition) {
 
         for (let move of plan.moves) {
             if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_column_asdf(move.right), world_id)
+                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
                 if (!relation) {
                     return false
                 }
@@ -764,7 +787,7 @@ function set_materialize_i(Rs: Rs, d: Definition) {
                     return false
                 }
             } else {
-                let relation = R2.Resolve(alias.path.column, world_id, extract_column_asdf(alias.relation))
+                let relation = R2.DotedResolveWithAlias(alias.path.column, extract_single(alias.relation), world_id)
                 if (!relation) {
                     return false
                 }
@@ -782,27 +805,53 @@ function set_materialize_i(Rs: Rs, d: Definition) {
     Rs.set_relation(d.idea!, fn)
 }
 
-function materialize_d(d: Definition): (world_id: WorldId, Rs: Rs) => RelationManager | undefined {
+function materialize_d(Rs: Rs, d: Definition): (world_id: WorldId, Rs: Rs) => RelationManager | undefined {
 
-    let resolved_moves = d.moves.map(_ => ({
-        left: _.left ? resolve_doted_path(_.left) : undefined,
-        right: resolve_movelist(_.right)
-    }))
+    let plan = convert_to_plan(d)
 
-
+    let R2 = new IR(Rs)
 
     return (world_id: WorldId, Rs: Rs) => {
-        let relations = new Map()
-        for (let move of resolved_moves) {
-            let right = move.right
 
-            let r = Rs_get_movelist_relation_or_wait(relations, Rs, world_id, right)
-            if (!r) {
-                return
+        R2.step()
+
+        for (let move of plan.moves) {
+            if (move.left) {
+                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                if (!relation) {
+                    return
+                }
+            } else {
+                let relation = R2.LiftLegals('', extract_single(move.right), world_id)
+                if (!relation) {
+                    return
+                }
             }
-            return r
         }
-        return
+
+
+        for (let alias of plan.sources) {
+            if (alias.path.expand) {
+                let relation = R2.ReResolve(alias.path.expand, alias.path.column, world_id)
+                if (!relation) {
+                    return
+                }
+            } else {
+                let relation = R2.DotedResolveWithAlias(alias.path.column, extract_single(alias.relation), world_id)
+                if (!relation) {
+                    return
+                }
+            }
+        }
+
+
+        let emitRows = new RelationManager()
+        //R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
+
+        //Rs.add_rows(world_id, d.idea!, emitRows.get_relation_starting_at_world_id(world_id)!.rows)
+
+        emitRows.add_rows(0, R2.Resolve('', 0)!.rows)
+        return emitRows
     }
 
 }
@@ -876,11 +925,12 @@ function resolve_doted_path(d: DotedPath): ResolvedDotedPath {
         let expand = d.columns[d.columns.length - 2]
         let column = d.columns[d.columns.length - 1]
         let left_column_path = expand + '.' + column
-        return { left_column_path, expand, column, field: d.field, source: d }
+        let full = left_column_path + '.' + d.field
+        return { left_column_path, expand, column, field: d.field, source: d, full }
     } else if (is_column(d)) {
-        return { left_column_path: d.column, column: d.column, field: d.field, source: d }
+        return { full: d.column + '.' + d.field, left_column_path: d.column, column: d.column, field: d.field, source: d }
     } else {
-        return { left_column_path: d.field, column: d.field, source: d }
+        return { full: d.field, left_column_path: d.field, column: d.field, source: d }
     }
 }
 
