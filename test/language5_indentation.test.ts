@@ -79,13 +79,7 @@ idea checks
   occupies.color != occ.color
 
 idea check_replies
-  .from = one.from
-  .to = one.to
-  .start_world_id = one.start_world_id
-  .end_world_id = one.end_world_id
-  move one checks
-  move blocks checks.goes
-  one.from = one.from
+  line blocks checks.goes
 
 idea g2
  .from = one.from
@@ -96,7 +90,7 @@ idea g2
  one.from = one.from
 
 idea
-line checks.g2
+line check_replies.blocks
 `
 
 let fen = '6k1/p4ppp/8/8/4r3/P7/1P1R1PPP/K7 b - - 0 26'

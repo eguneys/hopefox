@@ -319,7 +319,6 @@ class RssManager {
 
         let R2 = new IR(this.Rs)
 
-
         for (let alias of plan.moves) {
             const alias_left = alias.left
             if (alias_left) {
@@ -333,7 +332,7 @@ class RssManager {
             const alias_left = alias.left
             if (alias_left) {
                 this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) =>
-                    this._i_moves_step(plan, R2, alias, world_id)
+                    this._i_lines_step(plan, R2, alias, world_id)
                 )
             }
         }
@@ -397,6 +396,10 @@ class RssManager {
 
         for (let move of plan.lines) {
             if (move.left) {
+                let relation = R2.LiftExpandResolve(move.left, extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
             } else {
                 let relation = R2.DotedPathResolve(extract_single(move.right), world_id)
                 if (!relation) {
@@ -423,18 +426,33 @@ class RssManager {
             }
         }
 
-
-        if (plan.name === 'checks') {
-            debugger
-        }
-
-
         let emitRows = new RelationManager()
         R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
 
         this.Rs.add_rows(world_id, plan.name, emitRows.get_relation_starting_at_world_id(world_id).rows)
         return true
     }
+
+
+    _i_lines_step(plan: FactPlan, R2: IR, line: PlanMove, world_id: WorldId): boolean {
+
+        R2.step()
+
+
+        if (!line.left) {
+            return true
+        }
+
+        let relation = R2.LiftExpandResolve(line.left, extract_single(line.right), world_id)
+        if (!relation) {
+            return false
+        }
+
+        this.Rs.add_rows(world_id, `${plan.name}.${line.left}`, relation.rows)
+
+        return true
+    }
+
 
 
     _i_moves_step(plan: FactPlan, R2: IR, move: PlanMove, world_id: WorldId): boolean {
@@ -463,7 +481,7 @@ class RssManager {
 
         for (let move of plan.lines) {
             if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                let relation = R2.LiftExpandResolve(move.left, extract_single(move.right), world_id)
                 if (!relation) {
                     return false
                 }
@@ -842,6 +860,23 @@ class IR {
     Resolve(alias: Column, world_id: WorldId) {
         return this.resolve_Op(alias, world_id, { column: alias, world_id, type: 'column_resolve' })
     }
+
+    LiftExpandResolve(alias: Column, column: DotedPathColumn, world_id: WorldId) {
+        let [column_a, column_b] = column.columns
+        let op: ExpandOp = {
+            type: 'expand',
+            column_a,
+            column_b,
+            world_id,
+            aa: undefined,
+            bb: [],
+            i_a: 0,
+            i_b: 0
+        }
+
+        return this.resolve_Op(alias, world_id, op)
+    }
+
 
 
     DotedPathResolve(path: DotedPathColumn, world_id: WorldId) {
