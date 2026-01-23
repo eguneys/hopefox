@@ -13,6 +13,7 @@ enum TokenType {
     Minus = 'Minus',
     Word = 'Word',
     Move = 'Move',
+    Line = 'Line',
     Side = 'Side',
     Const = 'Const',
     Dot = 'Dot',
@@ -161,6 +162,11 @@ class Lexer {
             if (word === 'move') {
                 return { type: TokenType.Move, value: 'move' }
             }
+            if (word === 'line') {
+                return { type: TokenType.Line, value: 'line' }
+            }
+
+
 
             if (word === 'side') {
                 return { type: TokenType.Side, value: 'side' }
@@ -258,11 +264,16 @@ class Parser {
         let matches: Match[] = []
         let assigns: Assign[] = []
         let sides: Move[] = []
+        let lines: Move[] = []
 
 
         while (true) {
             if (this.current_token.type === TokenType.Side) {
                 sides.push(this.parse_side())
+                continue
+            }
+            if (this.current_token.type === TokenType.Line) {
+                lines.push(this.parse_line())
                 continue
             }
             if (this.current_token.type === TokenType.Move) {
@@ -308,6 +319,7 @@ class Parser {
             alias,
             matches,
             moves,
+            lines,
             sides,
             zeros,
             assigns
@@ -412,6 +424,44 @@ class Parser {
 
     parse_side(): Move {
         this.eat(TokenType.Side)
+
+        let left
+        let right_only = this.parse_move_list_right()
+
+        if (right_only !== undefined){ 
+            
+            if (right_only.type !== 'single') {
+                return {
+                    right: right_only
+                }
+            }
+
+            left = right_only.a
+        } else {
+            left = this.parse_dotted_path()!
+        }
+
+        let right = this.parse_move_list_right()
+
+        if (right === undefined)  {
+            return {
+                right: {
+                    type: 'single',
+                    a: left
+                }
+            }
+        }
+
+        return {
+            left,
+            right
+        }
+    }
+
+
+
+    parse_line(): Move {
+        this.eat(TokenType.Line)
 
         let left
         let right_only = this.parse_move_list_right()
@@ -630,6 +680,7 @@ export type Definition = {
     alias: Alias[]
     matches: Match[]
     moves: Move[]
+    lines: Move[]
     sides: Move[]
     zeros: Zero[]
     assigns: Assign[]

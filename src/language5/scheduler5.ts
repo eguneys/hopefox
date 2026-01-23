@@ -243,11 +243,23 @@ function materialize_occupies(world_id: WorldId, Rs: Rs): boolean {
 
 
 export function extract_moves(relation: Relation) {
-    return relation.rows.map(_ => make_move_from_to(_.get('from')!, _.get('to')!))
+    return relation.rows.map(_ => {
+        let res = []
+        for (let i = 0; i < 8; i++) {
+            let from_key = `from${i === 0 ? '' : (i + 1)}`
+            let to_key = `to${i === 0 ? '' : (i + 1)}`
+            if (_.has(from_key)) {
+                res.push(make_move_from_to(_.get(from_key)!, _.get(to_key)!))
+            } else {
+                break
+            }
+        }
+        return res
+    })
 }
 
 export function extract_sans(m: PositionManager, pos: PositionC, relation: Relation) {
-    return extract_moves(relation).map(_ => san_moves_c(m, pos, [_]))
+    return extract_moves(relation).map(_ => san_moves_c(m, pos, _))
 }
 
 
@@ -317,6 +329,17 @@ class RssManager {
             }
         }
 
+        for (let alias of plan.lines) {
+            const alias_left = alias.left
+            if (alias_left) {
+                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) =>
+                    this._i_moves_step(plan, R2, alias, world_id)
+                )
+            }
+        }
+
+
+
         this.Rs.set_relation(plan.name, (world_id: WorldId) => this._i_step(plan, R2, world_id))
 
     }
@@ -372,6 +395,17 @@ class RssManager {
     _i_step(plan: FactPlan, R2: IR, world_id: WorldId): boolean {
         R2.step()
 
+        for (let move of plan.lines) {
+            if (move.left) {
+            } else {
+                let relation = R2.DotedPathResolve(extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+            }
+        }
+
+
 
         for (let move of plan.moves) {
             if (move.left) {
@@ -388,6 +422,12 @@ class RssManager {
                 return false
             }
         }
+
+
+        if (plan.name === 'checks') {
+            debugger
+        }
+
 
         let emitRows = new RelationManager()
         R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
@@ -421,6 +461,22 @@ class RssManager {
 
         R2.step()
 
+        for (let move of plan.lines) {
+            if (move.left) {
+                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+            } else {
+                let relation = R2.DotedPathResolve(extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+
+            }
+        }
+
+
         for (let move of plan.moves) {
             if (move.left) {
                 let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
@@ -445,7 +501,8 @@ class RssManager {
 
 
         let emitRows = new RelationManager()
-        emitRows.add_rows(0, R2.Resolve('', 0)!.rows)
+        let ex_line = extract_single(plan.lines[0].right).full_path
+        emitRows.add_rows(0, R2.Resolve(ex_line, 0)!.rows)
         return emitRows
 
     }
@@ -496,6 +553,7 @@ type FactPlan = {
     joins: Join[]
     between_joins: BetweenJoin[]
     moves: PlanMove[]
+    lines: PlanMove[]
     output: OutputExpr[]
 }
 
@@ -580,13 +638,28 @@ function convert_to_plan(d: Definition) {
         })
     }
 
+    let lines: { left?: string, right: ResolvedMoveListRight }[]= []
+    for (let move of d.lines) {
+        if (move.left) {
+
+            //sources.push({ path: resolve_doted_path(move.left), relation: resolve_movelist(move.right) })
+        }
+        lines.push({
+            left: move.left?.field,
+            right: resolve_movelist(move.right)
+        })
+    }
+
+
+
     let plan: FactPlan = {
         name: d.fact ?? d.idea!,
         sources,
         joins,
         between_joins,
         output,
-        moves
+        moves,
+        lines
     }
 
     return plan
@@ -918,7 +991,21 @@ class IR {
             op.i_a++
         }
 
-        op.completed_relation = { rows: op.bb.flatMap(_ => _.rows) }
+        op.completed_relation = {
+            rows: op.aa.flatMap((aa, i) => {
+                let bb = op.bb[i]
+
+
+                return project(bb, bb => new Map([
+                    ['from', aa.get('from')!],
+                    ['to', aa.get('to')!],
+                    ['from2', bb.get('from')!],
+                    ['to2', bb.get('to')!],
+                    ['start_world_id', aa.get('start_world_id')!],
+                    ['end_world_id', bb.get('end_world_id')!],
+                ])).rows
+            })
+        }
     }
 
 }

@@ -28,9 +28,7 @@ idea checks
   .to = checks.to
   .start_world_id = checks.start_world_id
   .end_world_id = checks.end_world_id
-  checks.end_world_id = checks.attacks.start_world_id
-  checks.to = checks.attacks.from
-  checks.attacks.to = occupies.on
+  checks.attacks.to2 = occupies.on
   occupies.piece = King
   checks.from = occ.on
   occupies.color != occ.color
@@ -74,9 +72,8 @@ idea checks
   .to = checks.to
   .start_world_id = checks.start_world_id
   .end_world_id = checks.end_world_id
-  checks.end_world_id = checks.attacks.start_world_id
-  checks.to = checks.attacks.from
-  checks.attacks.to = occupies.on
+  checks.to = checks.attacks.from2
+  checks.attacks.to2 = occupies.on
   occupies.piece = King
   checks.from = occ.on
   occupies.color != occ.color
@@ -90,8 +87,16 @@ idea check_replies
   move blocks checks.goes
   one.from = one.from
 
+idea g2
+ .from = one.from
+ .to = one.to
+ .start_world_id = one.start_world_id
+ .end_world_id = one.end_world_id
+ move one goes
+ one.from = one.from
+
 idea
-move goes.goes
+line checks.g2
 `
 
 let fen = '6k1/p4ppp/8/8/4r3/P7/1P1R1PPP/K7 b - - 0 26'
