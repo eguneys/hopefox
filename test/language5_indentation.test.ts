@@ -158,7 +158,7 @@ idea check_replies
   move blocks one.blocks
 
 idea
-  line check_replies.evades
+  line check_replies.one
 `
 
   let i = 0

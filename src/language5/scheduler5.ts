@@ -5,7 +5,7 @@ import { Square } from "../distill/types"
 import { NodeId, NodeManager } from "../language1/node_manager"
 import { san_moves_c } from "../language2/san_moves_helper"
 import { Constants, Definition, DotedPath, is_column, is_columns, is_const_match, MoveListRight, parse_defs6 } from "./parser5"
-import { concat, join, LookupFilter, mergeRows, project, Relation, RelationManager, Row, RowId, select, semiJoin } from "./relation_manager"
+import { anti_join, concat, join, LookupFilter, mergeRows, project, Relation, RelationManager, Row, RowId, select, semiJoin } from "./relation_manager"
 
 enum MaterializeState {
     Materializing,
@@ -399,12 +399,12 @@ class RssManager {
 
         for (let move of plan.lines) {
             if (move.left) {
-                let relation = R2.LiftExpandResolve(move.left, extract_single(move.right), world_id)
+                let relation = R2.LiftExpandResolve(move.left, move.right, world_id)
                 if (!relation) {
                     return false
                 }
             } else {
-                let relation = R2.DotedPathResolve(extract_single(move.right), world_id)
+                let relation = R2.resolve_movelist(move.right, world_id)
                 if (!relation) {
                     return false
                 }
@@ -414,7 +414,7 @@ class RssManager {
 
         for (let move of plan.moves) {
             if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                let relation = R2.LiftLegals(move.left, move.right, world_id)
                 if (!relation) {
                     return false
                 }
@@ -445,7 +445,7 @@ class RssManager {
             return true
         }
 
-        let relation = R2.LiftExpandResolve(line.left, extract_single(line.right), world_id)
+        let relation = R2.LiftExpandResolve(line.left, line.right, world_id)
         if (!relation) {
             return false
         }
@@ -465,7 +465,7 @@ class RssManager {
             return true
         }
 
-        let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+        let relation = R2.LiftLegals(move.left, move.right, world_id)
         if (!relation) {
             return false
         }
@@ -482,12 +482,12 @@ class RssManager {
 
         for (let move of plan.lines) {
             if (move.left) {
-                let relation = R2.LiftExpandResolve(move.left, extract_single(move.right), world_id)
+                let relation = R2.LiftExpandResolve(move.left, move.right, world_id)
                 if (!relation) {
                     return false
                 }
             } else {
-                let relation = R2.DotedPathResolve(extract_single(move.right), world_id)
+                let relation = R2.resolve_movelist(move.right, world_id)
                 if (!relation) {
                     return false
                 }
@@ -498,12 +498,12 @@ class RssManager {
 
         for (let move of plan.moves) {
             if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                let relation = R2.LiftLegals(move.left, move.right, world_id)
                 if (!relation) {
                     return false
                 }
             } else {
-                let relation = R2.LiftLegals('', extract_single(move.right), world_id)
+                let relation = R2.LiftLegals('', move.right, world_id)
                 if (!relation) {
                     return false
                 }
@@ -520,8 +520,8 @@ class RssManager {
 
 
         let emitRows = new RelationManager()
-        let ex_line = extract_single(plan.lines[0].right).full_path
-        emitRows.add_rows(0, R2.Resolve(ex_line, 0)!.rows)
+        let ex_line = plan.lines[0].right
+        emitRows.add_rows(0, R2.resolve_movelist(ex_line, 0)!.rows)
         return emitRows
 
     }
@@ -694,7 +694,7 @@ type ExpandOp = {
     type: 'expand'
     completed_relation?: Relation
     column_a: Column
-    column_b: Column
+    column_b: ResolvedMoveListRight
     world_id: WorldId
     aa?: Row[]
     bb: Relation[]
@@ -709,16 +709,23 @@ type ColumnResolveOp = {
     completed_relation?: Relation
 }
 
+type RelationResolveOp = {
+    type: 'relation_resolve'
+    column: ResolvedMoveListRight,
+    world_id: WorldId
+    completed_relation?: Relation
+}
+
 type LiftLegalsOp = {
     type: 'lift_legals'
-    column: DotedPathColumn
+    column: ResolvedMoveListRight,
     world_id: WorldId
     completed_relation?: Relation
 }
 
 
 
-type Operation = ColumnResolveOp | ExpandOp | LiftLegalsOp
+type Operation = RelationResolveOp | ColumnResolveOp | ExpandOp | LiftLegalsOp
 
 class IR {
     
@@ -749,6 +756,9 @@ class IR {
 
     getRows(source: Source, world_id: WorldId, binding: Binding, joins: Join[]) {
 
+        if (source.path.full_path === 'checks.attacks') {
+            debugger
+        }
         return this.Resolve(source.path.full_path, world_id)
 
         /*
@@ -836,7 +846,9 @@ class IR {
     }
 
     private step_Op(op: Operation) {
-        if (op.type === 'expand') {
+        if (op.type === 'relation_resolve') {
+            this.step_RelationResolveOp(op)
+        } else if (op.type === 'expand') {
             this.step_ExpandOp(op)
         } else if (op.type === 'column_resolve') {
             this.step_ColumnResolveOp(op)
@@ -854,7 +866,7 @@ class IR {
         return res.completed_relation
     }
 
-    LiftLegals(alias: Column, column: DotedPathColumn, world_id: WorldId) {
+    LiftLegals(alias: Column, column: ResolvedMoveListRight, world_id: WorldId) {
         return this.resolve_Op(alias, world_id, { column, world_id, type: 'lift_legals' })
     }
 
@@ -862,12 +874,12 @@ class IR {
         return this.resolve_Op(alias, world_id, { column: alias, world_id, type: 'column_resolve' })
     }
 
-    LiftExpandResolve(alias: Column, column: DotedPathColumn, world_id: WorldId) {
-        let [column_a, column_b] = column.columns
+    LiftExpandResolve(alias: Column, split_column: ResolvedMoveListRight, world_id: WorldId) {
+        let [column_a, column_b] = split_resolve_move_list(split_column)
         let op: ExpandOp = {
             type: 'expand',
             column_a,
-            column_b,
+            column_b: { type: 'single', a: { columns: [column_b], full_path: column_b}},
             world_id,
             aa: undefined,
             bb: [],
@@ -884,18 +896,21 @@ class IR {
         if (this.Rs.has(path.full_path)) {
             return this.Resolve(path.full_path, world_id)
         } else {
-            return this.ReResolve(path.columns[0], path.columns[1], world_id)
+            return this.ReResolve(path.columns[0], { type: 'single', a: { columns: [path.columns[1]], full_path: path.columns[1] } } , world_id)
         }
     }
 
     AliasResolve(alias: Source, world_id: WorldId) {
         if (alias.path.columns.length === 2) {
-            return this.ReResolve(alias.path.columns[0], alias.path.columns[1], world_id)
+            if (alias.path.full_path === 'checks.attacks') {
+                debugger
+            }
+            return this.ReResolve(alias.path.columns[0], { type: 'single', a: { columns: [alias.path.columns[1]], full_path: alias.path.columns[1] } } , world_id)
         }
-        return this.resolve_Op(alias.path.full_path, world_id, { column: extract_single(alias.relation).full_path, world_id, type: 'column_resolve' })
+        return this.resolve_Op(alias.path.full_path, world_id, { column: alias.relation, world_id, type: 'relation_resolve' })
     }
 
-    ReResolve(column_a: Column, column_b: Column, world_id: WorldId) {
+    ReResolve(column_a: Column, column_b: ResolvedMoveListRight, world_id: WorldId) {
         let op: ExpandOp = {
             type: 'expand',
             column_a,
@@ -907,7 +922,8 @@ class IR {
             i_b: 0
         }
 
-        return this.resolve_Op(`${column_a}.${column_b}`, world_id, op)
+        let column_b_alias = get_movelist_alias(column_b)
+        return this.resolve_Op(`${column_a}.${column_b_alias}`, world_id, op)
     }
 
     IsJoinSatisfiedSofar(world_id: WorldId, join: Join, binding: Binding) {
@@ -956,7 +972,7 @@ class IR {
         if (!legals) {
             return
         }
-        let relation = this.DotedPathResolve(op.column, op.world_id)
+        let relation = this.resolve_movelist(op.column, op.world_id)
 
         if (!relation) {
             return
@@ -967,30 +983,22 @@ class IR {
 
 
 
-    private resolve_slot(column: Column, row: Row) {
+    private resolve_slot(column: ResolvedMoveListRight, row: Row) {
         let next_world_id = row.get('end_world_id')!
-        return this.Resolve(column, next_world_id)
+        //return this.Resolve(column, next_world_id)
+        return this.resolve_movelist(column, next_world_id)
     }
 
-    self_alias_get_or_wait: Map<Column, (world_id: WorldId) => Relation | undefined> = new Map()
-
-    public set_self_alias(column: Column, fn: (world_id: WorldId) => Relation | undefined) {
-        this.self_alias_get_or_wait.set(column, fn)
-    }
-
-    private step_ColumnResolveOp(op: ColumnResolveOp) {
-
-        let self_alias_fn = this.self_alias_get_or_wait.get(op.column)
-        
-        if (self_alias_fn) {
-            let relation = self_alias_fn(op.world_id)
-            if (!relation) {
-                return
-            }
-            op.completed_relation = relation
+    private step_RelationResolveOp(op: RelationResolveOp) {
+        let relation = this.resolve_movelist(op.column, op.world_id)
+        if (!relation) {
             return
         }
+        op.completed_relation = relation
+    }
 
+
+    private step_ColumnResolveOp(op: ColumnResolveOp) {
         let relation = this.Rs.get_or_wait(op.column, op.world_id)
         if (!relation) {
             return
@@ -1044,6 +1052,29 @@ class IR {
         }
     }
 
+
+
+    resolve_movelist(d: ResolvedMoveListRight, world_id: WorldId) {
+        if (d.type === 'single') {
+            let res = this.DotedPathResolve(d.a, world_id)
+            if (!res) {
+                return undefined
+            }
+            return res
+        } else if (d.type === 'minus') {
+            let a = this.DotedPathResolve(d.aa[0], world_id)
+            if (!a) {
+                return undefined
+            }
+            let b = this.DotedPathResolve(d.aa[1], world_id)
+            if (!b) {
+                return undefined
+            }
+
+            return anti_join(a, b, (a, b) => a.get('from') === b.get('from') && a.get('to') === b.get('to'))
+        }
+    }
+
 }
 
 
@@ -1076,6 +1107,14 @@ const Constants_by_name = {
     Pawn: PAWN,
 }
 
+function get_movelist_alias(d: ResolvedMoveListRight) {
+    if (d.type === 'single') {
+        return d.a.full_path
+    } else {
+        //return d.aa.map(a => a.full_path).join('.')
+        return 'NoAliasFound'
+    }
+}
 
 function resolve_movelist(d: MoveListRight): ResolvedMoveListRight {
     switch (d.type) {
@@ -1104,6 +1143,14 @@ function resolve_doted_path_column(d: DotedPath): DotedPathColumn {
     }
 }
 
+function split_resolve_move_list(d: ResolvedMoveListRight) {
+    if (d.type === 'single') {
+        return d.a.columns
+    } else if (d.type === 'minus') {
+    }
+    throw 'Not implemented'
+}
+
 function resolve_doted_path_with_field(d: DotedPath): DotedPathWithField {
     if (is_columns(d)) {
         return {field: d.field, columns: d.columns, full_path: d.columns.join('.') }
@@ -1112,12 +1159,4 @@ function resolve_doted_path_with_field(d: DotedPath): DotedPathWithField {
     } else {
         return {field: d.field, columns: [], full_path: d.field}
     }
-}
-
-function extract_single(l: ResolvedMoveListRight) {
-    if (l.type === 'single') {
-        return l.a
-    }
-    console.trace(l)
-    throw 'Not implemented'
 }
