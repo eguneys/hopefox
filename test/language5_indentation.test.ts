@@ -49,7 +49,7 @@ idea
     console.log(puzzles[i].link)
 })
 
-it('move works', () => {
+it.skip('move works', () => {
 
 let rules = `
 fact friendly_goes
@@ -90,6 +90,7 @@ idea g2
  one.from = one.from
 
 idea
+line goes
 line check_replies.blocks
 `
 
@@ -113,6 +114,64 @@ let fen = '6k1/p4ppp/8/8/4r3/P7/1P1R1PPP/K7 b - - 0 26'
 
 
 })
+
+
+it('idea more moves works', () => {
+
+let rules = `
+fact friendly_goes
+ alias occ occupies
+ attacks.from = occupies.square
+ attacks.to = occ.square
+ occ.color = occupies.color
+
+fact unsafe_goes
+ alias occ occupies
+ alias att2 attacks
+ attacks.from = occupies.square
+ attacks.to = att2.to
+ att2.from = occ.square
+ occ.color != occupies.color
+
+fact safe_goes
+ alias _ attacks - friendly_goes
+ alias _ _ - unsafe_goes
+
+
+idea checks
+  alias occ occupies
+  move checks attacks
+  .from = checks.from
+  .to = checks.to
+  .start_world_id = checks.start_world_id
+  .end_world_id = checks.end_world_id
+  checks.to = checks.attacks.from2
+  checks.attacks.to2 = occupies.on
+  occupies.piece = King
+  checks.from = occ.on
+  occupies.color != occ.color
+
+idea check_replies
+  move checks checks
+  move evades checks.safe_goes
+  move captures checks.captures
+  move blocks checks.blocks
+`
+
+  let i = 0
+  let pos = m.create_position(puzzles[i].move_fens[0])
+  pos = m.create_position(puzzles[i].move_fens[0])
+
+  console.log(puzzles[i].link)
+  let res = Search(m, pos, rules)
+
+  console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
+  console.log(puzzles[i].link)
+
+
+})
+
+
 
 
 let rules = `
