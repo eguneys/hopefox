@@ -308,14 +308,17 @@ class RssManager {
         let R2 = new IR(this.Rs)
 
 
-        this.Rs.set_relation(plan.name, (world_id: WorldId) => this._i_step(plan, R2, world_id))
-
         for (let alias of plan.moves) {
             const alias_left = alias.left
             if (alias_left) {
-                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) => this._i_moves_step(plan, R2, world_id))
+                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) =>
+                    this._i_moves_step(plan, R2, alias, world_id)
+                )
             }
         }
+
+        this.Rs.set_relation(plan.name, (world_id: WorldId) => this._i_step(plan, R2, world_id))
+
     }
 
     set_d(d: Definition) {
@@ -370,6 +373,15 @@ class RssManager {
         R2.step()
 
 
+        for (let move of plan.moves) {
+            if (move.left) {
+                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+                if (!relation) {
+                    return false
+                }
+            }
+        }
+
         for (let alias of plan.sources) {
             let res = R2.AliasResolve(alias, world_id)
             if (!res) {
@@ -385,25 +397,21 @@ class RssManager {
     }
 
 
-    _i_moves_step(plan: FactPlan, R2: IR, world_id: WorldId): boolean {
+    _i_moves_step(plan: FactPlan, R2: IR, move: PlanMove, world_id: WorldId): boolean {
 
         R2.step()
 
-        let emit_moves = new Map()
-        for (let move of plan.moves) {
-            if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
-                if (!relation) {
-                    return false
-                } else {
-                    emit_moves.set(move.left, relation)
-                }
-            }
+
+        if (!move.left) {
+            return true
         }
 
-        for (let [name, moves] of emit_moves.entries()) {
-            this.Rs.add_rows(world_id, `${plan.name}.${name}`, moves.rows)
+        let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
+        if (!relation) {
+            return false
         }
+
+        this.Rs.add_rows(world_id, `${plan.name}.${move.left}`, relation.rows)
 
         return true
     }
@@ -855,7 +863,25 @@ class IR {
         return this.Resolve(column, next_world_id)
     }
 
+    self_alias_get_or_wait: Map<Column, (world_id: WorldId) => Relation | undefined> = new Map()
+
+    public set_self_alias(column: Column, fn: (world_id: WorldId) => Relation | undefined) {
+        this.self_alias_get_or_wait.set(column, fn)
+    }
+
     private step_ColumnResolveOp(op: ColumnResolveOp) {
+
+        let self_alias_fn = this.self_alias_get_or_wait.get(op.column)
+        
+        if (self_alias_fn) {
+            let relation = self_alias_fn(op.world_id)
+            if (!relation) {
+                return
+            }
+            op.completed_relation = relation
+            return
+        }
+
         let relation = this.Rs.get_or_wait(op.column, op.world_id)
         if (!relation) {
             return
