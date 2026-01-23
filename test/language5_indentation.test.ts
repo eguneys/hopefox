@@ -88,10 +88,10 @@ idea check_replies
   .start_world_id = one.start_world_id
   .end_world_id = one.end_world_id
   move one checks
-  move blocks checks.blocks
+  move blocks checks.unsafe_goes
 
 idea
- move check_replies.blocks
+ move checks
 `
 
   let i = 1
