@@ -152,10 +152,13 @@ idea checks
   occupies.color != occ.color
 
 idea check_replies
-  move checks checks
-  move evades checks.safe_goes
-  move captures checks.captures
-  move blocks checks.blocks
+  move one checks
+  move evades one.safe_goes
+  move captures one.captures
+  move blocks one.blocks
+
+idea
+  line check_replies.evades
 `
 
   let i = 0

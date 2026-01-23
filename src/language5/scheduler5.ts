@@ -300,7 +300,6 @@ class RssManager {
         this.results = []
     }
 
-
     set_f(f: Definition) {
 
         let plan = convert_to_plan(f)
@@ -322,18 +321,21 @@ class RssManager {
         for (let alias of plan.moves) {
             const alias_left = alias.left
             if (alias_left) {
-                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) =>
-                    this._i_moves_step(plan, R2, alias, world_id)
-                )
+                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) => {
+                    this._i_step(plan, R2, world_id)
+                    return this._i_moves_step(plan, R2, alias, world_id)
+                })
+
             }
         }
 
         for (let alias of plan.lines) {
             const alias_left = alias.left
             if (alias_left) {
-                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) =>
-                    this._i_lines_step(plan, R2, alias, world_id)
-                )
+                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) => {
+                    this._i_step(plan, R2, world_id)
+                    return this._i_lines_step(plan, R2, alias, world_id)
+                })
             }
         }
 
@@ -392,6 +394,7 @@ class RssManager {
 
 
     _i_step(plan: FactPlan, R2: IR, world_id: WorldId): boolean {
+
         R2.step()
 
         for (let move of plan.lines) {
@@ -407,7 +410,6 @@ class RssManager {
                 }
             }
         }
-
 
 
         for (let move of plan.moves) {
@@ -456,7 +458,6 @@ class RssManager {
 
 
     _i_moves_step(plan: FactPlan, R2: IR, move: PlanMove, world_id: WorldId): boolean {
-
         R2.step()
 
 
@@ -1082,6 +1083,11 @@ function resolve_movelist(d: MoveListRight): ResolvedMoveListRight {
             return {
                 type: 'single',
                 a: resolve_doted_path_column(d.a)
+            }
+        case 'minus':
+            return {
+                type: 'minus',
+                aa: d.aa.map(resolve_doted_path_column)
             }
     }
     throw 'Not implemented'
