@@ -39,7 +39,7 @@ idea checks
 idea
   move checks
 `
-    let i = 1
+    let i = 0
     let pos = m.create_position(puzzles[i].move_fens[0])
     pos = m.create_position(puzzles[i].move_fens[0])
 
@@ -60,13 +60,12 @@ fact friendly_goes
  attacks.to = occ.square
  occ.color = occupies.color
 
-fact unsafe_goes
- alias occ occupies
- alias att2 attacks
- attacks.from = occupies.square
- attacks.to = att2.to
- att2.from = occ.square
- occ.color != occupies.color
+fact goes
+ .from = attacks.from
+ .to = attacks.to
+ .start_world_id = attacks.start_world_id
+ .end_world_id = attacks.end_world_id
+ attacks.from = occupies.on
 
 idea checks
   alias occ occupies
@@ -88,16 +87,23 @@ idea check_replies
   .start_world_id = one.start_world_id
   .end_world_id = one.end_world_id
   move one checks
-  move blocks checks.unsafe_goes
+  move blocks checks.goes
   one.from = one.from
 
 idea
- move checks
+move checks.goes
 `
 
-  let i = 1
+let fen = '6k1/p4ppp/8/8/4r3/P7/1P1R1PPP/K7 b - - 0 26'
+/*
+  let i = 6
   let pos = m.create_position(puzzles[i].move_fens[0])
   pos = m.create_position(puzzles[i].move_fens[0])
+  */
+
+  let i = 0
+  let pos = m.create_position(fen)
+  pos = m.create_position(fen)
 
 
   console.log(puzzles[i].link)

@@ -47,6 +47,9 @@ export class Rs {
     }
 
 
+    has(column: Column) {
+        return this.relations.has(column)
+    }
 
     private relation(column: Column) {
         return this.relations.get(column)!
@@ -64,14 +67,12 @@ export class Rs {
         return this.relation(column).lookupRows(world_id, filters)
     }
 
-    run() {
-        let there_is_more
-        do  {
-            there_is_more = false
-            for (let R of this.relations) {
-                there_is_more = R[1].step() || there_is_more
-            }
-        } while (there_is_more)
+    step() {
+        let there_is_more = false
+        for (let R of this.relations) {
+            there_is_more = R[1].step() || there_is_more
+        }
+        return there_is_more
     }
 
     expand_legal_worlds(expand: Column, world_id: WorldId): Relation | false {
@@ -258,7 +259,7 @@ export function Search(m: PositionManager, pos: PositionC, rules: string) {
 
     for (let d of dd) {
         if (d.fact) {
-
+            rss.set_f(d)
         } else if (d.idea) {
             rss.set_i(d)
         } else {
@@ -274,6 +275,7 @@ export function Search(m: PositionManager, pos: PositionC, rules: string) {
 
 
 type Emit = (_: Relation) => void
+type EmitMoves = (move: string, _: Relation) => void
 
 class RssManager {
     Rs: Rs
@@ -282,7 +284,8 @@ class RssManager {
     R2s_more: IR[]
 
     d_steps: [FactPlan, IR][]
-    i_steps: [FactPlan, IR, Emit][]
+    i_steps: [FactPlan, IR, Emit, EmitMoves][]
+    f_steps: [FactPlan, IR, Emit][]
 
     results: RelationManager[]
 
@@ -291,14 +294,15 @@ class RssManager {
         this.R2s = new Map()
         this.d_steps = []
         this.i_steps = []
+        this.f_steps = []
 
         this.results = []
     }
 
 
-    set_i(i: Definition) {
+    set_f(f: Definition) {
 
-        let plan = convert_to_plan(i)
+        let plan = convert_to_plan(f)
 
         let R2 = new IR(this.Rs)
 
@@ -311,11 +315,57 @@ class RssManager {
         this.Rs.set_relation(plan.name, () => {
             if (res) {
                 this.Rs.add_rows(0, plan.name, res.rows)
+                return true
             }
-            return true
+            return false
         })
 
-        this.i_steps.push([plan, R2, emit])
+        this.f_steps.push([plan, R2, emit])
+    }
+
+
+
+
+    set_i(i: Definition) {
+
+        let plan = convert_to_plan(i)
+
+        let R2 = new IR(this.Rs)
+
+        let res_moves: Map<string, Relation> = new Map()
+        let res: Relation | undefined
+
+        const emit = (_: Relation) => {
+            res = _
+        }
+
+        const emit_moves = (move: string, _: Relation) => {
+            res_moves.set(move, _)
+        }
+
+        this.Rs.set_relation(plan.name, () => {
+            if (res) {
+                this.Rs.add_rows(0, plan.name, res.rows)
+                return true
+            }
+            return false
+        })
+
+        for (let alias of plan.moves) {
+            const alias_left = alias.left
+            if (alias_left) {
+                this.Rs.set_relation(`${plan.name}.${alias_left}`, () => {
+                    let res = res_moves.get(alias_left)
+                    if (res) {
+                        this.Rs.add_rows(0, `${plan.name}.${alias.left}`, res.rows)
+                        return true
+                    }
+                    return false
+                })
+            }
+        }
+
+        this.i_steps.push([plan, R2, emit, emit_moves])
     }
 
     set_d(d: Definition) {
@@ -327,9 +377,23 @@ class RssManager {
 
 
     run() {
-        while (this.i_steps.length > 0 || this.d_steps.length > 0) {
+        while (this.f_steps.length > 0 || this.i_steps.length > 0 || this.d_steps.length > 0) {
 
-            this.Rs.run()
+
+            let f_steps = []
+            for (let f_step of this.f_steps) {
+                let f_result = this._f_step(f_step[0], f_step[1])
+                if (!f_result) {
+                    f_steps.push(f_step)
+                } else {
+                    let emitRows = f_result
+                    f_step[2](emitRows.get_relation_starting_at_world_id(0))
+                }
+            }
+            this.f_steps = f_steps
+
+
+
 
             let i_steps = []
             for (let i_step of this.i_steps) {
@@ -337,7 +401,11 @@ class RssManager {
                 if (!i_result) {
                     i_steps.push(i_step)
                 } else {
-                    i_step[2](i_result.get_relation_starting_at_world_id(0))
+                    let [emitRows, emit_moves] = i_result
+                    i_step[2](emitRows.get_relation_starting_at_world_id(0))
+                    for (let [key, value] of emit_moves.entries()) {
+                        i_step[3](key, value)
+                    }
                 }
             }
             this.i_steps = i_steps
@@ -353,18 +421,44 @@ class RssManager {
 
             }
             this.d_steps = d_steps
+
+            this.Rs.step()
         }
     }
+
+
+
+    _f_step(plan: FactPlan, R2: IR) {
+        let world_id = 0
+        R2.step()
+
+        for (let alias of plan.sources) {
+            let res = R2.AliasResolve(alias, world_id)
+            if (!res) {
+                return false
+            }
+        }
+
+        let emitRows = new RelationManager()
+        R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
+
+        return emitRows
+    }
+
+
 
     _i_step(plan: FactPlan, R2: IR) {
         let world_id = 0
         R2.step()
 
+        let emit_moves = new Map()
         for (let move of plan.moves) {
             if (move.left) {
                 let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
                 if (!relation) {
                     return false
+                } else {
+                    emit_moves.set(move.left, relation)
                 }
             }
         }
@@ -379,7 +473,8 @@ class RssManager {
         let emitRows = new RelationManager()
         R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
 
-        return emitRows
+        let res: [RelationManager, Map<string, Relation>] = [emitRows, emit_moves]
+        return res
     }
 
     _d_step(plan: FactPlan, R2: IR) {
@@ -712,11 +807,9 @@ class IR {
     private step_Op(op: Operation) {
         if (op.type === 'expand') {
             this.step_ExpandOp(op)
-        }
-        if (op.type === 'column_resolve') {
+        } else if (op.type === 'column_resolve') {
             this.step_ColumnResolveOp(op)
-        }
-        if (op.type === 'lift_legals') {
+        } else if (op.type === 'lift_legals') {
             this.step_LiftMovesToLegals(op)
         }
     }
@@ -740,10 +833,11 @@ class IR {
 
 
     DotedPathResolve(path: DotedPathColumn, world_id: WorldId) {
-        if (path.columns.length === 1) {
-            return this.Resolve(path.columns[0], world_id)
+        if (this.Rs.has(path.full_path)) {
+            return this.Resolve(path.full_path, world_id)
+        } else {
+            return this.ReResolve(path.columns[0], path.columns[1], world_id)
         }
-        return this.ReResolve(path.columns[0], path.columns[1], world_id)
     }
 
     AliasResolve(alias: Source, world_id: WorldId) {
@@ -935,131 +1029,9 @@ function resolve_doted_path_with_field(d: DotedPath): DotedPathWithField {
     }
 }
 
-
-
-/**** Old */
-
-function Searcha(m: PositionManager, pos: PositionC, rules: string) {
-    let dd = parse_defs6(rules)
-
-    let rs = new Rs(m, pos)
-
-    let ii = []
-    for (let d of dd) {
-        if (d.fact) {
-            set_materialize_f(rs, d)
-        } else if (d.idea) {
-            set_materialize_i(rs, d)
-        } else {
-
-            ii.push(materialize_d(rs, d))
-        }
-    }
-
-    let res = []
-    for (let mFn of ii) {
-        let r = mFn(0, rs)
-        while (!r) {
-            rs.run()
-            r = mFn(0, rs)
-        }
-        res.push(r)
-    }
-    return res
-}
-
-
-function set_materialize_f(Rs: Rs, d: Definition) {
-
-    let plan = convert_to_plan(d)
-
-    let fn = (world_id: WorldId, r: Rs) => {
-        return true
-    }
-
-    Rs.set_relation(d.fact!, fn)
-}
-
 function extract_single(l: ResolvedMoveListRight) {
     if (l.type === 'single') {
         return l.a
     }
     throw 'Not implemented'
-}
-
-function set_materialize_i(Rs: Rs, d: Definition) {
-
-    let plan = convert_to_plan(d)
-
-    let R2 = new IR(Rs)
-
-    let fn = (world_id: WorldId, r: Rs) => {
-
-        R2.step()
-
-        for (let move of plan.moves) {
-            if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
-                if (!relation) {
-                    return false
-                }
-            }
-        }
-
-        for (let alias of plan.sources) {
-           let res = R2.AliasResolve(alias, world_id) 
-           if (!res) {
-            return false
-           }
-        }
-
-        let emitRows = new RelationManager()
-        R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
-
-        Rs.add_rows(world_id, d.idea!, emitRows.get_relation_starting_at_world_id(world_id)!.rows)
-
-        return true
-    }
-
-    Rs.set_relation(d.idea!, fn)
-}
-
-function materialize_d(Rs: Rs, d: Definition): (world_id: WorldId, Rs: Rs) => RelationManager | undefined {
-
-    let plan = convert_to_plan(d)
-
-    let R2 = new IR(Rs)
-
-    return (world_id: WorldId, Rs: Rs) => {
-
-        R2.step()
-
-        for (let move of plan.moves) {
-            if (move.left) {
-                let relation = R2.LiftLegals(move.left, extract_single(move.right), world_id)
-                if (!relation) {
-                    return
-                }
-            } else {
-                let relation = R2.LiftLegals('', extract_single(move.right), world_id)
-                if (!relation) {
-                    return
-                }
-            }
-        }
-
-
-        for (let alias of plan.sources) {
-            let relation = R2.AliasResolve(alias, world_id)
-            if (!relation) {
-                return
-            }
-        }
-
-
-        let emitRows = new RelationManager()
-        emitRows.add_rows(0, R2.Resolve('', 0)!.rows)
-        return emitRows
-    }
-
 }
