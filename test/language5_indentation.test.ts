@@ -26,12 +26,18 @@ fact friendly_goes
  occ.color = occupies.color
 
 idea checks
+  alias occ occupies
   move checks attacks
   .from = checks.from
   .to = checks.to
+  .start_world_id = checks.start_world_id
+  .end_world_id = checks.end_world_id
+  checks.end_world_id = checks.attacks.start_world_id
   checks.to = checks.attacks.from
   checks.attacks.to = occupies.on
   occupies.piece = King
+  checks.from = occ.on
+  occupies.color != occ.color
 
 
 idea
@@ -41,7 +47,7 @@ idea
     console.log(puzzles[i].link)
     let res = Search(m, pos, rules)
 
-    console.log(extract_sans(m, pos, res[0]))
+    console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
     console.log(puzzles[i].link)
 })
 

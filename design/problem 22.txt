@@ -1,0 +1,24 @@
+Earlier you gave me an algorithm to resolve fact joins and idea joins using Binding and Prefix types. Now I need something unified with a twist.
+Here's what I want:
+
+idea checks
+  move checks attacks
+  checks.attacks.to = occupies.square
+  occupies.square = King
+
+
+This is an idea which some of the columns has to be resolved correctly.
+
+I have a Manager that can resolve basic types like occupies or attacks. 
+Here move checks attacks does 2 things.
+1. resolve attacks
+2. make the legal moves out of those
+3. assign it to checks field
+
+than checks.attacks.to = occupies.square does 2 things:
+
+for each checks relation, there are rows with end_world_id, for all of those end_world_ids, resolve attacks for that world_id, and constraint their to field with occupies.square.
+This can be iterated by setting a binding.
+Then finally check the final constraint being 
+occupies.square = King,
+then emit the satisfied results.
