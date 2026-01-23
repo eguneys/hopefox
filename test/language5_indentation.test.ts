@@ -91,7 +91,7 @@ idea check_replies
   one.from = one.from
 
 idea
-move checks.goes
+move checks
 `
 
 let fen = '6k1/p4ppp/8/8/4r3/P7/1P1R1PPP/K7 b - - 0 26'

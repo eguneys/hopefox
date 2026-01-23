@@ -274,28 +274,17 @@ export function Search(m: PositionManager, pos: PositionC, rules: string) {
 }
 
 
-type Emit = (_: Relation) => void
-type EmitMoves = (move: string, _: Relation) => void
+type Emit = (world_id: WorldId, _: Relation) => void
+type EmitMoves = (world_id: WorldId, move: string, _: Relation) => void
 
 class RssManager {
     Rs: Rs
-    R2s: Map<string, IR>
-
-    R2s_more: IR[]
-
     d_steps: [FactPlan, IR][]
-    i_steps: [FactPlan, IR, Emit, EmitMoves][]
-    f_steps: [FactPlan, IR, Emit][]
-
     results: RelationManager[]
 
     constructor(m: PositionManager, pos: PositionC) {
         this.Rs = new Rs(m, pos)
-        this.R2s = new Map()
         this.d_steps = []
-        this.i_steps = []
-        this.f_steps = []
-
         this.results = []
     }
 
@@ -306,21 +295,7 @@ class RssManager {
 
         let R2 = new IR(this.Rs)
 
-        let res: Relation | undefined
-
-        const emit = (_: Relation) => {
-            res = _
-        }
-
-        this.Rs.set_relation(plan.name, () => {
-            if (res) {
-                this.Rs.add_rows(0, plan.name, res.rows)
-                return true
-            }
-            return false
-        })
-
-        this.f_steps.push([plan, R2, emit])
+        this.Rs.set_relation(plan.name, (world_id: WorldId) => this._f_step(plan, R2, world_id))
     }
 
 
@@ -332,40 +307,15 @@ class RssManager {
 
         let R2 = new IR(this.Rs)
 
-        let res_moves: Map<string, Relation> = new Map()
-        let res: Relation | undefined
 
-        const emit = (_: Relation) => {
-            res = _
-        }
-
-        const emit_moves = (move: string, _: Relation) => {
-            res_moves.set(move, _)
-        }
-
-        this.Rs.set_relation(plan.name, () => {
-            if (res) {
-                this.Rs.add_rows(0, plan.name, res.rows)
-                return true
-            }
-            return false
-        })
+        this.Rs.set_relation(plan.name, (world_id: WorldId) => this._i_step(plan, R2, world_id))
 
         for (let alias of plan.moves) {
             const alias_left = alias.left
             if (alias_left) {
-                this.Rs.set_relation(`${plan.name}.${alias_left}`, () => {
-                    let res = res_moves.get(alias_left)
-                    if (res) {
-                        this.Rs.add_rows(0, `${plan.name}.${alias.left}`, res.rows)
-                        return true
-                    }
-                    return false
-                })
+                this.Rs.set_relation(`${plan.name}.${alias_left}`, (world_id: WorldId) => this._i_moves_step(plan, R2, world_id))
             }
         }
-
-        this.i_steps.push([plan, R2, emit, emit_moves])
     }
 
     set_d(d: Definition) {
@@ -377,38 +327,7 @@ class RssManager {
 
 
     run() {
-        while (this.f_steps.length > 0 || this.i_steps.length > 0 || this.d_steps.length > 0) {
-
-
-            let f_steps = []
-            for (let f_step of this.f_steps) {
-                let f_result = this._f_step(f_step[0], f_step[1])
-                if (!f_result) {
-                    f_steps.push(f_step)
-                } else {
-                    let emitRows = f_result
-                    f_step[2](emitRows.get_relation_starting_at_world_id(0))
-                }
-            }
-            this.f_steps = f_steps
-
-
-
-
-            let i_steps = []
-            for (let i_step of this.i_steps) {
-                let i_result = this._i_step(i_step[0], i_step[1])
-                if (!i_result) {
-                    i_steps.push(i_step)
-                } else {
-                    let [emitRows, emit_moves] = i_result
-                    i_step[2](emitRows.get_relation_starting_at_world_id(0))
-                    for (let [key, value] of emit_moves.entries()) {
-                        i_step[3](key, value)
-                    }
-                }
-            }
-            this.i_steps = i_steps
+        while (this.d_steps.length > 0) {
 
             let d_steps = []
             for (let d_step of this.d_steps) {
@@ -428,8 +347,7 @@ class RssManager {
 
 
 
-    _f_step(plan: FactPlan, R2: IR) {
-        let world_id = 0
+    _f_step(plan: FactPlan, R2: IR, world_id: WorldId): boolean {
         R2.step()
 
         for (let alias of plan.sources) {
@@ -442,13 +360,33 @@ class RssManager {
         let emitRows = new RelationManager()
         R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
 
-        return emitRows
+        this.Rs.add_rows(world_id, plan.name, emitRows.get_relation_starting_at_world_id(world_id).rows)
+        return true
     }
 
 
 
-    _i_step(plan: FactPlan, R2: IR) {
-        let world_id = 0
+    _i_step(plan: FactPlan, R2: IR, world_id: WorldId): boolean {
+        R2.step()
+
+
+        for (let alias of plan.sources) {
+            let res = R2.AliasResolve(alias, world_id)
+            if (!res) {
+                return false
+            }
+        }
+
+        let emitRows = new RelationManager()
+        R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
+
+        this.Rs.add_rows(world_id, plan.name, emitRows.get_relation_starting_at_world_id(world_id).rows)
+        return true
+    }
+
+
+    _i_moves_step(plan: FactPlan, R2: IR, world_id: WorldId): boolean {
+
         R2.step()
 
         let emit_moves = new Map()
@@ -463,18 +401,11 @@ class RssManager {
             }
         }
 
-        for (let alias of plan.sources) {
-            let res = R2.AliasResolve(alias, world_id)
-            if (!res) {
-                return false
-            }
+        for (let [name, moves] of emit_moves.entries()) {
+            this.Rs.add_rows(world_id, `${plan.name}.${name}`, moves.rows)
         }
 
-        let emitRows = new RelationManager()
-        R2.extendBinding(new Map(), 0, plan.sources, world_id, plan.joins, plan.output, emitRows)
-
-        let res: [RelationManager, Map<string, Relation>] = [emitRows, emit_moves]
-        return res
+        return true
     }
 
     _d_step(plan: FactPlan, R2: IR) {
