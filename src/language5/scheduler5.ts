@@ -1118,5 +1118,6 @@ function extract_single(l: ResolvedMoveListRight) {
     if (l.type === 'single') {
         return l.a
     }
+    console.trace(l)
     throw 'Not implemented'
 }
