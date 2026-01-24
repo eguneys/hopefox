@@ -1,7 +1,7 @@
 import { ColorC, KING, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager } from "../distill/hopefox_c";
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
-import { EngineGraph, lowerCoreToEngine, RelationId, SCHEMAS } from "./core";
+import { CoreProgram, EngineGraph, lowerCoreToEngine, RelationId, SCHEMAS } from "./core";
 import { analyseProgram } from "./diagnostics";
 
 interface Row {
@@ -448,7 +448,7 @@ export class PositionMaterializer {
 
 }
 
-export function Search6(m: PositionManager, pos: PositionC, rules: string) {
+export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
 
     let mz = new PositionMaterializer(m, pos)
 
@@ -461,14 +461,7 @@ export function Search6(m: PositionManager, pos: PositionC, rules: string) {
     const checksSafe = makeRelation<ChecksRow>('checks_uncapturable', [])
     const afterMoves = makeRelation<AfterMoveRow>('afterMoves', [])
 
-
-    let program = analyseProgram(rules)
-
-    if (!program.node) {
-        return program.diagnostics
-    }
-
-    let graph = lowerCoreToEngine(program.node)
+    let graph = lowerCoreToEngine(node)
     let engine = new MyEngine(graph)
 
     engine.relations.set('worlds', worlds)

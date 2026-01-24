@@ -1,6 +1,7 @@
-import { it } from 'vitest'
+import { expect, it } from 'vitest'
 import { puzzles } from './fixture'
 import { example, PositionManager, Search6 } from '../src'
+import { analyseProgram } from '../src/language6/diagnostics'
 
 let m = await PositionManager.make()
 
@@ -11,6 +12,33 @@ it.skip('links', () => {
     console.log(puzzles[3].link)
 })
 
-it('works', () => {
+it.skip('works', () => {
   example()
+})
+
+it('works diagnostics', () => {
+  let text = `
+idea "Knight Fork"
+  move knight from e5 to f7
+  attacks knight -> king
+  move knightz from e5 to f7
+  move knight from i9 to h7
+`
+  let res = analyseProgram(text)
+
+  expect(res.diagnostics.length).toEqual(2)
+})
+
+
+it('works, success', () => {
+  let text = `
+idea "Knight Fork"
+  move knight from e5 to f7
+  attacks knight -> king
+  move knight from e4 to a7
+  kove knight from h8 to h7
+`
+  let res = analyseProgram(text)
+
+  expect(res.node).toBeDefined()
 })

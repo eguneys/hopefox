@@ -174,16 +174,18 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
                     })
                 }
 
+
+                fieldMap.set(rel.subject, { relation: `${rel.kind}_${rel.subject}`, field: 'subject' })
+                fieldMap.set(rel.object, { relation: `${rel.kind}_${rel.object}`, field: 'object' })
+
+                fieldMap_rel.set(rel.subject, { kind: 'piece', id: rel.subject })
+                fieldMap_rel.set(rel.object, { kind: 'piece', id: rel.object })
+
                 let l = lowerSurfaceRelation(rel, inputWorld, fieldMap_rel, diagnostics)
                 if (l) {
                     relations.push(l)
                 }
 
-                fieldMap.set(rel.subject, { relation: `${rel.kind}_${rel.subject}`, field: 'subject' })
-                fieldMap.set(rel.object, { relation: `${rel.kind}_${rel.object}`, field: 'object' })
-
-                //fieldMap_rel.set(rel.subject, { kind: rel.kind, id: rel.subject })
-                //fieldMap_rel.set(rel.object, { kind: rel.kind, id: rel.object })
             }
 
 
@@ -368,7 +370,7 @@ function runTypeChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
     for (const idea of core.ideas) {
         for (const step of idea.steps) {
             for  (const move of step.moves) {
-                if (move.from && squares.includes(move.from)) {
+                if (move.from && !squares.includes(move.from)) {
                     diagnostics.push({
                         message: `Invalid source square "${move.from}"`,
                         span: move.span,
