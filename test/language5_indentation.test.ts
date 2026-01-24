@@ -133,13 +133,15 @@ fact unsafe_goes
  att2.from = occ.square
  occ.color != occupies.color
 
-fact safe_goes
+idea safe_goes
  alias _ attacks - friendly_goes
- alias _ _ - unsafe_goes
- .from = _.from
- .to = _.to
- .start_world_id = _.start_world_id
- .end_world_id = _.end_world_id
+ alias x _ - unsafe_goes
+ move safe x
+ .from = safe.from
+ .to = safe.to
+ .start_world_id = safe.start_world_id
+ .end_world_id = safe.end_world_id
+ safe.from = safe.from
 
 
 idea checks
@@ -155,14 +157,13 @@ idea checks
   checks.from = occ.on
   occupies.color != occ.color
 
+
 idea check_replies
   move one checks
-  move evades one.safe_goes
-  move captures one.captures
-  move blocks one.blocks
+  line evades one.safe_goes
 
 idea
-  line check_replies.evades
+  line checks.safe_goes
 `
 
   let i = 0

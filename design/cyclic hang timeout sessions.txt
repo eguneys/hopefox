@@ -1,0 +1,15 @@
+I just got out of one big debuggging session where I have a bunch of resolve operators that can resolve things, for this language:
+
+
+idea check_replies
+  move one checks
+  move evades one.safe_goes
+  move captures one.captures
+  move blocks one.blocks
+
+
+so move blocks one.blocks will resolve one.blocks set it to blocks alias one.blocks will be resolved by resolving move one checks and blocks which is not shown here. So nested resolving dependencies going on here.
+
+So the debug happens because resolving sometimes hangs because of code flow.
+
+It's still early but would it be a good idea, to make this more robust with some kind of timeout mechanism maybe for debugging purposes, 

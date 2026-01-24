@@ -397,26 +397,31 @@ class RssManager {
 
         R2.step()
 
-        for (let move of plan.lines) {
-            if (move.left) {
-                let relation = R2.LiftExpandResolve(move.left, move.right, world_id)
-                if (!relation) {
-                    return false
-                }
-            } else {
-                let relation = R2.resolve_movelist(move.right, world_id)
-                if (!relation) {
-                    return false
-                }
-            }
-        }
-
+        let skip = false
 
         for (let move of plan.moves) {
             if (move.left) {
                 let relation = R2.LiftLegals(move.left, move.right, world_id)
                 if (!relation) {
-                    return false
+                    //return false
+                    skip = true
+                }
+                
+            }
+        }
+
+        for (let move of plan.lines) {
+            if (move.left) {
+                let relation = R2.LiftExpandResolve(move.left, move.right, world_id)
+                if (!relation) {
+                    //return false
+                    skip = true
+                }
+            } else {
+                let relation = R2.resolve_movelist(move.right, world_id)
+                if (!relation) {
+                    //return false
+                    skip = true
                 }
             }
         }
@@ -424,8 +429,13 @@ class RssManager {
         for (let alias of plan.sources) {
             let res = R2.AliasResolve(alias, world_id)
             if (!res) {
-                return false
+                // return false
+                skip = true
             }
+        }
+
+        if (skip) {
+            return false
         }
 
         let emitRows = new RelationManager()
@@ -891,6 +901,8 @@ class IR {
     DotedPathResolve(path: DotedPathColumn, world_id: WorldId) {
         if (this.Rs.has(path.full_path)) {
             return this.Resolve(path.full_path, world_id)
+        } else if (path.columns.length === 1) {
+            return this.Resolve(path.columns[0], world_id)
         } else {
             return this.ReResolve(path.columns[0], { type: 'single', a: { columns: [path.columns[1]], full_path: path.columns[1] } } , world_id)
         }
@@ -917,7 +929,6 @@ class IR {
             i_a: 0,
             i_b: 0
         }
-
         let column_b_alias = get_movelist_alias(column_b)
         return this.resolve_Op(`${column_a}.${column_b_alias}`, world_id, op)
     }
@@ -1011,7 +1022,6 @@ class IR {
 
             op.aa = relation.rows
         }
-
 
         while (op.i_a < op.aa.length) {
             let relation = op.bb[op.i_a] ?? this.resolve_slot(op.column_b, op.aa[op.i_a])
