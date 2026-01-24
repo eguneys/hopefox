@@ -242,28 +242,6 @@ function materialize_occupies(world_id: WorldId, Rs: Rs): boolean {
 
 
 
-export function extract_moves(relation: Relation) {
-    return relation.rows.map(_ => {
-        let res = []
-        for (let i = 0; i < 8; i++) {
-            let from_key = `from${i === 0 ? '' : (i + 1)}`
-            let to_key = `to${i === 0 ? '' : (i + 1)}`
-            if (_.has(from_key)) {
-                res.push(make_move_from_to(_.get(from_key)!, _.get(to_key)!))
-            } else {
-                break
-            }
-        }
-        return res
-    })
-}
-
-export function extract_sans(m: PositionManager, pos: PositionC, relation: Relation) {
-    return extract_moves(relation).map(_ => san_moves_c(m, pos, _))
-}
-
-
-
 export function Search(m: PositionManager, pos: PositionC, rules: string) {
     let dd = parse_defs6(rules)
 

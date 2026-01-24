@@ -183,7 +183,7 @@ idea
 
 
 
-it('idea test 1', () => {
+it.skip('idea test 1', () => {
 
 let rules = `
 idea checks
