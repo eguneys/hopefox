@@ -129,8 +129,8 @@ interface CommitResult {
 
 interface EngineState {
     relations: Map<RelationId, Relation<Row>>
-    resolvers: Resolver[]
-    subscriptions: Map<RelationId, Resolver[]>
+    resolvers: Map<ResolverId, Resolver>
+    subscriptions: Map<RelationId, ResolverId[]>
     workQueue: Task[]
     nextRowId: RowId
 }
@@ -260,8 +260,8 @@ class JoinNodeRuntime implements Resolver {
 class MyEngine implements Engine, EngineState {
 
     relations: Map<RelationId, Relation<Row>> = new Map()
-    resolvers: Resolver[] = []
-    subscriptions: Map<RelationId, Resolver[]> = new Map()
+    resolvers: Map<ResolverId, Resolver> = new Map()
+    subscriptions: Map<RelationId, ResolverId[]> = new Map()
     workQueue: Task[] = []
     nextRowId: RowId = 1
 
@@ -269,20 +269,14 @@ class MyEngine implements Engine, EngineState {
 
     constructor(graph: EngineGraph) {
         for (const [relId, metaRel] of graph.relations) {
-            this.relations.set(relId, new RelationNodeRuntime(relId, metaRel.schema))
+            this.relations.set(relId, makeRelation(relId, metaRel.schema))
         }
 
 
         for (const node of graph.nodes.values()) {
             if (node.kind === 'resolver') {
-                //const input = this.relations.get(node.input)!
-                //const outputs = node.outputs.map(id => this.relations.get(id)!)
-
-                /*
-                const resolver = new ResolverNodeRuntime(
-                    node.id, [node.input], (r) => r.rows)
-                this.resolvers.push(resolver)
-                */
+                const resolver = new ResolverNodeRuntime(node.id, node.inputs, (r) => ({}))
+                this.registerResolver(resolver)
             } else if (node.kind === 'join') {
                 //const inputs = node.inputs.map(id => this.relations.get(id)!)
                 const output = this.relations.get(node.output)!
@@ -363,7 +357,7 @@ class MyEngine implements Engine, EngineState {
 
             for (const resolver of resolvers) {
                 this.workQueue.push({
-                    resolver,
+                    resolver: this.resolvers.get(resolver)!,
                     input: {
                         relation: relationName,
                         rows
@@ -381,8 +375,9 @@ class MyEngine implements Engine, EngineState {
                 subs = []
                 this.subscriptions.set(rel, subs)
             }
-            subs.push(resolver)
+            subs.push(resolver.id)
         }
+        this.resolvers.set(resolver.id, resolver)
     }
 
     run() {

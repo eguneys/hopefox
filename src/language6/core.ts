@@ -125,7 +125,7 @@ interface RelationNode {
 
 interface ResolverNode {
     id: NodeId
-    input: RelationId
+    inputs: RelationId[]
     outputs: RelationId[]
     kind: 'resolver'
     span?: Span
@@ -178,7 +178,7 @@ class LoweringContext {
 
 
     private inputRelations(node: EngineNode): RelationId[] {
-        if (node.kind === 'resolver') return [node.input]
+        if (node.kind === 'resolver') return node.inputs
         return node.inputs
     }
 }
@@ -248,7 +248,7 @@ function createResolvers(
             const node: ResolverNode = {
                 id: ctx.freshNodeId('resolve_move'),
                 kind: 'resolver',
-                input: worldRelationId(rel.fromWorld),
+                inputs: [worldRelationId(rel.fromWorld)],
                 outputs: [
                     worldRelationId(rel.toWorld),
                     coreRelationId(rel)
@@ -263,7 +263,7 @@ function createResolvers(
         const node: ResolverNode = {
             id: ctx.freshNodeId(`resolve_${rel.kind}`),
             kind: 'resolver',
-            input: worldRelationId(rel.world),
+            inputs: [worldRelationId(rel.world)],
             outputs: [coreRelationId(rel)],
             span: rel.span
         }
