@@ -247,8 +247,8 @@ class JoinNodeRuntime implements Resolver {
         const result: ResolverOutput = {}
 
         for (const row of slice.rows) {
-            const binding = ctx.rowToBinding(row)
-            this.extend(binding, result)
+            //const binding = ctx.rowToBinding(row)
+            //this.extend(binding, result)
         }
 
         return result
@@ -274,10 +274,12 @@ class MyEngine implements Engine, EngineState {
 
         for (const node of graph.nodes.values()) {
             if (node.kind === 'resolver') {
-                const resolver = new ResolverNodeRuntime(node.id, node.inputs, node.outputs)
+                let resolverFunc = () => ({})
+                const resolver = new ResolverNodeRuntime(node.id, node.inputs, resolverFunc)
                 this.registerResolver(resolver)
             } else if (node.kind === 'join') {
-                const join = new JoinNodeRuntime(node.id, node.inputs, node.outputs)
+                let joinFn = () => false
+                const join = new JoinNodeRuntime(node.id, node.inputs, joinFn)
                 this.registerResolver(join)
             }
         }

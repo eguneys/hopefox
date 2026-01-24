@@ -1,0 +1,38 @@
+Ok so here's the final piece of the puzzle:
+
+We have ResolverNode from EngineGraph typed like this:
+
+```
+interface ResolverNode {
+    id: NodeId
+    inputs: RelationId[]
+    outputs: RelationId[]
+    kind: 'resolver'
+    span?: Span
+}
+```
+
+and when we create ResolverRuntime we need this:
+
+```
+    constructor(graph: EngineGraph) {
+        for (const [relId, metaRel] of graph.relations) {
+            this.relations.set(relId, makeRelation(relId, metaRel.schema))
+        }
+
+
+        for (const node of graph.nodes.values()) {
+            if (node.kind === 'resolver') {
+                let resolverFunc = 0//??
+                const resolver = new ResolverNodeRuntime(node.id, node.inputs, resolverFunc)
+                this.registerResolver(resolver)
+            } else if (node.kind === 'join') {
+                let joinFn = 0 // ??
+                const join = new JoinNodeRuntime(node.id, node.inputs, joinFn)
+                this.registerResolver(join)
+            }
+        }
+    }
+```
+
+as you can see resolverFunc and joinFn are stubbed out. I don't know how to construct those out of base outputs array from ResolveNode of EngineGraph.
