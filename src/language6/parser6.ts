@@ -27,7 +27,7 @@ interface SurfaceMove {
 }
 
 
-interface SurfaceRelation {
+export interface SurfaceRelation {
     kind: 'attacks' | 'checks' | 'occupies'
     subject: string
     object: string

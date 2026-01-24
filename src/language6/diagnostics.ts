@@ -1,5 +1,5 @@
-import { CoreConstraint, CoreIdea, CoreMove, CoreProgram, CoreRelation, CoreStep, RelationFieldRef, WorldBinding } from "./core"
-import { parseSurfaceProgramWithSpans, SurfaceConstraint, SurfaceProgram } from "./parser6"
+import { CoreConstraint, CoreIdea, CoreMove, CoreProgram, CoreRelation, CoreStep, EntityRef, RelationFieldRef, WorldBinding } from "./core"
+import { parseSurfaceProgramWithSpans, SurfaceConstraint, SurfaceProgram, SurfaceRelation } from "./parser6"
 
 export type DiagnosticSeverity =
     | 'error'
@@ -108,14 +108,16 @@ export function analyseProgram(text: string): SemanticResult<CoreProgram> {
 }
 
 enum Codes {
-    UnknownPiece = 'EU1',
+    UnknownPiece = 'UnknownPiece',
     UnknownRelationKind = "UnkownRelationKind",
     ArityMoveTo = "ArityMoveTo",
     MissingSubject = "MissingSubject",
     InvalidSquare = "InvalidSquare",
     DuplicateMoveToSquare = "DuplicateMoveToSquare",
     UnknownSquare = "UnknownSquare",
-    UnknownReference = "UnknownReference"
+    UnknownReference = "UnknownReference",
+    UnknownSubject = "UnknownSubject",
+    UnknownObject = "UnknownObject"
 }
 
 export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnostic[]): CoreProgram {
@@ -137,6 +139,7 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
             const constraints: CoreConstraint[] = []
 
             const fieldMap: FieldMap = new Map()
+            const fieldMap_rel: Map<string, EntityRef> = new Map()
 
             for (const move of step.moves) {
                 const knownPieces = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn']
@@ -156,6 +159,7 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
                     span: move.span
                 })
                 fieldMap.set(move.piece, { relation: `move_${move.piece}`, field: 'piece'})
+                fieldMap_rel.set(move.piece, { kind: `piece`, id: move.piece })
             }
 
 
@@ -170,15 +174,16 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
                     })
                 }
 
-                relations.push({
-                    kind: rel.kind,
-                    subject: rel.subject,
-                    object: rel.object,
-                    span: rel.span
-                })
+                let l = lowerSurfaceRelation(rel, inputWorld, fieldMap_rel, diagnostics)
+                if (l) {
+                    relations.push(l)
+                }
 
                 fieldMap.set(rel.subject, { relation: `${rel.kind}_${rel.subject}`, field: 'subject' })
                 fieldMap.set(rel.object, { relation: `${rel.kind}_${rel.object}`, field: 'object' })
+
+                //fieldMap_rel.set(rel.subject, { kind: rel.kind, id: rel.subject })
+                //fieldMap_rel.set(rel.object, { kind: rel.kind, id: rel.object })
             }
 
 
@@ -246,6 +251,79 @@ function lowerConstraint(c: SurfaceConstraint, fieldMap: FieldMap, span: Span, d
     }
 }
 
+
+
+function lowerSurfaceRelation(
+    surface: SurfaceRelation,
+    inputWorld: WorldBinding,
+    fieldMap: Map<string, EntityRef>,
+    diagnostics: Diagnostic[]
+): CoreRelation | undefined {
+    const subjectRef = fieldMap.get(surface.subject)
+
+    if (!subjectRef) {
+        diagnostics.push({
+            message: `Unknown subject "${surface.subject}"`,
+            span: surface.span,
+            severity: "error",
+            code: Codes.UnknownSubject
+        })
+        return undefined
+    }
+
+    const objectRef = fieldMap.get(surface.object)
+
+    if (!objectRef) {
+        diagnostics.push({
+            message: `Unknown object "${surface.object}"`,
+            span: surface.span,
+            severity: "error",
+            code: Codes.UnknownObject
+        })
+        return undefined
+    }
+
+    switch (surface.kind) {
+        case 'occupies':
+            return {
+                kind: 'occupies',
+                world: inputWorld,
+                piece: subjectRef,
+                square: objectRef,
+                span: surface.span
+            }
+        case 'attacks':
+            return {
+                kind: 'attacks',
+                world: inputWorld,
+                from: subjectRef,
+                to: objectRef,
+                span: surface.span
+            }
+        case 'checks':
+            return {
+                kind: 'checks',
+                world: inputWorld,
+                attacker: subjectRef,
+                king: objectRef,
+                span: surface.span
+            }
+
+            default:
+                diagnostics.push({
+                    message: `Unknown relation kind "${surface.kind}"`,
+                    span: surface.span,
+                    severity: "error",
+                    code: Codes.UnknownRelationKind
+                })
+            return undefined
+    }
+}
+
+
+
+
+
 function runArityChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
     for (const idea of core.ideas) {
         for (const step of idea.steps) {
@@ -262,6 +340,7 @@ function runArityChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
             }
 
             for (const rel of step.relations) {
+                /*
                 if (!rel.subject || !rel.object) {
                     diagnostics.push({
                         message: `Relation must have both object and subject`,
@@ -270,6 +349,7 @@ function runArityChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
                         code: Codes.MissingSubject
                     })
                 }
+                    */
             }
         }
     }
@@ -315,6 +395,7 @@ function runTypeChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
             }
 
             for (const rel of step.relations) {
+                /*
                 if (!knownPieces.includes(rel.subject)) {
                     diagnostics.push({
                         message: `Unknown subject piece "${rel.subject}`,
@@ -331,6 +412,7 @@ function runTypeChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
                         severity: "error"
                     })
                 }
+                    */
             }
         }
     }
@@ -354,10 +436,11 @@ function runLogicChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
                 }
             }
 
-            const knownNames = [...step.moves.map(m => m.piece), ...step.relations.map(r => r.subject)]
+            const knownNames = [...step.moves.map(m => m.piece), 
+            ]//...step.relations.map(r => r.subject)]
 
             for (const c of step.constraints) {
-                if (!knownNames.includes(c.left)) {
+                if (!knownNames.includes(c.left.field)) {
                     diagnostics.push({
                         message: `Constraint left refers to unknown "${c.left}"`,
                         span: c.span,
@@ -365,7 +448,7 @@ function runLogicChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
                         severity: "error"
                     })
                 }
-                if (!knownNames.includes(c.right)) {
+                if (!knownNames.includes(c.right.field)) {
                     diagnostics.push({
                         message: `Constraint right refers to unknown "${c.right}"`,
                         span: c.span,
