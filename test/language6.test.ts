@@ -45,6 +45,6 @@ idea
     console.log(puzzles[i].link)
     let res = Search6(m, pos, rules)
 
-    //console.log(extract_sans_relation(m, pos, res[0].get_relation_starting_at_world_id(0)))
     console.log(puzzles[i].link)
+    console.log(res)
 })
