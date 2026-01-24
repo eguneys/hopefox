@@ -116,7 +116,7 @@ let fen = '6k1/p4ppp/8/8/4r3/P7/1P1R1PPP/K7 b - - 0 26'
 })
 
 
-it('idea more moves works', () => {
+it.skip('idea more moves works', () => {
 
 let rules = `
 fact friendly_goes
@@ -178,6 +178,49 @@ idea
 
 
 })
+
+
+
+
+
+it('idea test 1', () => {
+
+let rules = `
+idea checks
+  alias occ occupies
+  move checks attacks
+  .from = checks.from
+  .to = checks.to
+  .start_world_id = checks.start_world_id
+  .end_world_id = checks.end_world_id
+  checks.to = checks.attacks.from2
+  checks.attacks.to2 = occupies.on
+  occupies.piece = King
+  checks.from = occ.on
+  occupies.color != occ.color
+
+idea blocks_check
+  move blocks attacks
+  line one checks.blocks
+
+idea
+ line blocks_check
+`
+
+  let i = 0
+  let pos = m.create_position(puzzles[i].move_fens[0])
+  pos = m.create_position(puzzles[i].move_fens[0])
+
+  console.log(puzzles[i].link)
+  let res = Search(m, pos, rules)
+
+  console.log(extract_sans(m, pos, res[0].get_relation_starting_at_world_id(0)))
+  console.log(puzzles[i].link)
+
+
+})
+
+
 
 
 

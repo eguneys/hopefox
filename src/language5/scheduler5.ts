@@ -1006,6 +1006,7 @@ class IR {
 
 
     private step_ColumnResolveOp(op: ColumnResolveOp) {
+        console.log(op.column)
         let relation = this.Rs.get_or_wait(op.column, op.world_id)
         if (!relation) {
             return
