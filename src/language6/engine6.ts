@@ -1,10 +1,12 @@
 import { ColorC, KING, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager } from "../distill/hopefox_c";
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
+import { EngineGraph, lowerCoreToEngine, RelationId, SCHEMAS } from "./core";
+import { analyseProgram } from "./diagnostics";
 
 interface Row {
-    id?: RowId
     world_id: WorldId
+    [key: string]: number
 }
 
 interface ChecksRow extends Row {
@@ -65,42 +67,38 @@ const gen_row_id = (() => {
     return () => id++
 })()
 
+type ResolverId = string
+
 type WorldId = NodeId
 type Value = number
 type RowId = number
 
-type RowIdPairKey = `${RowId}:${RowId}`
-
-
-type RelationName = string
-type ResolverName = string
-
-
 interface Relation<T extends Row> {
-    name: RelationName
+    id: RelationId
+    schema: string[]
     rows: T[]
     indexByWorld: Map<WorldId, T[]>
 }
 
 interface InputSlice<T extends Row> {
-    relation: RelationName
+    relation: RelationId
     rows: T[]
 }
 
 type ResolverOutput = {
-    [relation: RelationName]: Row[]
+    [relation: RelationId]: Row[]
 }
 
 interface Resolver {
-    name: ResolverName
+    id: ResolverId
 
-    inputRelations: RelationName[]
+    inputRelations: RelationId[]
 
     resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null
 }
 
 interface ReadContext {
-    get<T extends Row>(relation: RelationName, world: WorldId): T[]
+    get<T extends Row>(relation: RelationId, world: WorldId): T[]
 }
 
 
@@ -112,27 +110,27 @@ interface Task {
 
 interface Transaction {
     world_id: WorldId
-    source: ResolverName
+    source: ResolverId
 
     reads: {
-        relation: RelationName
+        relation: RelationId
         rowIds: RowId[]
     }[]
 
     writes: {
-        relation: RelationName
+        relation: RelationId
         rows: Row[]
     }[]
 }
 
 interface CommitResult {
-    [relation: RelationName]: Row[]
+    [relation: RelationId]: Row[]
 }
 
 interface EngineState {
-    relations: Map<RelationName, Relation<Row>>
+    relations: Map<RelationId, Relation<Row>>
     resolvers: Resolver[]
-    subscriptions: Map<RelationName, Resolver[]>
+    subscriptions: Map<RelationId, Resolver[]>
     workQueue: Task[]
     nextRowId: RowId
 }
@@ -151,10 +149,10 @@ interface Engine {
 }
 
 class EngineReadContext implements ReadContext {
-    constructor(private relations: Map<RelationName, Relation<Row>>) {}
+    constructor(private relations: Map<RelationId, Relation<Row>>) {}
 
 
-    get<T extends Row>(relationName: RelationName, world_id: WorldId): T[] {
+    get<T extends Row>(relationName: RelationId, world_id: WorldId): T[] {
         const relation = this.relations.get(relationName)
         if (!relation) return []
 
@@ -165,16 +163,133 @@ class EngineReadContext implements ReadContext {
     }
 }
 
+class RelationNodeRuntime implements Relation<Row> {
+    id: string;
+    schema: string[];
+    name: string;
+    rows: Row[];
+    indexByWorld: Map<number, Row[]>;
+
+    constructor(id: string, schema: string[]) {
+        this.id = id
+        this.schema = schema
+    }
+}
+
+type ResolverFunc = (input: InputSlice<Row>, ctx: ReadContext) => ResolverOutput | null
+
+class ResolverNodeRuntime implements Resolver {
+    id: ResolverId
+    inputRelations: string[];
+    resolve: ResolverFunc
+
+    constructor(
+        id: ResolverId, 
+        inputRelations: RelationId[],
+        resolve: ResolverFunc) {
+            this.id = id
+            this.inputRelations = inputRelations
+            this.resolve = resolve
+        }
+}
+
+type JoinPredicate = (binding: Map<string, Row>, ctx: ReadContext) => boolean
+
+class JoinNodeRuntime implements Resolver {
+    id: string;
+    inputRelations: RelationId[];
+    predicate: JoinPredicate
+
+    private rowsByRelation = new Map<string, Row[]>()
+
+    constructor(
+        id: ResolverId,
+        inputs: RelationId[],
+        predicate: JoinPredicate) {
+            this.id = id
+            this.inputRelations = inputs
+
+            this.predicate = predicate
+
+
+            for (const rel of inputs) {
+                this.rowsByRelation.set(rel, [])
+            }
+        }
+
+        private extend(binding: Map<RelationId, Row>, emit: ResolverOutput) {
+            if (binding.size === this.inputRelations.length) {
+                if (this.predicate(binding, {} as ReadContext)) {
+                    const row: Row = { world_id: -1 }
+                    for (const [relId, r] of binding) {
+                        for (const key in r) {
+                            row[`${relId}.${key}`] = r[key]
+                        }
+                    }
+                    emit['TODO'].push(row)
+                }
+                return
+            }
+
+
+            for (const rel_id of this.inputRelations) {
+                if (binding.has(rel_id)) continue
+                const rows = this.rowsByRelation.get(rel_id)!
+                for (const r of rows) {
+                    binding.set(rel_id, r)
+                    this.extend(binding, emit)
+                    binding.delete(rel_id)
+                }
+                return
+            }
+        }
+
+    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+        const output = {}
+        const binding = new Map()
+
+        //binding.set()
+
+        this.extend(binding, output)
+
+        return output
+    }
+
+}
+
 class MyEngine implements Engine, EngineState {
 
-    relations: Map<RelationName, Relation<Row>> = new Map()
+    relations: Map<RelationId, Relation<Row>> = new Map()
     resolvers: Resolver[] = []
-    subscriptions: Map<RelationName, Resolver[]> = new Map()
+    subscriptions: Map<RelationId, Resolver[]> = new Map()
     workQueue: Task[] = []
     nextRowId: RowId = 1
 
     readContext: ReadContext = new EngineReadContext(this.relations)
 
+    constructor(graph: EngineGraph) {
+        for (const [relId, metaRel] of graph.relations) {
+            this.relations.set(relId, new RelationNodeRuntime(relId, metaRel.schema))
+        }
+
+
+        for (const node of graph.nodes.values()) {
+            if (node.kind === 'resolver') {
+                //const input = this.relations.get(node.input)!
+                //const outputs = node.outputs.map(id => this.relations.get(id)!)
+
+                /*
+                const resolver = new ResolverNodeRuntime(
+                    node.id, [node.input], (r) => r.rows)
+                this.resolvers.push(resolver)
+                */
+            } else if (node.kind === 'join') {
+                //const inputs = node.inputs.map(id => this.relations.get(id)!)
+                const output = this.relations.get(node.output)!
+                const join = new JoinNodeRuntime(node.id, node.inputs, (binding) => true)
+            }
+        }
+    }
 
     buildTransaction(task: Task, output: ResolverOutput): Transaction {
 
@@ -192,7 +307,7 @@ class MyEngine implements Engine, EngineState {
 
         return {
             world_id: task.input.rows[0]?.world_id ?? -1,
-            source: task.resolver.name,
+            source: task.resolver.id,
             reads: [],
             writes
         }
@@ -338,15 +453,23 @@ export function Search6(m: PositionManager, pos: PositionC, rules: string) {
     let mz = new PositionMaterializer(m, pos)
 
 
-    const worlds = makeRelation<WorldRow>('worlds')
-    const moves = makeRelation<MoveRow>('moves')
-    const attacks = makeRelation<AttacksRow>('attacks')
-    const occupies = makeRelation<OccupiesRow>('occupies')
-    const checks = makeRelation<ChecksRow>('checks')
-    const checksSafe = makeRelation<ChecksRow>('checks_uncapturable')
-    const afterMoves = makeRelation<AfterMoveRow>('afterMoves')
+    const worlds = makeRelation<WorldRow>('worlds', SCHEMAS.world)
+    const moves = makeRelation<MoveRow>('moves', SCHEMAS.move)
+    const attacks = makeRelation<AttacksRow>('attacks', SCHEMAS.attacks)
+    const occupies = makeRelation<OccupiesRow>('occupies', SCHEMAS.occupies)
+    const checks = makeRelation<ChecksRow>('checks', SCHEMAS.checks)
+    const checksSafe = makeRelation<ChecksRow>('checks_uncapturable', [])
+    const afterMoves = makeRelation<AfterMoveRow>('afterMoves', [])
 
-    let engine = new MyEngine()
+
+    let program = analyseProgram(rules)
+
+    if (!program.node) {
+        return program.diagnostics
+    }
+
+    let graph = lowerCoreToEngine(program.node)
+    let engine = new MyEngine(graph)
 
     engine.relations.set('worlds', worlds)
     engine.relations.set('moves', moves)
@@ -391,7 +514,7 @@ export function Search6(m: PositionManager, pos: PositionC, rules: string) {
 
 
 class NegJoinResolver implements Resolver {
-    name: 'neg_join_checks_uncapturable'
+    id: 'neg_join_checks_uncapturable'
 
     inputRelations = ['checks']
 
@@ -429,7 +552,7 @@ class NegJoinResolver implements Resolver {
 
 
 class CheckAttackJoinResolver implements Resolver {
-    name = 'join_checks_attacks'
+    id = 'join_checks_attacks'
 
     inputRelations = ['checks']
 
@@ -464,7 +587,7 @@ class CheckAttackJoinResolver implements Resolver {
 }
 
 class OccupiesResolver implements Resolver {
-    name = 'occupies'
+    id = 'occupies'
 
     inputRelations = ['worlds']
 
@@ -511,7 +634,7 @@ class OccupiesResolver implements Resolver {
 
 
 class AttacksResolver implements Resolver {
-    name = 'attacks'
+    id = 'attacks'
 
     inputRelations = ['worlds']
 
@@ -557,7 +680,7 @@ class AttacksResolver implements Resolver {
 
 
 class LegalMoveResolver implements Resolver {
-    name = 'moves'
+    id = 'moves'
 
     inputRelations = ['worlds']
 
@@ -593,9 +716,10 @@ class LegalMoveResolver implements Resolver {
     }
 }
 
-function makeRelation<T extends Row>(name: string): Relation<T> {
+function makeRelation<T extends Row>(id: RelationId, schema: string[]): Relation<T> {
     return {
-        name,
+        id,
+        schema,
         rows: [],
         indexByWorld: new Map()
     }
@@ -606,7 +730,7 @@ class AfterMoveResolver implements Resolver {
 
     static MAX_DEPTH = 2
 
-    name = 'afterMoves'
+    id = 'afterMoves'
 
     inputRelations = ['moves']
 
