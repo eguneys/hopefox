@@ -7,7 +7,7 @@ interface Row {
     world_id: WorldId
 }
 
-interface CheckRow extends Row {
+interface ChecksRow extends Row {
     from: Square
     to: Square
 }
@@ -63,21 +63,10 @@ type RelationName = string
 type ResolverName = string
 
 
-class Relation<T extends Row> {
-
+interface Relation<T extends Row> {
     name: RelationName
-    rows: T[] = []
+    rows: T[]
     indexByWorld: Map<WorldId, T[]>
-
-    constructor(name: RelationName) {
-        this.name = name
-        this.indexByWorld = new Map()
-        this.rows = []
-    }
-
-    add(row: T) {
-        this.rows.push(row)
-    }
 }
 
 interface InputSlice<T extends Row> {
@@ -109,7 +98,7 @@ interface Task {
 
 
 interface Transaction {
-    world: WorldId
+    world_id: WorldId
     source: ResolverName
 
     reads: {
@@ -148,6 +137,21 @@ interface Engine {
     scheduleDownstream(result: CommitResult): void
 }
 
+class EngineReadContext implements ReadContext {
+    constructor(private relations: Map<RelationName, Relation<Row>>) {}
+
+
+    get<T extends Row>(relationName: RelationName, world_id: WorldId): T[] {
+        const relation = this.relations.get(relationName)
+        if (!relation) return []
+
+        const rows = relation.indexByWorld.get(world_id)
+        if (!rows) return []
+
+        return rows as T[]
+    }
+}
+
 class MyEngine implements Engine, EngineState {
 
     relations: Map<RelationName, Relation<Row>> = new Map()
@@ -156,7 +160,7 @@ class MyEngine implements Engine, EngineState {
     workQueue: Task[] = []
     nextRowId: RowId = 1
 
-    readContext: ReadContext
+    readContext: ReadContext = new EngineReadContext(this.relations)
 
 
     buildTransaction(task: Task, output: ResolverOutput): Transaction {
@@ -174,7 +178,7 @@ class MyEngine implements Engine, EngineState {
         }
 
         return {
-            world: task.input.rows[0]?.world_id ?? -1,
+            world_id: task.input.rows[0]?.world_id ?? -1,
             source: task.resolver.name,
             reads: [],
             writes
@@ -317,6 +321,56 @@ export class PositionMaterializer {
 }
 
 export function Search6(m: PositionManager, pos: PositionC, rules: string) {
+
+    let mz = new PositionMaterializer(m, pos)
+
+
+    const worlds = makeRelation<WorldRow>('worlds')
+    const moves = makeRelation<MoveRow>('moves')
+    const attacks = makeRelation<AttacksRow>('attacks')
+    const occupies = makeRelation<OccupiesRow>('occupies')
+    const checks = makeRelation<ChecksRow>('checks')
+    const checksSafe = makeRelation<ChecksRow>('checks_uncapturable')
+
+    let engine = new MyEngine()
+
+    engine.relations.set('worlds', worlds)
+    engine.relations.set('moves', moves)
+    engine.relations.set('attacks', attacks)
+    engine.relations.set('occupies', occupies)
+    engine.relations.set('checks', checks)
+    engine.relations.set('checks_uncapturable', checksSafe)
+
+
+    engine.registerResolver(new OccupiesResolver(mz))
+    engine.registerResolver(new AttacksResolver(mz))
+    engine.registerResolver(new LegalMoveResolver(mz))
+    engine.registerResolver(new NegJoinResolver())
+    engine.registerResolver(new CheckAttackJoinResolver())
+
+
+    const bootstrapTx: Transaction = {
+        world_id: 0,
+        source: 'bootstrap',
+        reads: [],
+        writes: [{
+                relation: 'worlds',
+                rows: [
+                    {
+                        world_id: 0,
+                        depth: 0
+                    } as Row
+                ]
+            }
+        ]
+    }
+
+    const committed = engine.commit(bootstrapTx)
+    engine.scheduleDownstream(committed)
+
+    engine.run()
+
+    return moves.rows
 }
 
 
@@ -326,10 +380,10 @@ class NegJoinResolver implements Resolver {
     inputRelations = ['checks']
 
     resolve(
-        input: InputSlice<CheckRow>,
+        input: InputSlice<ChecksRow>,
         ctx: ReadContext
     ): ResolverOutput | null {
-        const output: CheckRow[] = []
+        const output: ChecksRow[] = []
 
         for (const check of input.rows) {
             const captures = ctx.get<CaptureRow>('captures', check.world_id)
@@ -364,7 +418,7 @@ class CheckAttackJoinResolver implements Resolver {
     inputRelations = ['checks']
 
     resolve(
-        input: InputSlice<CheckRow>,
+        input: InputSlice<ChecksRow>,
         ctx: ReadContext
     ): ResolverOutput | null {
         const output: Row[] = []
@@ -390,5 +444,142 @@ class CheckAttackJoinResolver implements Resolver {
         return {
             'checks_attacks': output
         }
+    }
+}
+
+class OccupiesResolver implements Resolver {
+    name = 'occupies'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<WorldRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: OccupiesRow[] = []
+
+        for (const { world_id } of input.rows) {
+
+
+            this.mz.make_to_world(world_id)
+
+            let occ = this.mz.m.pos_occupied(this.mz.pos)
+
+            for (let on of occ) {
+                let piece = this.mz.m.get_at(this.mz.pos, on)!
+                let role = piece_c_type_of(piece)
+                let color = piece_c_color_of(piece)
+
+                output.push({
+                    world_id,
+                    on,
+                    piece,
+                    role,
+                    color
+                })
+            }
+
+            this.mz.unmake_world(world_id)
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'occupies': output
+        }
+    }
+}
+
+
+
+class AttacksResolver implements Resolver {
+    name = 'attacks'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<WorldRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: AttacksRow[] = []
+
+        for (const { world_id } of input.rows) {
+
+
+            this.mz.make_to_world(world_id)
+
+            let occ = this.mz.m.pos_occupied(this.mz.pos)
+
+            for (let on of occ) {
+
+                let aa = this.mz.m.pos_attacks(this.mz.pos, on)
+
+                for (let a of aa) {
+
+                    output.push({
+                        world_id,
+                        from: on,
+                        to: a
+                    })
+                }
+            }
+
+            this.mz.unmake_world(world_id)
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'attacks': output
+        }
+    }
+}
+
+
+class LegalMoveResolver implements Resolver {
+    name = 'moves'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) { }
+
+    resolve(
+        input: InputSlice<WorldRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: MoveRow[] = []
+
+        for (const { world_id } of input.rows) {
+
+
+            this.mz.make_to_world(world_id)
+
+            for (let move of this.mz.m.get_legal_moves(this.mz.pos)) {
+                output.push({
+                    world_id,
+                    move,
+                })
+            }
+
+            this.mz.unmake_world(world_id)
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'moves': output
+        }
+    }
+}
+
+function makeRelation<T extends Row>(name: string): Relation<T> {
+    return {
+        name,
+        rows: [],
+        indexByWorld: new Map()
     }
 }
