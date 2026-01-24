@@ -40,8 +40,21 @@ interface WorldRow extends Row {
 
 interface MoveRow extends Row {
     world_id: WorldId
+    depth: number
     move: MoveC
 }
+
+
+interface AfterMoveRow extends Row {
+    world_id: WorldId
+    move: MoveC
+    after_world_id: WorldId
+    depth: number
+    from: Square
+    to: Square
+}
+
+
 
 type RowKey = number
 
@@ -313,7 +326,7 @@ export class PositionMaterializer {
 
     unmake_world(world_id: WorldId) {
         let moves = this.nodes.history_moves(world_id)
-        for (let i = moves.length - 1; i > 0; i--) {
+        for (let i = moves.length - 1; i >= 0; i--) {
             this.m.unmake_move(this.pos, moves[i])
         }
     }
@@ -331,6 +344,7 @@ export function Search6(m: PositionManager, pos: PositionC, rules: string) {
     const occupies = makeRelation<OccupiesRow>('occupies')
     const checks = makeRelation<ChecksRow>('checks')
     const checksSafe = makeRelation<ChecksRow>('checks_uncapturable')
+    const afterMoves = makeRelation<AfterMoveRow>('afterMoves')
 
     let engine = new MyEngine()
 
@@ -340,11 +354,13 @@ export function Search6(m: PositionManager, pos: PositionC, rules: string) {
     engine.relations.set('occupies', occupies)
     engine.relations.set('checks', checks)
     engine.relations.set('checks_uncapturable', checksSafe)
+    engine.relations.set('afterMoves', afterMoves)
 
 
     engine.registerResolver(new OccupiesResolver(mz))
     engine.registerResolver(new AttacksResolver(mz))
     engine.registerResolver(new LegalMoveResolver(mz))
+    engine.registerResolver(new AfterMoveResolver(mz))
     engine.registerResolver(new NegJoinResolver())
     engine.registerResolver(new CheckAttackJoinResolver())
 
@@ -370,7 +386,7 @@ export function Search6(m: PositionManager, pos: PositionC, rules: string) {
 
     engine.run()
 
-    return moves.rows
+    return afterMoves.rows
 }
 
 
@@ -553,7 +569,7 @@ class LegalMoveResolver implements Resolver {
     ): ResolverOutput | null {
         const output: MoveRow[] = []
 
-        for (const { world_id } of input.rows) {
+        for (const { world_id, depth } of input.rows) {
 
 
             this.mz.make_to_world(world_id)
@@ -562,6 +578,7 @@ class LegalMoveResolver implements Resolver {
                 output.push({
                     world_id,
                     move,
+                    depth
                 })
             }
 
@@ -582,4 +599,54 @@ function makeRelation<T extends Row>(name: string): Relation<T> {
         rows: [],
         indexByWorld: new Map()
     }
+}
+
+
+class AfterMoveResolver implements Resolver {
+
+    static MAX_DEPTH = 2
+
+    name = 'afterMoves'
+
+    inputRelations = ['moves']
+
+    constructor(private mz: PositionMaterializer) { }
+
+    resolve(input: InputSlice<MoveRow>, ctx: ReadContext): ResolverOutput | null {
+
+        const output: AfterMoveRow[] = []
+        const worlds: WorldRow[] = []
+
+        for (const { world_id, depth, move } of input.rows) {
+
+            if (depth > AfterMoveResolver.MAX_DEPTH) {
+                continue
+            }
+
+            let after_world_id = this.mz.add_move(world_id, move)
+
+            let { from, to } = move_c_to_Move(move)
+
+            output.push({
+                world_id,
+                move,
+                from,
+                to,
+                after_world_id,
+                depth: depth + 1
+            })
+
+            worlds.push({ world_id: after_world_id, depth: depth + 1 })
+
+        }
+
+        if (output.length === 0) return null
+
+
+        return {
+            worlds,
+            'afterMoves': output
+        }
+    }
+    
 }
