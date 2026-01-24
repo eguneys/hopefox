@@ -2,11 +2,22 @@ import { ColorC, KING, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of,
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
 
-type ChecksRow = {
-
+interface Row {
+    id?: RowId
+    world_id: WorldId
 }
 
-type AttacksRow = {
+interface CheckRow extends Row {
+    from: Square
+    to: Square
+}
+
+interface CaptureRow extends Row {
+    from: Square
+    to: Square
+}
+
+interface AttacksRow extends Row {
     world_id: WorldId
     from: Square
     to: Square
@@ -14,7 +25,7 @@ type AttacksRow = {
 
 
 
-type OccupiesRow = {
+interface OccupiesRow extends Row {
     world_id: WorldId
     on: Square
     piece: PieceC
@@ -22,17 +33,19 @@ type OccupiesRow = {
     color: ColorC
 }
 
-type WorldRow = {
+interface WorldRow extends Row {
     world_id: WorldId
     depth: number
 }
 
-type MoveRow = {
+interface MoveRow extends Row {
     world_id: WorldId
     move: MoveC
 }
 
-type Row = WorldRow | MoveRow | OccupiesRow | AttacksRow | ChecksRow
+type RowKey = number
+
+
 
 const gen_row_id = (() => {
     let id = 0
@@ -46,189 +59,220 @@ type RowId = number
 type RowIdPairKey = `${RowId}:${RowId}`
 
 
+type RelationName = string
+type ResolverName = string
 
-class RelationNode<T extends Row> {
 
+class Relation<T extends Row> {
+
+    name: RelationName
     rows: T[] = []
+    indexByWorld: Map<WorldId, T[]>
+
+    constructor(name: RelationName) {
+        this.name = name
+        this.indexByWorld = new Map()
+        this.rows = []
+    }
 
     add(row: T) {
         this.rows.push(row)
     }
 }
 
-
-abstract class ResolverNode<A extends Row, B extends Row> {
-    input: RelationNode<A>
-    output: RelationNode<B>
-
-    cursor = 0
-
-    step(): boolean {
-        if (this.cursor >= this.input.rows.length) return false
-
-
-        const row = this.input.rows[this.cursor++]
-        const produced = this.resolve(row)
-
-        for (const r of produced) {
-            this.output.add(r)
-        }
-
-        return produced.length > 0
-    }
-
-    abstract resolve(row: A): B[]
+interface InputSlice<T extends Row> {
+    relation: RelationName
+    rows: T[]
 }
 
-class MoveCandidatesRelation extends RelationNode<MoveRow> {
-
+type ResolverOutput = {
+    [relation: RelationName]: Row[]
 }
 
-class WorldRelation extends RelationNode<WorldRow> {
+interface Resolver {
+    name: ResolverName
 
+    inputRelations: RelationName[]
+
+    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null
 }
 
-let worldRelation = new RelationNode<WorldRow>()
-
-const moveCandidates = new RelationNode<MoveRow>()
-
-const attacksRelation = new RelationNode<AttacksRow>()
-
-const occupiesRelation = new RelationNode<OccupiesRow>()
-
-const checksRelation = new RelationNode<ChecksRow>()
-
-class WorldCommitResolver extends ResolverNode<MoveRow, WorldRow> {
-
-    input = moveCandidates
-    output = worldRelation
-
-    constructor(private mz: PositionMaterializer) {
-        super()
-    }
-
-    resolve(row: MoveRow): WorldRow[] {
-
-        return []
-    }
-
+interface ReadContext {
+    get<T extends Row>(relation: RelationName, world: WorldId): T[]
 }
 
-class MoveResolver extends ResolverNode<WorldRow, MoveRow> {
 
-    input = worldRelation
-    output = moveCandidates
+interface Task {
+    resolver: Resolver
+    input: InputSlice<Row>
+}
 
-    m: PositionMaterializer
 
-    constructor(m: PositionMaterializer) {
-        super()
-        this.m = m
-    }
+interface Transaction {
+    world: WorldId
+    source: ResolverName
 
-    resolve(row: WorldRow): MoveRow[] {
-        
-        let res = []
+    reads: {
+        relation: RelationName
+        rowIds: RowId[]
+    }[]
 
-        let depth = row.depth
-        let world_id = row.world_id
-        this.m.make_to_world(world_id)
+    writes: {
+        relation: RelationName
+        rows: Row[]
+    }[]
+}
 
-        for (let move of this.m.m.get_legal_moves(this.m.pos)) {
-            res.push({
-                world_id,
-                depth,
-                move
+interface CommitResult {
+    [relation: RelationName]: Row[]
+}
+
+interface EngineState {
+    relations: Map<RelationName, Relation<Row>>
+    resolvers: Resolver[]
+    subscriptions: Map<RelationName, Resolver[]>
+    workQueue: Task[]
+    nextRowId: RowId
+}
+
+
+interface Engine {
+    run(): void
+
+    buildTransaction(task: Task, output: ResolverOutput): Transaction
+
+    validate(tx: Transaction): boolean
+
+    commit(tx: Transaction): CommitResult
+
+    scheduleDownstream(result: CommitResult): void
+}
+
+class MyEngine implements Engine, EngineState {
+
+    relations: Map<RelationName, Relation<Row>> = new Map()
+    resolvers: Resolver[] = []
+    subscriptions: Map<RelationName, Resolver[]> = new Map()
+    workQueue: Task[] = []
+    nextRowId: RowId = 1
+
+    readContext: ReadContext
+
+
+    buildTransaction(task: Task, output: ResolverOutput): Transaction {
+
+        const writes: Transaction['writes'] = []
+        const reads: Transaction['reads'] = []
+
+        for (const [relation, rows] of Object.entries(output)) {
+            if (rows.length === 0) continue
+
+            writes.push({
+                relation,
+                rows
             })
         }
 
-        this.m.unmake_world(world_id)
-        return res
-    }
-
-}
-
-class OccupiesResolver extends ResolverNode<WorldRow, OccupiesRow> {
-
-    input = worldRelation
-    output = occupiesRelation
-
-    m: PositionMaterializer
-
-    constructor(m: PositionMaterializer) {
-        super()
-        this.m = m
-    }
-
-    resolve(row: WorldRow): OccupiesRow[] {
-        
-        let res = []
-
-        let world_id = row.world_id
-        this.m.make_to_world(world_id)
-
-        let occ = this.m.m.pos_occupied(this.m.pos)
-
-        for (let on of occ) {
-            let piece = this.m.m.get_at(this.m.pos, on)!
-            let role = piece_c_type_of(piece)
-            let color = piece_c_color_of(piece)
-
-            res.push({
-                world_id,
-                on,
-                piece,
-                role,
-                color
-            })
+        return {
+            world: task.input.rows[0]?.world_id ?? -1,
+            source: task.resolver.name,
+            reads: [],
+            writes
         }
-
-        this.m.unmake_world(world_id)
-        return res
     }
 
-}
+    validate(tx: Transaction): boolean {
 
-
-
-class AttackResolver extends ResolverNode<WorldRow, AttacksRow> {
-
-    input = worldRelation
-    output = attacksRelation
-
-    m: PositionMaterializer
-
-    constructor(m: PositionMaterializer) {
-        super()
-        this.m = m
+        for (const w of tx.writes) {
+            if (!this.relations.has(w.relation)) {
+                throw new Error(`Unknown relation: ${w.relation}`)
+            }
+        }
+        return true
     }
 
-    resolve(row: WorldRow): AttacksRow[] {
-        
-        let res = []
+    commit(tx: Transaction): CommitResult {
+        const result: CommitResult = {}
 
-        let world_id = row.world_id
-        this.m.make_to_world(world_id)
+        for (const write of tx.writes) {
+            const relation = this.relations.get(write.relation)!
+            const committedRows: Row[] = []
 
-        let occ = this.m.m.pos_occupied(this.m.pos)
+            for (const row of write.rows) {
+                const committed = {
+                    ...row,
+                    id: this.nextRowId++
+                }
 
-        for (let on of occ) {
-            let aa = this.m.m.pos_attacks(this.m.pos, on)
-            for (let a of aa) {
-                res.push({
-                    world_id,
-                    from: on,
-                    to: a
+                relation.rows.push(committed)
+
+                let bucket = relation.indexByWorld.get(committed.world_id)
+                if (!bucket) {
+                    bucket = []
+                    relation.indexByWorld.set(committed.world_id, bucket)
+                }
+                bucket.push(committed)
+
+                committedRows.push(committed)
+            }
+
+            result[write.relation] = committedRows
+        }
+        return result
+    }
+
+    scheduleDownstream(result: CommitResult): void {
+        for (const relationName in result) {
+            const resolvers = this.subscriptions.get(relationName)
+
+            if (!resolvers) continue
+
+            const rows = result[relationName]
+
+            for (const resolver of resolvers) {
+                this.workQueue.push({
+                    resolver,
+                    input: {
+                        relation: relationName,
+                        rows
+                    }
                 })
             }
         }
+    }
 
-        this.m.unmake_world(world_id)
-        return res
+
+    registerResolver(resolver: Resolver) {
+        for (const rel of resolver.inputRelations) {
+            let subs = this.subscriptions.get(rel)
+            if (!subs) {
+                subs = []
+                this.subscriptions.set(rel, subs)
+            }
+            subs.push(resolver)
+        }
+    }
+
+    run() {
+        while (this.workQueue.length > 0) {
+            const task = this.workQueue.pop()!
+
+            const output = task.resolver.resolve(task.input, this.readContext)
+
+            if (!output) continue
+
+
+            const tx = this.buildTransaction(task, output)
+
+            if (!this.validate(tx)) continue
+
+            const result = this.commit(tx)
+
+            this.scheduleDownstream(result)
+        }
     }
 
 }
-
 
 export class PositionMaterializer {
     nodes: NodeManager
@@ -272,105 +316,79 @@ export class PositionMaterializer {
 
 }
 
-class JoinNode<A extends Row, B extends Row, C extends Row> {
-    left: RelationNode<A>
-    right: RelationNode<B>
-    output: RelationNode<C>
-    predicate: (a: A, b: B) => C | undefined
-
-    constructor(left: RelationNode<A>, right: RelationNode<B>, output: RelationNode<C>, predicate: (a: A, b: B) => C | undefined) {
-
-        this.left = left
-        this.right = right
-        this.output = output
-        this.predicate = predicate
-    }
-
-    leftSeen = 0
-    rightSeen = 0
-
-    step(): boolean {
-        let progressed = false
-
-        while (this.leftSeen < this.left.rows.length) {
-            const a = this.left.rows[this.leftSeen++]
-            for (const b of this.right.rows) {
-                let c = this.predicate(a, b)
-                if (c !== undefined) {
-                    this.output.add(c)
-                    progressed = true
-                }
-            }
-        }
-
-        while (this.rightSeen < this.right.rows.length) {
-            const a = this.right.rows[this.rightSeen++]
-            for (const b of this.left.rows) {
-                let c = this.predicate(b, a)
-                if (c !== undefined) {
-                    this.output.add(c)
-                    progressed = true
-                }
-            }
-        }
-
-        return progressed
-    }
-}
-
-
-
-const checkJoin = new JoinNode(
-    attacksRelation,
-    occupiesRelation,
-    checksRelation,
-    (attack, occ) =>
-        attack.world_id === occ.world_id &&
-            attack.to === occ.on &&
-            occ.role === KING ? (() => ({
-
-            }))() : undefined)
-
-
-
-class Engine {
-
-    nodes: { step(): boolean }[] = []
-
-
-    add(node: { step(): boolean }) {
-        this.nodes.push(node)
-    }
-
-    run() {
-        let progressed
-        do {
-            progressed = false
-            for (const n of this.nodes) {
-                if (n.step()) progressed = true
-            }
-        } while (progressed)
-    }
-}
-
 export function Search6(m: PositionManager, pos: PositionC, rules: string) {
-
-    let engine = new Engine()
-    let mz = new PositionMaterializer(m, pos)
-
-    engine.add(new MoveResolver(mz))
-    engine.add(new WorldCommitResolver(mz))
-    engine.add(new AttackResolver(mz))
-    engine.add(new OccupiesResolver(mz))
-    engine.add(checkJoin)
-
-    worldRelation.add({
-        world_id: 0,
-        depth: 0
-    })
-
-    engine.run()
+}
 
 
-    return worldRelation.rows
+class NegJoinResolver implements Resolver {
+    name: 'neg_join_checks_uncapturable'
+
+    inputRelations = ['checks']
+
+    resolve(
+        input: InputSlice<CheckRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: CheckRow[] = []
+
+        for (const check of input.rows) {
+            const captures = ctx.get<CaptureRow>('captures', check.world_id)
+
+
+            let blocked = false
+
+            for (const cap of captures) {
+                if (cap.from === check.from && cap.to === check.to) {
+                    blocked = true
+                    break
+                }
+            }
+            if (!blocked) {
+                output.push(check)
+            }
+        }
+
+        if (output.length === 0) return null
+
+
+        return {
+            'checks_uncapturable': output
+        }
+    }
+}
+
+
+class CheckAttackJoinResolver implements Resolver {
+    name = 'join_checks_attacks'
+
+    inputRelations = ['checks']
+
+    resolve(
+        input: InputSlice<CheckRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const check of input.rows) {
+
+            const attacks = ctx.get<AttacksRow>('attacks', check.world_id)
+
+
+            for (const atk of attacks) {
+                if (atk.from === check.from && atk.to === check.to) {
+                    output.push({
+                        world_id: check.world_id,
+                        from: check.from,
+                        to: check.to
+                    } as Row)
+                }
+            }
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'checks_attacks': output
+        }
+    }
 }
