@@ -83,7 +83,7 @@ export interface RelationFieldRef {
 
 export interface CoreStep {
     id?: string
-    inputWorld?: WorldBinding
+    inputWorld: WorldBinding
     outputWorld?: WorldBinding
 
     relations: CoreRelation[]

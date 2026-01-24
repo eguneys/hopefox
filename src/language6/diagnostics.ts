@@ -1,5 +1,5 @@
-import { CoreConstraint, CoreIdea, CoreMove, CoreProgram, CoreRelation, CoreStep } from "./core"
-import { parseSurfaceProgramWithSpans, SurfaceProgram } from "./parser6"
+import { CoreConstraint, CoreIdea, CoreMove, CoreProgram, CoreRelation, CoreStep, RelationFieldRef, WorldBinding } from "./core"
+import { parseSurfaceProgramWithSpans, SurfaceConstraint, SurfaceProgram } from "./parser6"
 
 export type DiagnosticSeverity =
     | 'error'
@@ -121,13 +121,22 @@ enum Codes {
 export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnostic[]): CoreProgram {
     const coreIdeas: CoreIdea[] = []
 
+    let worldCounter = 0
     for (const idea of program.ideas) {
         const coreSteps: CoreStep[] = []
 
+        let inputWorld: WorldBinding = {
+            name: `${worldCounter++}`
+        }
         for (const step of idea.steps) {
+
+            let outputWorld: WorldBinding = { name: `${worldCounter++}` }
+
             const moves: CoreMove[] = []
             const relations: CoreRelation[] = []
             const constraints: CoreConstraint[] = []
+
+            const fieldMap: FieldMap = new Map()
 
             for (const move of step.moves) {
                 const knownPieces = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn']
@@ -146,6 +155,7 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
                     to: move.to,
                     span: move.span
                 })
+                fieldMap.set(move.piece, { relation: `move_${move.piece}`, field: 'piece'})
             }
 
 
@@ -166,25 +176,29 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
                     object: rel.object,
                     span: rel.span
                 })
+
+                fieldMap.set(rel.subject, { relation: `${rel.kind}_${rel.subject}`, field: 'subject' })
+                fieldMap.set(rel.object, { relation: `${rel.kind}_${rel.object}`, field: 'object' })
             }
 
 
             for (const c of step.constraints) {
-                constraints.push({
-                    kind: c.kind,
-                    left: c.left,
-                    right: c.right,
-                    span: c.span
-                })
-
+                let l = lowerConstraint(c, fieldMap, c.span, diagnostics)
+                if (l) {
+                    constraints.push(l)
+                }
             }
 
             coreSteps.push({
+                inputWorld,
+                outputWorld,
                 moves,
                 relations,
                 constraints,
                 span: step.span
             })
+
+            inputWorld = outputWorld
         }
 
         coreIdeas.push({
@@ -198,7 +212,39 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
     return { ideas: coreIdeas }
 }
 
+type FieldMap = Map<string, RelationFieldRef>
 
+function lowerConstraint(c: SurfaceConstraint, fieldMap: FieldMap, span: Span, diagnostics: Diagnostic[]): CoreConstraint | undefined {
+    const leftRef = fieldMap.get(c.left)
+
+    if (!leftRef) {
+        diagnostics.push({
+            code: Codes.UnknownReference,
+            message: `Unknown reference "${c.left}"`,
+            span: span,
+            severity: "error",
+        })
+        return undefined
+    }
+    const rightRef = fieldMap.get(c.right)
+
+    if (!rightRef) {
+        diagnostics.push({
+            code: Codes.UnknownReference,
+            message: `Unknown reference "${c.right}"`,
+            span: span,
+            severity: "error",
+        })
+        return undefined
+    }
+
+    return {
+        kind: c.kind,
+        left: { relation: leftRef?.relation, field: leftRef.field },
+        right: { relation: rightRef?.relation, field: rightRef.field },
+        span
+    }
+}
 
 function runArityChecks(core: CoreProgram, diagnostics: Diagnostic[]) {
     for (const idea of core.ideas) {

@@ -35,7 +35,7 @@ interface SurfaceRelation {
 }
 
 
-interface SurfaceConstraint {
+export interface SurfaceConstraint {
     kind: 'equals' | 'not_equals'
     left: string
     right: string
