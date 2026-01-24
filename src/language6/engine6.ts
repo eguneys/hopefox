@@ -198,19 +198,18 @@ type JoinPredicate = (binding: Map<string, Row>, ctx: ReadContext) => boolean
 class JoinNodeRuntime implements Resolver {
     id: string;
     inputRelations: RelationId[];
-    predicate: JoinPredicate
+    joinFn: JoinPredicate
 
     private rowsByRelation = new Map<string, Row[]>()
 
     constructor(
         id: ResolverId,
         inputs: RelationId[],
-        predicate: JoinPredicate) {
+        joinFn: JoinPredicate) {
             this.id = id
             this.inputRelations = inputs
 
-            this.predicate = predicate
-
+            this.joinFn = joinFn
 
             for (const rel of inputs) {
                 this.rowsByRelation.set(rel, [])
@@ -219,7 +218,7 @@ class JoinNodeRuntime implements Resolver {
 
         private extend(binding: Map<RelationId, Row>, emit: ResolverOutput) {
             if (binding.size === this.inputRelations.length) {
-                if (this.predicate(binding, {} as ReadContext)) {
+                if (this.joinFn(binding, {} as ReadContext)) {
                     const row: Row = { world_id: -1 }
                     for (const [relId, r] of binding) {
                         for (const key in r) {
@@ -244,15 +243,15 @@ class JoinNodeRuntime implements Resolver {
             }
         }
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-        const output = {}
-        const binding = new Map()
+    resolve(slice: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+        const result: ResolverOutput = {}
 
-        //binding.set()
+        for (const row of slice.rows) {
+            const binding = ctx.rowToBinding(row)
+            this.extend(binding, result)
+        }
 
-        this.extend(binding, output)
-
-        return output
+        return result
     }
 
 }
@@ -275,12 +274,11 @@ class MyEngine implements Engine, EngineState {
 
         for (const node of graph.nodes.values()) {
             if (node.kind === 'resolver') {
-                const resolver = new ResolverNodeRuntime(node.id, node.inputs, (r) => ({}))
+                const resolver = new ResolverNodeRuntime(node.id, node.inputs, node.outputs)
                 this.registerResolver(resolver)
             } else if (node.kind === 'join') {
-                //const inputs = node.inputs.map(id => this.relations.get(id)!)
-                const output = this.relations.get(node.output)!
-                const join = new JoinNodeRuntime(node.id, node.inputs, (binding) => true)
+                const join = new JoinNodeRuntime(node.id, node.inputs, node.outputs)
+                this.registerResolver(join)
             }
         }
     }
