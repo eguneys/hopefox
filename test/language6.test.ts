@@ -36,9 +36,26 @@ idea "Knight Fork"
   move knight from e5 to f7
   attacks knight -> king
   move knight from e4 to a7
-  kove knight from h8 to h7
+  move knight from h8 to h7
 `
   let res = analyseProgram(text)
 
   expect(res.node).toBeDefined()
+})
+
+it('runs', () => {
+  let text = `
+idea "Knight Fork"
+  move knight from e5 to f7
+  attacks knight -> king
+  move knight from e4 to a7
+  move knight from h8 to h7
+`
+
+  let { node } = analyseProgram(text)
+
+  let pos = m.create_position(puzzles[0].move_fens[0])
+  let res = Search6(m, pos, node!)
+
+  console.log(res)
 })
