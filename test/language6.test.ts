@@ -1,7 +1,8 @@
 import { expect, it } from 'vitest'
 import { puzzles } from './fixture'
-import { example, PositionManager, Search6 } from '../src'
+import { example, fen_pos, PositionManager, Search6 } from '../src'
 import { analyseProgram } from '../src/language6/diagnostics'
+import { extract_sans } from '../src/language2/san_moves_helper'
 
 let m = await PositionManager.make()
 
@@ -51,8 +52,11 @@ idea "Rook check"
 
   let { node } = analyseProgram(text)
 
-  let pos = m.create_position(puzzles[0].move_fens[0])
+  let i = 0
+  let pos2 = fen_pos(puzzles[i].move_fens[0])
+  let pos = m.create_position(puzzles[i].move_fens[0])
   let res = Search6(m, pos, node!)
 
-  console.log(res)
+  let res2 = res.map(_ => extract_sans(pos2, _)).slice(0, 8)
+  console.log(res2)
 })

@@ -499,7 +499,9 @@ export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
 
     engine.run()
 
-    return afterMoves.rows
+    let rows = worlds.rows
+
+    return rows.map(_ => mz.nodes.history_moves(_.world_id))
 }
 
 
@@ -755,6 +757,7 @@ class AfterMoveResolver implements Resolver {
         }
 
         if (output.length === 0) return null
+
 
 
         return {
