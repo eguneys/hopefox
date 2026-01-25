@@ -74,7 +74,6 @@ interface AfterMoveRow extends Row {
 
 
 
-type RowKey = number
 
 
 
@@ -89,11 +88,16 @@ type WorldId = NodeId
 type Value = number
 type RowId = number
 
+type RowIndex = number
+type RowKey = number
+
 interface Relation<T extends Row> {
     id: RelationId
     schema: string[]
     rows: T[]
     indexByWorld: Map<WorldId, T[]>
+    compute_row_key: (row: T) => RowKey
+    key_index: Map<RowKey, RowIndex>
 }
 
 interface InputSlice<T extends Row> {
@@ -144,7 +148,7 @@ interface CommitResult {
 }
 
 interface EngineState {
-    relations: Map<RelationId, Relation<Row>>
+    relations: Map<RelationId, Relation<any>>
     resolvers: Map<ResolverId, Resolver>
     subscriptions: Map<RelationId, ResolverId[]>
     workQueue: Task[]
@@ -176,19 +180,6 @@ class EngineReadContext implements ReadContext {
         if (!rows) return []
 
         return rows as T[]
-    }
-}
-
-class RelationNodeRuntime implements Relation<Row> {
-    id: string;
-    schema: string[];
-    name: string;
-    rows: Row[];
-    indexByWorld: Map<number, Row[]>;
-
-    constructor(id: string, schema: string[]) {
-        this.id = id
-        this.schema = schema
     }
 }
 
@@ -274,7 +265,7 @@ class JoinNodeRuntime implements Resolver {
 
 class MyEngine implements Engine, EngineState {
 
-    relations: Map<RelationId, Relation<Row>> = new Map()
+    relations: Map<RelationId, Relation<any>> = new Map()
     resolvers: Map<ResolverId, Resolver> = new Map()
     subscriptions: Map<RelationId, ResolverId[]> = new Map()
     workQueue: Task[] = []
@@ -346,7 +337,16 @@ class MyEngine implements Engine, EngineState {
                     id: this.nextRowId++
                 }
 
+                const key = relation.compute_row_key(committed)
+
+                if (relation.key_index.has(key)) {
+                    continue
+                }
+
+                const row_id = relation.rows.length
                 relation.rows.push(committed)
+
+                relation.key_index.set(key, row_id)
 
                 let bucket = relation.indexByWorld.get(committed.world_id)
                 if (!bucket) {
@@ -891,12 +891,30 @@ class LegalMoveResolver implements Resolver {
     }
 }
 
-function makeRelation<T extends Row>(id: RelationId, schema: string[]): Relation<T> {
+const generic_compute_row_key = <T extends Row>(row: T): RowKey => {
+    let res = 1
+
+    for (let [key, value] of Object.entries(row)) {
+        if (key === 'id') {
+            continue
+        }
+
+        res += (value + 1)
+        res *= (value + 1)
+        res += (Math.sin(value) + 1 + Math.sin(value + 1))
+    }
+    res = Math.floor(res)
+    return res
+}
+
+function makeRelation<T extends Row>(id: RelationId, schema: string[], compute_row_key: (t: T) => RowKey = generic_compute_row_key): Relation<T> {
     return {
         id,
         schema,
         rows: [],
-        indexByWorld: new Map()
+        indexByWorld: new Map(),
+        compute_row_key,
+        key_index: new Map()
     }
 }
 
