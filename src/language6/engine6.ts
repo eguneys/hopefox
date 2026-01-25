@@ -267,6 +267,7 @@ class MyEngine implements Engine, EngineState {
     readContext: ReadContext = new EngineReadContext(this.relations)
 
     constructor(graph: EngineGraph) {
+        //console.log(graph.relations)
         for (const [relId, metaRel] of graph.relations) {
             this.relations.set(relId, makeRelation(relId, metaRel.schema))
         }
@@ -275,6 +276,7 @@ class MyEngine implements Engine, EngineState {
         for (const node of graph.nodes.values()) {
             if (node.kind === 'resolver') {
                 let resolverFunc = () => ({})
+                //console.log(node)
                 const resolver = new ResolverNodeRuntime(node.id, node.inputs, resolverFunc)
                 this.registerResolver(resolver)
             } else if (node.kind === 'join') {

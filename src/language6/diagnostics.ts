@@ -128,11 +128,11 @@ export function lowerSurfaceToCore(program: SurfaceProgram, diagnostics: Diagnos
         const coreSteps: CoreStep[] = []
 
         let inputWorld: WorldBinding = {
-            name: `${worldCounter++}`
+            name: `${idea.name}_${worldCounter++}`
         }
         for (const step of idea.steps) {
 
-            let outputWorld: WorldBinding = { name: `${worldCounter++}` }
+            let outputWorld: WorldBinding = { name: `${idea.name}_${worldCounter++}` }
 
             const moves: CoreMove[] = []
             const relations: CoreRelation[] = []

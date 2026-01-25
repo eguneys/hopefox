@@ -45,11 +45,8 @@ idea "Knight Fork"
 
 it('runs', () => {
   let text = `
-idea "Knight Fork"
-  move knight from e5 to f7
-  attacks knight -> king
-  move knight from e4 to a7
-  move knight from h8 to h7
+idea "Rook check"
+  checks rook -> king
 `
 
   let { node } = analyseProgram(text)
