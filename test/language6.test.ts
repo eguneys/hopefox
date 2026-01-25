@@ -57,6 +57,7 @@ idea "Rook check"
   let pos = m.create_position(puzzles[i].move_fens[0])
   let res = Search6(m, pos, node!)
 
-  let res2 = res.map(_ => extract_sans(pos2, _)).slice(0, 8)
+  let res2 = res.map(_ => extract_sans(pos2, _)).slice(0, 30)
   console.log(res2)
+  console.log(puzzles[i].link)
 })

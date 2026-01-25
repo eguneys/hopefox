@@ -207,6 +207,7 @@ export const SCHEMAS = {
     world: ['world_id', 'depth'],
     occupies: ['piece', 'square', 'role', 'color'],
     attacks: ['from', 'to'],
+    attacks2: ['from', 'to', 'to2'],
     checks: ['attacker', 'king'],
     move: ['piece', 'from', 'to', 'fromWorld', 'toWorld'],
 }

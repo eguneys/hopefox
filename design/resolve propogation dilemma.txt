@@ -1,0 +1,3 @@
+I have an engine like this: A graph-driven dataflow engine for evaluating chess-tactics DSL programs, tracking multiple worlds and propagating moves and relations through resolver nodes.
+
+The caveat is, in terms of expressing a tactic, I am debating on how to match a given solution. Does it start from the end position and match towards previous moves linkage go backwards, or start from initial position and derive predictions on what it's possibilities might become. Of course I am highly simplifying in regards to branching logic.
