@@ -1,0 +1,4 @@
+Inside this refutation engine
+when looking for opponent moves and between relation delta analyzer
+
+are we using the a abstraction of our relations of world state, maybe related to opponent moves, or are we delivering that through over from the concrete position. I prefer everything to operate on our relational abstraction layer.

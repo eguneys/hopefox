@@ -1,0 +1,1 @@
+You are building a constructive proof system over adversarial state transitions, using abstract interpretation to collapse concrete worlds into invariants, and first-order logic to express inevitability of tactical ideas.

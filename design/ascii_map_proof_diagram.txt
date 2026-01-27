@@ -1,0 +1,62 @@
+┌───────────────────────────────┐
+│        Concrete Position      │
+│        (FEN / Board)           │
+└───────────────┬───────────────┘
+                │ α (abstraction)
+                ▼
+┌───────────────────────────────┐
+│        World State W₀          │
+│  (Relations + Metadata)       │
+│                               │
+│  attacks, pins, alignments,   │
+│  mobility, defenses, checks   │
+└───────────────┬───────────────┘
+                │
+                │  graph-driven propagation
+                ▼
+┌────────────────────────────────────────────────────┐
+│                  Resolver Graph                     │
+│                                                    │
+│  ┌───────────┐   ┌───────────┐   ┌───────────┐    │
+│  │  Tactic   │→→ │  Threat   │→→ │ Invariant │    │
+│  │ Generator │   │ Derivers  │   │ Candidates│    │
+│  └───────────┘   └───────────┘   └───────────┘    │
+│                                                    │
+└───────────────┬────────────────────────────────────┘
+                │
+                │ existential witness lines
+                ▼
+┌───────────────────────────────┐
+│   Candidate Invariants Iᵢ     │
+│  (typed, relational)          │
+└───────────────┬───────────────┘
+                │
+                │ refutation audit
+                ▼
+┌────────────────────────────────────────────────────┐
+│             Refutation Engine                       │
+│                                                    │
+│  Opponent Move Generator (gated)                    │
+│      ↓                                             │
+│  Relation Delta Analyzer                            │
+│      ↓                                             │
+│  Refutation Class Matcher                           │
+│      ↓                                             │
+│  Neutralization Resolver Lookup                    │
+│                                                    │
+└───────────────┬────────────────────────────────────┘
+                │
+      ┌─────────┴─────────┐
+      │                   │
+      ▼                   ▼
+┌──────────────┐   ┌──────────────────┐
+│ Proof Object │   │  Audit Failure   │
+│ (sound)      │   │  (learning hook) │
+└──────────────┘   └──────────────────┘
+
+
+
+
+10⁶ positions
+→ 50 relation changes
+→ 12 refutation classes

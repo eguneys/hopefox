@@ -1,0 +1,18 @@
+rook moves
+checks king
+unevadable check
+uncapturable check
+rook blocks check
+rook is defended once by queen, attacked twice
+rook captures rook with check
+unblockable check
+unevadable check
+rook forks king and queen
+rook is defended by bishop
+queen recaptures rook
+sacrifices itself vs rook to bishop
+bishop recaptures queen
+material up
+
+
+

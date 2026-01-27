@@ -1,0 +1,44 @@
+Here's an initial draft of description language:
+
+moves bishop
+sacrifices to pawn
+skewers queen and rook
+sets up discovery for rook against king
+captures pawn
+
+pawn recaptures
+pawn is loose (defended once attacked twice) # optional fact
+
+rook recaptures with check
+rook is defended by queen
+
+queen recaptures
+sacrifices to rook
+
+queen recaptures
+queen accepts sacrifice
+
+# Overall gained material
+
+It correctly and only describes the solution line for a tactical puzzle position. Ommitting the case for false negatives that may also match this, due to all the uncovered branching in an exhaustive fashion.
+
+
+### Answer
+
+8. A Clean Mental Model (Use This)
+
+Think of your system as proving:
+
+“Given structural constraints, the defender is out of resources.”
+
+Your description language then answers:
+
+“Here is one way the attacker cashes in.”
+
+The inevitability proof answers:
+
+“And here is why every defense fails.”
+
+### vs Minimax
+
+“This is adversarial reasoning over refutation lattices.”

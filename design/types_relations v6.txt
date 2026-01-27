@@ -1,0 +1,153 @@
+World:
+  R        // set of relations
+  meta     // bookkeeping only
+
+Invariant:
+  holds(R) -> bool
+  relevant_relations -> set<RelationKind>
+
+Delta:
+  added_relations
+  removed_relations
+
+RefutationClass:
+  matches(Delta) -> bool
+
+Neutralization:
+  apply(World, Delta) -> World
+
+
+
+function analyze_world(W₀):
+
+  // 1. Forward derivation (∃ witness generation)
+  witnesses = derive_witnesses(W₀)
+
+  proofs = []
+
+  for each witness in witnesses:
+
+    I = extract_invariant(witness)
+
+    if not I.holds(W₀.R):
+        continue  // invariant already false, discard
+
+    // 2. Refutation audit (∀ opponent)
+    audit = audit_invariant(W₀, I)
+
+    if audit.status == SOUND:
+        proofs.append(
+          Proof(
+            invariant = I,
+            witness = witness,
+            refutations = audit.coverage,
+            neutralizations = audit.neutralizations
+          )
+        )
+
+  return proofs
+
+
+function audit_invariant(W, I):
+
+  coverage = empty_map<Delta, RefutationClass>
+  required_classes = empty_set<RefutationClass>
+
+  // 2.1 Generate candidate opponent deltas
+  deltas = generate_boundary_deltas(W, I)
+
+  for each Δ in deltas:
+
+    // 2.2 Apply delta abstractly
+    R_after = apply_delta(W.R, Δ)
+
+    if I.holds(R_after):
+        continue  // not a refutation, ignore
+
+    // 2.3 Classify delta
+    class = classify_delta(Δ)
+
+    if class == NONE:
+        return AuditFailure(
+          reason = "Unclassified refutation",
+          delta = Δ
+        )
+
+    coverage[Δ] = class
+    required_classes.add(class)
+
+  // 2.4 Neutralization check
+  neutralizations = empty_map<RefutationClass, Neutralization>
+
+  for each class in required_classes:
+
+    N = find_neutralization(class)
+
+    if N == NONE:
+        return AuditFailure(
+          reason = "Unneutralized refutation class",
+          class = class
+        )
+
+    // Optional: verify neutralization restores invariant
+    if not verify_neutralization(W, I, class, N):
+        return AuditFailure(
+          reason = "Unsound neutralization",
+          class = class
+        )
+
+    neutralizations[class] = N
+
+  return AuditSuccess(
+    coverage = coverage,
+    neutralizations = neutralizations
+  )
+
+
+function generate_boundary_deltas(W, I):
+
+  deltas = []
+
+  // We assume an external oracle gives us legal deltas,
+  // but this function sees ONLY deltas.
+
+  for each Δ in opponent_delta_oracle(W):
+
+    // Filter to invariant-relevant changes
+    if not touches(Δ, I.relevant_relations):
+        continue
+
+    // Check invariant boundary
+    if I.holds(W.R) and not I.holds(apply_delta(W.R, Δ)):
+        deltas.append(Δ)
+
+  return deltas
+
+
+function classify_delta(Δ):
+
+  for each class in RefutationClassLibrary:
+    if class.matches(Δ):
+        return class
+
+  return NONE
+
+
+function verify_neutralization(W, I, class, N):
+
+  for each representative Δ of class:
+    W_after = apply_delta(W.R, Δ)
+    W_neutralized = N.apply(W_after)
+
+    if not I.holds(W_neutralized.R):
+        return false
+
+  return true
+
+Concrete Position
+   ↓ legal move gen
+Concrete moves
+   ↓ abstraction α
+Abstract deltas
+   ↓
+RELATIONAL LOOP (above)

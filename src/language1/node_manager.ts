@@ -129,6 +129,22 @@ export class NodeManager {
         return child.parent === parent
     }
 
+    parent_world_id(world_id: number) {
+        if (world_id === 0) {
+            return undefined
+        }
+        let child = this.cache.get_node(world_id)
+
+        if (!child) {
+            throw new NoChildError(world_id)
+        }
+        if (child.parent instanceof Node) {
+            return child.parent.id
+        } else {
+            return 0
+        }
+    }
+
     prefix_test(a: NodeId, b: NodeId) {
         if (b === 0) {
             return true

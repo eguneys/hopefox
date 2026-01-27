@@ -1,3 +1,4 @@
+import { between } from "../distill/attacks";
 import { ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager } from "../distill/hopefox_c";
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
@@ -17,8 +18,8 @@ interface FromToRow extends Row {
 
 
 interface ChecksRow extends Row {
-    from: Square
-    to: Square
+    attacker: Square
+    king: Square
 }
 
 interface CaptureRow extends Row {
@@ -430,6 +431,15 @@ export class PositionMaterializer {
         this.nodes = new NodeManager()
     }
 
+
+    parent_world_id(world_id: WorldId) {
+        return this.nodes.parent_world_id(world_id)
+    }
+
+    is_a_successor_of_b(a: WorldId, b: WorldId) {
+        return this.nodes.is_a_successor_of_b(a, b)
+    }
+
     exists(world_id: WorldId) {
         if (world_id === 0) {
             return true
@@ -470,7 +480,6 @@ export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
     const attacks2 = makeRelation<Attacks2Row>('attacks2', SCHEMAS.attacks2)
     const occupies = makeRelation<OccupiesRow>('occupies', SCHEMAS.occupies)
     const checks = makeRelation<ChecksRow>('checks', SCHEMAS.checks)
-    const checksSafe = makeRelation<ChecksRow>('checks_uncapturable', [])
     const afterMoves = makeRelation<AfterMoveRow>('afterMoves', [])
     const allow_expand_moves = makeRelation<FromToRow>('allow_expand_moves', [])
 
@@ -483,21 +492,37 @@ export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
     engine.relations.set('attacks2', attacks2)
     engine.relations.set('occupies', occupies)
     engine.relations.set('checks', checks)
-    engine.relations.set('checks_uncapturable', checksSafe)
     engine.relations.set('afterMoves', afterMoves)
     engine.relations.set('allow_expand_moves', allow_expand_moves)
+    
+    engine.relations.set('captures', makeRelation('captures', []))
+    engine.relations.set('recaptures', makeRelation('recaptures', []))
 
+    engine.relations.set('uncapturable_checks', makeRelation('uncapturable_checks', []))
+    engine.relations.set('unblockable_checks', makeRelation('unblockable_checks', []))
+
+    engine.relations.set('checkmates', makeRelation('checkmates', []))
+
+    engine.relations.set('blocks-checks', makeRelation('blocks-checks', []))
 
     engine.registerResolver(new OccupiesResolver(mz))
     engine.registerResolver(new AttacksResolver(mz))
     engine.registerResolver(new Attacks2Resolver(mz))
     engine.registerResolver(new LegalMoveResolver(mz))
     engine.registerResolver(new AfterMoveResolver(mz))
-    engine.registerResolver(new ChecksResolver())
-    engine.registerResolver(new NegJoinResolver())
-    engine.registerResolver(new CheckAttackJoinResolver())
 
+    engine.registerResolver(new RecapturesResolver(mz))
+    engine.registerResolver(new CapturesResolver())
+    engine.registerResolver(new ChecksResolver())
+    engine.registerResolver(new UncapturableChecksResolver())
+    engine.registerResolver(new UnblockableChecksResolver())
+
+    engine.registerResolver(new CheckAttackJoinResolver())
+    engine.registerResolver(new CheckmatesResolver())
+
+    engine.registerResolver(new ExpandCapturesResolver())
     engine.registerResolver(new ExpandChecksResolver())
+    engine.registerResolver(new ExpandBlockChecksResolver())
 
 
     const bootstrapTx: Transaction = {
@@ -521,14 +546,46 @@ export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
 
     engine.run()
 
-    let rows = checks.rows
+    let rows = engine.relations.get('worlds')!.rows
 
     return rows.map(_ => mz.nodes.history_moves(_.world_id))
 }
 
 
-class NegJoinResolver implements Resolver {
-    id: 'neg_join_checks_uncapturable'
+class CheckmatesResolver implements Resolver {
+    id = 'checkmates'
+
+    inputRelations = ['unblockable_checks']
+
+    resolve(
+        input: InputSlice<ChecksRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: ChecksRow[] = []
+
+        for (const check of input.rows) {
+            const checks2 = ctx.get<CaptureRow>('uncapturable_checks', check.world_id)
+
+            for (const c2 of checks2) {
+                if (c2.from === check.from && c2.to === check.to) {
+                    output.push(check)
+                }
+            }
+        }
+
+        if (output.length === 0) return null
+
+
+        return {
+            'checkmates': output
+        }
+    }
+}
+
+
+
+class UnblockableChecksResolver implements Resolver {
+    id = 'unblockable_checks'
 
     inputRelations = ['checks']
 
@@ -539,13 +596,18 @@ class NegJoinResolver implements Resolver {
         const output: ChecksRow[] = []
 
         for (const check of input.rows) {
-            const captures = ctx.get<CaptureRow>('captures', check.world_id)
+            const blocks = ctx.get<CaptureRow>('attacks', check.world_id)
 
 
+            let aa = between(check.attacker, check.king)
             let blocked = false
 
-            for (const cap of captures) {
-                if (cap.from === check.from && cap.to === check.to) {
+            for (const block of blocks) {
+                if (block.from === check.attacker || block.from === check.king) {
+                    continue
+                }
+
+                if (aa.has(block.to)) {
                     blocked = true
                     break
                 }
@@ -559,10 +621,123 @@ class NegJoinResolver implements Resolver {
 
 
         return {
-            'checks_uncapturable': output
+            'unblockable_checks': output
         }
     }
 }
+
+class UncapturableChecksResolver implements Resolver {
+    id = 'uncapturable_checks'
+
+    inputRelations = ['checks']
+
+    resolve(
+        input: InputSlice<ChecksRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: ChecksRow[] = []
+
+        for (const check of input.rows) {
+            const captures = ctx.get<CaptureRow>('captures', check.world_id)
+
+            let blocked = false
+
+            for (const cap of captures) {
+                if (cap.to === check.attacker) {
+                    blocked = true
+                    break
+                }
+            }
+            if (!blocked) {
+                output.push(check)
+            }
+        }
+
+        if (output.length === 0) return null
+
+
+        return {
+            'uncapturable_checks': output
+        }
+    }
+}
+
+
+class ExpandCapturesResolver implements Resolver {
+    id = 'expand-captures'
+
+    inputRelations = ['captures']
+
+
+    resolve(
+        input: InputSlice<CaptureRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const capture of input.rows) {
+            output.push(capture)
+        }
+
+        if (output.length === 0) {
+            return null
+        }
+
+        return { 'allow_expand_moves': output }
+    }
+
+ 
+}
+
+
+class ExpandBlockChecksResolver implements Resolver {
+    id = 'blocks-checks'
+
+    inputRelations = ['checks']
+
+    resolve(
+        input: InputSlice<ChecksRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+
+        for (const check of input.rows) {
+
+            let attacks = ctx.get<AttacksRow>('attacks', check.world_id)
+
+            let r = between(check.attacker, check.king)
+
+            for (let block of attacks) {
+                if (block .from === check.attacker ||block .from === check.king) {
+                    continue
+                }
+
+                if (!r.has(block.to)) {
+                    continue
+                }
+
+                output.push({
+                    world_id: check.world_id,
+                    from: block.from,
+                    to: block.to
+                })
+            }
+        }
+
+        if (output.length === 0) {
+            return null
+        }
+
+        return { 
+            'blocks-checks': output,
+            'allow_expand_moves': output 
+        }
+    }
+
+ 
+}
+
 
 
 class ExpandChecksResolver implements Resolver {
@@ -620,6 +795,103 @@ class ExpandChecksResolver implements Resolver {
  
 }
 
+class RecapturesResolver implements Resolver {
+    id = 'recaptures'
+
+    inputRelations = ['captures']
+
+    mz: PositionMaterializer
+
+    constructor(mz: PositionMaterializer) {
+        this.mz = mz
+    }
+
+
+    resolve(
+        input: InputSlice<CaptureRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const recapture of input.rows) {
+            let parent_id = this.mz.parent_world_id(recapture.world_id)
+
+            if (parent_id === undefined) {
+                continue
+            }
+
+            let captures = ctx.get<CaptureRow>('captures', parent_id)
+
+            for (let capture of captures) {
+                if (capture.to !== recapture.to) {
+                    continue
+                }
+                output.push({
+                    world_id: recapture.world_id,
+                    from: recapture.from,
+                    to: recapture.to
+                })
+            }
+        }
+
+        if (output.length === 0) {
+            return null
+        }
+
+        return { recaptures: output }
+    }
+}
+
+
+
+class CapturesResolver implements Resolver {
+    id = 'captures'
+
+    inputRelations = ['attacks']
+
+
+    resolve(
+        input: InputSlice<AttacksRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const attack of input.rows) {
+
+            const occupies = ctx.get<OccupiesRow>('occupies', attack.world_id)
+
+            for (let occ2 of occupies) {
+
+                if (occ2.on !== attack.from) {
+                    continue
+                }
+
+                for (let occ of occupies) {
+
+                    if (occ.on !== attack.to) {
+                        continue
+                    }
+
+                    if (occ.color === occ2.color) {
+                        continue
+                    }
+
+                    output.push({
+                        world_id: attack.world_id,
+                        from: attack.from,
+                        to: attack.to
+                    })
+                }
+            }
+        }
+
+        if (output.length === 0) {
+            return null
+        }
+
+        return { captures: output }
+    }
+}
 
 
 
@@ -669,6 +941,7 @@ class ChecksResolver implements Resolver {
         }
 
 
+        debugger
         return { checks }
     }
 
