@@ -2,6 +2,7 @@ import { between } from "../distill/attacks";
 import { ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager, static_piece_value } from "../distill/hopefox_c";
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
+import { san_moves_c } from "../language2/san_moves_helper";
 import { CoreProgram, EngineGraph, lowerCoreToEngine, RelationId, SCHEMAS } from "./core";
 import { analyseProgram } from "./diagnostics";
 
@@ -470,6 +471,10 @@ export class PositionMaterializer {
         return this.nodes.is_a_successor_of_b(a, b)
     }
 
+    is_attacker(world_id: WorldId) {
+        return this.nodes.history_moves(world_id).length % 2 === 0
+    }
+
     exists(world_id: WorldId) {
         if (world_id === 0) {
             return true
@@ -497,6 +502,12 @@ export class PositionMaterializer {
         }
     }
 
+    sans(world_id: WorldId) {
+
+        let res = this.nodes.history_moves(world_id)
+        let res2 = san_moves_c(this.m, this.pos, res)
+        return res2
+    }
 }
 
 class AttackersDefendersResolver implements Resolver {

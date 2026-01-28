@@ -46,7 +46,7 @@ idea "Knight Fork"
 
 it('runs', () => {
 
-  let i = 5
+  let i = 3
   let pos2 = fen_pos(puzzles[i].move_fens[0])
   let pos = m.create_position(puzzles[i].move_fens[0])
   let res = Semantical7(m, pos)

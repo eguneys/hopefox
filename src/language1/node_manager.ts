@@ -132,7 +132,7 @@ export class NodeManager {
 
     children_ids(world_id: number) {
         if (world_id === 0) {
-            return this.root.children.keys()
+            return this.root.children.values().map(_ => _.id)
         }
 
         let child = this.cache.get_node(world_id)
@@ -141,7 +141,7 @@ export class NodeManager {
             throw new NoChildError(world_id)
         }
 
-        return child.children.keys()
+        return child.children.values().map(_ => _.id)
     }
 
     parent_world_id(world_id: number) {
