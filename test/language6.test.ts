@@ -46,12 +46,12 @@ idea "Knight Fork"
 
 it('runs', () => {
 
-  let i = 4
+  let i = 0
   let pos2 = fen_pos(puzzles[i].move_fens[0])
   let pos = m.create_position(puzzles[i].move_fens[0])
   let res = Semantical7(m, pos)
 
-  let res2 = res.map(_ => extract_sans(pos2, _)).slice(0, 30)
+  let res2 = res.map(_ => extract_sans(pos2, _))
   console.log(res2)
   console.log(puzzles[i].link)
 })

@@ -1270,6 +1270,10 @@ const generic_compute_row_key = <T extends Row>(row: T): RowKey => {
             continue
         }
 
+        if (typeof value !== 'number') {
+            throw `BadValueError for key ${key}`
+        }
+
         res += (value + 1)
         res *= (value + 1)
         res += (Math.sin(value) + 1 + Math.sin(value + 1))

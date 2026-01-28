@@ -1,0 +1,18 @@
+From earlier, the invariant requires answering:
+
+Is there a queen belonging to the defender?
+Is that queen under threat (direct or indirect)?
+Can the defender avoid losing the queen?
+If the queen is lost, is the maximum attacker loss ≤ rook?
+Does this hold for all forced defender replies?
+
+
+So our relations must support:
+
+identifying pieces and their values
+attacks and captures
+forced replies
+bounded material loss
+inevitability across forced worlds
+
+

@@ -1,0 +1,45 @@
+Here' again I hit the dependency resolution drawback:
+
+
+
+class QueenCaptureInevitable implements Resolver {
+    id = 'queen_capture_inevitable'
+
+    inputRelations = ['candidate_attack_move', 'queen_capturable']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        let hs = input.rows
+
+        for (const h of hs) {
+
+            let hWorld = this.mz.add_move(h.world_id, h.move)
+
+            const forcedWorlds = ctx.get('forced_reachable', hWorld)
+                .map(_ => _.world_id)
+
+            for (let next_w of forcedWorlds) {
+
+                let queen_capturable = ctx.get<Row>('queen_capturable', next_w)
+
+                if (queen_capturable.length > 0) {
+                    output.push({
+                        world_id: hWorld
+                    })
+                    break
+                }
+
+            }
+        }
+
+        return { queen_capture_inevitable: output }
+    }
+}
+
+
+Here I depend on a bunch of relations, if I name them explicitly in inputRelations like above, they get called when they update, but the input relation resolve callback gets will be different for each updated relation.
+
+I could handle that explicitly for every case, but if the input relation is queen_capturable, I need previous world ids for joining candidate_attack_moves. If I try really hard I could maybe derive that, but I feel like this is not the correct approach to handle this kind of logic, or the dependency resolution system.
