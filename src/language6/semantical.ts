@@ -34,10 +34,10 @@ idea "Knight Fork"
     engine.registerResolver(new InCheck(mz))
 
     engine.registerResolver(new ForcedReplies(mz))
-    engine.registerResolver(new Checkmate())
-    engine.registerResolver(new OnlyReply())
     engine.registerResolver(new ForcedStep(mz))
+    engine.registerResolver(new OnlyReply())
     engine.registerResolver(new ForcedReachable())
+    engine.registerResolver(new Checkmate())
 
     engine.registerResolver(new MateInevitable(mz))
 
@@ -71,6 +71,7 @@ idea "Knight Fork"
 
     let rows = engine.relations.get('worlds')!.rows
     rows = engine.relations.get('solution')!.rows
+    /*
     rows = engine.relations.get('worlds')!.rows
     rows = engine.relations.get('checkmate')!.rows
     rows = engine.relations.get('forced_reachable')!.rows
@@ -80,6 +81,12 @@ idea "Knight Fork"
     rows = engine.relations.get('mate_inevitable')!.rows
     rows = engine.relations.get('forced_replies')!.rows
     rows = engine.relations.get('candidate_attack_move')!.rows
+    rows = engine.relations.get('solution')!.rows
+    rows = engine.relations.get('only_reply')!.rows
+    rows = engine.relations.get('checkmate')!.rows
+    rows = engine.relations.get('only_reply')!.rows
+    rows = engine.relations.get('solution')!.rows
+    */
 
     return rows.map(_ => mz.nodes.history_moves(_.world_id))
 }
@@ -252,19 +259,14 @@ class ExpandForcedWorlds implements Resolver {
 class ForcedStep implements Resolver {
     id = 'forced_step'
 
-    inputRelations = ['worlds']
+    inputRelations = ['only_reply']
 
     constructor(private mz: PositionMaterializer) {}
 
     resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
         const output = []
 
-        for (const w of input.rows) {
-            const m = ctx.get<OnlyReplyRow>('only_reply', w.world_id)?.[0]
-            if (!m) {
-                return null
-            }
-
+        for (const m of input.rows) {
             let next_world_id = this.mz.add_move(m.world_id, m.move)
 
             output.push({
@@ -320,7 +322,7 @@ class ForcedReachable implements Resolver {
 class MateInevitable implements Resolver {
     id = 'mate_inevitable'
 
-    inputRelations = ['forced_reachable']
+    inputRelations = ['candidate_attack_move']
 
     constructor(private mz: PositionMaterializer) {}
 
@@ -328,13 +330,18 @@ class MateInevitable implements Resolver {
         const output: Row[] = []
 
 
-        let forced = input.rows
+        let hs = input.rows
 
-        for (const w of forced) {
+        for (const h of hs) {
+
+            let hWorld = this.mz.add_move(h.world_id, h.move)
+
+            const forcedWorlds = ctx.get('forced_reachable', hWorld)
+            .map(_ => _.world_id)
 
             let mate_found = false
 
-            for (let next_w of this.mz.children_ids(w.world_id)) {
+            for (let next_w of forcedWorlds) {
 
                 this.mz.make_to_world(next_w)
 
@@ -348,7 +355,7 @@ class MateInevitable implements Resolver {
             }
 
             output.push({
-                world_id: w.world_id
+                world_id: hWorld
             })
         }
 
@@ -389,7 +396,9 @@ class CandidateAttackMoves implements Resolver {
     for (const w of input.rows) {
       if (!this.mz.is_attacker(w.world_id)) continue
 
-      const moves = this.mz.m.get_legal_moves(w.world_id)
+        this.mz.make_to_world(w.world_id)
+        const moves = this.mz.m.get_legal_moves(this.mz.pos)
+        this.mz.unmake_world(w.world_id)
 
       for (const m of moves) {
         const w2 = this.mz.add_move(w.world_id, m)
