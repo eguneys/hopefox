@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { puzzles } from './fixture'
-import { example, fen_pos, PositionManager, Search6 } from '../src'
+import { example, fen_pos, PositionManager, Semantical7 } from '../src'
 import { analyseProgram } from '../src/language6/diagnostics'
 import { extract_sans } from '../src/language2/san_moves_helper'
 
@@ -45,17 +45,11 @@ idea "Knight Fork"
 })
 
 it('runs', () => {
-  let text = `
-idea "Rook check"
-  checks rook -> king
-`
 
-  let { node } = analyseProgram(text)
-
-  let i = 0
+  let i = 5
   let pos2 = fen_pos(puzzles[i].move_fens[0])
   let pos = m.create_position(puzzles[i].move_fens[0])
-  let res = Search6(m, pos, node!)
+  let res = Semantical7(m, pos)
 
   let res2 = res.map(_ => extract_sans(pos2, _)).slice(0, 30)
   console.log(res2)

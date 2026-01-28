@@ -1,0 +1,104 @@
+type World
+type Move
+type Side = "white" | "black"
+
+interface Relation<T> {
+  rows: T[]
+}
+
+
+type Resolver<I, O> = (input: Relation<I>) => Relation<O>
+
+// move generation
+legal_move(world: World, move: Move): boolean
+
+// after move
+apply(world: World, move: Move): World
+
+// king state
+in_check(world: World, side: Side): boolean
+
+
+checked(world: World): boolean
+
+unevadable_check(world: World): boolean
+unblockable_check(world: World): boolean
+uncapturable_check(world: World): boolean
+
+function forced_replies(world: World): Relation<Move> {
+  const replies = all_legal_moves(world)
+
+  const filtered = replies.filter(m => {
+    const w2 = apply(world, m)
+
+    if (in_check(w2, side_to_move(world))) return false
+    return true
+  })
+
+  return { rows: filtered }
+}
+
+function only_reply(world: World): Move | null {
+  const replies = forced_replies(world).rows
+  return replies.length === 1 ? replies[0] : null
+}
+
+function checkmate(world: World): boolean {
+  return (
+    in_check(world, side_to_move(world)) &&
+    forced_replies(world).rows.length === 0
+  )
+}
+
+
+function forced_step(world: World): Relation<World> {
+  const m = only_reply(world)
+  if (!m) return { rows: [] }
+
+  return { rows: [ apply(world, m) ] }
+}
+
+function forced_reachable(root: World, maxDepth = 8): Set<World> {
+  const seen = new Set<World>()
+  let frontier = [root]
+
+  for (let d = 0; d < maxDepth; d++) {
+    const next: World[] = []
+
+    for (const w of frontier) {
+      if (seen.has(w)) continue
+      seen.add(w)
+
+      const forced = forced_step(w).rows
+      next.push(...forced)
+    }
+
+    if (next.length === 0) break
+    frontier = next
+  }
+
+  return seen
+}
+
+function mate_inevitable(root: World): boolean {
+  const forced = forced_reachable(root)
+
+  for (const w of forced) {
+    let mate_found = false
+
+    // White may choose — so we existentially quantify
+    for (const m of all_legal_moves(w)) {
+      const w2 = apply(w, m)
+      if (checkmate(w2)) {
+        mate_found = true
+        break
+      }
+    }
+
+    if (!mate_found) return false
+  }
+
+  return true
+}
+
+enum RefutationClass { Evade, Block, Capture }

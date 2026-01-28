@@ -1,0 +1,37 @@
+Here's a dependency graph of relations
+
+forced_reachable depends on:
+  : worlds
+  : forced_step
+
+forced_step depends on:
+  : worlds
+  : only_reply
+
+only_reply depends on:
+  : forced_replies
+
+forced_replies depends on:
+  : worlds
+  : in_check
+  // future forcedness relations
+
+in_check depends on:
+  : worlds
+
+
+So at what point do I intervene and say "now is the time to expand the worlds"
+It seems like I can't find the correct point to make that call. Everything is intertwined like this.
+
+But you see, only_reply depends on forced_replies, which depends on in_check of future worlds. So in order to create forced_replies, I need to apply legal moves, look at it's replies, and take those that are either in_check, or satisfies some other forcedness relation, (you said forcedness relations are growing system). 
+That's why I look at in_check for future world using a relation and not statically through the hypotetical expansion of future world. So I can make use of the graph engine to derive future forcedness relations that I can query for deciding the forced_replies. I hope all that makes sense.
+
+
+No here's what happens:
+
+Iteration 0: 
+ in_check(w0) is false. the check has not been played yet.
+ forced_replies(w0), relies on in_check(w1) which it cannot find thus returns []
+ only_reply(w0), is null because forced_replies(w0) was []
+
+ w1 is never expanded, in_check(w1) is never calculated. forced_replies(w0) is []

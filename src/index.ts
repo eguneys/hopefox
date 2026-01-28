@@ -11,5 +11,5 @@ export * from './distill/san'
 export * from './distill/chess'
 export * from './distill/hopefox'
 
-export * from './language6/engine6'
+export * from './language6/semantical'
 export * from './language6/types'

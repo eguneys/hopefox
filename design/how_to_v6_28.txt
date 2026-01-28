@@ -1,0 +1,174 @@
+I can't shift my mind over just creating witness lines to:
+
+prove a solution by satisfying an invariant. If we walk through the example I gave you earlier:
+
+rook moves
+checks king
+unevadable check
+uncapturable check
+rook blocks check
+rook is defended once by queen, attacked twice
+rook captures rook with check
+unblockable check
+unevadable check
+rook forks king and queen
+rook is defended by bishop
+queen recaptures rook
+sacrifices itself vs rook to bishop
+bishop recaptures queen
+material up
+
+This is the first example. I easily extracted the solution line by expanding checks and captures which finds the solution line easily.
+
+Now how do I think in terms of invariants and satisfying them.
+
+
+
+Resolver A  - Audit material preservation
+
+inputs: ['forced_reply_class', 'material_delta', 'path_material_gain']
+
+outputs: ['class_preserves_material_gain']
+
+
+Resolver B - certify solution after
+
+inputs: ['forcing_move', 'forced_reply_class', 'class_preserves_material_gain', 'solution_state'] (recursive)
+
+outputs: ['solution_after']
+
+Resolver C - certify solution_state
+
+inputs: ['solution_after', 'terminal', 'path_material_gain']
+
+outputs: ['solution_state']
+
+
+Resolver D - mark solution world
+
+inputs: ['solution_state']
+
+outputs: ['solution_world']
+
+
+capture_deficit(piece, world) iff
+  attackers(piece) > defenders(piece)
+
+forced_capture(piece, world) iff
+  attacked(piece)
+  AND no_evasion(piece)
+  AND capture_deficit(piece)
+
+baseline_delta:
+  gain = value(piece)
+  loss = value(attacker_if_captured)
+
+
+
+candidate_move(world, move_id)
+        ↓
+baseline_delta(world, move_id, Δ)
+        ↓
+baseline_delta_preserved(world, move_id)
+        ↓
+solution_world(world, move_id)
+
+
+
+reply_moves
+   ↓
+classify_refutation_moves
+   ↓
+refutation_classes_present
+   ↓
+audit_class_neutralized
+   ↓
+invariant_preserved
+
+
+Given that the invariant under consideration is “material delta ≥ Δ”,
+no opponent reply can realize a material delta ≥ Δ.
+
+
+[Invariant Candidate]
+      ↓
+[Refutation Classes Generated]
+      ↓
+[Class Neutralization Audits]
+      ↓
+[Invariant Holds]
+      ↓
+[If invariant is material-based]
+      ↓
+[baseline_delta_preserved]
+
+
+
+candidate_move
+   ↓
+baseline_invariant_claim
+   ↓
+generate_refutation_classes(invariant)
+   ↓
+audit_class_neutralization
+   ↓
+invariant_holds
+   ↓
+(if invariant includes material)
+   ↓
+baseline_delta_preserved
+   ↓
+solution_world
+
+
+
+
+Level 0: geometry (attacks, checks, pins)
+Level 1: forced replies (must-block, must-capture, must-move)
+Level 2: capture obligations (forced_capture_target)
+Level 3: baseline delta (candidate)
+Level 4: refutation classes
+Level 5: audit (delta preserved across all classes)
+
+
+Heuristic layer:
+  may lie, but must enumerate
+
+Audit layer:
+  must tell the truth, but may reject
+
+
+
+
+An invariant is what you claim about chess.
+An audit is how your engine convinces itself the claim is true.
+
+
+
+audit : World → Bool / Value
+forced_reachable(root) : Set<World>
+
+invariant(root) :=
+  ∀ w ∈ forced_reachable(root), audit(w) holds
+
+
+Moves
+ ↓
+Forcedness relations
+ ↓
+Refutation classes
+ ↓
+Forced-reachable worlds
+ ↓
+Audits
+ ↓
+Invariants
+
+
+Forcedness relations eliminate refutation classes
+
+
+Refutation classes explain how the opponent could resist.
+Forcedness relations explain why they cannot.
+Audits verify that failure locally.
+Invariants lift that inevitability globally.

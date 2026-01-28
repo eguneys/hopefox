@@ -1,0 +1,52 @@
+You have defined bare functions, I tried to convert them into resolvers that my engine understands here's my attempt:
+
+
+class ForcedReplies implements Resolver {
+    id = 'forced_replies'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+
+        const output: Row[] = []
+
+        for (let w of input.rows) {
+            const replies = this.mz.m.get_legal_moves(w.world_id)
+
+
+            const filtered = replies.filter(m => {
+                const w2 = this.mz.add_move(w.world_id, m)
+
+                const checks = ctx.get('in_check', w2)
+
+                if (checks.length > 0) {
+                    return true
+                }
+
+                // later add forcedness relations
+
+                return false
+            })
+
+            output.push(...filtered.map(_ => ({
+                world_id: w.world_id,
+                move: _
+            })))
+
+        }
+        return { forced_replies: output }
+    }
+
+}
+
+
+as you can see in_check property is pulled out of a relation for that specific world. 
+I did this because I thought I had to later add other forcedness relations, in a similar fashion pulling them out of other relations like this.
+
+Is this correct thinking, in any case this has one problem that makes this unworkable.
+
+in_check is checked for a future world id where after the reply is played. But in my case engine doesn't yet have that world instantiated and resolved in their relations, so it always returns empty, thus failing the correct output. 
+
+I just want to cross check how I should handle that, and if there is anything flawed again.

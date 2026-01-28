@@ -1,0 +1,19 @@
+Thinking about this function:
+function forced_replies(world: World): Relation<Move> {
+  const replies = all_legal_moves(world)
+
+  const filtered = replies.filter(m => {
+    const w2 = apply(world, m)
+
+    if (in_check(w2, side_to_move(world))) return false
+    return true
+  })
+
+  return { rows: filtered }
+}
+
+in terms of a resolver: I need to apply world to get w2 expand w2 to it's relations in the engine, and query in_check(w2) for those relations. But also while expanding w2 to it's relations `forced_replies` is also a relation which this resolver resolves, and while doing that expands w2 into children of w2, in an infinite fashion. At some point I need to stop doing that at a certain depth. 
+
+Now this is decided together with the decision of where exactly I tell the engine to expand new future worlds before I query them.
+
+Also in your later function definition of forced_reachable, there is a loop, with a maxDepth check, where you iterate up to a certain depth in a loop. Maybe inside that loop I could do this depth check and expansion limits, but I am not sure.

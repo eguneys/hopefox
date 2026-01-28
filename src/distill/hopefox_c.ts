@@ -115,6 +115,18 @@ function c_to_color(c: ColorC): Color {
     }
 }
 
+export function static_piece_value(p: PieceTypeC): number {
+    switch (p) {
+        case PAWN: return 100
+        case KNIGHT: return 300
+        case BISHOP: return 300
+        case ROOK: return 500
+        case QUEEN: return 900
+        case KING: return 0
+    }
+    throw 'No Piece Type'
+}
+
 function make_move(move: Move, castling?: boolean, en_passant?: boolean): MoveC {
     let pt = KNIGHT
     let type = NORMAL_MOVE
@@ -154,7 +166,6 @@ export function move_c_to_Move(c: MoveC): Move {
 
 
 export class PositionManager {
-
     static async make(locateFile?: (file: string) => string) {
         let m = await HM({locateFile})
         // @ts-ignore
@@ -315,6 +326,11 @@ export class PositionManager {
     is_checkmate(pos: number) {
         return this.m._is_checkmate(pos)
     }
+
+    pos_in_check(pos: number) {
+        return !this.checkers(pos).isEmpty()
+    }
+
 
     checkers(pos: number) {
         const bbPtr = this.m._malloc(4 * 2)

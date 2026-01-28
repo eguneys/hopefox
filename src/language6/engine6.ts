@@ -1,11 +1,26 @@
 import { between } from "../distill/attacks";
-import { ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager } from "../distill/hopefox_c";
+import { ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager, static_piece_value } from "../distill/hopefox_c";
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
 import { CoreProgram, EngineGraph, lowerCoreToEngine, RelationId, SCHEMAS } from "./core";
 import { analyseProgram } from "./diagnostics";
 
-interface Row {
+interface PreservedBaselineRow extends Row {
+
+}
+
+interface TurnRow extends Row {
+    turn: ColorC
+}
+
+interface BaselineDeltaRow extends Row {
+    gain_piece: PieceTypeC,
+    gain_value: number,
+    loss_piece: PieceTypeC,
+    loss_value: number
+}
+
+export interface Row {
     world_id: WorldId
     [key: string]: number
 }
@@ -26,6 +41,16 @@ interface CaptureRow extends Row {
     from: Square
     to: Square
 }
+
+
+interface AttacksThroughRow extends Row {
+    world_id: WorldId
+    from: Square
+    to2: Square
+    through: Square
+}
+
+
 
 interface AttacksRow extends Row {
     world_id: WorldId
@@ -50,6 +75,7 @@ interface OccupiesRow extends Row {
     piece: PieceC
     role: PieceTypeC
     color: ColorC
+    value: number
 }
 
 interface WorldRow extends Row {
@@ -101,16 +127,16 @@ interface Relation<T extends Row> {
     key_index: Map<RowKey, RowIndex>
 }
 
-interface InputSlice<T extends Row> {
+export interface InputSlice<T extends Row> {
     relation: RelationId
     rows: T[]
 }
 
-type ResolverOutput = {
+export type ResolverOutput = {
     [relation: RelationId]: Row[]
 }
 
-interface Resolver {
+export interface Resolver {
     id: ResolverId
 
     inputRelations: RelationId[]
@@ -118,7 +144,7 @@ interface Resolver {
     resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null
 }
 
-interface ReadContext {
+export interface ReadContext {
     get<T extends Row>(relation: RelationId, world: WorldId): T[]
 }
 
@@ -129,7 +155,7 @@ interface Task {
 }
 
 
-interface Transaction {
+export interface Transaction {
     world_id: WorldId
     source: ResolverId
 
@@ -264,7 +290,7 @@ class JoinNodeRuntime implements Resolver {
 
 }
 
-class MyEngine implements Engine, EngineState {
+export class MyEngine implements Engine, EngineState {
 
     relations: Map<RelationId, Relation<any>> = new Map()
     resolvers: Map<ResolverId, Resolver> = new Map()
@@ -432,6 +458,10 @@ export class PositionMaterializer {
     }
 
 
+    children_ids(world_id: WorldId) {
+        return this.nodes.children_ids(world_id)
+    }
+
     parent_world_id(world_id: WorldId) {
         return this.nodes.parent_world_id(world_id)
     }
@@ -469,87 +499,47 @@ export class PositionMaterializer {
 
 }
 
-export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
+class AttackersDefendersResolver implements Resolver {
+    id = 'attackers-defenders'
 
-    let mz = new PositionMaterializer(m, pos)
+    inputRelations = ['attacks']
 
+    resolve(
+        input: InputSlice<AttacksRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
 
-    const worlds = makeRelation<WorldRow>('worlds', SCHEMAS.world)
-    const moves = makeRelation<MoveRow>('moves', SCHEMAS.move)
-    const attacks = makeRelation<AttacksRow>('attacks', SCHEMAS.attacks)
-    const attacks2 = makeRelation<Attacks2Row>('attacks2', SCHEMAS.attacks2)
-    const occupies = makeRelation<OccupiesRow>('occupies', SCHEMAS.occupies)
-    const checks = makeRelation<ChecksRow>('checks', SCHEMAS.checks)
-    const afterMoves = makeRelation<AfterMoveRow>('afterMoves', [])
-    const allow_expand_moves = makeRelation<FromToRow>('allow_expand_moves', [])
-
-    let graph = lowerCoreToEngine(node)
-    let engine = new MyEngine(graph)
-
-    engine.relations.set('worlds', worlds)
-    engine.relations.set('moves', moves)
-    engine.relations.set('attacks', attacks)
-    engine.relations.set('attacks2', attacks2)
-    engine.relations.set('occupies', occupies)
-    engine.relations.set('checks', checks)
-    engine.relations.set('afterMoves', afterMoves)
-    engine.relations.set('allow_expand_moves', allow_expand_moves)
-    
-    engine.relations.set('captures', makeRelation('captures', []))
-    engine.relations.set('recaptures', makeRelation('recaptures', []))
-
-    engine.relations.set('uncapturable_checks', makeRelation('uncapturable_checks', []))
-    engine.relations.set('unblockable_checks', makeRelation('unblockable_checks', []))
-
-    engine.relations.set('checkmates', makeRelation('checkmates', []))
-
-    engine.relations.set('blocks-checks', makeRelation('blocks-checks', []))
-
-    engine.registerResolver(new OccupiesResolver(mz))
-    engine.registerResolver(new AttacksResolver(mz))
-    engine.registerResolver(new Attacks2Resolver(mz))
-    engine.registerResolver(new LegalMoveResolver(mz))
-    engine.registerResolver(new AfterMoveResolver(mz))
-
-    engine.registerResolver(new RecapturesResolver(mz))
-    engine.registerResolver(new CapturesResolver())
-    engine.registerResolver(new ChecksResolver())
-    engine.registerResolver(new UncapturableChecksResolver())
-    engine.registerResolver(new UnblockableChecksResolver())
-
-    engine.registerResolver(new CheckAttackJoinResolver())
-    engine.registerResolver(new CheckmatesResolver())
-
-    engine.registerResolver(new ExpandCapturesResolver())
-    engine.registerResolver(new ExpandChecksResolver())
-    engine.registerResolver(new ExpandBlockChecksResolver())
+        const attackers: AttacksRow[] = []
+        const defenders: AttacksRow[] = []
 
 
-    const bootstrapTx: Transaction = {
-        world_id: 0,
-        source: 'bootstrap',
-        reads: [],
-        writes: [{
-                relation: 'worlds',
-                rows: [
-                    {
-                        world_id: 0,
-                        depth: 0
-                    } as Row
-                ]
+        for (const attack of input.rows) {
+            let occupies = ctx.get<OccupiesRow>('occupies', attack.world_id)
+
+            const fromOcc = occupies.find(occ => occ.on === attack.from)
+            const toOcc = occupies.find(occ => occ.on === attack.to)
+
+
+            if (!fromOcc || !toOcc) {
+                continue
             }
-        ]
+
+            if (fromOcc.color === toOcc.color) {
+                defenders.push(attack)
+            } else {
+                attackers.push(attack)
+            }
+
+        }
+
+        return {
+            attackers,
+            defenders
+        }
     }
-
-    const committed = engine.commit(bootstrapTx)
-    engine.scheduleDownstream(committed)
-
-    engine.run()
-
-    let rows = engine.relations.get('worlds')!.rows
-
-    return rows.map(_ => mz.nodes.history_moves(_.world_id))
 }
+
+
 
 
 class CheckmatesResolver implements Resolver {
@@ -709,7 +699,7 @@ class ExpandBlockChecksResolver implements Resolver {
             let r = between(check.attacker, check.king)
 
             for (let block of attacks) {
-                if (block .from === check.attacker ||block .from === check.king) {
+                if (block.from === check.attacker ||block .from === check.king) {
                     continue
                 }
 
@@ -941,7 +931,6 @@ class ChecksResolver implements Resolver {
         }
 
 
-        debugger
         return { checks }
     }
 
@@ -983,6 +972,45 @@ class CheckAttackJoinResolver implements Resolver {
     }
 }
 
+
+class TurnResolver implements Resolver {
+    id = 'turn'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<WorldRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: TurnRow[] = []
+
+        for (const { world_id } of input.rows) {
+
+
+            this.mz.make_to_world(world_id)
+
+            let color = this.mz.m.pos_turn(this.mz.pos)
+
+                output.push({
+                    world_id,
+                    turn: color
+                })
+            this.mz.unmake_world(world_id)
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'turn': output
+        }
+    }
+}
+
+
+
+
 class OccupiesResolver implements Resolver {
     id = 'occupies'
 
@@ -1008,12 +1036,15 @@ class OccupiesResolver implements Resolver {
                 let role = piece_c_type_of(piece)
                 let color = piece_c_color_of(piece)
 
+                let value = static_piece_value(role)
+
                 output.push({
                     world_id,
                     on,
                     piece,
                     role,
-                    color
+                    color,
+                    value
                 })
             }
 
@@ -1027,6 +1058,62 @@ class OccupiesResolver implements Resolver {
         }
     }
 }
+
+
+class AttacksThroughResolver implements Resolver {
+    id = 'attacks_through'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<WorldRow>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: AttacksThroughRow[] = []
+
+        for (const { world_id } of input.rows) {
+
+            this.mz.make_to_world(world_id)
+
+            let occ = this.mz.m.pos_occupied(this.mz.pos)
+
+            for (let on of occ) {
+
+                let piece = this.mz.m.get_at(this.mz.pos, on)!
+                let aa = this.mz.m.pos_attacks(this.mz.pos, on)
+
+                for (let a of aa) {
+
+                    if (!occ.has(a)) {
+                        continue
+                    }
+
+                    let aa2 = this.mz.m.attacks(piece, on, occ.without(a))
+                    .diff(aa)
+                    for (let a2 of aa2) {
+                        output.push({
+                            world_id,
+                            from: on,
+                            to2: a2,
+                            through:  a
+                        })
+                    }
+                }
+            }
+
+            this.mz.unmake_world(world_id)
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'attacks_through': output
+        }
+    }
+}
+
 
 
 class Attacks2Resolver implements Resolver {
@@ -1180,7 +1267,7 @@ const generic_compute_row_key = <T extends Row>(row: T): RowKey => {
     return res
 }
 
-function makeRelation<T extends Row>(id: RelationId, schema: string[], compute_row_key: (t: T) => RowKey = generic_compute_row_key): Relation<T> {
+export function makeRelation<T extends Row>(id: RelationId, schema: string[], compute_row_key: (t: T) => RowKey = generic_compute_row_key): Relation<T> {
     return {
         id,
         schema,
@@ -1242,4 +1329,343 @@ class AfterMoveResolver implements Resolver {
         }
     }
     
+}
+
+class ForcedBlockResolver implements Resolver {
+  id = 'forced_blocks'
+
+  inputRelations = [
+    'attacks_through',
+  ]
+
+  resolve(
+    input: InputSlice<any>,
+    ctx: ReadContext
+  ): ResolverOutput | null {
+
+    const output: Row[] = []
+
+    const forcedBlocks = input.rows
+
+    for (const forced of forcedBlocks) {
+        output.push({
+            world_id: forced.world_id,
+            target: forced.through,
+        })
+    }
+
+    if (output.length === 0) return null
+
+    return {'forced_blocks': output }
+  }
+}
+
+
+class ForcedCaptureTargetResolver implements Resolver {
+  id = 'forced_capture_target'
+
+  inputRelations = [
+    'forced_blocks',
+  ]
+
+  resolve(
+    input: InputSlice<any>,
+    ctx: ReadContext
+  ): ResolverOutput | null {
+
+    const output: Row[] = []
+
+    const forcedTargets = input.rows
+
+    for (const forced of forcedTargets) {
+        output.push(forced)
+    }
+
+    if (output.length === 0) return null
+
+    return { forced_capture_target: output }
+  }
+}
+
+
+class RealizableDeltaResolver implements Resolver {
+  id = 'realizable_delta'
+
+  inputRelations = [
+    'forced_capture_target',
+  ]
+
+  resolve(
+    input: InputSlice<any>,
+    ctx: ReadContext
+  ): ResolverOutput | null {
+
+    const output: BaselineDeltaRow[] = []
+
+    // We iterate per world implicitly via relations
+    const forcedTargets = input.rows
+
+    for (const forced of forcedTargets) {
+      const world = forced.world_id
+
+const turn = ctx.get<TurnRow>('turn', world)[0].turn
+      // Occupant that is guaranteed to be captured
+      const occs = ctx.get<OccupiesRow>('occupies', world)
+      const targetOcc = occs.find(o => o.on === forced.target)
+
+      if (!targetOcc) continue
+
+      // All captures that hit this forced target
+      const captures = ctx
+        .get<CaptureRow>('captures', world)
+        .filter(c => c.to === forced.target)
+
+      for (const cap of captures) {
+        const attackerOcc = occs
+        .filter(o => o.color === turn)
+        .find(o => o.on === cap.from)
+        if (!attackerOcc) continue
+
+        output.push({
+          world_id: world,
+
+          gain_piece: targetOcc.piece,
+          gain_value: targetOcc.value,
+
+          loss_piece: attackerOcc.piece,
+          loss_value: attackerOcc.value
+        })
+      }
+    }
+
+    if (output.length === 0) return null
+
+    return { realizable_delta: output }
+  }
+}
+
+
+
+class BaselineDeltaResolver implements Resolver {
+  id = 'baseline_delta'
+
+  inputRelations = [
+    'forced_capture_target',
+    //'captures',
+    //'occupies'
+  ]
+
+  resolve(
+    input: InputSlice<any>,
+    ctx: ReadContext
+  ): ResolverOutput | null {
+
+    const output: BaselineDeltaRow[] = []
+
+    // We iterate per world implicitly via relations
+    const forcedTargets = input.rows
+
+    for (const forced of forcedTargets) {
+      const world = forced.world_id
+
+      const turn = ctx.get<TurnRow>('turn', world)[0].turn
+      // Occupant that is guaranteed to be captured
+      const occs = ctx.get<OccupiesRow>('occupies', world)
+      const targetOcc = occs.find(o => o.on === forced.target)
+
+      if (!targetOcc) continue
+
+      // All captures that hit this forced target
+      const captures = ctx
+        .get<CaptureRow>('captures', world)
+        .filter(c => c.to === forced.target)
+
+      for (const cap of captures) {
+        const attackerOcc = occs
+        .filter(o => o.color === turn)
+        .find(o => o.on === cap.from)
+        if (!attackerOcc) continue
+
+        output.push({
+          world_id: world,
+
+          gain_piece: targetOcc.piece,
+          gain_value: targetOcc.value,
+
+          loss_piece: attackerOcc.piece,
+          loss_value: attackerOcc.value
+        })
+      }
+    }
+
+    if (output.length === 0) return null
+
+    return { baseline_delta: output }
+  }
+}
+
+class BaselineDeltaPreservedResolver implements Resolver {
+  id = 'baseline_delta_preserved'
+
+  inputRelations = [
+    'baseline_delta',
+    //'reply_worlds',
+    //'realizable_delta'
+  ]
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(
+    input: InputSlice<any>,
+    ctx: ReadContext
+  ): ResolverOutput | null {
+
+
+    const preserved: PreservedBaselineRow[] = []
+
+    let baseline_delta = input
+
+    for (const bd of baseline_delta.rows) {
+
+        //let replies = ctx.get('capture_reply_worlds', bd.world_id)
+
+        let moves = this.mz.children_ids(bd.world_id)
+      let ok = true
+
+      out: for (const next_world_id of moves) {
+        //const rds = ctx.get<BaselineDeltaRow>('realizable_delta', reply.world_id)
+        const rds = ctx.get<BaselineDeltaRow>('realizable_delta', next_world_id)
+
+          for (let rd of rds) {
+              if (!rd || (rd.gain - rd.loss) < (bd.gain - bd.loss)) {
+                  ok = false
+                  break out
+              }
+          }
+      }
+
+      if (ok) {
+        preserved.push({
+          world_id: bd.world_id,
+          //move_id: bd.move_id
+        })
+      }
+    }
+
+    return { baseline_delta_preserved: preserved }
+  }
+}
+
+
+
+export function Search6(m: PositionManager, pos: PositionC, node: CoreProgram) {
+
+    let mz = new PositionMaterializer(m, pos)
+
+
+    const worlds = makeRelation<WorldRow>('worlds', SCHEMAS.world)
+    const moves = makeRelation<MoveRow>('moves', SCHEMAS.move)
+    const attacks = makeRelation<AttacksRow>('attacks', SCHEMAS.attacks)
+    const attacks2 = makeRelation<Attacks2Row>('attacks2', SCHEMAS.attacks2)
+    const occupies = makeRelation<OccupiesRow>('occupies', SCHEMAS.occupies)
+    const checks = makeRelation<ChecksRow>('checks', SCHEMAS.checks)
+    const afterMoves = makeRelation<AfterMoveRow>('afterMoves', [])
+    const allow_expand_moves = makeRelation<FromToRow>('allow_expand_moves', [])
+
+    let graph = lowerCoreToEngine(node)
+    let engine = new MyEngine(graph)
+
+    engine.relations.set('worlds', worlds)
+    engine.relations.set('moves', moves)
+    engine.relations.set('attacks', attacks)
+    engine.relations.set('attacks2', attacks2)
+    engine.relations.set('occupies', occupies)
+    engine.relations.set('checks', checks)
+    engine.relations.set('afterMoves', afterMoves)
+    engine.relations.set('allow_expand_moves', allow_expand_moves)
+    
+    engine.relations.set('captures', makeRelation('captures', []))
+    engine.relations.set('recaptures', makeRelation('recaptures', []))
+
+    engine.relations.set('uncapturable_checks', makeRelation('uncapturable_checks', []))
+    engine.relations.set('unblockable_checks', makeRelation('unblockable_checks', []))
+
+    engine.relations.set('checkmates', makeRelation('checkmates', []))
+
+    engine.relations.set('blocks-checks', makeRelation('blocks-checks', []))
+
+
+    engine.relations.set('attacks_through', makeRelation('attacks_through', []))
+
+    engine.relations.set('turn', makeRelation('turn', []))
+
+    engine.registerResolver(new TurnResolver(mz))
+    engine.registerResolver(new OccupiesResolver(mz))
+    engine.registerResolver(new AttacksResolver(mz))
+    engine.registerResolver(new AttacksResolver(mz))
+    engine.registerResolver(new AttacksThroughResolver(mz))
+    engine.registerResolver(new Attacks2Resolver(mz))
+    engine.registerResolver(new LegalMoveResolver(mz))
+    engine.registerResolver(new AfterMoveResolver(mz))
+
+    engine.registerResolver(new RecapturesResolver(mz))
+    engine.registerResolver(new CapturesResolver())
+    engine.registerResolver(new ChecksResolver())
+    engine.registerResolver(new UncapturableChecksResolver())
+    engine.registerResolver(new UnblockableChecksResolver())
+
+    engine.registerResolver(new CheckAttackJoinResolver())
+    engine.registerResolver(new CheckmatesResolver())
+
+    engine.registerResolver(new ExpandCapturesResolver())
+    engine.registerResolver(new ExpandChecksResolver())
+    engine.registerResolver(new ExpandBlockChecksResolver())
+
+
+    engine.relations.set('attackers', makeRelation('attackers', []))
+    engine.relations.set('defenders', makeRelation('defenders', []))
+
+    engine.registerResolver(new AttackersDefendersResolver())
+
+
+    engine.relations.set('forced_capture_target', makeRelation('forced_capture_target', []))
+    engine.relations.set('forced_blocks', makeRelation('forced_blocks', []))
+
+    engine.relations.set('baseline_delta', makeRelation('baseline_delta', []))
+    engine.relations.set('realizable_delta', makeRelation('realizable_delta', []))
+
+    engine.registerResolver(new ForcedBlockResolver())
+    engine.registerResolver(new ForcedCaptureTargetResolver())
+    engine.registerResolver(new BaselineDeltaResolver())
+    engine.registerResolver(new RealizableDeltaResolver())
+
+    engine.relations.set('baseline_delta_preserved', makeRelation('baseline_delta_preserved', []))
+
+    engine.registerResolver(new BaselineDeltaPreservedResolver(mz))
+
+    const bootstrapTx: Transaction = {
+        world_id: 0,
+        source: 'bootstrap',
+        reads: [],
+        writes: [{
+                relation: 'worlds',
+                rows: [
+                    {
+                        world_id: 0,
+                        depth: 0
+                    } as Row
+                ]
+            }
+        ]
+    }
+
+    const committed = engine.commit(bootstrapTx)
+    engine.scheduleDownstream(committed)
+
+    engine.run()
+
+    let rows = engine.relations.get('worlds')!.rows
+    rows = engine.relations.get('baseline_delta_preserved')!.rows
+
+    return rows.map(_ => mz.nodes.history_moves(_.world_id))
 }
