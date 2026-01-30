@@ -112,7 +112,7 @@ const gen_row_id = (() => {
 
 type ResolverId = string
 
-type WorldId = NodeId
+export type WorldId = NodeId
 type Value = number
 type RowId = number
 
@@ -146,9 +146,20 @@ export interface Resolver {
 }
 
 export interface ReadContext {
-    get<T extends Row>(relation: RelationId, world: WorldId): T[]
+    get<T extends Row>(relation: RelationId, world?: WorldId): T[]
 }
 
+export type InvariantId = string
+
+export type InvariantResult = {
+    holds: boolean
+    witnesses?: WorldId[]
+}
+
+export interface Invariant {
+    id: InvariantId
+    evaluate(ctx: ReadContext): InvariantResult
+}
 
 interface Task {
     resolver: Resolver
@@ -176,6 +187,7 @@ interface CommitResult {
 }
 
 interface EngineState {
+    invariants: Map<InvariantId, Invariant>
     relations: Map<RelationId, Relation<any>>
     resolvers: Map<ResolverId, Resolver>
     subscriptions: Map<RelationId, ResolverId[]>
@@ -200,9 +212,13 @@ class EngineReadContext implements ReadContext {
     constructor(private relations: Map<RelationId, Relation<Row>>) {}
 
 
-    get<T extends Row>(relationName: RelationId, world_id: WorldId): T[] {
+    get<T extends Row>(relationName: RelationId, world_id?: WorldId): T[] {
         const relation = this.relations.get(relationName)
         if (!relation) return []
+
+        if (world_id === undefined) {
+            return relation.rows as T[]
+        }
 
         const rows = relation.indexByWorld.get(world_id)
         if (!rows) return []
@@ -293,6 +309,7 @@ class JoinNodeRuntime implements Resolver {
 
 export class MyEngine implements Engine, EngineState {
 
+    invariants: Map<InvariantId, Invariant> = new Map()
     relations: Map<RelationId, Relation<any>> = new Map()
     resolvers: Map<ResolverId, Resolver> = new Map()
     subscriptions: Map<RelationId, ResolverId[]> = new Map()
@@ -411,6 +428,9 @@ export class MyEngine implements Engine, EngineState {
         }
     }
 
+    registerInvariant(invariant: Invariant) {
+        this.invariants.set(invariant.id, invariant)
+    }
 
     registerResolver(resolver: Resolver) {
         for (const rel of resolver.inputRelations) {
@@ -443,6 +463,24 @@ export class MyEngine implements Engine, EngineState {
         }
     }
 
+    query_invariant(id: InvariantId) {
+        return this.invariants.get(id)?.evaluate(this.readContext)
+    }
+
+    query_invariants() {
+
+        let res2: Map<InvariantId, WorldId[]> = new Map()
+        for (let [key, invariant] of this.invariants.entries()) {
+
+            let res = invariant.evaluate(this.readContext)
+
+            if (res.holds) {
+                res2.set(key, res.witnesses!)
+            }
+        }
+        return res2
+    }
+
 }
 
 export class PositionMaterializer {
@@ -450,6 +488,10 @@ export class PositionMaterializer {
 
     m: PositionManager
     pos: PositionC
+
+    get attacker_turn() {
+        return this.m.pos_turn(this.pos)
+    }
 
     constructor(m: PositionManager, pos: PositionC) {
         this.m = m
@@ -1271,7 +1313,7 @@ const generic_compute_row_key = <T extends Row>(row: T): RowKey => {
         }
 
         if (typeof value !== 'number') {
-            throw `BadValueError for key ${key}`
+            throw `BadValueError for key ${key}: ${value}`
         }
 
         res += (value + 1)

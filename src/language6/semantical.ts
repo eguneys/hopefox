@@ -1,7 +1,7 @@
-import { make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN, static_piece_value } from "../distill/hopefox_c";
+import { KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN, static_piece_value } from "../distill/hopefox_c";
 import { CoreProgram, lowerCoreToEngine } from "./core";
 import { analyseProgram } from "./diagnostics";
-import { InputSlice, makeRelation, MyEngine, PositionMaterializer, ReadContext, Resolver, ResolverOutput, Row, Transaction } from "./engine6";
+import { InputSlice, Invariant, InvariantResult, makeRelation, MyEngine, PositionMaterializer, ReadContext, Resolver, ResolverOutput, Row, Transaction, WorldId } from "./engine6";
 
 export function Semantical7(m: PositionManager, pos: PositionC) {
 
@@ -23,22 +23,21 @@ idea "Knight Fork"
     engine.relations.set('legal_moves', makeRelation('legal_moves', []))
     engine.relations.set('occupies', makeRelation('occupies', []))
     engine.relations.set('attacks', makeRelation('attacks', []))
+    engine.relations.set('attacks2', makeRelation('attacks2', []))
     engine.relations.set('captures', makeRelation('captures', []))
+    engine.relations.set('checks', makeRelation('checks', []))
 
     engine.relations.set('queen_attacked', makeRelation('queen_attacked', []))
 
     engine.relations.set('queen_capturable', makeRelation('queen_capturable', []))
+
+    engine.relations.set('material_delta', makeRelation('material_delta', []))
 
     engine.relations.set('forced_replies', makeRelation('forces_replies', []))
     engine.relations.set('checkmate', makeRelation('checkmate', []))
     engine.relations.set('only_reply', makeRelation('only_reply', []))
     engine.relations.set('forced_step', makeRelation('forced_step', []))
     engine.relations.set('forced_reachable', makeRelation('forced_reachable', []))
-    engine.relations.set('mate_inevitable', makeRelation('mate_inevitable', []))
-
-    engine.relations.set('queen_capture_inevitable', makeRelation('queen_capture_inevitable', []))
-
-
 
     engine.relations.set('solution', makeRelation('solution', []))
 
@@ -48,12 +47,15 @@ idea "Knight Fork"
 
     engine.registerResolver(new OccupiesResolver(mz))
     engine.registerResolver(new AttacksResolver(mz))
+    engine.registerResolver(new Attacks2Resolver(mz))
     engine.registerResolver(new CapturesResolver(mz))
+    engine.registerResolver(new ChecksResolver(mz))
     engine.registerResolver(new LegalMovesResolver(mz))
 
 
     engine.registerResolver(new QueenAttackedResolver(mz))
     engine.registerResolver(new QueenCapturableResolver(mz))
+    engine.registerResolver(new MaterialDeltaResolver(mz))
 
     engine.registerResolver(new InCheck(mz))
 
@@ -63,10 +65,6 @@ idea "Knight Fork"
     engine.registerResolver(new ForcedReachable())
     engine.registerResolver(new Checkmate())
 
-    engine.registerResolver(new MateInevitable(mz))
-
-
-    engine.registerResolver(new QueenCaptureInevitable(mz))
 
     engine.registerResolver(new ExpandForcedWorlds())
     engine.registerResolver(new ExpandAttackMove(mz))
@@ -74,6 +72,11 @@ idea "Knight Fork"
     engine.registerResolver(new Solution())
 
     engine.registerResolver(new CandidateAttackMoves(mz))
+
+
+    engine.registerInvariant(new MateInevitable(mz))
+    engine.registerInvariant(new QueenCaptureInevitable(mz))
+    engine.registerInvariant(new RookGainInevitable(mz))
 
     const bootstrapTx: Transaction = {
         world_id: 0,
@@ -97,11 +100,15 @@ idea "Knight Fork"
     engine.run()
 
     let rows = engine.relations.get('worlds')!.rows
-    rows = engine.relations.get('solution')!.rows
-    rows = engine.relations.get('queen_capture_inevitable')!.rows
+    rows = engine.relations.get('checks')!.rows
 
+    //console.log(rows.map(_ => mz.sans(_.world_id)))
 
-    return rows.map(_ => mz.nodes.history_moves(_.world_id))
+    let res = engine.query_invariants()
+
+    return [...res.entries()].map(([k, v]) =>
+        [k, v.map(_ => mz.nodes.history_moves(_))]
+    )
 }
 
 
@@ -295,7 +302,6 @@ class ForcedStep implements Resolver {
  
 }
 
-
 class ForcedReachable implements Resolver {
     id = 'forced_reachable'
 
@@ -332,18 +338,16 @@ class ForcedReachable implements Resolver {
 }
 
 
-class MateInevitable implements Resolver {
+class MateInevitable implements Invariant {
     id = 'mate_inevitable'
-
-    inputRelations = ['candidate_attack_move']
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    evaluate(ctx: ReadContext): InvariantResult {
         const output: Row[] = []
 
 
-        let hs = input.rows
+        let hs = ctx.get('candidate_attack_move')
 
         for (const h of hs) {
 
@@ -374,7 +378,10 @@ class MateInevitable implements Resolver {
             }
         }
 
-        return { mate_inevitable: output }
+        return {
+            holds: output.length > 0,
+            witnesses: output.map(_ => _.world_id)
+        }
     }
 }
 
@@ -401,55 +408,98 @@ class ExpandAttackMove implements Resolver {
 
 class CandidateAttackMoves implements Resolver {
   id = 'candidate_attack_moves'
-  inputRelations = ['worlds', 'queen_capturable']
+  inputRelations = ['captures', 'checks']
 
   constructor(private mz: PositionMaterializer) {}
 
   resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-    const out: Row[] = []
+    const output: Row[] = []
 
-    if (input.relation === 'queen_capturable') {
 
-        let captures = input.rows
+    if (input.relation === 'checks') {
 
-        for (const c of captures) {
-            out.push({
+        for (const c of input.rows) {
+            if (!this.mz.is_attacker(c.world_id)) { continue }
+
+            let legals = ctx.get('legal_moves', c.world_id)
+
+            let move = make_move_from_to(c.from, c.to)
+            if (legals.findIndex(_ => _.move === move) === -1) { continue }
+
+            output.push({
                 world_id: c.world_id,
-                move: c.move
+                move
             })
-        }
-    } else {
-        for (const w of input.rows) {
-            if (!this.mz.is_attacker(w.world_id)) continue
-
-            this.mz.make_to_world(w.world_id)
-            const moves = this.mz.m.get_legal_moves(this.mz.pos)
-            this.mz.unmake_world(w.world_id)
-
-            for (const m of moves) {
-                const w2 = this.mz.add_move(w.world_id, m)
-
-                // INLINE check — this is important
-
-                this.mz.make_to_world(w2)
-                let in_check = this.mz.m.pos_in_check(this.mz.pos)
-                this.mz.unmake_world(w2)
-
-                if (in_check) {
-                    out.push({
-                        world_id: w.world_id,
-                        move: m
-                    })
-                    continue
-                }
-            }
-
         }
     }
 
-    return out.length ? { candidate_attack_move: out } : null
+    if (input.relation === 'captures') {
+
+        for (const c of input.rows) {
+            if (!this.mz.is_attacker(c.world_id)) { continue }
+
+            let legals = ctx.get('legal_moves', c.world_id)
+
+            let move = make_move_from_to(c.from, c.to)
+            if (legals.findIndex(_ => _.move === move) === -1) { continue }
+
+            output.push({
+                world_id: c.world_id,
+                move
+            })
+        }
+    }
+
+    return output.length ? { candidate_attack_move: output } : null
   }
 }
+
+
+class ChecksResolver implements Resolver {
+    id = 'checks'
+
+    inputRelations = ['attacks2']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<Row>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const a of input.rows) {
+
+            let world_id = a.world_id
+
+            if (a.to2 === a.from) {
+                continue
+            }
+
+            let occupies = ctx.get<Row>('occupies', world_id)
+
+
+            let king = occupies.find(_ => _.on === a.to2)
+            if (!king || king.role !== KING) {
+                continue
+            }
+
+            output.push({
+                world_id,
+                from: a.from,
+                to: a.to,
+                king: a.to2
+            })
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'checks': output
+        }
+    }
+}
+
 
 
 
@@ -470,7 +520,6 @@ class CapturesResolver implements Resolver {
 
             let occupies = ctx.get<Row>('occupies', world_id)
 
-            //console.log('incaptures', world_id, this.mz.sans(world_id))
             this.mz.make_to_world(world_id)
 
             let occ = this.mz.m.pos_occupied(this.mz.pos)
@@ -494,7 +543,9 @@ class CapturesResolver implements Resolver {
                         from: on,
                         to: a,
                         attacker: attacker_piece.role,
-                        captured: captured_piece.role
+                        captured: captured_piece.role,
+                        captured_value: captured_piece.value,
+                        captured_color: captured_piece.color
                     })
                 }
             }
@@ -558,6 +609,58 @@ class OccupiesResolver implements Resolver {
         }
     }
 }
+
+
+class Attacks2Resolver implements Resolver {
+    id = 'attacks2'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<Row>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const { world_id } of input.rows) {
+
+            this.mz.make_to_world(world_id)
+
+            let occ = this.mz.m.pos_occupied(this.mz.pos)
+
+            for (let on of occ) {
+                let piece = this.mz.m.get_at(this.mz.pos, on)!
+
+                let aa = this.mz.m.pos_attacks(this.mz.pos, on)
+
+                for (let a of aa) {
+
+                    let aa2 = this.mz.m.attacks(piece, a, occ.without(on))
+
+                    for (let a2 of aa2) {
+                        output.push({
+                            world_id,
+                            from: on,
+                            to: a,
+                            to2: a2
+                        })
+                    }
+                }
+            }
+
+            this.mz.unmake_world(world_id)
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'attacks2': output
+        }
+    }
+}
+
 
 
 class AttacksResolver implements Resolver {
@@ -687,6 +790,54 @@ class LegalMovesResolver implements Resolver {
 
 
 
+class MaterialDeltaResolver implements Resolver {
+    id = 'material_delta'
+
+    inputRelations = ['captures']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(
+        input: InputSlice<Row>,
+        ctx: ReadContext
+    ): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (const c of input.rows) {
+
+            let { world_id, captured_value, captured_color } = c
+
+            let move = make_move_from_to(c.from, c.to)
+
+            let legals = ctx.get('legal_moves', world_id)
+            if (legals.findIndex(_ => _.move === move) === -1) { continue }
+
+            let next_world_id = this.mz.add_move(world_id, move)
+
+            let previous_delta = ctx.get('material_delta', this.mz.parent_world_id(world_id))?.[0]
+
+
+            let value = captured_color === this.mz.attacker_turn ? -captured_value  : captured_value
+
+            if (previous_delta !== undefined) {
+                value += previous_delta.value
+            }
+
+            output.push({
+                world_id: next_world_id,
+                value
+            })
+        }
+
+        if (output.length === 0) return null
+
+        return {
+            'material_delta': output
+        }
+    }
+}
+
+
 
 class QueenCapturableResolver implements Resolver {
     id = 'queen_capturable'
@@ -733,23 +884,21 @@ class QueenCapturableResolver implements Resolver {
 
 
 
-class QueenCaptureInevitable implements Resolver {
+class QueenCaptureInevitable implements Invariant {
     id = 'queen_capture_inevitable'
-
-    inputRelations = ['candidate_attack_move', 'queen_capturable']
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    evaluate(ctx: ReadContext): InvariantResult {
         const output: Row[] = []
 
-        let hs = input.rows
+        let hs = ctx.get('candidate_attack_move')
 
         for (const h of hs) {
 
             let hWorld = this.mz.add_move(h.world_id, h.move)
 
-            const forcedWorlds = ctx.get('forced_reachable', hWorld)
+            const forcedWorlds = ctx.get('forced_reachable', h.world_id)
                 .map(_ => _.world_id)
 
             for (let next_w of forcedWorlds) {
@@ -766,7 +915,49 @@ class QueenCaptureInevitable implements Resolver {
             }
         }
 
-        return { queen_capture_inevitable: output }
+        return {
+            holds: output.length > 0,
+            witnesses: output.map(_ => _.world_id)
+        }
+    }
+}
+
+
+
+class RookGainInevitable implements Invariant {
+    id = 'rook_gain_inevitable'
+
+    constructor(private mz: PositionMaterializer) {}
+
+    evaluate(ctx: ReadContext): InvariantResult {
+        const output: Row[] = []
+
+        let hs = ctx.get('candidate_attack_move')
+
+        for (const h of hs) {
+
+            let hWorld = this.mz.add_move(h.world_id, h.move)
+
+            const forcedWorlds = ctx.get('forced_reachable', hWorld)
+                .map(_ => _.world_id)
+
+            for (let next_w of forcedWorlds) {
+
+                let material_delta = ctx.get<Row>('material_delta', next_w)
+
+                if (material_delta.length === 1 && material_delta[0].value === 500) {
+                    output.push({
+                        world_id: hWorld
+                    })
+                    break
+                }
+            }
+        }
+
+        return {
+            holds: output.length > 0,
+            witnesses: output.map(_ => _.world_id)
+        }
     }
 }
 
