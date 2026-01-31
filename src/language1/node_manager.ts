@@ -232,6 +232,7 @@ export class NodeManager {
         let i_child = a_child.parent
         while (!(i_child instanceof NodeRoot)) {
             i++
+            i_child = i_child.parent
         }
         return i
     }

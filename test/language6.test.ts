@@ -46,8 +46,9 @@ idea "Knight Fork"
 
 it('runs', () => {
 
-  for (let i = 0; i < 8; i++) {
-    solve_i(i)
+  solve_i(2)
+  for (let i = 0; i < 10; i++) {
+    //solve_i(i)
   }
 })
 
@@ -56,8 +57,8 @@ function solve_i(i: number) {
   let pos = m.create_position(puzzles[i].move_fens[0])
   let res: [string, number[][]][] = Semantical7(m, pos) as [string, number[][]][]
 
-  let res2 = new Map(res.flatMap(([k, vv]) => vv.map(v => [k, extract_sans(pos2, v)])))
+  let res2 = new Map(res.map(([k, vv]) => [k, vv.map(v => extract_sans(pos2, v))]))
   console.log(res2)
 
-  console.log(puzzles[i].link)
+  console.log(`${i}: ${puzzles[i].link}`)
 }

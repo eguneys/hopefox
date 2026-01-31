@@ -16,33 +16,31 @@ idea "Knight Fork"
     let engine = new MyEngine(graph)
 
 
-    engine.relations.set('worlds', makeRelation('worlds', []))
-    engine.relations.set('in_check', makeRelation('in_check', []))
+    engine.registerRelation(makeRelation('worlds', []))
+    engine.registerRelation(makeRelation('in_check', []))
 
 
-    engine.relations.set('legal_moves', makeRelation('legal_moves', []))
-    engine.relations.set('occupies', makeRelation('occupies', []))
-    engine.relations.set('attacks', makeRelation('attacks', []))
-    engine.relations.set('attacks2', makeRelation('attacks2', []))
-    engine.relations.set('captures', makeRelation('captures', []))
-    engine.relations.set('checks', makeRelation('checks', []))
+    engine.registerRelation(makeRelation('legal_moves', []))
+    engine.registerRelation(makeRelation('occupies', []))
+    engine.registerRelation(makeRelation('attacks', []))
+    engine.registerRelation(makeRelation('attacks2', []))
+    engine.registerRelation(makeRelation('captures', []))
+    engine.registerRelation(makeRelation('checks', []))
 
-    engine.relations.set('queen_attacked', makeRelation('queen_attacked', []))
+    engine.registerRelation(makeRelation('queen_attacked', []))
 
-    engine.relations.set('queen_capturable', makeRelation('queen_capturable', []))
+    engine.registerRelation(makeRelation('queen_capturable', []))
 
-    engine.relations.set('material_delta', makeRelation('material_delta', []))
+    engine.registerRelation(makeRelation('material_delta', []))
 
-    engine.relations.set('forced_replies', makeRelation('forces_replies', []))
-    engine.relations.set('checkmate', makeRelation('checkmate', []))
-    engine.relations.set('only_reply', makeRelation('only_reply', []))
-    engine.relations.set('forced_step', makeRelation('forced_step', []))
-    engine.relations.set('forced_reachable', makeRelation('forced_reachable', []))
+    engine.registerRelation(makeRelation('forced_defender_reply', []))
+    engine.registerRelation(makeRelation('forcing_attacker_move', []))
+    engine.registerRelation(makeRelation('forced_reachable', []))
 
-    engine.relations.set('solution', makeRelation('solution', []))
+    engine.registerRelation(makeRelation('candidate_attack_move', []))
 
-    engine.relations.set('candidate_attack_move', makeRelation('candidate_attack_move', []))
-
+    engine.registerRelation(makeRelation('forced_frontier', []))
+    engine.registerRelation(makeRelation('forced_seen', []))
 
 
     engine.registerResolver(new OccupiesResolver(mz))
@@ -59,23 +57,22 @@ idea "Knight Fork"
 
     engine.registerResolver(new InCheck(mz))
 
-    engine.registerResolver(new ForcedReplies(mz))
-    engine.registerResolver(new ForcedStep(mz))
-    engine.registerResolver(new OnlyReply())
-    engine.registerResolver(new ForcedReachable())
-    engine.registerResolver(new Checkmate())
-
-
-    engine.registerResolver(new ExpandForcedWorlds())
-    engine.registerResolver(new ExpandAttackMove(mz))
-
-    engine.registerResolver(new Solution())
+    engine.registerResolver(new ForcingAttackerMove(mz))
+    engine.registerResolver(new ForcedDefenderReply(mz))
+    engine.registerResolver(new ForcedReachable(mz))
 
     engine.registerResolver(new CandidateAttackMoves(mz))
 
+    engine.registerResolver(new ExpandDefenderMoves(mz))
+    engine.registerResolver(new ExpandAttackerMoves(mz))
+
+    engine.registerResolver(new ForcedFrontier())
+    engine.registerResolver(new SeedForcedReachable())
+
+
 
     engine.registerInvariant(new MateInevitable(mz))
-    engine.registerInvariant(new QueenCaptureInevitable(mz))
+    //engine.registerInvariant(new QueenCaptureInevitable(mz))
     engine.registerInvariant(new RookGainInevitable(mz))
 
     const bootstrapTx: Transaction = {
@@ -100,44 +97,16 @@ idea "Knight Fork"
     engine.run()
 
     let rows = engine.relations.get('worlds')!.rows
-    rows = engine.relations.get('checks')!.rows
+    //rows = engine.relations.get('forced_reachable')!.rows
 
-    //console.log(rows.map(_ => mz.sans(_.world_id)))
+    console.log(rows.map(_ => mz.sans(_.world_id)))
+    //console.log(engine.relations.get('candidate_attack_move')!.rows.map(_ => mz.sans(_.world_id)))
 
     let res = engine.query_invariants()
 
     return [...res.entries()].map(([k, v]) =>
         [k, v.map(_ => mz.nodes.history_moves(_))]
     )
-}
-
-
-class Solution implements Resolver {
-    id = 'solution'
-
-    inputRelations = ['forced_reachable']
-
-    resolve(input: InputSlice<Row>, ctx: ReadContext) {
-        const solutions: Row[] = []
-
-        for (let w of input.rows) {
-            let cc = ctx.get('checkmate', w.world_id)
-            if (cc.length === 0) {
-                return null
-            }
-
-            let mr = ctx.get('mate_inevitable', w.world_id)
-            if (mr.length === 0) {
-                return null
-            }
-
-            solutions.push({
-                world_id: w.world_id
-            })
-        }
-
-        return { solution: solutions }
-    }
 }
 
 
@@ -167,49 +136,6 @@ class InCheck implements Resolver {
 
 
 }
-
-class ForcedReplies implements Resolver {
-    id = 'forced_replies'
-
-    inputRelations = ['worlds']
-
-    constructor(private mz: PositionMaterializer) {}
-
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-
-        const output: Row[] = []
-
-        for (let w of input.rows) {
-            this.mz.make_to_world(w.world_id)
-
-            if (!this.mz.m.pos_in_check(this.mz.pos)) {
-                this.mz.unmake_world(w.world_id)
-                continue
-            }
-            // later add forcedness relations
-
-            const replies = this.mz.m.get_legal_moves(this.mz.pos)
-            this.mz.unmake_world(w.world_id)
-
-
-            const filtered = replies
-
-            output.push(...filtered.map(_ => ({
-                world_id: w.world_id,
-                move: _
-            })))
-
-        }
-
-        if (output.length === 0) {
-            return null
-        }
-
-        return { forced_replies: output }
-    }
-
-}
-
 
 class Checkmate implements Resolver {
     id = 'checkmate'
@@ -250,139 +176,56 @@ class OnlyReply implements Resolver {
 
         return null
     }
-
-}
-
-interface OnlyReplyRow extends Row {
-    move: MoveC
-}
-
-
-class ExpandForcedWorlds implements Resolver {
-    id = 'expand_forced_worlds'
-
-    inputRelations = ['only_reply']
-
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-        const output = []
-
-        for (const w of input.rows) {
-            output.push({
-                world_id: w.world_id
-            })
-        }
-        return { worlds: output }
-    }
-
-}
-
-class ForcedStep implements Resolver {
-    id = 'forced_step'
-
-    inputRelations = ['only_reply']
-
-    constructor(private mz: PositionMaterializer) {}
-
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-        const output = []
-
-        for (const m of input.rows) {
-            let next_world_id = this.mz.add_move(m.world_id, m.move)
-
-            output.push({
-                world_id: next_world_id
-            })
-        }
-
-        return { 
-            forced_step: output,
-            worlds: output
-        }
-    }
- 
 }
 
 class ForcedReachable implements Resolver {
-    id = 'forced_reachable'
+  id = 'forced_reachable'
 
-    inputRelations = ['worlds']
+  inputRelations = [
+    'forced_reachable',        // self-recursive (fixed point)
+    //'forced_defender_reply',
+    //'forcing_attacker_move',
+    //'side_to_move'
+  ]
 
+  constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-        let seen: Set<WorldId> = new Set()
-        let frontier = input.rows.map(_ => _.world_id)
+  resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    const out: Row[] = []
 
-        for (let d = 0; d < 8; d++) {
-            const next: WorldId[] = []
+    for (const r of input.rows) {
+      const root = r.root
+      const w = r.world_id
 
-            for (const w of frontier) {
-                if (seen.has(w)) continue
-                seen.add(w)
+      const stm_is_attacker = this.mz.is_attacker(w)
 
-                const forced = ctx.get('forced_step', w).map(_ => _.world_id)
+      if (!stm_is_attacker) {
+        // ∀ forced defender replies
+        const replies = ctx.get('forced_defender_reply', w)
 
-                next.push(...forced)
-            }
-
-            if (next.length === 0) break
-
-            frontier = next
+        for (const rr of replies) {
+          out.push({
+            root,
+            world_id: rr.reply_world_id
+          })
         }
+      } else {
+        // ∃ attacker forcing continuations (unioned)
+        const conts = ctx.get('forcing_attacker_move', w)
 
-        let output = [...seen].map(_ => ({
-            world_id: _
-        }))
-
-        return { forced_reachable: output }
+        for (const rr of conts) {
+          out.push({
+            root,
+            world_id: rr.next_world_id
+          })
+        }
+      }
     }
-}
 
-
-class MateInevitable implements Invariant {
-    id = 'mate_inevitable'
-
-    constructor(private mz: PositionMaterializer) {}
-
-    evaluate(ctx: ReadContext): InvariantResult {
-        const output: Row[] = []
-
-
-        let hs = ctx.get('candidate_attack_move')
-
-        for (const h of hs) {
-
-            let hWorld = this.mz.add_move(h.world_id, h.move)
-
-            const forcedWorlds = ctx.get('forced_reachable', hWorld)
-            .map(_ => _.world_id)
-
-            let mate_found = false
-
-            for (let next_w of forcedWorlds) {
-
-                this.mz.make_to_world(next_w)
-
-                if (this.mz.m.is_checkmate(this.mz.pos)) {
-                    this.mz.unmake_world(next_w)
-                    mate_found = true
-                    break
-                }
-
-                this.mz.unmake_world(next_w)
-            }
-
-            if (mate_found) {
-                output.push({
-                    world_id: hWorld
-                })
-            }
-        }
-
-        return {
-            holds: output.length > 0,
-            witnesses: output.map(_ => _.world_id)
-        }
-    }
+    return out.length
+      ? { forced_reachable: out }
+      : null
+  }
 }
 
 
@@ -420,6 +263,7 @@ class CandidateAttackMoves implements Resolver {
 
         for (const c of input.rows) {
             if (!this.mz.is_attacker(c.world_id)) { continue }
+            if (this.mz.nodes.depth_of(c.world_id) > 1) { continue }
 
             let legals = ctx.get('legal_moves', c.world_id)
 
@@ -889,37 +733,37 @@ class QueenCaptureInevitable implements Invariant {
 
     constructor(private mz: PositionMaterializer) {}
 
-    evaluate(ctx: ReadContext): InvariantResult {
-        const output: Row[] = []
+    evaluate(ctx: ReadContext) {
+        const witnesses = []
 
-        let hs = ctx.get('candidate_attack_move')
+        for (const h of ctx.get('candidate_attack_move')) {
+            const hWorld = h.child_world_id   // already expanded
 
-        for (const h of hs) {
+            const forcedWorlds =
+                ctx.get('forced_reachable')
+                    .filter(r => r.root_world_id === hWorld)
+                    .map(r => r.world_id)
 
-            let hWorld = this.mz.add_move(h.world_id, h.move)
+            let inevitable = true
 
-            const forcedWorlds = ctx.get('forced_reachable', h.world_id)
-                .map(_ => _.world_id)
-
-            for (let next_w of forcedWorlds) {
-
-                let queen_capturable = ctx.get<Row>('queen_capturable', next_w)
-
-                if (queen_capturable.length > 0) {
-                    output.push({
-                        world_id: hWorld
-                    })
+            for (const w of forcedWorlds) {
+                if (!queen_loss_unavoidable(w, ctx)) {
+                    inevitable = false
                     break
                 }
+            }
 
+            if (inevitable) {
+                witnesses.push(hWorld)
             }
         }
 
         return {
-            holds: output.length > 0,
-            witnesses: output.map(_ => _.world_id)
+            holds: witnesses.length > 0,
+            witnesses
         }
     }
+
 }
 
 
@@ -961,3 +805,315 @@ class RookGainInevitable implements Invariant {
     }
 }
 
+
+class MateInevitable implements Invariant {
+  id = 'mate_inevitable'
+
+  constructor(private mz: PositionMaterializer) {}
+
+  evaluate(ctx: ReadContext): InvariantResult {
+    const witnesses: Row[] = []
+
+    const hypotheses = ctx.get('candidate_attack_move')
+
+    for (const h of hypotheses) {
+      const hWorld = this.mz.add_move(h.world_id, h.move)
+
+      const forcedWorlds =
+        ctx.get('forced_reachable', hWorld).map(r => r.world_id)
+
+      if (forcedWorlds.length === 0) continue
+
+      let inevitable = true
+
+      for (const w of forcedWorlds) {
+        this.mz.make_to_world(w)
+
+        const isMate = this.mz.m.is_checkmate(this.mz.pos)
+
+        this.mz.unmake_world(w)
+
+        if (!isMate) {
+          inevitable = false
+          break
+        }
+      }
+
+      if (inevitable) {
+        witnesses.push({ world_id: hWorld })
+      }
+    }
+
+    return {
+      holds: witnesses.length > 0,
+      witnesses: witnesses.map(w => w.world_id)
+    }
+  }
+}
+
+
+class ForcingAttackerMove implements Resolver {
+  id = 'forcing_attacker_move'
+
+  inputRelations = [
+    'forced_reachable',
+    //'worlds',        // parent → child expansion
+    //'side_to_move'
+  ]
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    const out: Row[] = []
+
+    for (const fr of input.rows) {
+      const root = fr.root
+      const w = fr.world_id
+
+      const stm_is_attacker = this.mz.is_attacker(w)
+      if (!stm_is_attacker) continue
+
+      // materialize parent
+      this.mz.make_to_world(w)
+
+      // attacker only forces if defender is currently in check
+      if (!this.mz.m.is_check(this.mz.pos)) {
+        this.mz.unmake_world(w)
+        continue
+      }
+      this.mz.unmake_world(w)
+
+      // iterate already-expanded children
+      const children = ctx.get('worlds', w)
+
+      for (const ch of children) {
+        const w2 = ch.world
+
+        this.mz.make_to_world(w2)
+
+        const stillCheck = this.mz.m.is_check(this.mz.pos)
+
+        this.mz.unmake_world(w2)
+
+        if (!stillCheck) continue
+
+        out.push({
+          world_id: root,
+          root,
+          parent: w,
+          next_world_id: w2
+        })
+      }
+
+      this.mz.unmake_world(w)
+    }
+
+    return out.length
+      ? { forcing_attacker_move: out }
+      : null
+  }
+}
+
+
+class ForcedDefenderReply implements Resolver {
+  id = 'forced_defender_reply'
+
+  inputRelations = [
+    'forced_reachable',
+    //'worlds',          // parent → child expansion
+    //'side_to_move'
+  ]
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    const out: Row[] = []
+
+    for (const fr of input.rows) {
+      const root = fr.root
+      const w = fr.world_id
+
+      const stm_is_attacker = this.mz.is_attacker(w)
+      //if (stm !== 'defender') continue
+      if (stm_is_attacker) continue
+
+      // materialize parent world
+      this.mz.make_to_world(w)
+
+      // defender replies are forced ONLY if in check
+      if (!this.mz.m.is_check(this.mz.pos)) {
+        this.mz.unmake_world(w)
+        continue
+      }
+      this.mz.unmake_world(w)
+
+      // iterate already-expanded children
+      const children = ctx.get('worlds', w)  // rows with { parent, world }
+
+      for (const ch of children) {
+        const w2 = ch.world
+
+        this.mz.make_to_world(w2)
+
+        const escaped = !this.mz.m.is_check(this.mz.pos)
+
+        this.mz.unmake_world(w2)
+
+        if (!escaped) continue
+
+        out.push({
+          world_id: root,
+          root,
+          parent: w,
+          reply_world_id: w2
+        })
+      }
+
+      this.mz.unmake_world(w)
+    }
+
+    return out.length
+      ? { forced_defender_reply: out }
+      : null
+  }
+}
+
+class ExpandDefenderMoves implements Resolver {
+  id = 'expand_defender_moves'
+
+  inputRelations = [
+    'forced_frontier',
+  ]
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    const out: Row[] = []
+
+    for (const fr of input.rows) {
+      const root = fr.root
+      const w = fr.world_id
+
+      const stm_is_attacker = this.mz.is_attacker(w)
+      if (stm_is_attacker) continue
+
+      this.mz.make_to_world(w)
+
+      const moves = this.mz.m.get_legal_moves(this.mz.pos)
+
+      for (const move of moves) {
+        const w2 = this.mz.add_move(w, move)
+
+        out.push({
+          root,
+          parent: w,
+          world_id: w2
+        })
+      }
+
+      this.mz.unmake_world(w)
+    }
+
+    return out.length ? { worlds: out, forced_seen: out } : null
+  }
+}
+
+class ExpandAttackerMoves implements Resolver {
+  id = 'expand_attacker_moves'
+
+  inputRelations = [
+    'forced_frontier',
+  ]
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    const out: Row[] = []
+
+    for (const fr of input.rows) {
+      const root = fr.root
+      const w = fr.world_id
+
+      const stm_is_attacker = this.mz.is_attacker(w)
+      if (!stm_is_attacker) continue
+
+      this.mz.make_to_world(w)
+
+      const moves = this.mz.m.get_legal_moves(this.mz.pos)
+
+      for (const move of moves) {
+        const w2 = this.mz.add_move(w, move)
+
+        out.push({
+          root,
+          parent: w,
+          world_id: w2
+        })
+      }
+
+      this.mz.unmake_world(w)
+    }
+
+    return out.length ? { worlds: out, forced_seen: out } : null
+  }
+}
+
+class ForcedFrontier implements Resolver {
+  id = 'forced_frontier'
+
+  inputRelations = [
+    'forced_reachable',
+    //'forced_seen'
+  ]
+
+  resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    const out: Row[] = []
+
+    for (const fr of input.rows) {
+      const root = fr.root
+      const w = fr.world_id
+
+      // if already processed for this root, skip
+      //const seen = ctx.get('forced_seen', root)
+      //  .some(r => r.world_id === w)
+        const seen = ctx.get('forced_seen', w)
+            .some(r => r.root === root)
+
+      if (seen) continue
+
+      out.push({
+        root,
+        world_id: w
+      })
+    }
+
+    return out.length
+      ? { forced_frontier: out }
+      : null
+  }
+}
+
+
+class SeedForcedReachable implements Resolver {
+  id = 'seed_forced_reachable'
+
+  //inputRelations = ['hypothesis_root'] // or candidate_attack_move
+  inputRelations = ['candidate_attack_move']
+
+  resolve(input: InputSlice<Row>): ResolverOutput | null {
+    const out: Row[] = []
+
+    for (const r of input.rows) {
+      const root = r.world_id
+
+      out.push({
+        root,
+        world_id: root
+      })
+    }
+
+    return out.length
+      ? { forced_reachable: out }
+      : null
+  }
+}

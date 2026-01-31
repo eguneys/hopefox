@@ -444,6 +444,10 @@ export class MyEngine implements Engine, EngineState {
         this.resolvers.set(resolver.id, resolver)
     }
 
+    registerRelation(relation: Relation<Row>) {
+        this.relations.set(relation.id, relation)
+    }
+
     run() {
         while (this.workQueue.length > 0) {
             const task = this.workQueue.pop()!

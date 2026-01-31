@@ -1,0 +1,274 @@
+## Project Summary: Relational Forcing & Invariant Engine for Chess Tactics
+
+### Goal
+
+Build a **proof-based chess tactics engine** that detects *inevitable outcomes* (mate, material gain, queen win, etc.) using **relational logic**, not minimax or numeric evaluation.
+
+The engine answers:
+
+> “Is this outcome inevitable, and why?”
+
+—not:
+
+> “What is the best move?”
+
+---
+
+## Core Architecture
+
+### Two-Phase Execution Model
+
+#### Phase 1 — **Derivation / Expansion (Fixed Point)**
+
+* Run all *derivation resolvers* until no new facts or worlds are produced.
+* This phase builds the **forcing closure** of the position.
+* Includes:
+
+  * world expansion
+  * checks, captures, attacks
+  * forced replies
+  * forcing attacker continuations
+  * `forced_reachable`
+
+This phase computes a **least fixed point** over relations.
+
+#### Phase 2 — **Invariant Evaluation (Judgement)**
+
+* Run invariants **after** derivation stabilizes.
+* Invariants are **read-only queries** over the fixed graph.
+* They do *not* participate in dependency resolution.
+* They do *not* add worlds or relations.
+
+---
+
+## Resolver Categories
+
+### 1. Derivation Resolvers (Incremental, Monotone)
+
+* Produce relations.
+* Participate in dependency scheduling.
+* Examples:
+
+  * `checks`
+  * `captures`
+  * `attacks`
+  * `material_delta`
+  * `forced_defender_reply`
+  * `forcing_attacker_move`
+  * `forced_reachable`
+
+These have explicit `inputRelations`.
+
+---
+
+### 2. Expansion Resolvers (Subset of Derivation)
+
+* Create new worlds.
+* Still monotone and incremental.
+* Examples:
+
+  * expand candidate attack moves
+  * expand forced replies
+
+---
+
+### 3. Invariants (Judgements, NOT Resolvers)
+
+* Evaluated **once after derivation completes**.
+* Do **not** have `inputRelations`.
+* Do **not** run incrementally.
+* Return results like:
+
+  ```ts
+  { holds: boolean, witnesses: WorldId[] }
+  ```
+
+Examples:
+
+* `mate_inevitable`
+* `wins_rook`
+* `wins_queen_for_rook`
+* `queen_capture_inevitable`
+
+---
+
+## Candidate Attack Moves
+
+**Purpose:** Generate hypotheses (∃ side of logic).
+
+**Definition:**
+
+> A *sound over-approximation* of moves that could plausibly start a forcing tactic.
+
+**Included (minimal correct set):**
+
+* All captures
+* All checks
+* Moves that attack high-value pieces (queen, rook)
+* Moves that remove key defenders (heuristic, local)
+
+**Key rules:**
+
+* May use **local semantic inspection** (apply move → inspect board → undo)
+* May reuse **local, non-recursive relations** (e.g. `checks(world, move)`)
+* Must **NOT** depend on:
+
+  * forcedness
+  * invariants
+  * future-world relations (`ctx.get(..., w2)`)
+
+Candidate moves may include false positives — invariants filter them later.
+
+---
+
+## Forcedness Model (Critical)
+
+### Forced ≠ Only Reply
+
+A move is **forced** if the defender **cannot avoid the invariant**, not if the move is unique.
+
+### Forced Defender Replies (∀)
+
+* If defender is in check → **all legal evasions**
+* No pruning here
+
+### Forcing Attacker Continuations (∃)
+
+* Attacker moves that:
+
+  * are captures or checks
+  * or preserve / improve invariant progress
+* Non-progress attacker moves are pruned to ensure termination
+
+---
+
+## Forced Reachability (Key Concept)
+
+### Meaning
+
+`forced_reachable(h)` = **all worlds reachable under forced play** starting from hypothesis world `h`.
+
+It spans:
+
+* defender forced replies (∀)
+* attacker forcing continuations (∃)
+* multiple plies
+* entire forcing lines
+
+### Important Properties
+
+* Represented as a **flat set of worlds**
+* Tree/path structure is *not required* for inevitability proofs
+* Invariants quantify over **states**, not paths
+
+This is sufficient for inevitability:
+
+```
+∀ w ∈ forced_reachable(h): invariant_condition(w)
+```
+
+---
+
+## Progress & Termination
+
+To prevent infinite checking loops:
+
+**Rule:**
+
+> Attacker continuations must make invariant-relevant progress.
+
+Minimal progress measure implemented:
+
+* `material_delta` must not decrease
+
+This prevents:
+
+* perpetual check
+* meaningless oscillation
+
+---
+
+## Material Delta
+
+### Definition
+
+`material_delta(world)` is **path-accumulated**, not recomputed from board state.
+
+```
+material_delta(root) = 0
+material_delta(child) =
+  material_delta(parent)
+  + captured_opponent_value
+  - lost_own_value
+```
+
+Derived recursively via parent relation.
+
+Used by:
+
+* `wins_rook`
+* `wins_material(min_gain)`
+* bounded-loss invariants
+
+---
+
+## Invariants (Examples)
+
+### Mate
+
+```
+mate_inevitable(h) iff
+  ∀ w ∈ forced_reachable(h):
+    king_mated(w)
+```
+
+### Win a Rook
+
+```
+wins_rook(h) iff
+  ∀ w ∈ forced_reachable(h):
+    material_gain_unavoidable(w, rook_value)
+```
+
+### Win Queen for Rook
+
+```
+wins_queen_for_rook(h) iff
+  ∀ w ∈ forced_reachable(h):
+    queen_loss_unavoidable(w)
+    AND material_loss ≤ rook
+```
+
+### Important Quantifier Rule
+
+* **Inevitability = ∀ over forced_reachable**
+* Using ∃ is incorrect and unsound
+
+---
+
+## Key Lessons / Rules of Thumb
+
+* Derivations produce facts; invariants judge facts.
+* Candidate moves guess; invariants prove.
+* Forced reachability is alternating ∀ / ∃.
+* Flat world sets are enough for inevitability.
+* Progress measures are required for termination.
+* Never query relations for hypothetical (unexpanded) worlds.
+* Invariants must not mutate the graph.
+
+---
+
+## Mental One-Liner (Carry This Forward)
+
+> *“We are not searching for moves — we are proving inevitability by closing the world under forced play, then checking invariants over the resulting state set.”*
+
+---
+
+If you paste this into a fresh prompt and say
+**“Continue from here”**, you should be able to pick up immediately without re-deriving anything.
+
+If you want, I can also provide:
+
+* a short “engine API contract” summary
+* a diagram-style explanation
+* or a minimal checklist for adding new invariants safely
