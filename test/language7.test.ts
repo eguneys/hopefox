@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { fen_pos, Language7, PositionManager } from '../src'
+import { fen_pos, Language8, PositionManager } from '../src'
 import { puzzles } from './fixture'
 import { extract_sans } from '../src/language2/san_moves_helper'
 import { PositionMaterializer } from '../src/language6/engine6'
@@ -19,7 +19,7 @@ function solve_i(i: number) {
   let pos = m.create_position(puzzles[i].move_fens[0])
   let mz = new PositionMaterializer(m, pos)
 
-  let res: Map<string, number[]> = Language7(mz)
+  let res: Map<string, number[]> = Language8(mz)
 
   let res2 = new Map()
 

@@ -38,9 +38,9 @@ export function Language8(mz: PositionMaterializer) {
     engine.registerInvariant(new MateInevitable(mz))
     engine.registerInvariant(new RookGainInevitable(mz))
 
-    engine.registerResolver(new ExpandWorldsResolver())
+    engine.registerResolver(new ExpandWorldsResolver(mz))
 
-    engine.registerResolver(new ForcedDefenderReply())
+    engine.registerResolver(new ForcedDefenderReply(mz))
 
     const candidate_attack_move: Row[] = candidate_attack_moves(mz)
 
@@ -74,19 +74,78 @@ class ExpandWorldsResolver implements Resolver {
 
     inputRelations = ['forced_reachable']
 
+    constructor(private mz: PositionMaterializer) {}
+
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
 
         const forced_reachable = input.rows
 
-        /// these are supposed to be derived somehow ?? (and emitted) or are these read from somewhere
         const worlds: Row[] = []
         const threatens: Row[] = []
         const forcing_attacker_move: Row[] = []
 
-
-        // this it emitted
         const expand_ready: Row[] = []
 
+
+        /*
+        forced_reachable(root, parent)
+
+        worlds(root, parent, child)
+        threatens(root, child, t)
+        forcing_attacker_move(root, parent, child)
+
+        expand_ready(root, parent)
+        */
+
+
+        for (let fr of forced_reachable) {
+            const { root, parent } = fr
+
+
+            let legal_worlds = this.mz.generate_legal_worlds(parent)
+
+            for (let world of legal_worlds) {
+                worlds.push({
+                    root,
+                    parent,
+                    world
+                })
+
+                forcing_attacker_move.push({
+                    root,
+                    parent,
+                    next: world
+                })
+
+                expand_ready.push({
+                    root,
+                    parent: world
+                })
+
+                let creates_threat = ctx.get('creates_threat')
+                .filter(_ => _.root === root && _.parent === parent && _.child === world)
+
+                for (let threat of creates_threat) {
+                    threatens.push({
+                        root,
+                        world,
+                        t: threat.t
+                    })
+                }
+
+
+                let existing_threats = ctx.get('threatens')
+                    .filter(_ => _.root === root && _.world === parent)
+
+                for (let threat of existing_threats) {
+                    threatens.push({
+                        root: root,
+                        world,
+                        t: threat.t
+                    })
+                }
+            }
+        }
 
         return { worlds, threatens, forcing_attacker_move, expand_ready }
     }
@@ -99,6 +158,8 @@ class ForcedDefenderReply implements Resolver {
 
     inputRelations = ['expand_ready']
 
+    constructor(private mz: PositionMaterializer) {}
+
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
 
         const expand_ready = input.rows
@@ -109,15 +170,41 @@ class ForcedDefenderReply implements Resolver {
         const worlds = ctx.get('worlds')
         const threatens = ctx.get('threatens')
 
+        for (let er of expand_ready) {
 
-        // derive output and forced_reachable
+            const { root, parent } = er;
 
+            if (!this.mz.is_defender(parent)) continue;
+
+            const threats = threatens
+                .filter(t => t.root === root && t.world === parent);
+
+            const replies = worlds
+                .filter(w => w.root === root && w.parent === parent)
+                .map(w => w.world);
+
+            for (const reply of replies) {
+                //if (!this.mz.is_legal(reply)) continue;
+
+                const ok = threats.every(t =>
+                    this.mz.__resolves(reply, t.t)
+                );
+
+                if (ok) {
+                    output.push({
+                        root,
+                        parent,
+                        reply
+                    });
+
+                    forced_reachable.push({
+                        root,
+                        world: reply
+                    })
+                }
+            }
+        }
 
         return { forced_defender_reply: output, forced_reachable }
     }
 }
-
-// so forced_reachable doesn't have an explicit resolver that derives itself recursively
-// forcing_attacker_move worlds  threatens doesn't have explicit resolvers but derived from ExpandWorldsResolver
-// forced_defender_reply derives forced_defender_reply relation and also emits into forced_reachable
-// ExpandWorldsResolver emits expand_ready signal which forced_defender_reply waits solely upon for derivation.

@@ -1,0 +1,39 @@
+Here are some notes of how I understand it, correct me if I am wrong:
+
+1. so forced_reachable doesn't have an explicit resolver that derives itself recursively
+2. forcing_attacker_move worlds  threatens doesn't have explicit resolvers but derived from ExpandWorldsResolver
+3. forced_defender_reply derives forced_defender_reply relation and also emits into forced_reachable
+4. ExpandWorldsResolver emits expand_ready signal which forced_defender_reply waits solely upon for derivation.
+
+1.
+
+forcing_attacker_move(root, parent, child)
+⇒ forced_reachable(root, child)
+
+forced_defender_reply(root, parent, reply)
+⇒ forced_reachable(root, reply)
+
+5.Addendum. forced_reachable is the only relation that drives expansion;
+everything else is downstream of it.
+
+
+Follow up:
+
+you said
+
+forcing_attacker_move(root, parent, child)
+⇒ forced_reachable(root, child)
+
+and also said:
+
+forcing_attacker_move, don’t have explicit resolvers but are derived from ExpandWorldsResolver”
+
+so first point is not true literally since there is no forcing_attacker_move resolver that also emits forced_reachable somewhere.
+
+
+Clarification:
+
+ExpandWorldsResolver:
+  if attacker_move_is_forcing(parent → child):
+    emit forced_reachable(root, child)
+    emit forcing_attacker_move(root, parent, child)   // optional, explanatory
