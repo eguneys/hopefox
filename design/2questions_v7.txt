@@ -1,0 +1,5 @@
+I have 2 questions regarding your discussion:
+
+1. You said if this capture does not increase or "preserve" rook_diff it's blocked. But any irrelevant move is likely to preserve the rook_diff since they have nothing to do with rooks.
+
+2. You said: Forcing is about monotonic progress toward an invariant. But while measuring invariants, earlier we derive the facts which has no knowledge of invariants, whereas all the invariants are computed after the fact derivation stabilizes. How do we measure which invariant is relevant, there are multiple invariants, and decide which invariant the underlying world is measured against.

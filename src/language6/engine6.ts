@@ -553,7 +553,12 @@ export class PositionMaterializer {
     }
 
 
-    is_capture(parent: WorldId, move: MoveC) {
+    is_capture(world: WorldId) {
+
+        let parent = this.nodes.parent_world_id(world)!
+
+        let move = this.nodes.move_of_world(world)
+
         this.make_to_world(parent)
 
         let occ = this.m.pos_occupied(this.pos)

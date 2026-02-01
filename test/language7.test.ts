@@ -6,7 +6,7 @@ import { PositionMaterializer } from '../src/language6/engine6'
 
 it('runs', () => {
 
-  solve_i(5)
+  solve_i(2)
   for (let i = 0; i < 10; i++) {
     //solve_i(i)
   }
@@ -18,6 +18,7 @@ function solve_i(i: number) {
   let pos2 = fen_pos(puzzles[i].move_fens[0])
   let pos = m.create_position(puzzles[i].move_fens[0])
   let mz = new PositionMaterializer(m, pos)
+
   let res: Map<string, number[]> = Language7(mz)
 
   let res2 = new Map()

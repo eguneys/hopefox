@@ -42,13 +42,13 @@ export function Language7(mz: PositionMaterializer) {
     engine.registerRelation('creates_threat')
 
     engine.registerResolver(new ExpandWorldsResolver(mz))
+    engine.registerResolver(new CreatesThreat(mz))
 
     engine.registerResolver(new HypothesisRoot(mz))
     engine.registerResolver(new ForcedReachable(mz))
     engine.registerResolver(new ForcedFrontier(mz))
     engine.registerResolver(new ForcedDefenderReply(mz))
     engine.registerResolver(new ForcingAttackerMove(mz))
-    engine.registerResolver(new ForcedReachable(mz))
 
     engine.registerJudgement(new TerminalForced(mz))
 
@@ -73,9 +73,8 @@ export function Language7(mz: PositionMaterializer) {
 
     engine.run()
 
-    let rows = (engine.relations.get('terminal_forced')!.rows)
-
-    console.log(rows.map(_ => mz.sans(_.world)))
+    let rows = (engine.relations.get('forcing_attacker_move')!.rows)
+    console.log(rows)
 
     return engine.query_invariants()
 }
@@ -93,7 +92,7 @@ function candidate_attack_moves(mz: PositionMaterializer) {
 
         let is_check = mz.is_check(next_world)
 
-        let is_capture = mz.is_capture(parent, move)
+        let is_capture = mz.is_capture(next_world)
 
         let is_forcing = is_check || is_capture
 
@@ -213,10 +212,8 @@ class ForcedReachable implements  Resolver {
                         world: wPrime
                     })
 
-                    /* ?? */
-
                     let creates_threat = ctx.get('creates_threat')
-                    .filter(_ => _.root === c.root && _.parent === c.world && _.next === wPrime)
+                    .filter(_ => _.root === c.root && _.parent === c.world && _.child === wPrime)
 
                     for (let threat of creates_threat) {
                         threatens.push({
@@ -273,6 +270,8 @@ class ForcedFrontier implements  Resolver {
             }
         }
 
+        let XX = ctx.get('forced_seen').map(_ => this.mz.sans(_.world))
+
         return { forced_frontier: output, forced_seen }
     }
 }
@@ -280,37 +279,31 @@ class ForcedFrontier implements  Resolver {
 
 class ForcedDefenderReply implements Resolver {
   id = 'forced_defender_reply'
-  inputRelations = ['forced_reachable', 'worlds', 'threatens']
+  inputRelations = ['forced_reachable', 'worlds']
 
   constructor(private mz: PositionMaterializer) {}
 
   resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
-    //if (input.relation !== 'forced_reachable') return null;
-
     const output: Row[] = [];
 
-      let 
-          forced_reachable: Row[], 
-          worlds: Row[],
-          threatens: Row[]
+      let threatens = ctx.get('threatens')
 
-      if (input.relation === 'worlds') {
-          threatens = ctx.get('threatens')!
-          worlds = input.rows
-          forced_reachable = ctx.get('forced_reachable')!
-      } else if (input.relation === 'forced_reachable') {
-          threatens = ctx.get('threatens')!
-          worlds = ctx.get('worlds')!
+
+      let forced_reachable: Row[],
+          worlds: Row[]
+
+
+      if (input.relation === 'forced_reachable') {
+          worlds = ctx.get('worlds')
           forced_reachable = input.rows
-      } else if (input.relation === 'threatens') {
-          threatens = input.rows
-          worlds = ctx.get('worlds')!
-          forced_reachable = ctx.get('forced_reachable')!
+      } else if (input.relation === 'worlds') {
+          worlds = input.rows
+          forced_reachable = ctx.get('forced_reachable')
       } else {
-          throw 'Unreachable'
+        throw 'Unreachable'
       }
 
-
+    //console.log(forced_reachable)
 
     for (const fr of forced_reachable) {
       const { root, world: parent } = fr;
@@ -327,6 +320,7 @@ class ForcedDefenderReply implements Resolver {
       for (const reply of replies) {
         //if (!this.mz.is_legal(reply)) continue;
 
+        let l = threats.length
         const ok = threats.every(t =>
           this.mz.__resolves(reply, t.t)
         );
@@ -341,6 +335,10 @@ class ForcedDefenderReply implements Resolver {
       }
     }
 
+      if (output[0] !== undefined) {
+          //let XX = this.mz.sans(output[0].reply)
+          //console.log(XX)
+      }
     return { forced_defender_reply: output };
   }
 }
@@ -437,9 +435,15 @@ class ForcingAttackerMove implements  Resolver {
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
             for (let wPrime of wPrimes) {
-                if (!this.mz.is_check(wPrime.world) || !this.mz.is_checkmate(wPrime.world)) {
+
+                if (this.mz.nodes.history_moves(wPrime.world).length > 2) {
+                    //continue
+                }
+                if (!(this.mz.is_capture(wPrime.world) || this.mz.is_check(wPrime.world) || this.mz.is_checkmate(wPrime.world))) {
                     continue
                 }
+
+                let XX = this.mz.sans(wPrime.world)
 
                 output.push({
                     root: c.root,
@@ -532,6 +536,7 @@ class ExpandWorldsResolver implements Resolver {
         const output: Row[] = []
 
         for (let c of input.rows) {
+            //let XX = this.mz.sans(c.world)
             let legal_worlds = this.mz.generate_legal_worlds(c.world)
 
 
@@ -574,6 +579,8 @@ class TerminalForced implements Judgement {
             let replies = forced_defender_reply
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
+                //console.log('C', c, 'R', replies.length)
+
             if (replies.length === 0) {
                 output.push({
                     root: c.root,
@@ -590,6 +597,7 @@ class TerminalForced implements Judgement {
             let moves = forcing_attacker_move
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
+            //console.log('C', c, this.mz.sans(c.root), this.mz.sans(c.world), 'M', moves.length, forcing_attacker_move)
 
             if (moves.length === 0) {
                 output.push({
@@ -624,6 +632,14 @@ class CreatesThreat implements Resolver {
                     t: Threatens.Checkmate
                 })
             }
+            if (this.mz.is_capture(w.world)) {
+                output.push({
+                    root: w.root,
+                    parent: w.parent,
+                    child: w.world,
+                    t: Threatens.MaterialLoss
+                })
+            }
         }
 
 
@@ -634,5 +650,6 @@ class CreatesThreat implements Resolver {
 
 
 export enum Threatens {
-    Checkmate
+    Checkmate,
+    MaterialLoss
 }

@@ -93,6 +93,19 @@ export class NodeManager {
         this.root = new NodeRoot()
     }
 
+    move_of_world(world: NodeId) {
+        if (world === 0) {
+            throw new NoChildError(world)
+        }
+        let node = this.cache.get_node(world)
+
+        if (!node) {
+            throw new NoChildError(world)
+        }
+
+        return node.move
+    }
+
     add_move(id: NodeId, move: MoveC) {
 
         if (id === 0) {
