@@ -1,5 +1,5 @@
 import { PositionMaterializer } from "../language6/engine6"
-import { Engine7, InputSlice, Invariant, InvariantResult, ReadContext, Resolver, ResolverOutput, Row, Transaction } from "./engine7"
+import { Engine7, InputSlice, Invariant, InvariantResult, Judgement, ReadContext, Resolver, ResolverOutput, Row, Transaction } from "./engine7"
 
 export function Language7(mz: PositionMaterializer) {
 
@@ -17,8 +17,8 @@ export function Language7(mz: PositionMaterializer) {
     // forced_defender_reply: root parent reply
     engine.registerRelation('forced_defender_reply')
 
-    // forced_attacker_move: root parent next
-    engine.registerRelation('forced_attacker_move')
+    // forcing_attacker_move: root parent next
+    engine.registerRelation('forcing_attacker_move')
 
     // forced_reachable: root world
     engine.registerRelation('forced_reachable')
@@ -29,15 +29,20 @@ export function Language7(mz: PositionMaterializer) {
     // hypothesis_root: root world
     engine.registerRelation('hypothesis_root')
 
+
+    // terminal_forced: root world
+    engine.registerRelation('terminal_forced')
+
     engine.registerResolver(new ExpandWorldsResolver(mz))
 
     engine.registerResolver(new HypothesisRoot(mz))
     engine.registerResolver(new ForcedReachable(mz))
     engine.registerResolver(new ForcedFrontier(mz))
     engine.registerResolver(new ForcedDefenderReply(mz))
-    engine.registerResolver(new ForcedAttackerMove(mz))
+    engine.registerResolver(new ForcingAttackerMove(mz))
     engine.registerResolver(new ForcedReachable(mz))
 
+    engine.registerJudgement(new TerminalForced(mz))
 
     engine.registerInvariant(new MateInevitable(mz))
 
@@ -93,7 +98,7 @@ class HypothesisRoot implements  Resolver {
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
         const forced_reachable: Row[] = []
 
@@ -121,7 +126,7 @@ class ForcedReachable implements  Resolver {
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
 
         let forced_reachable: Row[],
@@ -171,7 +176,7 @@ class ForcedReachable implements  Resolver {
                 continue
             }
 
-            let wPrimes = this.mz.generate_legal_moves(c.world)
+            let wPrimes = this.mz.generate_legal_worlds(c.world)
 
             for (let wPrime of wPrimes) {
                 let replies = forcing_attacker_move
@@ -197,7 +202,7 @@ class ForcedFrontier implements  Resolver {
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
 
         for (let c of input.rows) {
@@ -223,7 +228,7 @@ class ForcedDefenderReply implements  Resolver {
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
 
         let forced_reachable: Row[], worlds: Row[]
@@ -270,14 +275,14 @@ class ForcedDefenderReply implements  Resolver {
 
 
 // root parent next
-class ForcedAttackerMove implements  Resolver {
-    id = 'forced_attacker_move'
+class ForcingAttackerMove implements  Resolver {
+    id = 'forcing_attacker_move'
 
     inputRelations = ['forced_reachable', 'worlds']
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
 
 
@@ -316,7 +321,7 @@ class ForcedAttackerMove implements  Resolver {
             }
         }
 
-        return { forced_attacker_move: output }
+        return { forcing_attacker_move: output }
     }
 }
 
@@ -330,11 +335,11 @@ class MateInevitable implements Invariant {
 
     evaluate(ctx: ReadContext): InvariantResult {
 
-        let reachable = ctx.get('forced_reachable')
+        let terminals = ctx.get('terminal_forced')
 
         let witnesses = []
         let holds = true
-        for (let r of reachable) {
+        for (let r of terminals) {
             if (!this.mz.is_checkmate(r.world)) {
                 holds = false
                 witnesses = []
@@ -359,7 +364,7 @@ class ExpandWorldsResolver implements Resolver {
 
     constructor(private mz: PositionMaterializer) {}
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
 
         for (let c of input.rows) {
@@ -377,6 +382,60 @@ class ExpandWorldsResolver implements Resolver {
         }
 
         return { worlds: output }
+    }
+
+}
+
+
+
+class TerminalForced implements Judgement {
+    id = 'terminal_forced'
+
+    inputRelations = ['forced_reachable', 'forced_defender_reply', 'forcing_attacker_move']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    judge(ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        let forced_reachable = ctx.get('forced_reachable')
+        let forced_defender_reply = ctx.get('forced_defender_reply')
+        let forcing_attacker_move = ctx.get('forcing_attacker_move')
+
+        for (let c of forced_reachable) {
+            if (!this.mz.is_defender(c.world)) {
+                continue
+            }
+
+            let replies = forced_defender_reply
+                .filter(_ => _.root === c.root && _.parent === c.world)
+
+            if (replies.length === 0) {
+                output.push({
+                    root: c.root,
+                    world: c.world
+                })
+            }
+        }
+
+        for (let c of forced_reachable) {
+            if (!this.mz.is_attacker(c.world)) {
+                continue
+            }
+
+            let moves = forcing_attacker_move
+                .filter(_ => _.root === c.root && _.parent === c.world)
+
+
+            if (moves.length === 0) {
+                output.push({
+                    root: c.root,
+                    world: c.world
+                })
+            }
+        }
+
+        return { terminal_forced: output }
     }
 
 }

@@ -32,9 +32,9 @@ interface Relation {
     key_index: Map<RowKey, RowIndex>
 }
 
-export interface InputSlice<T extends Row> {
+export interface InputSlice {
     relation: RelationId
-    rows: T[]
+    rows: Row[]
 }
 
 export type ResolverOutput = {
@@ -46,10 +46,16 @@ export interface Resolver {
 
     inputRelations: RelationId[]
 
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null
 }
 
+type JudgementId = string
 
+export interface Judgement {
+    id: JudgementId
+
+    judge(ctx: ReadContext): ResolverOutput | null
+}
 
 
 export interface Invariant {
@@ -58,8 +64,8 @@ export interface Invariant {
 }
 
 interface Task {
-    resolver: Resolver
-    input: InputSlice<Row>
+    resolver_id: ResolverId
+    input: InputSlice
 }
 
 
@@ -97,6 +103,7 @@ class EngineReadContext implements ReadContext {
 
 export class Engine7 {
 
+    judgements: Map<JudgementId, Judgement> = new Map()
     invariants: Map<InvariantId, Invariant> = new Map()
     relations: Map<RelationId, Relation> = new Map()
     resolvers: Map<ResolverId, Resolver> = new Map()
@@ -120,7 +127,7 @@ export class Engine7 {
         }
 
         return {
-            source: task.resolver.id,
+            source: task.resolver_id,
             reads: [],
             writes
         }
@@ -177,7 +184,7 @@ export class Engine7 {
 
             for (const resolver of resolvers) {
                 this.workQueue.unshift({
-                    resolver: this.resolvers.get(resolver)!,
+                    resolver_id: resolver,
                     input: {
                         relation: relationName,
                         rows
@@ -207,11 +214,15 @@ export class Engine7 {
         this.relations.set(relation_id, makeRelation(relation_id))
     }
 
+    registerJudgement(judgement: Judgement) {
+        this.judgements.set(judgement.id, judgement)
+    }
+
     run() {
         while (this.workQueue.length > 0) {
             const task = this.workQueue.pop()!
 
-            const output = task.resolver.resolve(task.input, this.readContext)
+            const output = this.resolvers.get(task.resolver_id)!.resolve(task.input, this.readContext)
 
             if (!output) continue
 
@@ -224,7 +235,29 @@ export class Engine7 {
 
             this.scheduleDownstream(result)
         }
+
+        this.resolve_judgements()
     }
+
+
+    resolve_judgements() {
+
+        for (let [key, judgement] of this.judgements.entries()) {
+
+            let res = judgement.judge(this.readContext)
+
+            if (res === null) {
+                continue
+            }
+
+            this.commit(this.buildTransaction({
+                resolver_id: judgement.id,
+                input: ({} as InputSlice)
+            }, res))
+        }
+    }
+
+
 
     query_invariant(id: InvariantId) {
         return this.invariants.get(id)?.evaluate(this.readContext)
