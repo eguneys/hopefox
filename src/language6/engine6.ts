@@ -527,6 +527,20 @@ export class PositionMaterializer {
         return !this.is_attacker(world_id)
     }
 
+    is_check(world_id: WorldId) {
+        this.make_to_world(world_id)
+        let res = this.m.pos_in_check(this.pos)
+        this.unmake_world(world_id)
+        return res
+    }
+
+    is_checkmate(world_id: WorldId) {
+        this.make_to_world(world_id)
+        let res = this.m.is_checkmate(this.pos)
+        this.unmake_world(world_id)
+        return res
+    }
+
     exists(world_id: WorldId) {
         if (world_id === 0) {
             return true

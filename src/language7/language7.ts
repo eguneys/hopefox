@@ -1,10 +1,8 @@
-import { PositionC, PositionManager } from "../distill/hopefox_c"
 import { PositionMaterializer } from "../language6/engine6"
 import { Engine7, InputSlice, Invariant, InvariantResult, ReadContext, Resolver, ResolverOutput, Row, Transaction } from "./engine7"
 
-export function Language7(m: PositionManager, pos: PositionC) {
+export function Language7(mz: PositionMaterializer) {
 
-    let mz = new PositionMaterializer(m, pos)
 
     let engine = new Engine7()
 
@@ -25,6 +23,12 @@ export function Language7(m: PositionManager, pos: PositionC) {
     // forced_reachable: root world
     engine.registerRelation('forced_reachable')
 
+    // candidate_attack_move: parent move
+    engine.registerRelation('candidate_attack_move')
+
+    // hypothesis_root: root world
+    engine.registerRelation('hypothesis_root')
+
     engine.registerResolver(new HypothesisRoot(mz))
     engine.registerResolver(new ForcedReachable(mz))
     engine.registerResolver(new ForcedFrontier(mz))
@@ -37,18 +41,14 @@ export function Language7(m: PositionManager, pos: PositionC) {
     engine.registerInvariant(new MateInevitable(mz))
 
 
+    const candidate_attack_move: Row[] = candidate_attack_moves(mz)
 
     const bootstrapTx: Transaction = {
         source: 'bootstrap',
         reads: [],
         writes: [{
-                relation: 'forced_reachable',
-                rows: [
-                    {
-                        root: 0,
-                        world: 0
-                    }
-                ]
+                relation: 'candidate_attack_move',
+                rows: candidate_attack_move
             }
         ]
     }
@@ -56,16 +56,37 @@ export function Language7(m: PositionManager, pos: PositionC) {
     const committed = engine.commit(bootstrapTx)
     engine.scheduleDownstream(committed)
 
-
-
     engine.run()
+
+    //console.log(engine.relations.get('forced_reachable')!.rows)
 
     return engine.query_invariants()
 }
 
+function candidate_attack_moves(mz: PositionMaterializer) {
+    let output = []
+
+    let parent = 0
+
+    let moves = mz.generate_legal_moves(parent)
+
+    for (let move of moves) {
+        if (!mz.is_check(mz.add_move(parent, move))) {
+
+            continue
+        }
+
+        output.push({
+            parent,
+            move
+        })
+    }
+
+    return output
+}
 
 class HypothesisRoot implements  Resolver {
-    id: 'hypothesis_root'
+    id = 'hypothesis_root'
 
     inputRelations = ['candidate_attack_move']
 
@@ -73,6 +94,7 @@ class HypothesisRoot implements  Resolver {
 
     resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
+        const forced_reachable: Row[] = []
 
         for (let c of input.rows) {
             let root = this.mz.add_move(c.parent, c.move)
@@ -80,15 +102,19 @@ class HypothesisRoot implements  Resolver {
             output.push({
                 root
             })
+
+            forced_reachable.push({
+                root,
+                world: root
+            })
         }
 
-        return { hypothesis_root: output }
+        return { hypothesis_root: output, forced_reachable }
     }
-
 }
 
 class ForcedReachable implements  Resolver {
-    id: 'forced_reachable'
+    id = 'forced_reachable'
 
     inputRelations = ['forced_reachable']
 
@@ -139,13 +165,12 @@ class ForcedReachable implements  Resolver {
             }
         }
 
-
         return { forced_reachable: output }
     }
 }
 
 class ForcedFrontier implements  Resolver {
-    id: 'forced_frontier'
+    id = 'forced_frontier'
 
     inputRelations = ['forced_reachable']
 
@@ -171,7 +196,7 @@ class ForcedFrontier implements  Resolver {
 }
 
 class ForcedDefenderReply implements  Resolver {
-    id: 'forced_defender_reply'
+    id = 'forced_defender_reply'
 
     inputRelations = ['forced_reachable']
 
@@ -186,7 +211,7 @@ class ForcedDefenderReply implements  Resolver {
                 continue
             }
 
-            if (!this.mz.m.is_check(c.world)) {
+            if (!this.mz.is_check(c.world)) {
                 continue
             }
 
@@ -194,7 +219,7 @@ class ForcedDefenderReply implements  Resolver {
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
             for (let wPrime of wPrimes) {
-                if (this.mz.m.is_check(wPrime.world)) {
+                if (this.mz.is_check(wPrime.world)) {
                     continue
                 }
 
@@ -213,7 +238,7 @@ class ForcedDefenderReply implements  Resolver {
 
 // root parent next
 class ForcedAttackerMove implements  Resolver {
-    id: 'forced_attacker_move'
+    id = 'forced_attacker_move'
 
     inputRelations = ['forced_reachable']
 
@@ -232,7 +257,7 @@ class ForcedAttackerMove implements  Resolver {
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
             for (let wPrime of wPrimes) {
-                if (!this.mz.m.is_check(wPrime.world) || !this.mz.m.is_checkmate(wPrime.world)) {
+                if (!this.mz.is_check(wPrime.world) || !this.mz.is_checkmate(wPrime.world)) {
                     continue
                 }
 
@@ -263,7 +288,7 @@ class MateInevitable implements Invariant {
         let witnesses = []
         let holds = true
         for (let r of reachable) {
-            if (!this.mz.m.is_checkmate(r.world)) {
+            if (!this.mz.is_checkmate(r.world)) {
                 holds = false
                 witnesses = []
                 break

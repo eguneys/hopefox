@@ -331,11 +331,6 @@ export class PositionManager {
         return !this.checkers(pos).isEmpty()
     }
 
-
-    is_check(pos: number) {
-        return this.pos_in_check(pos)
-    }
-
     checkers(pos: number) {
         const bbPtr = this.m._malloc(4 * 2)
 
