@@ -1,8 +1,9 @@
 import { between } from "../distill/attacks";
-import { ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager, static_piece_value } from "../distill/hopefox_c";
+import { ColorC, KING, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PieceC, PieceTypeC, PositionC, PositionManager, ROOK, static_piece_value } from "../distill/hopefox_c";
 import { Square } from "../distill/types";
 import { NodeId, NodeManager } from "../language1/node_manager";
 import { san_moves_c } from "../language2/san_moves_helper";
+import { Threatens } from "../language7/language7";
 import { CoreProgram, EngineGraph, lowerCoreToEngine, RelationId, SCHEMAS } from "./core";
 import { analyseProgram } from "./diagnostics";
 
@@ -491,6 +492,30 @@ export class MyEngine implements Engine, EngineState {
 }
 
 export class PositionMaterializer {
+
+    rookDiff(world_id: WorldId) {
+        let attacker = this.m.pos_turn(this.pos)
+        this.make_to_world(world_id)
+        let bbRook = this.m.get_pieces_bb(this.pos, [ROOK])
+        let bbC = this.m.get_pieces_color_bb(this.pos, attacker)
+
+        let bbAttacker = bbRook.intersect(bbC)
+        let bbDefender = bbRook.diff(bbC)
+
+        let res =  bbAttacker.size() - bbDefender.size()
+
+        this.unmake_world(world_id)
+
+        return res
+    }
+
+    __resolves(reply: WorldId, t: Threatens): boolean {
+        if (t === Threatens.Checkmate) {
+            return !this.is_check(t)
+        }
+        return false
+    }
+
     nodes: NodeManager
 
     m: PositionManager
@@ -525,6 +550,20 @@ export class PositionMaterializer {
     }
     is_defender(world_id: WorldId) {
         return !this.is_attacker(world_id)
+    }
+
+
+    is_capture(parent: WorldId, move: MoveC) {
+        this.make_to_world(parent)
+
+        let occ = this.m.pos_occupied(this.pos)
+
+        let move_to = move_c_to_Move(move).to
+
+        let res = occ.has(move_to)
+
+        this.unmake_world(parent)
+        return res
     }
 
     is_check(world_id: WorldId) {

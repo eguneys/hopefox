@@ -1,0 +1,9 @@
+Formally:
+
+creates_threat(root, parent, child, t)
+
+
+Meaning:
+
+When the attacker moves from parent to child (under hypothesis root),
+this move introduces a new obligation t that did not exist before.

@@ -6,9 +6,9 @@ import { PositionMaterializer } from '../src/language6/engine6'
 
 it('runs', () => {
 
-  //solve_i(5)
+  solve_i(5)
   for (let i = 0; i < 10; i++) {
-    solve_i(i)
+    //solve_i(i)
   }
 })
 
