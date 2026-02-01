@@ -590,6 +590,7 @@ export class TerminalForced implements Judgement {
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
                 //console.log('C', c, 'R', replies.length)
+                //console.log(this.mz.sans(replies[0].reply))
 
             if (replies.length === 0) {
                 output.push({
@@ -608,6 +609,7 @@ export class TerminalForced implements Judgement {
                 .filter(_ => _.root === c.root && _.parent === c.world)
 
             //console.log('C', c, this.mz.sans(c.root), this.mz.sans(c.world), 'M', moves.length, forcing_attacker_move)
+            //console.log(moves.map(_ => this.mz.sans(_.next)))
 
             if (moves.length === 0) {
                 output.push({
