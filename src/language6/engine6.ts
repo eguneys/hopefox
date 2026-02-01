@@ -568,6 +568,10 @@ export class PositionMaterializer {
         }
     }
 
+    generate_legal_worlds(world_id: WorldId) {
+        return this.generate_legal_moves(world_id).map(_ => this.add_move(world_id, _))
+    }
+
     generate_legal_moves(world_id: WorldId) {
         this.make_to_world(world_id)
         let res = this.m.get_legal_moves(this.pos)
