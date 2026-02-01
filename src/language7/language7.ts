@@ -52,8 +52,8 @@ export function Language7(mz: PositionMaterializer) {
 
     engine.registerJudgement(new TerminalForced(mz))
 
-    engine.registerInvariant(new MateInevitable(mz))
-    engine.registerInvariant(new RookGainInevitable(mz))
+    //engine.registerInvariant(new MateInevitable(mz))
+    //engine.registerInvariant(new RookGainInevitable(mz))
 
     const candidate_attack_move: Row[] = candidate_attack_moves(mz)
 
@@ -326,6 +326,7 @@ class ForcedDefenderReply implements Resolver {
         .filter(w => w.root === root && w.parent === parent)
         .map(w => w.world);
 
+
       for (const reply of replies) {
         //if (!this.mz.is_legal(reply)) continue;
 
@@ -514,9 +515,11 @@ export class MateInevitable implements Invariant {
 
         let terminals = ctx.get('terminal_forced')
 
+        //console.log('Terminals', terminals)
         let witnesses = []
         let holds = false
         for (let r of terminals) {
+            //console.log(this.mz.sans(r.root), this.mz.sans(r.world))
             if (!this.mz.is_checkmate(r.world)) {
                 holds = false
                 witnesses = []
@@ -582,36 +585,25 @@ export class TerminalForced implements Judgement {
         let forcing_attacker_move = ctx.get('forcing_attacker_move')
 
         for (let c of forced_reachable) {
-            if (!this.mz.is_defender(c.world)) {
-                continue
-            }
 
-            let replies = forced_defender_reply
+            let is_defender = this.mz.is_defender(c.world)
+
+            let no_forced_defender_reply = is_defender &&
+                forced_defender_reply
+                    .filter(_ => _.root === c.root && _.parent === c.world)
+                    .length === 0
+
+            let is_attacker = this.mz.is_attacker(c.world)
+
+
+            let no_forced_attacker_reply = is_attacker && forcing_attacker_move
                 .filter(_ => _.root === c.root && _.parent === c.world)
+                .length === 0
 
-                //console.log('C', c, 'R', replies.length)
-                //console.log(this.mz.sans(replies[0].reply))
+            //console.log(this.mz.sans(c.world), is_attacker, this.mz.sans(forcing_attacker_move[0].next))
+            //console.log(this.mz.sans(c.world), is_defender, forced_defender_reply.length)
 
-            if (replies.length === 0) {
-                output.push({
-                    root: c.root,
-                    world: c.world
-                })
-            }
-        }
-
-        for (let c of forced_reachable) {
-            if (!this.mz.is_attacker(c.world)) {
-                continue
-            }
-
-            let moves = forcing_attacker_move
-                .filter(_ => _.root === c.root && _.parent === c.world)
-
-            //console.log('C', c, this.mz.sans(c.root), this.mz.sans(c.world), 'M', moves.length, forcing_attacker_move)
-            //console.log(moves.map(_ => this.mz.sans(_.next)))
-
-            if (moves.length === 0) {
+            if (no_forced_defender_reply || no_forced_attacker_reply) {
                 output.push({
                     root: c.root,
                     world: c.world
@@ -665,3 +657,4 @@ export enum Threatens {
     Checkmate,
     MaterialLoss
 }
+

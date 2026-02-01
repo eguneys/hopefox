@@ -1,0 +1,11 @@
+if mate_terminals are a filter of terminal_forced
+
+do I also have to check forced_reachable property along the worlds parent child relationships, because I can already derive the move sequence given a world using the NodesManager as a separate entity where I track which moves are added to which nodes.
+
+So this simple definition seems to cover it:
+shortest_inevitable_mate(root) =
+  min over w such that
+    terminal_forced(root, w)
+    AND is_checkmate(w)
+
+

@@ -1,0 +1,93 @@
+Defender is unintelligent but universal
+
+Attacker is existential but not optimizing
+
+
+exists_mate(root)
+mate_inevitable(root)
+exists_material_gain(root, piece=rook)
+material_gain_inevitable(root, piece=rook)
+
+extract one spoiling line
+extract one shortest mate
+extract all minimal counterexamples
+
+
+Label	Meaning
+killer	appears in all inevitable proofs
+spoiler	breaks inevitability
+neutral	irrelevant
+
+
+back_rank_mate
+queen_infiltration
+exchange_sacrifice
+
+
+You have built a proof engine, not a move engine.
+Its power lies in inevitability, explanation, and refutation — not choice.
+
+
+
+Verbatim:
+
+
+
+I am building a root-scoped relational forcing engine for chess tactics.
+
+The engine does NOT do minimax or evaluation. Its purpose is to prove
+inevitability using logical forcing:
+
+  ∃ attacker commitment (root)
+    such that
+      ∀ forced continuations,
+        all terminal forced worlds satisfy an invariant
+        (e.g. checkmate, material gain).
+
+Key concepts:
+
+- forced_reachable(root, world):
+  worlds that may occur under forced play from a root
+
+- ExpandWorldsResolver:
+  triggered by forced_reachable
+  generates:
+    worlds(root, parent, child)
+    threatens(root, child, threat)
+    forcing_attacker_move(root, parent, child) [explanatory]
+    forced_reachable(root, child) (inline, for forcing attacker moves)
+    expand_ready(root, parent)
+
+- forced_defender_reply:
+  triggered ONLY by expand_ready
+  reads all worlds + threats for (root, parent)
+  selects replies that resolve all dominant threats
+  emits forced_reachable(root, reply)
+
+- terminal_forced:
+  a post-fixpoint judgement:
+    defender_to_move AND no forced_defender_reply
+    OR
+    attacker_to_move AND no forcing_attacker_move
+
+Important properties:
+
+- Attacker forcing moves are existential but NOT chosen or optimized
+- Defender replies are universal (unless constrained by threats)
+- Multiple forcing attacker moves coexist (e.g. Qe1# and Qxh4)
+- Inevitability fails if ANY forced continuation avoids the invariant
+- Shortest mates and example lines are extracted AFTER derivation,
+  as graph queries, not during forcing
+
+Current state:
+- Architecture is stratified and stable
+- Forced play terminates correctly
+- I can prove or refute inevitability
+- I can extract shortest mates or counterexamples post hoc
+
+I want to continue discussing:
+- what to build on top of this engine
+- what kinds of questions it is best suited to answer
+- how to extract explanations, classifications, or ideas
+- how to extend invariants beyond mate (material, structure, etc.)
+without breaking the forcing semantics.

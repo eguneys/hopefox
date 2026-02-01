@@ -1,0 +1,50 @@
+export class TerminalForced implements Judgement {
+    id = 'terminal_forced'
+
+    inputRelations = ['forced_reachable', 'forced_defender_reply', 'forcing_attacker_move']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    judge(ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        let forced_reachable = ctx.get('forced_reachable')
+        let forced_defender_reply = ctx.get('forced_defender_reply')
+        let forcing_attacker_move = ctx.get('forcing_attacker_move')
+
+        for (let c of forced_reachable) {
+
+            let is_defender = this.mz.is_defender(c.world)
+
+            let no_forced_defender_reply = is_defender &&
+                forced_defender_reply
+                    .filter(_ => _.root === c.root && _.parent === c.world)
+                    .length === 0
+
+            let is_attacker = this.mz.is_attacker(c.world)
+
+
+            let no_forced_attacker_reply = is_attacker && forcing_attacker_move
+                .filter(_ => _.root === c.root && _.parent === c.world)
+                .length === 0
+
+            if (no_forced_attacker_reply || no_forced_attacker_reply) {
+                //console.log(this.mz.sans(c.world))
+                output.push({
+                    root: c.root,
+                    world: c.world
+                })
+            }
+        }
+
+        return { terminal_forced: output }
+    }
+}
+
+I think this logic is the same as you directed. Except the problem might lie in, Qxh3 g5+ line is where the defender replied with g5+ and now it's attackers move and attacker has no resolution to evade the check, or in another case where the defender captures the latest attacking piece, then the attacker has no piece to make a forcing move such as check or a capture.
+
+
+
+Conceptual:
+
+Forced play ends the moment the side to move cannot force the opponent anymore — even if the game continues legally.

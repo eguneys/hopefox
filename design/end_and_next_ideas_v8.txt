@@ -1,0 +1,16 @@
+This engine does not tell you what to play —
+it tells you how many ways you can’t go wrong.
+
+An attacking idea is a root-scoped forcing hypothesis.
+
+Two attacking ideas r₁ and r₂ are independent iff the sets of
+their terminal forced outcomes differ.
+
+Formally:
+  r₁ ⟂ r₂  iff
+    { classify(w) | terminal_forced(r₁, w) }
+    ≠
+    { classify(w) | terminal_forced(r₂, w) }
+
+The number of independent attacking ideas in a position is the
+number of distinct terminal-outcome signatures across roots.

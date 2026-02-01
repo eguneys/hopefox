@@ -1,3 +1,4 @@
+import { PieceTypeC } from "../distill/hopefox_c"
 import { PositionMaterializer, WorldId } from "../language6/engine6"
 import { Engine7, InputSlice, Invariant, InvariantResult, Judgement, ReadContext, Resolver, ResolverOutput, Row, Transaction } from "./engine7"
 import { candidate_attack_moves, CreatesThreat, HypothesisRoot, MateInevitable, RookGainInevitable, TerminalForced, Threatens } from "./language7"
@@ -29,18 +30,17 @@ export function Language8(mz: PositionMaterializer) {
     engine.registerRelation('forced_defender_reply')
     engine.registerRelation('forcing_attacker_move')
 
+    engine.registerRelation('forcing_idea_classes')
 
-    //engine.registerResolver(new CreatesThreat(mz))
     engine.registerResolver(new HypothesisRoot(mz))
-
     engine.registerJudgement(new TerminalForced(mz))
 
-    engine.registerInvariant(new MateInevitable(mz))
-    engine.registerInvariant(new RookGainInevitable(mz))
 
     engine.registerResolver(new ExpandWorldsResolver(mz))
-
     engine.registerResolver(new ForcedDefenderReply(mz))
+    engine.registerResolver(new ForcingAttackerMove(mz))
+
+    engine.registerJudgement(new ForcingIdeaClasses(mz))
 
     const candidate_attack_move: Row[] = candidate_attack_moves(mz)
 
@@ -59,11 +59,11 @@ export function Language8(mz: PositionMaterializer) {
 
     engine.run()
 
-    let rows = (engine.relations.get('forcing_attacker_move')!.rows)
+    let rows = (engine.relations.get('forcing_idea_classes')!.rows)
     //console.log(rows)
+    //return engine.query_invariants()
 
-    return engine.query_invariants()
-
+    return rows
 }
 
 
@@ -106,6 +106,13 @@ class ExpandWorldsResolver implements Resolver {
 
 
             // what happens when legal worlds is empty?, possibly attacker has checkmated or something
+            // Answer: expand_ready must still be emitted
+            expand_ready.push({
+                root,
+                parent
+            })
+
+
 
             for (let world of legal_worlds) {
                 worlds.push({
@@ -113,13 +120,6 @@ class ExpandWorldsResolver implements Resolver {
                     parent,
                     world
                 })
-
-
-                expand_ready.push({
-                    root,
-                    parent
-                })
-
             }
 
 
@@ -130,7 +130,6 @@ class ExpandWorldsResolver implements Resolver {
             for (let world of legal_worlds) {
 
                 let creates_threat_t = build_creates_threat_t(this.mz, world)
-                //console.log(this.mz.sans(world), creates_threat_t)
 
                 if (creates_threat_t !== undefined) {
                     threatens.push({
@@ -184,6 +183,54 @@ const build_creates_threat_t = (mz: PositionMaterializer, world: WorldId): Threa
     }
 }
 
+
+class ForcingAttackerMove implements Resolver {
+
+    id = 'forcing_attacker_move'
+
+    inputRelations = ['expand_ready']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+
+        const expand_ready = input.rows
+
+        const output: Row[] = []
+        const forced_reachable: Row[] = []
+
+        const worlds = ctx.get('worlds')
+
+        for (let er of expand_ready) {
+
+            const { root, parent } = er;
+
+            if (!this.mz.is_attacker(parent)) continue;
+
+
+
+            const replies = worlds
+                .filter(w => w.root === root && w.parent === parent)
+                .map(w => w.world);
+
+            for (const reply of replies) {
+                //if (!this.mz.is_legal(reply)) continue;
+                if (!(this.mz.is_capture(reply) || this.mz.is_check(reply) || this.mz.is_checkmate(reply))) {
+                    continue
+                }
+
+                forced_reachable.push({
+                    root,
+                    world: reply
+                })
+            }
+        }
+
+        return { forced_reachable }
+    }
+}
+
+
 class ForcedDefenderReply implements Resolver {
 
     id = 'forced_defender_reply'
@@ -214,14 +261,15 @@ class ForcedDefenderReply implements Resolver {
             const replies = worlds
                 .filter(w => w.root === root && w.parent === parent)
                 .map(w => w.world);
-            
+
             for (const reply of replies) {
                 //if (!this.mz.is_legal(reply)) continue;
 
                 const ok = threats.every(t =>
                     this.mz.__resolves(reply, t.t)
                 );
-
+            
+            
                 if (ok) {
                     output.push({
                         root,
@@ -238,5 +286,75 @@ class ForcedDefenderReply implements Resolver {
         }
 
         return { forced_defender_reply: output, forced_reachable }
+    }
+}
+
+
+class ForcingIdeaClasses implements Judgement {
+    id = 'ForcingIdeaClasses'
+
+    constructor(private mz: PositionMaterializer) {}
+
+    judge(ctx: ReadContext): ResolverOutput {
+        let terminal_forced = ctx.get('terminal_forced')
+
+        const output: Row[] = []
+        let multiset = new Map<Outcome, Row[]>()
+
+        for (let r of terminal_forced) {
+            let c = classify(this.mz ,r.root, r.world)
+
+            if (multiset.get(c) === undefined) {
+                multiset.set(c, [r])
+            } else {
+                multiset.get(c)!.push(r)
+            }
+        }
+        for (let [key, value] of multiset) {
+            value.forEach(value => {
+                output.push({
+                    root: value.root,
+                    world: value.world,
+                    outcome: key.value
+                })
+            })
+        }
+
+        return { forcing_idea_classes: output }
+    }
+
+}
+
+
+
+const classify = (mz: PositionMaterializer, root: WorldId, world: WorldId) => {
+    if (mz.is_checkmate(world)) {
+        return { value: OutcomeValue.Checkmate }
+    }
+    return { value: OutcomeValue.Neutral }
+}
+
+
+enum OutcomeValue {
+    Checkmate,
+    MaterialGain,
+    MaterialLoss,
+    Neutral
+}
+
+interface Outcome {
+    value: OutcomeValue
+}
+
+export const name_outcome = (value: OutcomeValue) => {
+    switch (value) {
+        case OutcomeValue.Checkmate:
+            return 'Checkmate'
+        case OutcomeValue.MaterialGain:
+            return 'MaterialGain'
+        case OutcomeValue.MaterialLoss:
+            return 'MaterialLoss'
+        case OutcomeValue.Neutral:
+            return 'Neutral'
     }
 }
