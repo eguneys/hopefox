@@ -1,0 +1,254 @@
+Below is a **clean, self-contained summary** you can paste into a fresh prompt and continue immediately.
+It reflects the *final, corrected architecture* we converged on, including the fixes around terminal states and root-scoped forcing.
+
+---
+
+## Project Summary: Root-Scoped Relational Forcing Engine for Chess Tactics
+
+### Goal
+
+Build a **proof-based chess tactics engine** that determines whether an outcome (mate, material win, etc.) is **inevitable**, using **relational logic and forced play**, not minimax or numeric evaluation.
+
+The engine answers:
+
+> **“Is this outcome unavoidable once this move is played?”**
+
+—not:
+
+> “What is the best move?”
+
+---
+
+## Core Concept
+
+A tactic is proven by:
+
+```
+∃ hypothesis move (root)
+  such that
+    ∀ forced continuations from that root,
+      all terminal forced outcomes satisfy the invariant
+```
+
+---
+
+## Key Architectural Ideas
+
+### 1. Hypothesis Roots (`root`)
+
+* A **root** is the world produced by applying a single `candidate_attack_move` to the initial position (world 0).
+* Each root defines an **isolated proof universe**.
+* All forced reasoning is scoped by `(root, …)`.
+
+```
+world 0 --candidate_attack_move--> root
+```
+
+---
+
+### 2. Candidate Attack Moves (Existential, External)
+
+```
+candidate_attack_move(parent, move)
+```
+
+* Generated **explicitly**, not derived.
+* Over-approximation of plausible forcing starts:
+
+  * checks
+  * captures
+  * obvious threats
+* This is the **only ∃ quantifier** in the system.
+* For each candidate:
+
+  * apply the move → create `root`
+  * seed forced reasoning for that root
+
+---
+
+## Relations (Canonical Schemas)
+
+### Expansion Layer (Existential, creates worlds)
+
+```
+worlds(root, parent, world)
+```
+
+* `world` is created by one legal move from `parent`, under hypothesis `root`.
+* Expansion is **gated** (see frontier below).
+* Must record `parent` — this is non-negotiable.
+
+---
+
+### Forced Closure (Semantic Core)
+
+```
+forced_reachable(root, world)
+```
+
+Meaning:
+
+> `world` may occur under forced play starting from `root`.
+
+**Seed (axiom):**
+
+```
+forced_reachable(root, root)
+```
+
+**Closure rules (least fixed point):**
+
+* If `forced_reachable(root, w)` and defender to move:
+
+  * include **all** `forced_defender_reply(root, w, w')`
+* If `forced_reachable(root, w)` and attacker to move:
+
+  * include **all** `forcing_attacker_move(root, w, w')`
+
+This produces a **flat set** of worlds (not a tree).
+
+---
+
+### Forcing Filters (Pure Selection, No World Creation)
+
+#### Forced Defender Replies (∀)
+
+```
+forced_defender_reply(root, parent, reply)
+```
+
+* Applies only if defender is **in check** at `parent`.
+* Selects from `worlds(root, parent, *)`.
+* Includes **all legal evasions**.
+
+#### Forcing Attacker Moves (∃ permission, unioned)
+
+```
+forcing_attacker_move(root, parent, next)
+```
+
+* Applies when attacker is to move.
+* Selects from `worlds(root, parent, *)`.
+* **Minimal rule:** the move must **give check or deliver mate**.
+* Important fix:
+
+  * **No requirement** that the *parent* is already in check.
+  * Forcing is judged by what the **child** does.
+
+---
+
+## Expansion Control (Prevents Explosion)
+
+### Forced Seen / Frontier (Operational Only)
+
+```
+forced_seen(root, world)
+forced_frontier(root, world)
+```
+
+Definition:
+
+```
+forced_frontier(root, world) ⇔
+  forced_reachable(root, world)
+  AND NOT forced_seen(root, world)
+```
+
+**Rule:**
+
+* Expand **only** `(root, world)` in `forced_frontier`.
+* Each `(root, world)` is expanded **once**.
+* After expansion, mark it `forced_seen`.
+
+This yields **semi-naive fixed-point evaluation** and prevents blow-up.
+
+---
+
+## Judgement Phase (Post-Fixpoint)
+
+### Terminal Forced Worlds (New Concept)
+
+`terminal_forced` is **not incremental** and **not a derivation**.
+
+It is a **post-fixpoint judgement** that *materializes facts* after all forcing is known.
+
+```
+terminal_forced(root, world)
+```
+
+Meaning:
+
+> Forced play cannot continue from this world.
+
+Definition (evaluated after closure stabilizes):
+
+* If defender to move and **no** `forced_defender_reply`
+* OR attacker to move and **no** `forcing_attacker_move`
+
+Terminality depends on the **absence** of force, so it must be computed **after** derivation completes.
+
+---
+
+## Invariants (Judgement, Read-Only)
+
+### Mate Inevitable
+
+Correct final definition:
+
+```
+mate_inevitable(root) iff
+  ∀ w :
+    terminal_forced(root, w) ⇒ is_checkmate(w)
+```
+
+Key points:
+
+* Intermediate forced positions **do not need** to be mate.
+* Only **terminal forced worlds** are judged.
+* This correctly proves mate-in-N (N ≥ 1).
+
+---
+
+## Phase Separation (Critical)
+
+1. **Hypothesis generation**
+
+   * generate `candidate_attack_move`
+   * create `root`
+   * seed `forced_reachable(root, root)`
+
+2. **Derivation / Expansion (Fixed Point)**
+
+   * expand only `forced_frontier`
+   * derive forcing relations
+   * close `forced_reachable`
+
+3. **Judgement Phase**
+
+   * compute `terminal_forced`
+   * evaluate invariants (`mate_inevitable`, etc.)
+
+No judgement feeds back into derivation.
+
+---
+
+## Mental One-Liners (Carry These Forward)
+
+* **“Roots are commitments to a hypothesis.”**
+* **“Expansion creates possibilities; forcing removes freedom.”**
+* **“Inevitability is about unavoidable endings, not intermediate states.”**
+* **“Terminality is judged after forced play is fully known.”**
+
+---
+
+## Current Status
+
+✔ Root-scoped forced reasoning
+✔ Correct ∀ / ∃ semantics
+✔ Controlled expansion (no explosion)
+✔ Mate-in-1 and mate-in-2 work when fully forced
+✔ Terminal reasoning fixed and explicit
+
+---
+
+Continue from here, and suggest what we can extend upon.

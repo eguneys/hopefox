@@ -170,6 +170,7 @@ class ForcedReachable implements  Resolver {
         }
 
 
+        const threatens: Row[] = []
 
         for (let c of forced_reachable) {
             if (!this.mz.is_attacker(c.world)) {
@@ -187,11 +188,36 @@ class ForcedReachable implements  Resolver {
                         root: c.root,
                         world: wPrime
                     })
+
+                    /* ?? */
+
+                    let creates_threat = ctx.get('creates_threat')
+                    .filter(_ => _.root === c.root && _.parent === c.world && _.next === wPrime)
+
+                    for (let threat of creates_threat) {
+                        threatens.push({
+                            root: c.root,
+                            child: wPrime,
+                            t: threat.t
+                        })
+                    }
+
+                    let existing_threats = ctx.get('threatens')
+                    .filter(_ => _.root === c.root && _.parent === c.world)
+
+                    for (let threat of existing_threats) {
+                        threatens.push({
+                            root: c.root,
+                            child: wPrime,
+                            t: threat.t
+                        })
+                    }
                 }
+
             }
         }
 
-        return { forced_reachable: output }
+        return { forced_reachable: output, threatens }
     }
 }
 
@@ -203,6 +229,7 @@ class ForcedFrontier implements  Resolver {
     constructor(private mz: PositionMaterializer) {}
 
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const forced_seen: Row[] = []
         const output: Row[] = []
 
         for (let c of input.rows) {
@@ -214,10 +241,15 @@ class ForcedFrontier implements  Resolver {
                     root: c.root,
                     world: c.world
                 })
+                // TODO: new check
+                forced_seen.push({
+                    root: c.root,
+                    world: c.world
+                })
             }
         }
 
-        return { forced_frontier: output }
+        return { forced_frontier: output, forced_seen }
     }
 }
 
