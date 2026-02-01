@@ -338,7 +338,7 @@ class MateInevitable implements Invariant {
         let terminals = ctx.get('terminal_forced')
 
         let witnesses = []
-        let holds = true
+        let holds = false
         for (let r of terminals) {
             if (!this.mz.is_checkmate(r.world)) {
                 holds = false
@@ -346,6 +346,7 @@ class MateInevitable implements Invariant {
                 break
             }
             witnesses.push(r.world)
+            holds = true
         }
 
 
