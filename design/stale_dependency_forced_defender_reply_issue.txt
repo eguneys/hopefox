@@ -1,0 +1,88 @@
+I've tried to debug this forced_defender_replies and i think the issue is around here somewhere take a look:
+
+
+class ForcedDefenderReply implements Resolver {
+  id = 'forced_defender_reply'
+  inputRelations = ['forced_reachable', 'worlds', 'threatens']
+  //inputRelations = ['forced_reachable', 'threatens']
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+    const output: Row[] = [];
+
+      let threatens: Row[]
+
+
+      let forced_reachable: Row[],
+          worlds: Row[]
+
+      if (input.relation === 'forced_reachable') {
+          threatens = ctx.get('threatens')
+          worlds = ctx.get('worlds')
+          forced_reachable = input.rows
+      } else if (input.relation === 'threatens') {
+          threatens = input.rows
+          worlds = ctx.get('worlds')
+          forced_reachable = ctx.get('forced_reachable')
+      } else if (input.relation === 'worlds') {
+          threatens = ctx.get('threatens')
+          worlds = input.rows
+          forced_reachable = ctx.get('forced_reachable')
+      } else {
+        throw 'Unreachable'
+      }
+
+      //console.log(forced_reachable, threatens, worlds)
+
+    for (const fr of forced_reachable) {
+      const { root, world: parent } = fr;
+
+      if (!this.mz.is_defender(parent)) continue;
+
+      const threats = threatens
+        .filter(t => t.root === root && t.world === parent);
+
+      const replies = worlds
+        .filter(w => w.root === root && w.parent === parent)
+        .map(w => w.world);
+
+      for (const reply of replies) {
+        //if (!this.mz.is_legal(reply)) continue;
+
+        let XX = this.mz.sans(reply)
+        let l = threats.length
+        const ok = threats.every(t =>
+          this.mz.__resolves(reply, t.t)
+        );
+
+        if (ok) {
+          output.push({
+            root,
+            parent,
+            reply
+          });
+        }
+      }
+    }
+
+    let XX
+      if (output[0] !== undefined) {
+          XX = this.mz.sans(output[0].reply)
+      }
+    return { forced_defender_reply: output };
+  }
+}
+
+
+
+So the problem seems to be, within these dependency relations. If I don't include worlds, nothing expands. But if I include worlds, forced_reachable or threatens hasn't expanded yet, so this kind of logic:
+
+        const ok = threats.every(t =>
+          this.mz.__resolves(reply, t.t)
+        );
+
+
+is flawed because we are reasoning in a semi constructed in between relation with stale data, because threatens will be populated around the same time but not yet.
+
+I think this is possible right?

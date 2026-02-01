@@ -1,0 +1,262 @@
+notepad here's expansion:
+
+class ExpandWorldsResolver implements Resolver {
+    id = 'expand_worlds'
+
+    inputRelations = ['forced_frontier']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        for (let c of input.rows) {
+            //let XX = this.mz.sans(c.world)
+            let legal_worlds = this.mz.generate_legal_worlds(c.world)
+
+
+            for (let world of legal_worlds) {
+                output.push({
+                    root: c.root,
+                    parent: c.world,
+                    world
+                })
+            }
+
+        }
+
+        return { worlds: output }
+    }
+
+}
+
+
+Here's forced_frontier which is what actually consumes forced reachable
+
+
+class ForcedFrontier implements  Resolver {
+    id = 'forced_frontier'
+
+    inputRelations = ['forced_reachable']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const forced_seen: Row[] = []
+        const output: Row[] = []
+
+        for (let c of input.rows) {
+            let seen = ctx.get('forced_seen')
+                .filter(_ => _.root === c.root && _.world === c.world)
+
+            if (seen.length === 0) {
+                output.push({
+                    root: c.root,
+                    world: c.world
+                })
+                // TODO: new check
+                forced_seen.push({
+                    root: c.root,
+                    world: c.world
+                })
+            }
+        }
+
+        let XX = ctx.get('forced_seen').map(_ => this.mz.sans(_.world))
+
+        return { forced_frontier: output, forced_seen }
+    }
+}
+
+
+
+
+Finally here's the forced_reachable, 
+
+
+class ForcedReachable implements  Resolver {
+    id = 'forced_reachable'
+
+    inputRelations = ['forced_reachable', 'forced_defender_reply', 'forcing_attacker_move']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        let forced_reachable: Row[],
+            forced_defender_reply: Row[],
+            forcing_attacker_move: Row[]
+
+        if (input.relation === 'forced_reachable') {
+            forced_reachable = input.rows
+            forced_defender_reply = ctx.get('forced_defender_reply')
+            forcing_attacker_move = ctx.get('forcing_attacker_move')
+        } else if (input.relation === 'forced_defender_reply') {
+            forced_defender_reply = input.rows
+            forced_reachable = ctx.get('forced_reachable')!
+            forcing_attacker_move = ctx.get('forcing_attacker_move')
+        } else if (input.relation === 'forcing_attacker_move') {
+            forcing_attacker_move = input.rows
+            forced_reachable = ctx.get('forced_reachable')!
+            forced_defender_reply = ctx.get('forced_defender_reply')
+        } else {
+            throw 'Unreachable'
+        }
+
+        for (let c of forced_reachable) {
+            if (!this.mz.is_defender(c.world)) {
+                continue
+            }
+
+            let wPrimes = ctx.get('worlds')
+                .filter(_ => _.root === c.root && _.parent === c.world)
+                .map(_ => _.world)
+
+
+            for (let wPrime of wPrimes) {
+                let replies = forced_defender_reply
+                    .filter(_ => _.root === c.root && _.parent === c.world && _.reply === wPrime)
+                
+                for (let reply of replies) {
+                    output.push({
+                        root: c.root,
+                        world: wPrime
+                    })
+                }
+            }
+        }
+
+
+        const threatens: Row[] = []
+
+        //console.log(forced_reachable, output)
+        for (let c of forced_reachable) {
+            if (!this.mz.is_attacker(c.world)) {
+                continue
+            }
+
+            let wPrimes = ctx.get('worlds')
+                .filter(_ => _.root === c.root && _.parent === c.world)
+                .map(_ => _.world)
+
+            for (let wPrime of wPrimes) {
+                let replies = forcing_attacker_move
+                    .filter(_ => _.root === c.root && _.parent === c.world && _.next === wPrime)
+                
+                for (let reply of replies) {
+                    output.push({
+                        root: c.root,
+                        world: wPrime
+                    })
+
+                    let creates_threat = ctx.get('creates_threat')
+                    .filter(_ => _.root === c.root && _.parent === c.world && _.child === wPrime)
+
+                    for (let threat of creates_threat) {
+                        threatens.push({
+                            root: c.root,
+                            world: wPrime,
+                            t: threat.t
+                        })
+                    }
+
+                    let existing_threats = ctx.get('threatens')
+                    .filter(_ => _.root === c.root && _.world === c.world)
+
+                    for (let threat of existing_threats) {
+                        threatens.push({
+                            root: c.root,
+                            world: wPrime,
+                            t: threat.t
+                        })
+                    }
+                }
+
+            }
+        }
+
+        //console.log(threatens)
+        return { forced_reachable: output, threatens, expand_ready }
+    }
+}
+
+
+And also here's the forced_defender_reply, which only emits to forced_defender_reply
+
+
+
+class ForcedDefenderReply implements Resolver {
+  id = 'forced_defender_reply'
+  //inputRelations = ['forced_reachable', 'worlds', 'threatens']
+  //inputRelations = ['forced_reachable', 'threatens']
+  inputRelations = ['forced_reachable']
+
+  constructor(private mz: PositionMaterializer) {}
+
+  resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+    const output: Row[] = [];
+
+      let threatens: Row[]
+
+
+      let forced_reachable: Row[],
+          worlds: Row[]
+
+      if (input.relation === 'forced_reachable') {
+          threatens = ctx.get('threatens')
+          worlds = ctx.get('worlds')
+          forced_reachable = input.rows
+      } else if (input.relation === 'threatens') {
+          threatens = input.rows
+          worlds = ctx.get('worlds')
+          forced_reachable = ctx.get('forced_reachable')
+      } else if (input.relation === 'worlds') {
+          threatens = ctx.get('threatens')
+          worlds = input.rows
+          forced_reachable = ctx.get('forced_reachable')
+      } else {
+        throw 'Unreachable'
+      }
+
+      //console.log(forced_reachable, threatens, worlds)
+
+    for (const fr of forced_reachable) {
+      const { root, world: parent } = fr;
+
+      if (!this.mz.is_defender(parent)) continue;
+
+      const threats = threatens
+        .filter(t => t.root === root && t.world === parent);
+
+      const replies = worlds
+        .filter(w => w.root === root && w.parent === parent)
+        .map(w => w.world);
+
+      for (const reply of replies) {
+        //if (!this.mz.is_legal(reply)) continue;
+
+        let XX = this.mz.sans(reply)
+        let l = threats.length
+        const ok = threats.every(t =>
+          this.mz.__resolves(reply, t.t)
+        );
+
+        if (ok) {
+          output.push({
+            root,
+            parent,
+            reply
+          });
+        }
+      }
+    }
+
+    let XX
+      if (output[0] !== undefined) {
+          XX = this.mz.sans(output[0].reply)
+      }
+    return { forced_defender_reply: output };
+  }
+}
+

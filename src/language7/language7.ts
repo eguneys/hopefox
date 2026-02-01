@@ -55,7 +55,6 @@ export function Language7(mz: PositionMaterializer) {
     engine.registerInvariant(new MateInevitable(mz))
     engine.registerInvariant(new RookGainInevitable(mz))
 
-
     const candidate_attack_move: Row[] = candidate_attack_moves(mz)
 
     const bootstrapTx: Transaction = {
@@ -79,7 +78,7 @@ export function Language7(mz: PositionMaterializer) {
     return engine.query_invariants()
 }
 
-function candidate_attack_moves(mz: PositionMaterializer) {
+export function candidate_attack_moves(mz: PositionMaterializer) {
     let output = []
 
     let parent = 0
@@ -109,7 +108,7 @@ function candidate_attack_moves(mz: PositionMaterializer) {
     return output
 }
 
-class HypothesisRoot implements  Resolver {
+export class HypothesisRoot implements  Resolver {
     id = 'hypothesis_root'
 
     inputRelations = ['candidate_attack_move']
@@ -193,6 +192,7 @@ class ForcedReachable implements  Resolver {
 
         const threatens: Row[] = []
 
+        //console.log(forced_reachable, output)
         for (let c of forced_reachable) {
             if (!this.mz.is_attacker(c.world)) {
                 continue
@@ -238,7 +238,9 @@ class ForcedReachable implements  Resolver {
             }
         }
 
-        return { forced_reachable: output, threatens }
+        const expand_ready: Row[] = []
+        //console.log(threatens)
+        return { forced_reachable: output, threatens, expand_ready }
     }
 }
 
@@ -279,31 +281,38 @@ class ForcedFrontier implements  Resolver {
 
 class ForcedDefenderReply implements Resolver {
   id = 'forced_defender_reply'
-  inputRelations = ['forced_reachable', 'worlds']
+  //inputRelations = ['forced_reachable', 'worlds', 'threatens']
+  //inputRelations = ['forced_reachable', 'threatens']
+  inputRelations = ['forced_reachable']
 
   constructor(private mz: PositionMaterializer) {}
 
   resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
     const output: Row[] = [];
 
-      let threatens = ctx.get('threatens')
+      let threatens: Row[]
 
 
       let forced_reachable: Row[],
           worlds: Row[]
 
-
       if (input.relation === 'forced_reachable') {
+          threatens = ctx.get('threatens')
           worlds = ctx.get('worlds')
           forced_reachable = input.rows
+      } else if (input.relation === 'threatens') {
+          threatens = input.rows
+          worlds = ctx.get('worlds')
+          forced_reachable = ctx.get('forced_reachable')
       } else if (input.relation === 'worlds') {
+          threatens = ctx.get('threatens')
           worlds = input.rows
           forced_reachable = ctx.get('forced_reachable')
       } else {
         throw 'Unreachable'
       }
 
-    //console.log(forced_reachable)
+      //console.log(forced_reachable, threatens, worlds)
 
     for (const fr of forced_reachable) {
       const { root, world: parent } = fr;
@@ -320,6 +329,7 @@ class ForcedDefenderReply implements Resolver {
       for (const reply of replies) {
         //if (!this.mz.is_legal(reply)) continue;
 
+        let XX = this.mz.sans(reply)
         let l = threats.length
         const ok = threats.every(t =>
           this.mz.__resolves(reply, t.t)
@@ -335,9 +345,9 @@ class ForcedDefenderReply implements Resolver {
       }
     }
 
+    let XX
       if (output[0] !== undefined) {
-          //let XX = this.mz.sans(output[0].reply)
-          //console.log(XX)
+          XX = this.mz.sans(output[0].reply)
       }
     return { forced_defender_reply: output };
   }
@@ -459,7 +469,7 @@ class ForcingAttackerMove implements  Resolver {
 
 
 
-class RookGainInevitable implements Invariant {
+export class RookGainInevitable implements Invariant {
     id = 'rook_gain_inevitable'
 
     constructor(private mz: PositionMaterializer) {}
@@ -495,7 +505,7 @@ class RookGainInevitable implements Invariant {
 
 
 
-class MateInevitable implements Invariant {
+export class MateInevitable implements Invariant {
     id = 'mate_inevitable'
 
     constructor(private mz: PositionMaterializer) {}
@@ -557,7 +567,7 @@ class ExpandWorldsResolver implements Resolver {
 
 
 
-class TerminalForced implements Judgement {
+export class TerminalForced implements Judgement {
     id = 'terminal_forced'
 
     inputRelations = ['forced_reachable', 'forced_defender_reply', 'forcing_attacker_move']
@@ -611,7 +621,7 @@ class TerminalForced implements Judgement {
     }
 }
 
-class CreatesThreat implements Resolver {
+export class CreatesThreat implements Resolver {
   id = 'creates_threat'
 
   inputRelations = ['worlds']

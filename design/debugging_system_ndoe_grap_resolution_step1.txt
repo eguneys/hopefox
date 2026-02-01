@@ -1,0 +1,16 @@
+forced_reachable(root, parent)
+        │
+        ▼
+   ExpandWorlds
+        │
+        ├─ worlds(...)
+        ├─ threatens(...)
+        └─ expand_ready(root, parent)
+                 │
+                 ▼
+        ForcedDefenderReply
+                 │
+                 └─ forced_defender_reply(root, parent, reply)
+                                  │
+                                  ▼
+                        forced_reachable(root, reply)
