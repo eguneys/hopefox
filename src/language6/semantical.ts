@@ -97,8 +97,9 @@ idea "Knight Fork"
     engine.run()
 
     let rows = engine.relations.get('worlds')!.rows
-    //rows = engine.relations.get('forced_reachable')!.rows
+    rows = engine.relations.get('forced_reachable')!.rows
 
+    //console.log(rows)
     console.log(rows.map(_ => mz.sans(_.world_id)))
     //console.log(engine.relations.get('candidate_attack_move')!.rows.map(_ => mz.sans(_.world_id)))
 
@@ -228,26 +229,6 @@ class ForcedReachable implements Resolver {
   }
 }
 
-
-class ExpandAttackMove implements Resolver {
-    id = 'expand_attack_moves'
-    inputRelations = ['candidate_attack_move']
-
-    constructor(private mz: PositionMaterializer) {}
-
-    resolve(input: InputSlice<Row>, ctx: ReadContext): ResolverOutput | null {
-        const output = []
-
-        for (const w of input.rows) {
-            let w2 = this.mz.add_move(w.world_id, w.move)
-            output.push({
-                world_id: w2
-            })
-        }
-        return { worlds: output }
-    }
-
-}
 
 class CandidateAttackMoves implements Resolver {
   id = 'candidate_attack_moves'
@@ -812,21 +793,28 @@ class MateInevitable implements Invariant {
   constructor(private mz: PositionMaterializer) {}
 
   evaluate(ctx: ReadContext): InvariantResult {
-    const witnesses: Row[] = []
+    const witnesses: WorldId[] = []
 
-    const hypotheses = ctx.get('candidate_attack_move')
+    // iterate over all hypothesis roots
+    //const roots = ctx.get('hypothesis_root')  // or however you store them
+    const roots = ctx.get('candidate_attack_move')  // or however you store them
 
-    for (const h of hypotheses) {
-      const hWorld = this.mz.add_move(h.world_id, h.move)
+    for (const r of roots) {
+      const root = r.world_id
 
-      const forcedWorlds =
-        ctx.get('forced_reachable', hWorld).map(r => r.world_id)
+      const forced = ctx
+        .get('forced_reachable')
+        .filter(x => x.root === root)
+        .map(x => x.world_id)
 
-      if (forcedWorlds.length === 0) continue
+      if (forced.length === 0) continue // defensive; should never happen
 
       let inevitable = true
 
-      for (const w of forcedWorlds) {
+      for (const w of forced) {
+
+        //console.log(root, w, this.mz.sans(root), this.mz.sans(w))
+
         this.mz.make_to_world(w)
 
         const isMate = this.mz.m.is_checkmate(this.mz.pos)
@@ -840,16 +828,17 @@ class MateInevitable implements Invariant {
       }
 
       if (inevitable) {
-        witnesses.push({ world_id: hWorld })
+        witnesses.push(root)
       }
     }
 
     return {
       holds: witnesses.length > 0,
-      witnesses: witnesses.map(w => w.world_id)
+      witnesses
     }
   }
 }
+
 
 
 class ForcingAttackerMove implements Resolver {
@@ -857,7 +846,7 @@ class ForcingAttackerMove implements Resolver {
 
   inputRelations = [
     'forced_reachable',
-    //'worlds',        // parent → child expansion
+    //'worlds',
     //'side_to_move'
   ]
 
@@ -873,39 +862,31 @@ class ForcingAttackerMove implements Resolver {
       const stm_is_attacker = this.mz.is_attacker(w)
       if (!stm_is_attacker) continue
 
-      // materialize parent
-      this.mz.make_to_world(w)
-
-      // attacker only forces if defender is currently in check
-      if (!this.mz.m.is_check(this.mz.pos)) {
-        this.mz.unmake_world(w)
-        continue
-      }
-      this.mz.unmake_world(w)
-
-      // iterate already-expanded children
-      const children = ctx.get('worlds', w)
+      // iterate expanded children
+      const children = ctx.get('worlds')
+        .filter(r => r.parent === w)
 
       for (const ch of children) {
-        const w2 = ch.world
+        const w2 = ch.world_id
 
         this.mz.make_to_world(w2)
 
-        const stillCheck = this.mz.m.is_check(this.mz.pos)
+        const givesCheck =
+          this.mz.m.is_check(this.mz.pos) ||
+          this.mz.m.is_checkmate(this.mz.pos)
+
 
         this.mz.unmake_world(w2)
 
-        if (!stillCheck) continue
+        if (!givesCheck) continue
 
         out.push({
           world_id: root,
           root,
           parent: w,
-          next_world_id: w2
+          next: w2
         })
       }
-
-      this.mz.unmake_world(w)
     }
 
     return out.length
@@ -913,6 +894,7 @@ class ForcingAttackerMove implements Resolver {
       : null
   }
 }
+
 
 
 class ForcedDefenderReply implements Resolver {

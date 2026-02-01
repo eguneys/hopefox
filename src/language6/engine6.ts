@@ -318,7 +318,10 @@ export class MyEngine implements Engine, EngineState {
 
     readContext: ReadContext = new EngineReadContext(this.relations)
 
-    constructor(graph: EngineGraph) {
+    constructor(graph?: EngineGraph) {
+        if (!graph) {
+            return
+        }
         for (const [relId, metaRel] of graph.relations) {
             this.relations.set(relId, makeRelation(relId, metaRel.schema))
         }
@@ -444,8 +447,8 @@ export class MyEngine implements Engine, EngineState {
         this.resolvers.set(resolver.id, resolver)
     }
 
-    registerRelation(relation: Relation<Row>) {
-        this.relations.set(relation.id, relation)
+    registerRelation(relation_id: RelationId) {
+        this.relations.set(relation_id, makeRelation(relation_id, []))
     }
 
     run() {
@@ -520,6 +523,9 @@ export class PositionMaterializer {
     is_attacker(world_id: WorldId) {
         return this.nodes.history_moves(world_id).length % 2 === 0
     }
+    is_defender(world_id: WorldId) {
+        return !this.is_attacker(world_id)
+    }
 
     exists(world_id: WorldId) {
         if (world_id === 0) {
@@ -546,6 +552,13 @@ export class PositionMaterializer {
         for (let i = moves.length - 1; i >= 0; i--) {
             this.m.unmake_move(this.pos, moves[i])
         }
+    }
+
+    generate_legal_moves(world_id: WorldId) {
+        this.make_to_world(world_id)
+        let res = this.m.get_legal_moves(this.pos)
+        this.unmake_world(world_id)
+        return res
     }
 
     sans(world_id: WorldId) {

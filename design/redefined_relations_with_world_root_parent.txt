@@ -1,0 +1,347 @@
+Perfect — here is the **single, canonical restatement** of *all* relations in your system, with **schemas, meaning, and invariants**, written so you can literally keep it open while coding.
+
+No prose fluff. No re-derivation. This is the contract.
+
+---
+
+# Canonical Relation Schemas (Root-Scoped)
+
+This document assumes:
+
+* `world_id` uniquely identifies a concrete board position
+* `root` is the **hypothesis root** (world after a candidate attack move)
+* `parent` is the **immediate predecessor** world
+* all forced logic is **scoped by `root`**
+
+---
+
+## 0. Hypothesis / Seeding Layer
+
+### `candidate_attack_move`
+
+```text
+candidate_attack_move(parent, move)
+```
+
+**Meaning**
+
+* From `parent` (usually world 0), `move` is a plausible forcing hypothesis.
+
+**Properties**
+
+* Existential (∃)
+* Over-approximation
+* No forced semantics
+
+---
+
+### `hypothesis_root`
+
+```text
+hypothesis_root(root)
+```
+
+**Meaning**
+
+* `root` is the world obtained by applying one `candidate_attack_move`.
+
+**Invariant**
+
+* Exactly one root per candidate move
+* Roots are disjoint proof universes
+
+---
+
+### `forced_reachable` (seeded axiom)
+
+```text
+forced_reachable(root, root)
+```
+
+**Meaning**
+
+* Forced play starts at the hypothesis root.
+
+**Important**
+
+* This is an axiom, not derived.
+* This prevents vacuous truth.
+
+---
+
+## 1. Expansion Layer (Existential, World Creation)
+
+### `worlds`
+
+```text
+worlds(root, parent, world)
+```
+
+**Meaning**
+
+* `world` exists by applying one legal move from `parent`,
+  within the hypothesis universe `root`.
+
+**Properties**
+
+* Existential
+* No pruning
+* No forcedness
+* Parent → child is mandatory
+
+---
+
+### `forced_seen`
+
+```text
+forced_seen(root, world)
+```
+
+**Meaning**
+
+* `(root, world)` has already been expanded.
+
+**Properties**
+
+* Operational only
+* Prevents re-expansion
+* No chess semantics
+
+---
+
+## 2. Frontier Control (Operational)
+
+### `forced_frontier`
+
+```text
+forced_frontier(root, world)
+```
+
+**Definition**
+
+```text
+forced_frontier(root, world) ⇔
+  forced_reachable(root, world)
+  AND NOT forced_seen(root, world)
+```
+
+**Meaning**
+
+* `(root, world)` just became forced-reachable and must be expanded.
+
+**Invariant**
+
+* Each `(root, world)` enters frontier at most once.
+
+---
+
+## 3. Local Derived Facts (Per World)
+
+These are **not root-scoped**, because they are properties of a position.
+
+### `side_to_move`
+
+```text
+side_to_move(world, side)
+```
+
+---
+
+### `in_check`
+
+```text
+in_check(world)
+```
+
+(optional but recommended)
+
+---
+
+### `is_checkmate`
+
+```text
+is_checkmate(world)
+```
+
+(optional, can be queried via materializer)
+
+---
+
+## 4. Forcing Filters (Pure Selection)
+
+These **do not create worlds**.
+
+---
+
+### `forced_defender_reply`
+
+```text
+forced_defender_reply(root, parent, reply)
+```
+
+**Meaning**
+
+* Given hypothesis `root`,
+  if defender is in check at `parent`,
+  `reply` is one of the defender’s forced evasions.
+
+**Formal rule**
+
+```text
+forced_defender_reply(r, w, w') iff
+  forced_reachable(r, w)
+  AND side_to_move(w) = defender
+  AND in_check(w)
+  AND worlds(r, w, w')
+  AND NOT in_check(w')
+```
+
+**Quantifier meaning**
+
+* Universal (∀)
+* All replies must be considered
+
+---
+
+### `forcing_attacker_move`
+
+```text
+forcing_attacker_move(root, parent, next)
+```
+
+**Meaning**
+
+* Given hypothesis `root`,
+  `next` is an attacker continuation that **applies or maintains force**.
+
+**Minimal forcing rule**
+
+```text
+forcing_attacker_move(r, w, w') iff
+  forced_reachable(r, w)
+  AND side_to_move(w) = attacker
+  AND worlds(r, w, w')
+  AND (in_check(w') OR is_checkmate(w'))
+```
+
+**Quantifier meaning**
+
+* Existential permission, but unioned
+* Bad continuations refute inevitability later
+
+---
+
+## 5. Forced Closure (Semantic Core)
+
+### `forced_reachable`
+
+```text
+forced_reachable(root, world)
+```
+
+**Definition (least fixed point)**
+
+```text
+1. forced_reachable(r, r)
+
+2. If forced_reachable(r, w)
+   AND side_to_move(w) = defender
+   then ∀ w' :
+     forced_defender_reply(r, w, w')
+     ⇒ forced_reachable(r, w')
+
+3. If forced_reachable(r, w)
+   AND side_to_move(w) = attacker
+   then ∀ w' :
+     forcing_attacker_move(r, w, w')
+     ⇒ forced_reachable(r, w')
+```
+
+**Meaning**
+
+* All worlds that may occur under forced play
+* Flat set, not a tree
+
+---
+
+## 6. Invariants (Judgement Layer)
+
+### `mate_inevitable`
+
+```text
+mate_inevitable(root)
+```
+
+**Definition**
+
+```text
+mate_inevitable(r) iff
+  ∀ w :
+    forced_reachable(r, w)
+    ⇒ is_checkmate(w)
+```
+
+**Properties**
+
+* Pure ∀
+* Fail-fast on counterexample
+* No mutation
+* No expansion
+
+---
+
+## 7. Critical Global Invariants (Must Always Hold)
+
+These are **system invariants**, not chess ones.
+
+1. **Root isolation**
+
+```text
+No relation may mix worlds from different roots
+```
+
+2. **Single expansion**
+
+```text
+Each (root, world) expanded at most once
+```
+
+3. **No world creation in forcing**
+
+```text
+forced_* relations never create worlds
+```
+
+4. **No forced logic in expansion**
+
+```text
+expand_* resolvers never test check, mate, or pressure
+```
+
+5. **Invariants never mutate**
+
+```text
+Invariants read only; they never emit relations
+```
+
+---
+
+## 8. One-Line Mental Model (Final)
+
+> **A root defines a proof universe;
+> expansion creates possibilities;
+> forcing removes freedom;
+> reachability closes the universe;
+> invariants judge what survives.**
+
+If you keep *this document* as the reference, you will not get lost again.
+
+---
+
+If you want next, I can:
+
+* show a **concrete mate-in-2 trace with actual rows**
+* add **material-based progress** cleanly
+* or help you **collapse duplicate boards safely**
+
+Just tell me.

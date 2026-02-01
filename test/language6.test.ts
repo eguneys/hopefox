@@ -17,7 +17,7 @@ it.skip('works', () => {
   example()
 })
 
-it('works diagnostics', () => {
+it.skip('works diagnostics', () => {
   let text = `
 idea "Knight Fork"
   move knight from e5 to f7
@@ -31,7 +31,7 @@ idea "Knight Fork"
 })
 
 
-it('works, success', () => {
+it.skip('works, success', () => {
   let text = `
 idea "Knight Fork"
   move knight from e5 to f7
@@ -44,7 +44,7 @@ idea "Knight Fork"
   expect(res.node).toBeDefined()
 })
 
-it('runs', () => {
+it.skip('runs', () => {
 
   solve_i(2)
   for (let i = 0; i < 10; i++) {

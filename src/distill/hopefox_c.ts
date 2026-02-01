@@ -324,7 +324,7 @@ export class PositionManager {
     }
 
     is_checkmate(pos: number) {
-        return this.m._is_checkmate(pos)
+        return this.m._is_checkmate(pos) !== 0
     }
 
     pos_in_check(pos: number) {
