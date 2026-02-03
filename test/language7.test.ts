@@ -7,7 +7,7 @@ import { Row } from '../src/language7/engine7'
 
 it('runs', () => {
 
-  //solve_i(1)
+  //solve_i(6)
   for (let i = 0; i < 10; i++) {
     solve_i(i)
   }
@@ -29,6 +29,9 @@ function solve_i(i: number) {
     if (p === undefined) {
       res2.set(name_outcome(v.outcome), [mz.sans(v.world)])
     } else {
+      if (p.length > 3) {
+        continue
+      }
       p.push(mz.sans(v.world))
     }
   }

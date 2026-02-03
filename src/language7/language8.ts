@@ -22,6 +22,8 @@ export function Language8(mz: PositionMaterializer) {
     // obligation_closed: root world reply
     engine.registerRelation('obligation_closed')
 
+    // attacker_moves_enumerated: root world
+    engine.registerRelation('attacker_moves_enumerated')
 
     // defender_to_move: root world
     engine.registerRelation('defender_to_move')
@@ -82,9 +84,10 @@ export function Language8(mz: PositionMaterializer) {
     engine.run()
 
     let rows = (engine.relations.get('forcing_idea_classes')!.rows)
-    let rows2 = (engine.relations.get('forced_defender_reply')!.rows)
+    let rows2 = (engine.relations.get('terminal_forced')!.rows)
     //console.log(rows2)
-    //console.log(mz.sans(rows2[0].parent))
+    //console.log(rows2[0]?.world !== undefined && mz.sans(rows2[0].world))
+    //console.log(rows2[0]?.reply !== undefined && mz.sans(rows2[0].reply))
     //return engine.query_invariants()
 
     return rows
@@ -141,6 +144,7 @@ class ExpandWorldsResolver implements Resolver {
             }
 
 
+            //console.log('yayy', this.mz.sans(parent))
             if (!this.mz.is_attacker(parent)) {
                 continue
             }
@@ -188,7 +192,8 @@ class ExpandWorldsResolver implements Resolver {
             }
         }
 
-        return { worlds, threatens, forcing_attacker_move, expand_ready }
+        //console.log(forcing_attacker_move, expand_ready)
+        return { worlds, threatens, forcing_attacker_move, expand_ready, attacker_moves_enumerated: expand_ready }
     }
 }
 
@@ -440,18 +445,24 @@ close_obligation_dominated:
 class DeriveTerminalAttacker implements Resolver {
     id = 'terminal_attacker'
 
-    inputRelations = ['attacker_to_move']
+    inputRelations = ['attacker_moves_enumerated']
 
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
-        const attacker_to_move = input.rows
+        const attacker_moves_enumerated = input.rows
 
         const output: Row[] = []
 
-        for (let d of attacker_to_move) {
+        for (let d of attacker_moves_enumerated) {
             let { root, world } = d
+
+
+            if (!ctx.get('attacker_to_move').find(_ => _.root === root && _.world === world)) {
+                continue
+            }
 
             const forcing_attacker_move = ctx.get('forcing_attacker_move')
 
+            //console.log(d, forcing_attacker_move)
             if (forcing_attacker_move.find(_ => _.root === root && _.world === world)) {
                 continue
             }
@@ -465,32 +476,6 @@ class DeriveTerminalAttacker implements Resolver {
         return { terminal_forced: output }
     }
 }
-
-
-
-class DeriveTerminalRefuted implements Resolver {
-    id = 'terminal_refuted'
-
-    inputRelations = ['refuted']
-
-    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
-        const refuted = input.rows
-
-        const output: Row[] = []
-
-        for (let r of refuted) {
-            let { root, world } = r
-
-            output.push({
-                root,
-                world,
-            })
-        }
-
-        return { terminal_forced: output }
-    }
-}
-
 
 
 class DeriveTerminalDefender implements Resolver {
@@ -511,6 +496,30 @@ class DeriveTerminalDefender implements Resolver {
             if (open_obligation.find(_ => _.root === root && _.world === world)) {
                 continue
             }
+
+            output.push({
+                root,
+                world,
+            })
+        }
+
+        return { terminal_forced: output }
+    }
+}
+
+
+class DeriveTerminalRefuted implements Resolver {
+    id = 'terminal_refuted'
+
+    inputRelations = ['refuted']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const refuted = input.rows
+
+        const output: Row[] = []
+
+        for (let r of refuted) {
+            let { root, world } = r
 
             output.push({
                 root,
