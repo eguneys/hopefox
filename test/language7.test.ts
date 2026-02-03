@@ -7,9 +7,9 @@ import { Row } from '../src/language7/engine7'
 
 it('runs', () => {
 
-  solve_i(10)
+  //solve_i(1)
   for (let i = 0; i < 10; i++) {
-    //solve_i(i)
+    solve_i(i)
   }
 })
 

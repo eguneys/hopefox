@@ -1,0 +1,147 @@
+Here's a simple outline of a tactical idea with a move by move solution flow:
+
+
+bishop captures pawn
+       sacrifices_to pawn
+       sets_up_discovery_vs rook and king
+       skewers queen and rook
+       defended_by queen and rook
+
+pawn accepts_sacrifice
+     blocks_discovery_vs rook and king
+     attacked_by queen and rook
+     defended_by queen
+
+rook captures pawn
+     checks king
+     attacked_by queen
+     defended_by queen
+     check is_unevadable
+           is_blockable
+           is_capturable
+
+queen captures rook
+      sacrifices_to queen
+
+queen accepts_sacrifice
+      checks king
+      check is_unblockable
+            is_uncapturable
+            is_evadable
+
+
+
+
+What is the difference between dumping a bunch of chess moves, namely we can actually enumerate all possible moves, and stitching together 4-5 level deep sequences that applies on a given position.
+Versus this idea which is essentially the same thing, except moves with constraints have some additional rules that helps with pruning. 
+
+The only 2 concrete progress I have achieved so far is:
+A: This idea.
+B: A mechanism to execute this idea perfectly.
+
+But I need a C: A Reason to drive this idea to it's next phase.
+
+
+Let's say I introduce a bunch of ideas lazily as such
+
+bishop captures piece
+
+queen delivers mate
+
+queen checks
+      check is evadable
+      check is blockable
+      check is capturable
+
+knight forks king and rook
+
+king evades
+
+knight captures rook
+
+
+And I have a bunch of puzzles with the solutions are derivation of these moves.
+
+And I derive those solutions plus some more lines.
+
+This is something to think about, yet nothing revolutionary.
+
+
+I will try naming obligations across counterplay. Using the same tactics as an example; here goes:
+
+
+No, A: this is not fun to do manually, or I don't know how.
+B: this is not easy or simple to do, namely the naming of obligatory ideas. What is that even sound like I am not sure.
+C: It's not intuitive to think in those terms.
+D: I've already tried constructing proofs under inevitable invariants and conceptually leaned away from doing that because it led to certain problems, I couldn't achieve.
+
+
+Ok you have 2 measures
+D1: unguarded high-value attackers
+D2: forced reply bandwidth
+
+these are at most some fancy heuristics that digitize the world space. 
+unguarded high-value attackers may or may not be good or bad it sounds good but it doesn't force a semantic value binding upon the position that makes intuitive sense or helps the position in some way.
+Same as forced reply bandwidth, just some latent property that doesn't measure the value of the position in some sort of way.
+
+You just can't use these numerical measures to derive semantic meaning against whether forcedness can be applied or what the next move might be. It's all too speculative, unintuitive unsatisfactory, mystic, superfluous and fancy complications.
+
+We should instead drop obligation proofs, start with simple folklore scenarios, that well aligns with obligatory human thinking in chess terms.
+
+
+
+So forcing and reply classes, let's take this single move description as an example:
+
+
+bishop captures pawn
+       sacrifices_to pawn
+       sets_up_discovery_vs rook and king
+       skewers queen and rook
+       defended_by queen and rook
+
+if we have to name these as "obligations" we might attempt at it:
+
+bishop captures pawn          -> material loss obligation
+       sacrifices_to pawn     -> sacrifice bishop obligation
+       sets_up_discovery_vs   -> discovered_check obligation
+       skewers queen and rook -> skewer obligation
+       defended_by            -> defensive obligation
+
+now some of these obligations can be addressed at the same time, by simply capturing this bishop meanwhile creating counter obligations.
+
+Let's continue:
+
+pawn accepts_sacrifice
+     blocks_discovery_vs rook and king
+     attacked_by queen and rook
+     defended_by queen
+
+pawn accepts_sacrifice          -> material loss obligation countered
+                                -> sacrifice bishop obligation neutralized
+                                -> skewer obligation neutralized
+     blocks_discovery_vs        -> discovered_check obligation neutralized
+     attacked_by queen and rook -> capturability obligation
+     defended_by                -> defensive obligation
+
+I don't know this was a poor attempt to formalize some of my ideas under your reasoning, it's not a success, just an attempt that might spark up a useful discussion.
+
+
+Can we just steer away from proofs as in mathematical sense, and think purely in terms of annotations and how to annotate effectively and constructively so we can derive meaning and pattern matching later. Please.
+
+
+
+Ok, now I want to envision the potential of this approach. And couple it with some possible latent ideas that enrichens it. What is at best we can achieve with this reasoning, can we still base it on some sound formal math foundations or is it more on artistic side.
+
+
+So the underlying engine is operating on relations with incremental derivation with a post-judgement step. Conceptually it entangles most of the pain points of control flow and reasoning about the system. Considering this fact, I want to circle back to the one problem of forcedness. 
+
+Namely I am auto matching move descriptions to produce lines. And I want to derive an internal meaning out of those lines. Outright goal being finding the solution to the underlying tactic. But in a common sense in doing that, either limiting the lines to only those that are forced under some sort of best play. Or order the lines with respect to best play again. 
+But I have no notion of deriving what the best play might look like, or how forcedness is achieved. Of course we will not delve into proofs but semi artistically what are our options here?
+
+
+Ask:
+How uncomfortable is the defender in this line?
+
+Find:
+lines where the opponent never establishes a convincing counter-story
+

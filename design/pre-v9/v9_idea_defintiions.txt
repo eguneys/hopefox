@@ -1,0 +1,36 @@
+I am on a tension between rigorously hard-coding tactical ideas, vs auto-generating unnamed ideas.
+Earlier we had this statement:
+
+These are bindings, not pattern matches
+Each idea node explains why the move was necessary
+
+Then we drifted into explaining why all legal moves must be included. In formal inevitable proof derivations.
+
+
+I think I will generate some sort of an idea soup semi-automatically, then match those ideas against real positions to get a search tree and extract the solutions.
+
+Let's go over a concrete example, I will describe the puzzle so that you can understand what it is spot on:
+
+There is a queen vs queen alignment blocked by a rook.
+Their queen is only defended by a knight. Our queen is undefended.
+The rook captures knight, essentially sacrificing the exchange against a pawn.
+But also discovering attack on the queen, and removing the defender of the queen.
+And also defending our queen.
+In this case, queen must deal with the attack, 
+  Either it exchanges itself against our queen, rook recaptures and evades the attack it was under.
+  Or it evades or protects the queen, rook evades the attack it was under.
+
+This is the rigor I am dealing with, hard coding style preferred. This is at least a semi proof, or a variation of it I am sure. 
+This is my goal.
+
+Let's do another while we are at it:
+
+Queen eyes a square that delivers mate in 1. King is in a mating net.
+There is no safe way to defend that square, block the queens mate in 1 threat, or escape the mating net. Sacrificially liquidates queens by sacrificing the bishop with check followed by queen exchange on the same square.
+
+
+
+Continued:
+
+No, I am not proving inevitibility, I've gone down that road, I found exhaustive legal reply space explosion.
+

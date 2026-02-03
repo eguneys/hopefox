@@ -1,0 +1,5 @@
+This all seems controvertial and speculative at most. My mind is confused unable to reason, not to mention I don't have skill to think in terms of rigirous math terms. Why we are abandoning the A the one idea you suggested that works (almost). 
+
+Maybe we need a broader speculation along the lines of our goals or some third parties to enter the discussion I will do some more research. 
+
+And besides, the confusion starts collapsing the chess search into ideas, or a single ongoing idea. Because a line can serve multiple ideas, a single move can capture different semantical values, both in terms of defending and also attacking. The trick lies beyond the term "idea".

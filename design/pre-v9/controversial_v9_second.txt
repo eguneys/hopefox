@@ -1,0 +1,11 @@
+I am afraid you are overlooking this:
+Qxh3 Qf8# line the "Defender" checkmates the attacker, not the "attacker" is checkmating side as we are looking for as expected.
+
+So Qxh3 choice while leads to an inevitable checkmate but for the defender side not the attacker. Qxh3 Qf8# defender checkmates attacker.
+
+What we actually looking for, Qxh3 is attacker's choice that must not be taken by the attacker in the first place, that leads to an (possibly) irrelevant inevitable loss of the game.
+In contrast Qe1# line is an actual inevitable attacker's choice that immediately attacker checkmates the defender. Which is useful information.
+
+You can make the argument that Qxh3 Qf8# is also useful information that showcases how the attacker can fall into an inevitable mate if played incorrectly.
+
+But what about all these other Qxh3 a3 Qe1+, arbitrary lines starting with Qxh3 expanding all possible replies by the defender. We just have to make some distinction that we have to put this into some sort of conceptual structure so we don't get lost.

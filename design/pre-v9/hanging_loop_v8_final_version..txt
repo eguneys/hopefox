@@ -1,0 +1,24 @@
+First of all rows in a relation are deduped using computing a hash key for the entire row properties, so no worries there I hope.
+Secondly, earlier we strictly agreed, the gateway how forced_reachable derives through an expand_ready signal it's recursive nature.
+
+here's the current structure
+
+ExpandWorldsResolver
+ :depends on forced_reachable
+ :emits worlds threatens forcing_attacker_move expand_ready
+
+
+ForcedDefenderReply
+ :depends on expand_ready
+ :emits forced_defender_reply forced_reachable
+
+Finally I added this symmetric to ForcedDefenderReply which allowed flow to pass through attacker moves, but also introduced the hang:
+
+ForcingAttackerMove
+ :depends on expand_ready
+ :emits forced_reachable
+
+The point is:
+A. ForcingAttackerMove is the same as ForcedDefenderReply, except it doesn't emit forcing_attacker_move, which is handled by ExpandWorldsResolver already. Everything else flows the same.
+
+If you think this structure is sound, we can issue how to break the hanging loop.

@@ -1,0 +1,16 @@
+this snippet of codes under forcing_attacker_move where we skip over non forcing attacker moves like this:
+
+            for (const reply of replies) {
+                //if (!this.mz.is_legal(reply)) continue;
+                if (this.mz.nodes.history_moves(reply).length > 5) {
+                    continue
+                }
+                if (!(this.mz.is_capture(reply) || this.mz.is_check(reply) || this.mz.is_checkmate(reply))) {
+                    continue
+                }
+                // add reply
+
+
+Note the depth limit helped converge without hanging. But that's not a reliable fix of course.
+And the progress criteria that you mentioned with material delta is also not a great fix I think. Because you are basically saying an attacker move must be a capture, because material_delta must be higher meaning a capture must take place. 
+Which is not exactly what you want.

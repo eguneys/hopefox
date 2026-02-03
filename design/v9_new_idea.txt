@@ -1,0 +1,53 @@
+
+I am building a root-scoped relational forcing engine for chess tactics.
+
+The engine does NOT do minimax or evaluation. Its purpose is to prove
+inevitability using logical forcing:
+
+  ∃ attacker commitment (root)
+    such that
+      ∀ forced continuations,
+        all terminal forced worlds satisfy an invariant
+        (e.g. checkmate, material gain).
+
+Key concepts:
+
+- forced_reachable(root, world):
+  worlds that may occur under forced play from a root
+
+- ExpandWorldsResolver:
+  triggered by forced_reachable
+  generates:
+    worlds(root, parent, child)
+    threatens(root, child, threat)
+    forcing_attacker_move(root, parent, child) [explanatory]
+    forced_reachable(root, child) (inline, for forcing attacker moves)
+    expand_ready(root, parent)
+
+- forced_defender_reply:
+  triggered ONLY by expand_ready
+  reads all worlds + threats for (root, parent)
+  selects replies that resolve all dominant threats
+  emits forced_reachable(root, reply)
+
+- terminal_forced:
+  a post-fixpoint judgement:
+    defender_to_move AND no forced_defender_reply
+    OR
+    attacker_to_move AND no forcing_attacker_move
+
+
+Currently the problem is, there is no way of knowing how to prune the forced_reachable paths. The computation explodes since we have to look at all opponent replies.
+I almost gave up on this project because of this problem. But I think we can introduce some new concepts to make it work again.
+
+A. You mentioned earlier there was a refuted(world) relation that prunes the lines so they don't expand. I will use that idea, and
+B. Define some budget system, and a secondary heuristic system to limit and control how the search expands. which lines are preferred for exploration and things like that.
+
+
+
+Budgets must never prune defender universality directly.
+They may only prune attacker commitments.
+
+You mentioned terminal_forced after making some changes, allows early success before full expansion, but as it currently is terminal_forced is a judgement calculated post-hoc. Do you think it should be calculated as a derivation so we can cut back early?
+
+

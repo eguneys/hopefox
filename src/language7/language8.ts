@@ -12,10 +12,21 @@ export function Language8(mz: PositionMaterializer) {
     engine.registerRelation('candidate_attack_move')
     // hypothesis_root: root world
     engine.registerRelation('hypothesis_root')
+
     // terminal_forced: root world
     engine.registerRelation('terminal_forced')
-    // creates_threat: root parent child t:threat
-    //engine.registerRelation('creates_threat')
+
+    // open_obligation: root world reply
+    engine.registerRelation('open_obligation')
+
+    // obligation_closed: root world reply
+    engine.registerRelation('obligation_closed')
+
+
+    // defender_to_move: root world
+    engine.registerRelation('defender_to_move')
+    // attacker_to_move: root world
+    engine.registerRelation('attacker_to_move')
 
     // forced_reachable: root world
     engine.registerRelation('forced_reachable')
@@ -34,6 +45,17 @@ export function Language8(mz: PositionMaterializer) {
 
     engine.registerResolver(new HypothesisRoot(mz))
     engine.registerJudgement(new TerminalForced(mz))
+
+
+    engine.registerResolver(new DefenderToMove(mz))
+    engine.registerResolver(new AttackerToMove(mz))
+
+
+    engine.registerResolver(new CloseObligationRefuted())
+    engine.registerResolver(new DeriveTerminalRefuted())
+    engine.registerResolver(new DeriveTerminalDefender())
+    engine.registerResolver(new DeriveTerminalAttacker())
+    engine.registerResolver(new MaterializeDefenderWorld())
 
 
     engine.registerResolver(new ExpandWorldsResolver(mz))
@@ -60,7 +82,9 @@ export function Language8(mz: PositionMaterializer) {
     engine.run()
 
     let rows = (engine.relations.get('forcing_idea_classes')!.rows)
-    //console.log(rows)
+    let rows2 = (engine.relations.get('forced_defender_reply')!.rows)
+    //console.log(rows2)
+    //console.log(mz.sans(rows2[0].parent))
     //return engine.query_invariants()
 
     return rows
@@ -77,8 +101,6 @@ class ExpandWorldsResolver implements Resolver {
     constructor(private mz: PositionMaterializer) {}
 
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
-        //console.log(input)
-
         const forced_reachable = input.rows
 
         const worlds: Row[] = []
@@ -87,20 +109,16 @@ class ExpandWorldsResolver implements Resolver {
 
         const expand_ready: Row[] = []
 
-
-        /*
-        forced_reachable(root, parent)
-
-        worlds(root, parent, child)
-        threatens(root, child, t)
-        forcing_attacker_move(root, parent, child)
-
-        expand_ready(root, parent)
-        */
-
+        const terminal_forced = ctx.get('terminal_forced')
 
         for (let fr of forced_reachable) {
+
+
             const { root, world: parent } = fr
+
+            if (terminal_forced.find(_ => _.root === root && _.world === parent)) {
+                continue
+            }
 
             let legal_worlds = this.mz.generate_legal_worlds(parent)
 
@@ -174,6 +192,60 @@ class ExpandWorldsResolver implements Resolver {
     }
 }
 
+class AttackerToMove implements Resolver {
+    id = 'attacker_to_move'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        const worlds = input.rows
+
+        for (let w of worlds) {
+            if (this.mz.is_attacker(w.world)) {
+                output.push({
+                    root: w.root,
+                    world: w.world
+                })
+            }
+        }
+
+        return { attacker_to_move: output }
+    }
+
+}
+
+
+
+class DefenderToMove implements Resolver {
+    id = 'defender_to_move'
+
+    inputRelations = ['worlds']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+
+        const worlds = input.rows
+
+        for (let w of worlds) {
+            if (this.mz.is_defender(w.world)) {
+                output.push({
+                    root: w.root,
+                    world: w.world
+                })
+            }
+        }
+
+        return { defender_to_move: output }
+    }
+
+}
+
 const build_creates_threat_t = (mz: PositionMaterializer, world: WorldId): Threatens | undefined => {
     if (mz.is_check(world)) {
         return Threatens.Checkmate
@@ -207,6 +279,11 @@ class ForcingAttackerMove implements Resolver {
 
             if (!this.mz.is_attacker(parent)) continue;
 
+            const terminal_forced = ctx.get('terminal_forced')
+
+            if (terminal_forced.find(_ => _.root === root && _.world === parent)) {
+                continue
+            }
 
 
             const replies = worlds
@@ -215,6 +292,9 @@ class ForcingAttackerMove implements Resolver {
 
             for (const reply of replies) {
                 //if (!this.mz.is_legal(reply)) continue;
+                if (this.mz.nodes.history_moves(reply).length > 4) {
+                    //continue
+                }
                 if (!(this.mz.is_capture(reply) || this.mz.is_check(reply) || this.mz.is_checkmate(reply))) {
                     continue
                 }
@@ -244,7 +324,7 @@ class ForcedDefenderReply implements Resolver {
         const expand_ready = input.rows
 
         const output: Row[] = []
-        const forced_reachable: Row[] = []
+        const open_obligation: Row[] = []
 
         const worlds = ctx.get('worlds')
         const threatens = ctx.get('threatens')
@@ -277,16 +357,204 @@ class ForcedDefenderReply implements Resolver {
                         reply
                     });
 
-                    forced_reachable.push({
+                    open_obligation.push({
                         root,
-                        world: reply
+                        world: parent,
+                        reply
                     })
                 }
             }
         }
 
-        return { forced_defender_reply: output, forced_reachable }
+        return { forced_defender_reply: output, open_obligation }
     }
+}
+
+class CloseObligationRefuted implements Resolver {
+    id = 'close_obligation_refuted'
+
+    inputRelations = ['open_obligation']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const open_obligation = input.rows
+
+        const output: Row[] = []
+
+        for (let r of open_obligation) {
+            const { root, world, reply} = r
+
+            // discharges//
+
+            const refuted = ctx.get('refuted')
+            if (!refuted.find(_ => _.root === root && _.world === reply)) {
+                continue
+            }
+
+            output.push({
+                root,
+                world,
+                reply
+            })
+        }
+
+        for (let r of open_obligation) {
+            const { root, world, reply} = r
+
+            // discharges//
+
+            const terminal_forced = ctx.get('terminal_forced')
+            if (!terminal_forced.find(_ => _.root === root && _.world === reply)) {
+                continue
+            }
+
+            output.push({
+                root,
+                world,
+                reply
+            })
+        }
+
+
+
+        return { obligation_closed: output }
+    }
+
+}
+
+/*
+
+close_obligation_dominated:
+  reads:
+    open_obligation(root, parent, w1)
+    open_obligation(root, parent, w2)
+    dominates(w1, w2)
+  emits:
+    obligation_closed(root, parent, w2)
+    refuted(root, w2)
+
+*/
+
+
+
+
+class DeriveTerminalAttacker implements Resolver {
+    id = 'terminal_attacker'
+
+    inputRelations = ['attacker_to_move']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const attacker_to_move = input.rows
+
+        const output: Row[] = []
+
+        for (let d of attacker_to_move) {
+            let { root, world } = d
+
+            const forcing_attacker_move = ctx.get('forcing_attacker_move')
+
+            if (forcing_attacker_move.find(_ => _.root === root && _.world === world)) {
+                continue
+            }
+
+            output.push({
+                root,
+                world,
+            })
+        }
+
+        return { terminal_forced: output }
+    }
+}
+
+
+
+class DeriveTerminalRefuted implements Resolver {
+    id = 'terminal_refuted'
+
+    inputRelations = ['refuted']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const refuted = input.rows
+
+        const output: Row[] = []
+
+        for (let r of refuted) {
+            let { root, world } = r
+
+            output.push({
+                root,
+                world,
+            })
+        }
+
+        return { terminal_forced: output }
+    }
+}
+
+
+
+class DeriveTerminalDefender implements Resolver {
+    id = 'terminal_defender'
+
+    inputRelations = ['defender_to_move']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const defender_to_move = input.rows
+
+        const output: Row[] = []
+
+        for (let d of defender_to_move) {
+            let { root, world } = d
+
+            const open_obligation = ctx.get('open_obligation')
+
+            if (open_obligation.find(_ => _.root === root && _.world === world)) {
+                continue
+            }
+
+            output.push({
+                root,
+                world,
+            })
+        }
+
+        return { terminal_forced: output }
+    }
+}
+
+
+
+class MaterializeDefenderWorld implements Resolver {
+    id = 'materialize_defender_world'
+
+    inputRelations = ['open_obligation']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+        const open_obligation = input.rows
+
+        for (let r of open_obligation) {
+            const { root, world, reply} = r
+
+            const terminal_forced = ctx.get('terminal_forced')
+
+
+            if (terminal_forced.find(_ => _.root === root && _.world === reply)) {
+                continue
+            }
+
+
+            // if budget_allows
+
+            output.push({
+                root,
+                world: reply
+            })
+        }
+
+        return { forced_reachable: output}
+    }
+
 }
 
 

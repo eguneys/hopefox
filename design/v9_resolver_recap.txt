@@ -1,0 +1,12 @@
+let's map it 1-to-1 onto my current resolvers right now they look like this:
+
+expand_worlds: reads forced_reachable
+ emits: worlds threatens forcing_attacker_move expand_ready
+
+forced_defender_reply: reads expand_ready
+ emits: forced_defender_reply forced_reachable
+
+forcing_attacker_move: reads expand_ready
+ emits: forced_reachabl
+
+let's remove reply id and make obligations world-based I guess. And I have a secondary concern about dependencies, these relations depend on each other, and might be reading stale data in this incremental system, isn't that an actual problem here?
