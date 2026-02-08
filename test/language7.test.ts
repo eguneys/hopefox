@@ -8,11 +8,12 @@ import { render } from './util'
 
 it('runs', () => {
 
-  console.log(puzzles[24].link)
+  solve_i(5)
+  //solve_i(14)
   //solve_i(24)
-  //solve_i(0)
+  //solve_i(25)
   
-  bench()
+  //bench()
 })
 
 let m = await PositionManager.make()
@@ -23,15 +24,26 @@ function bench() {
   let falses = []
   for (let i = 0; i < 100; i++) {
     render('' + i)
+    puzzles[i].move_fens
+    let solution = puzzles[i].sans.join(' ')
+
     let res = _solve_i(i)
 
     let checkmate: string[][] = res.get('Checkmate')
 
     if (!checkmate) {
+
+
+      let gain: string[][] = res.get('MaterialGain')
+
+      if (gain?.find(_ => _.join(' ') === solution)) {
+        solved.push(i)
+        continue
+      }
+
       unfound.push(i)
       continue
     }
-    let solution = puzzles[i].sans.join(' ')
 
 
 

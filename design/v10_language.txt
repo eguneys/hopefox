@@ -1,0 +1,184 @@
+Core graph:
+
+root(R)
+root_world(R, W)
+
+world(W)
+world_edge(R, P, C)
+forced_reachable(R, W)
+
+Turn:
+attacker_to_move(R, W)
+defender_to_move(R, W)
+
+Classification:
+world_classified(R, W)
+material_gain(R, W)
+forced_recapture_exists(R, W)
+invariant(R, W)
+Expansion:
+expand_ready(R, W)
+
+forcing_attacker_move(R, P, C)
+attacker_moves_enumerated(R, P)
+
+open_obligation(R, P, C)
+defender_replies_enumerated(R, P)
+Terminal:
+terminal_forced(R, W)
+Outcome:
+root_success(R)
+puzzle_solved
+
+Chess:
+legal_moves(W) → [W2]
+is_checkmate(W)
+material_delta(root, W)
+is_forcing_move(W, W2)     // check, strong capture, threat
+captures_last_moved_piece(W, W2)
+side_to_move(W)
+
+
+Rule 1:
+
+root_world(R, W)
+: forced_reachable(R, W)
+
+world_edge(R, P, C)
+AND forced_reachable(R, P)
+: forced_reachable(R, C)
+
+material_gain(R, W):
+if material_delta(R, W) > 0
+
+forced_recapture_exists(R, W)
+if defender has legal capture restoring material
+
+invariant(R, W) if is_checkmate(W)
+
+invariant(R, W) if
+  material_gain(R, W)
+  AND NOT forced_recapture_exists(R, W)
+
+
+
+expand_ready(R, W):
+if forced_reachable(R, W)
+AND NOT terminal_forced(R, W)
+AND NOT puzzle_solved
+
+
+
+forcing_attacker_move(R, P, C)
+if expand_ready(R, P)
+AND attacker_to_move(R, P)
+AND is_forcing_move(P, C)
+
+forcing_attacker_move → world_edge
+attacker_moves_enumerated(R, P)
+
+open_obligation(R, P, C)
+if expand_ready(R, P)
+AND defender_to_move(R, P)
+open_obligation → world_edge
+defender_replies_enumerated(R, P)
+
+
+terminal_forced(R, W)
+if attacker_to_move(R, W)
+AND attacker_moves_enumerated(R, W)
+AND NOT forcing_attacker_move(R, W, _)
+
+terminal_forced(R, W)
+if defender_to_move(R, W)
+AND defender_replies_enumerated(R, W)
+AND NOT open_obligation(R, W, _)
+
+
+root_success(R)
+if terminal_forced(R, W)
+AND invariant(R, W)
+puzzle_solved if any root_success
+
+
+
+print:
+  world
+  terminal
+  invariant?
+  material_delta
+  recapture_exists?
+
+
+legal_move(parent_world, child_world)
+moves = generateLegalMoves(world)
+for each move:
+   create child_world
+   emit legal_move(parent, child)
+
+
+forcing_attacker_move(R, P, C) :-
+  legal_move(P, C)
+  AND attacker_to_move(R, P)
+  AND is_forcing_move(P, C)
+
+
+
+for each stratum:
+   run fixpoint
+
+
+engine.strata = [
+  [rules...],  // Stratum 0
+  [rules...],  // Stratum 1
+  [rules...],  // Stratum 2
+]
+addFact(relation, tuple)
+
+runFixpoint()
+
+getFacts(relation)
+
+
+
+repeat
+  changed = false
+
+  for rule in stratum:
+     newTuples = evaluate(rule)
+
+     if newTuples not empty:
+        add to relation.delta
+        changed = true
+
+  move all delta → facts
+
+until not changed
+
+Engine {
+  relations: Map<Name, Relation>
+  rules: [Rule]
+  strata: [ [Rule] ]   // ordered layers
+}
+
+Rule {
+  head_relation
+  positive_inputs: [Relation]
+  negative_inputs: [Relation]   // stratified only
+  evaluator(bindings) -> tuple | null
+}
+
+Head :- Body1, Body2, ..., BodyN, NOT Neg1, NOT Neg2
+
+
+Relation {
+  name
+  arity
+  facts: Set<Tuple>
+  delta: Set<Tuple>
+}
+
+facts      (all known tuples)
+delta      (new tuples since last step)
+
+If any input has delta, recompute joins involving that relation.
