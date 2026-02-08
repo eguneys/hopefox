@@ -249,4 +249,25 @@ export class NodeManager {
         }
         return i
     }
+
+    nb_child(id: NodeId) {
+        if (id === 0) {
+            let res = 0
+            for (let c of this.root.children.values()) {
+                res += this.nb_child(c.id) + 1
+            }
+            return res
+        }
+        let a_child = this.cache.get_node(id)
+        if (!a_child) {
+            throw new NoChildError(id)
+        }
+
+        let res = 0
+        for (let c of a_child.children.values()) {
+            res += this.nb_child(c.id) + 1
+        }
+        return res
+
+    }
 }

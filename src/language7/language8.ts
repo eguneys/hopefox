@@ -1,4 +1,4 @@
-import { PieceTypeC } from "../distill/hopefox_c"
+import { color_c_opposite, PieceTypeC, QUEEN } from "../distill/hopefox_c"
 import { PositionMaterializer, WorldId } from "../language6/engine6"
 import { Engine7, InputSlice, Invariant, InvariantResult, Judgement, ReadContext, Resolver, ResolverOutput, Row, Transaction } from "./engine7"
 import { candidate_attack_moves, CreatesThreat, HypothesisRoot, MateInevitable, RookGainInevitable, TerminalForced, Threatens } from "./language7"
@@ -39,6 +39,19 @@ export function Language8(mz: PositionMaterializer) {
     // forced_reachable: root parent
     engine.registerRelation('expand_ready')
 
+
+    // defender_replies_enumerated: root world
+    engine.registerRelation('defender_replies_enumerated')
+
+    // puzzle_solved: root
+    engine.registerRelation('puzzle_solved')
+    
+    // invariant: root world
+    engine.registerRelation('invariant')
+
+    // world_classified: root world
+    engine.registerRelation('world_classified')
+
     // forced_defender_reply: root parent reply
     engine.registerRelation('forced_defender_reply')
     engine.registerRelation('forcing_attacker_move')
@@ -57,14 +70,20 @@ export function Language8(mz: PositionMaterializer) {
     engine.registerResolver(new DeriveTerminalRefuted())
     engine.registerResolver(new DeriveTerminalDefender())
     engine.registerResolver(new DeriveTerminalAttacker())
-    engine.registerResolver(new MaterializeDefenderWorld())
+    engine.registerResolver(new MaterializeDefenderWorld(mz))
 
 
     engine.registerResolver(new ExpandWorldsResolver(mz))
     engine.registerResolver(new ForcedDefenderReply(mz))
     engine.registerResolver(new ForcingAttackerMove(mz))
 
+
+    engine.registerResolver(new PuzzleSolved())
+    engine.registerResolver(new ClassifyAsInvariant(mz))
+
     engine.registerJudgement(new ForcingIdeaClasses(mz))
+
+
 
     const candidate_attack_move: Row[] = candidate_attack_moves(mz)
 
@@ -85,11 +104,12 @@ export function Language8(mz: PositionMaterializer) {
 
     let rows = (engine.relations.get('forcing_idea_classes')!.rows)
     let rows2 = (engine.relations.get('terminal_forced')!.rows)
-    //console.log(rows2)
+    //console.log(rows2.map(_ => mz.sans(_.world)))
     //console.log(rows2[0]?.world !== undefined && mz.sans(rows2[0].world))
     //console.log(rows2[0]?.reply !== undefined && mz.sans(rows2[0].reply))
     //return engine.query_invariants()
 
+    //return []
     return rows
 }
 
@@ -112,7 +132,17 @@ class ExpandWorldsResolver implements Resolver {
 
         const expand_ready: Row[] = []
 
+        const attacker_moves_enumerated: Row[] = []
+
         const terminal_forced = ctx.get('terminal_forced')
+
+        const puzzle_solved = ctx.get('puzzle_solved')
+
+        if (puzzle_solved.length > 0) {
+            return null
+        }
+
+        let ss = forced_reachable.map(_ => this.mz.sans(_.world))
 
         for (let fr of forced_reachable) {
 
@@ -134,6 +164,10 @@ class ExpandWorldsResolver implements Resolver {
             })
 
 
+            attacker_moves_enumerated.push({
+                root,
+                world: parent
+            })
 
             for (let world of legal_worlds) {
                 worlds.push({
@@ -193,7 +227,7 @@ class ExpandWorldsResolver implements Resolver {
         }
 
         //console.log(forcing_attacker_move, expand_ready)
-        return { worlds, threatens, forcing_attacker_move, expand_ready, attacker_moves_enumerated: expand_ready }
+        return { worlds, threatens, forcing_attacker_move, expand_ready, attacker_moves_enumerated }
     }
 }
 
@@ -304,10 +338,12 @@ class ForcingAttackerMove implements Resolver {
                     continue
                 }
 
-                forced_reachable.push({
-                    root,
-                    world: reply
-                })
+                if (can_expand(this.mz, root)) {
+                    forced_reachable.push({
+                        root,
+                        world: reply
+                    })
+                }
             }
         }
 
@@ -331,13 +367,14 @@ class ForcedDefenderReply implements Resolver {
         const output: Row[] = []
         const open_obligation: Row[] = []
 
+        const defender_replies_enumerated: Row[] = []
+
         const worlds = ctx.get('worlds')
         const threatens = ctx.get('threatens')
 
         for (let er of expand_ready) {
 
             const { root, parent } = er;
-
             if (!this.mz.is_defender(parent)) continue;
 
             const threats = threatens
@@ -354,7 +391,6 @@ class ForcedDefenderReply implements Resolver {
                     this.mz.__resolves(reply, t.t)
                 );
             
-            
                 if (ok) {
                     output.push({
                         root,
@@ -367,11 +403,20 @@ class ForcedDefenderReply implements Resolver {
                         world: parent,
                         reply
                     })
+
+                    defender_replies_enumerated.push({
+                        root,
+                        world: parent
+                    })
                 }
             }
         }
 
-        return { forced_defender_reply: output, open_obligation }
+        let SS
+        if (output.length > 0) {
+            SS = this.mz.sans(output[0].parent)
+        }
+        return { forced_defender_reply: output, open_obligation, defender_replies_enumerated }
     }
 }
 
@@ -481,17 +526,20 @@ class DeriveTerminalAttacker implements Resolver {
 class DeriveTerminalDefender implements Resolver {
     id = 'terminal_defender'
 
-    inputRelations = ['defender_to_move']
+    inputRelations = ['defender_replies_enumerated']
 
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
-        const defender_to_move = input.rows
+        const defender_replies_enumerated = input.rows
+
+        const defender_to_move = ctx.get('defender_to_move')
 
         const output: Row[] = []
 
-        for (let d of defender_to_move) {
+        const open_obligation = ctx.get('open_obligation')
+
+        for (let d of defender_replies_enumerated) {
             let { root, world } = d
 
-            const open_obligation = ctx.get('open_obligation')
 
             if (open_obligation.find(_ => _.root === root && _.world === world)) {
                 continue
@@ -503,6 +551,7 @@ class DeriveTerminalDefender implements Resolver {
             })
         }
 
+        //console.log('Reached terminal forced', output.length)
         return { terminal_forced: output }
     }
 }
@@ -538,6 +587,8 @@ class MaterializeDefenderWorld implements Resolver {
 
     inputRelations = ['open_obligation']
 
+    constructor(private mz: PositionMaterializer) {}
+
     resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
         const output: Row[] = []
         const open_obligation = input.rows
@@ -555,14 +606,99 @@ class MaterializeDefenderWorld implements Resolver {
 
             // if budget_allows
 
-            output.push({
-                root,
-                world: reply
-            })
+            if (can_expand(this.mz, root)) {
+                output.push({
+                    root,
+                    world: reply
+                })
+            }
         }
 
         return { forced_reachable: output}
     }
+
+}
+
+const can_expand = (mz: PositionMaterializer, world: WorldId) => {
+    if (mz.nodes.nb_child(world) > 200) {
+        return false
+    }
+    return true
+}
+
+class PuzzleSolved implements Resolver {
+    id = 'puzzle_solved'
+    inputRelations = ['world_classified']
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        let terminal_forced = input.rows
+
+        const output: Row[] = []
+
+
+        for (let r of terminal_forced) {
+
+            //console.log('gone', r.world)
+            let i = ctx.get('invariant')
+            .find(_ => _.root === r.root && _.world === r.world)
+
+            if (i !== undefined) {
+                output.push({
+                    root: r.root
+                })
+            }
+        }
+
+        return { puzzle_solved: output }
+    }
+
+}
+
+
+class ClassifyAsInvariant implements Resolver {
+    id = 'classify_as_invariant'
+
+    inputRelations = ['forced_reachable']
+
+    constructor(private mz: PositionMaterializer) {}
+
+    resolve(input: InputSlice, ctx: ReadContext): ResolverOutput | null {
+        const output: Row[] = []
+        const invariant: Row[] = []
+
+        let world_classified = ctx.get('world_classified')
+
+        for (let t of input.rows) {
+
+            if (world_classified.find(_ => _.root === t.root && _.world === t.world)) {
+                continue
+            }
+            output.push({
+                root: t.root,
+                world: t.world
+            })
+
+            let res = classify(this.mz, t.root, t.world)
+
+            let yes = false
+            if (res.value === OutcomeValue.MaterialGain) {
+                yes = true
+            }
+            if (res.value === OutcomeValue.Checkmate) {
+                yes = true
+            }
+
+            if (yes) {
+                invariant.push({
+                    root: t.root,
+                    world: t.world
+                })
+            }
+        }
+
+        return { invariant, world_classified: output }
+    }
+
 
 }
 
@@ -608,6 +744,23 @@ const classify = (mz: PositionMaterializer, root: WorldId, world: WorldId) => {
     if (mz.is_checkmate(world)) {
         return { value: OutcomeValue.Checkmate }
     }
+    mz.make_to_world(root)
+    let defender = mz.m.pos_turn(mz.pos)
+    let attacker = color_c_opposite(defender)
+    let qq_root =  mz.m.get_pieces_bb(mz.pos, [QUEEN])
+    let cc_root = mz.m.get_pieces_color_bb(mz.pos, defender)
+    let q_root = qq_root.intersect(cc_root)
+    mz.unmake_world(root)
+    mz.make_to_world(world)
+    let qq_world =  mz.m.get_pieces_bb(mz.pos, [QUEEN])
+    let cc_world = mz.m.get_pieces_color_bb(mz.pos, defender)
+    let q_world = qq_world.intersect(cc_world)
+    mz.unmake_world(world)
+
+    if (q_root.size() > q_world.size()) {
+        return { value: OutcomeValue.MaterialGain }
+    }
+
     return { value: OutcomeValue.Neutral }
 }
 

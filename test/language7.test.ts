@@ -4,10 +4,13 @@ import { puzzles } from './fixture'
 import { extract_sans } from '../src/language2/san_moves_helper'
 import { PositionMaterializer } from '../src/language6/engine6'
 import { Row } from '../src/language7/engine7'
+import { render } from './util'
 
 it('runs', () => {
 
-  //solve_i(6)
+  console.log(puzzles[24].link)
+  //solve_i(24)
+  //solve_i(0)
   
   bench()
 })
@@ -19,6 +22,7 @@ function bench() {
   let unfound = []
   let falses = []
   for (let i = 0; i < 100; i++) {
+    render('' + i)
     let res = _solve_i(i)
 
     let checkmate: string[][] = res.get('Checkmate')
@@ -68,6 +72,7 @@ function _solve_i(i: number) {
       p.push(mz.sans(v.world))
     }
   }
+  m.delete_position(pos)
   return res2
 }
 
