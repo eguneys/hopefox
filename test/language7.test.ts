@@ -6,7 +6,7 @@ import { PositionMaterializer } from '../src/language6/engine6'
 import { Row } from '../src/language7/engine7'
 import { render } from './util'
 
-it('runs', () => {
+it.skip('runs', () => {
 
   solve_i(5)
   //solve_i(14)

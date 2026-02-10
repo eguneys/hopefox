@@ -1,6 +1,10 @@
 import { get } from "http"
+import { PositionMaterializer } from "../language6/engine6"
+import { Position } from "../distill/chess"
+import { parse_program9 } from "./parser"
 
-type Term = 
+
+export type Term = 
     | Variable
     | Constant
 
@@ -14,8 +18,235 @@ type Constant = {
     value: string
 }
 
+export type Atom = {
+    relation: string
+    terms: Term[]
+}
+
+export type Rule = {
+    head: Atom
+    body: Atom[]
+}
+
+function collectVariables(rule: Rule): Map<string, number> {
+    const map = new Map<string, number>()
+
+    let next = 0
+
+    function visitTerm(term: Term) {
+        if (term.type === 'variable') {
+            if (!map.has(term.name)) {
+                map.set(term.name, next++)
+            }
+        }
+    }
+
+    for (const term of rule.head.terms) {
+        visitTerm(term)
+    }
+
+    for (const atom of rule.body) {
+        for (const term of atom.terms) {
+            visitTerm(term)
+        }
+    }
+    
+    return map
+}
+
+function compileHead(
+    head: Atom,
+    varSlots: Map<string, number>,
+    relations: Map<string, Relation>
+) {
+    const rel = relations.get(head.relation)!
+
+    const headSlots: number[] = []
+
+    for (const term of head.terms) {
+        if (term.type !== 'variable') {
+            throw new Error(`Head constants not supported yet`)
+        }
+        headSlots.push(varSlots.get(term.name)!)
+    }
+
+    return { rel, headSlots }
+}
+
+function compileBody(
+    rule: Rule,
+    varSlots: Map<string, number>,
+    relations: Map<string, Relation>,
+    externals: Map<string, ExternalRelation>
+) {
+
+    const compiledBody: CompiledAtom[] = []
+
+    for (const atom of rule.body) {
+        compiledBody.push(
+            compileAtom(atom, varSlots, relations, externals)
+        )
+    }
+    return compiledBody
+}
+
+export function Language9_Build(text: string) {
+    return parse_program9(text)
+}
+
+function buildRelationRegistry(rules: Rule[]): Map<string, Relation> {
+
+    const relations = new Map<string, Relation>()
+
+    // Pass 1 — heads define schema
+    for (const rule of rules) {
+
+        const name = rule.head.relation
+
+        if (!relations.has(name)) {
+            relations.set(name, createRelationForHead(rule.head))
+        } else {
+            if (relations.get(name)!.arity !== rule.head.terms.length) {
+                throw `Arity Mismatch`
+            }
+        }
+    }
+
+    // Pass 2 — bodies must exist
+    for (const rule of rules) {
+        for (const atom of rule.body) {
+
+            if (atom.relation.startsWith('$')) continue
+
+            if (!relations.has(atom.relation)) {
+                relations.set(atom.relation, createRelationGuess(atom))
+            } else {
+                if (relations.get(atom.relation)!.arity !== atom.terms.length) {
+                    throw `Arity Mismatch`
+                }
+            }
+        }
+    }
+
+    return relations
+}
+
+
+function createRelationForHead(head: Atom): Relation {
+
+    const name = head.relation
+    const arity = head.terms.length
+
+    if (arity === 2) {
+        return new Relation2(name)
+    }
+
+    if (arity === 3) {
+        return new Relation3(name)
+    }
+
+    throw new Error(`Unsupported arity ${arity} for relation ${name}`)
+}
+
+function createRelationGuess(atom: Atom): Relation {
+
+    const name = atom.relation
+    const arity = atom.terms.length
+
+    if (arity === 2) {
+        return new Relation2(name)
+    }
+
+    if (arity === 3) {
+        return new Relation3(name)
+    }
+
+    throw new Error(`Unsupported arity ${arity} for relation ${name}`)
+}
+
+
+
+function compileRule(
+    rule: Rule,
+    relations: Map<string, Relation>,
+    externals: Map<string, ExternalRelation>
+): CompiledRule {
+    const varSlots = collectVariables(rule)
+
+    const { rel, headSlots } = compileHead(rule.head, varSlots, relations)
+
+    const body = compileBody(rule, varSlots, relations, externals)
+
+    const frame = new Frame(varSlots.size)
+
+    return {
+        headRelation: rel,
+        headSlots,
+        body,
+        varSlots,
+        frame
+    }
+}
+
+
+const compileAtom = (
+    atom: Atom, 
+    varSlots: Map<string, number>,
+    relations: Map<string, Relation>,
+    externals: Map<string, ExternalRelation>): CompiledAtom => {
+        if (!(relations.has(atom.relation) || externals.has(atom.relation))) {
+            throw 'No atom relation found ' + atom.relation
+        }
+
+        let argSlots: number[] = []
+        const constValues: (number|null)[] = []
+        for (let term of atom.terms) {
+            if (term.type === 'variable') {
+                let slot = varSlots.get(term.name)!
+                argSlots.push(slot)
+                constValues.push(null)
+            }
+            if (term.type === 'constant') {
+                argSlots.push(-1)
+                constValues.push(decode_const(term.value))
+            }
+        }
+
+        let external, relation
+        if (atom.relation.startsWith('$')) {
+            let external = externals.get(atom.relation)
+
+            return {
+                relation: new Relation2('$external'),
+                external,
+                argSlots,
+                constValues,
+                inputArity: 1
+            }
+        } else {
+            let relation = relations.get(atom.relation)!
+            let columnIndexes = atom.terms.map((_, i) => i)
+            return {
+
+                relation,
+                argSlots,
+                columnIndexes,
+                constValues,
+                inputArity: -1
+            }
+        }
+
+    }
+
+const decode_const = ($const: string) => {
+    return 0
+
+}
+
 class Relation2 {
     name: string
+    arity = 2
+
     i_nb: number = 0
 
     colA: number[] = []
@@ -122,7 +353,7 @@ class Relation3 {
         }
     }
 
-    loopkupPR(P: number, R: number, emit_C: (C: number) => void) {
+    lookupPR(P: number, R: number, emit_C: (C: number) => void) {
         let candidateRows = this.indexP.get(P)!
 
 
@@ -160,7 +391,14 @@ type CompiledRule = {
 type CompiledAtom = {
     relation: Relation
     argSlots: number[]
+    constValues: (number | null)[]
+    external?: ExternalRelation
+    columnIndexes?: number[]
+    inputArity: number
 }
+
+type ExternalRelation = (mz: PositionMaterializer, frame: Frame, emit: (values: number[]) => void) => void
+
 
 
 class Frame {
@@ -228,11 +466,10 @@ function bindValue(frame: Frame, slot: number, value: number) {
 }
 
 
-function executeRule(rule: CompiledRule) {
+function executeRule(mz: PositionMaterializer, rule: CompiledRule) {
 
     let frame = rule.frame
 
-    //let driver = rule.body[0]
     let driver = chooseDriver(rule)
     const rest = rule.body.filter(atom => atom !== driver)
 
@@ -242,11 +479,12 @@ function executeRule(rule: CompiledRule) {
 
         bindRowIntoFrame(frame, driver, row)
 
-        joinRestUsing(rule, rest, 0, frame)
+        joinRestUsing(mz, rule, rest, 0, frame)
     }
 }
 
 function joinRestUsing(
+    mz: PositionMaterializer,
     rule: CompiledRule,
     rest: CompiledAtom[],
     atomIndex: number,
@@ -260,6 +498,29 @@ function joinRestUsing(
     }
 
     const atom = rest[atomIndex]
+
+
+    if (atom.external) {
+
+        const snapshot = snapshotFrame(frame)
+        const slotC = atom.argSlots[1]
+        atom.external(mz, frame, (values) => {
+            for (let i = 0; i < values.length; i++) {
+                const slot = atom.argSlots[i + atom.inputArity]
+
+                if (!bindValue(frame, slot, values[i])) return
+            }
+
+            joinRestUsing(mz, rule, rest, atomIndex + 1, frame)
+
+            restoreFrame(frame, snapshot)
+        })
+        return
+    }
+
+
+    if (atom.relation && atom.relation.i_nb === 0) return
+
     const rel = atom.relation
 
     let candidates = getCandidateRows(atom, frame)
@@ -269,12 +530,24 @@ function joinRestUsing(
     for (let row of candidates) {
 
         const snapshot = snapshotFrame(frame)
-
         if (unifyRow(frame, atom, row)) {
-            joinRestUsing(rule, rest, atomIndex + 1, frame)
+            joinRestUsing(mz, rule, rest, atomIndex + 1, frame)
         }
 
         restoreFrame(frame, snapshot)
+    }
+}
+
+const external$legal_worlds = (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+    const slotP = atom.argSlots[0]
+    const slotC = atom.argSlots[1]
+
+    const P = frame.values[slotP]
+
+    const children = mz.generate_legal_worlds(P)
+
+    for (const C of children) {
+        emit([C])
     }
 }
 
@@ -384,6 +657,8 @@ class Language9 {
     relations: (Relation2 | Relation3)[]
     stratums: CompiledRule[][]
 
+    constructor(private mz: PositionMaterializer) {}
+
     loop() {
 
         for (const stratum of this.stratums) {
@@ -415,7 +690,7 @@ class Language9 {
 
         const target = rule.headRelation
         let before = target.deltaRows.length
-        executeRule(rule)
+        executeRule(this.mz, rule)
 
         let after = target.deltaRows.length
         return after > before
