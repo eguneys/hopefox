@@ -21,6 +21,7 @@ type Constant = {
 export type Atom = {
     relation: string
     terms: Term[]
+    isNegated?: boolean
 }
 
 export type Rule = {
@@ -204,6 +205,15 @@ const compileAtom = (
             throw 'No atom relation found ' + atom.relation
         }
 
+        let isNegated = atom.isNegated
+
+        /*
+        if isNegated
+        for slot in atom.argSlots:
+          assert(slot appears in some earlier positive atom)
+
+        */
+
         let argSlots: number[] = []
         const constValues: (number|null)[] = []
         for (let term of atom.terms) {
@@ -227,6 +237,7 @@ const compileAtom = (
                 external,
                 argSlots,
                 constValues,
+                isNegated
             }
         } else {
             let relation = relations.get(atom.relation)!
@@ -236,6 +247,7 @@ const compileAtom = (
                 argSlots,
                 columnIndexes,
                 constValues,
+                isNegated
             }
         }
 
@@ -462,6 +474,7 @@ type CompiledAtom = {
     constValues: (number | null)[]
     external?: ExternalRelation
     columnIndexes?: number[]
+    isNegated?: boolean
 }
 
 type ExternalRelation = {
@@ -574,6 +587,25 @@ function joinRestUsing(
 
     const atom = rest[atomIndex]
 
+    if (atom.isNegated) {
+        /*
+        if (!allBound(frame, atom.argSlots)) {
+            return
+        }
+            */
+        for (let i = 0; i < atom.argSlots.length; i++) {
+            if (!frame.bound[atom.argSlots[i]]) {
+                return
+            }
+        }
+
+        const exists = relationHasMatch(atom, frame)
+
+        if (!exists) {
+            joinRestUsing(mz, rule, rest, atomIndex + 1, frame)
+        }
+        return
+    }
 
     if (atom.external) {
 
@@ -626,6 +658,56 @@ function joinRestUsing(
         restoreFrame(frame, snapshot)
     }
 }
+
+function relationHasMatch(atom: CompiledAtom, frame: Frame) {
+
+    const rel = atom.relation
+
+    const candidates = getCandidateRows(atom, frame)
+
+    for (const row of candidates) {
+        if (rowMatches(frame, atom, row)) {
+            return true
+        }
+    }
+
+    return false
+}
+
+function rowMatches(
+    frame: Frame,
+    atom: CompiledAtom,
+    row: number
+): boolean {
+
+    const rel = atom.relation as Relation3
+
+    for (let i = 0; i < atom.argSlots.length; i++) {
+
+        const slot = atom.argSlots[i]
+        const column = atom.columnIndexes![i]
+
+        if (slot === -1) continue   // constant handling later
+
+        if (frame.bound[slot]) {
+
+            const frameVal = frame.values[slot]
+
+            let rowVal: number
+
+            if (column === 0) rowVal = rel.colR[row]
+            else if (column === 1) rowVal = rel.colP[row]
+            else rowVal = rel.colC[row]
+
+            if (frameVal !== rowVal) {
+                return false
+            }
+        }
+    }
+
+    return true
+}
+
 
 
 function chooseDriver(rule: CompiledRule): CompiledAtom {
@@ -744,7 +826,13 @@ class Language9 {
 
     loop() {
 
+        let pz = this.relations.find(_ => _.name === 'puzzle_solved')!
         for (const stratum of this.stratums) {
+
+
+            if (pz.i_nb > 0) {
+                return
+            }
 
             // Initial delta already exists from seeds
 
@@ -798,7 +886,7 @@ class Language9 {
 
 export function Language9_Build(text: string, mz: PositionMaterializer) {
 
-    let texts = text.split('boundary')
+    let texts = text.split('#boundary')
 
     let R_rules = texts.map(text => parse_program9(text))
 
@@ -831,12 +919,32 @@ const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
         ['$legal_world', external$legal_worlds],
         ['$is_attacker', external$is_attacker],
         ['$is_defender', external$is_defender],
+        ['$is_checkmate', external$is_checkmate],
+        ['$forced_recapture_exists', external$forced_recapture_exists],
+        ['$is_forcing_move', external$is_forcing_move],
     ])
 }
 
 
-const external$is_defender: ExternalRelation = {
-    name: '$is_defender',
+const external$is_forcing_move: ExternalRelation = {
+    name: '$is_forcing_move',
+    inputArity: 2,
+    outputArity: 0,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+
+        const P = frame.values[slotP]
+        const R = frame.values[slotR]
+
+        return mz.is_capture(R) || mz.is_check(R)
+}
+}
+
+
+
+const external$forced_recapture_exists: ExternalRelation = {
+    name: '$forced_recapture_exists',
     inputArity: 1,
     outputArity: 0,
     invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
@@ -844,10 +952,41 @@ const external$is_defender: ExternalRelation = {
 
     const P = frame.values[slotP]
 
-    const yes = mz.is_defender(P)
-
-    return yes
+    return false
 }
+}
+
+
+const external$is_checkmate: ExternalRelation = {
+    name: '$is_attacker',
+    inputArity: 1,
+    outputArity: 0,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+
+        const P = frame.values[slotP]
+
+        const yes = mz.is_checkmate(P)
+
+        return yes
+    }
+}
+
+
+
+const external$is_defender: ExternalRelation = {
+    name: '$is_defender',
+    inputArity: 1,
+    outputArity: 0,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+
+        const P = frame.values[slotP]
+
+        const yes = mz.is_defender(P)
+
+        return yes
+    }
 }
 
 const external$is_attacker: ExternalRelation = {

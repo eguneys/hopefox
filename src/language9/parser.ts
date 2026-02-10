@@ -22,6 +22,7 @@ export enum TokenType {
     Eof = 'Eof',
     Relation = 'Relation',
     Word = 'Word',
+    Not = 'Not',
     Dot = 'Dot'
 }
 
@@ -73,6 +74,15 @@ class Lexer {
     }
 
 
+    private WORD() {
+        let result = ''
+        while (this.current_char !== undefined && this.is_uppercase_num(this.current_char)) {
+            result += this.current_char
+            this.advance()
+        }
+        return result
+    }
+
     public get_next_token(): Token {
 
         while (this.current_char !== undefined) {
@@ -120,13 +130,19 @@ class Lexer {
                 return { type: TokenType.Relation, value: `$${word}`}
             }
 
-            if (this.is_uppercase_num(this.current_char)) {
-                let value = this.current_char
-                this.advance()
-                return { type: TokenType.Variable, value }
+            let WORD = this.WORD()
+
+            if (WORD === 'NOT') {
+                return { type: TokenType.Not, value: 'not' }
             }
 
+            if (WORD !== '') {
+                return { type: TokenType.Variable, value: WORD }
+            }
+
+
             const word = this.word()
+
 
             if (word !== '') {
                 return { type: TokenType.Ident, value: word }
@@ -206,6 +222,12 @@ class Parser {
  
     private parse_atom(): Atom {
 
+        let isNegated
+        if (this.current_token.type === TokenType.Not) {
+            isNegated = true
+            this.eat(TokenType.Not)
+        }
+
         let relation
         if (this.current_token.type === TokenType.Relation) {
             relation = this.eat(TokenType.Relation)
@@ -225,7 +247,8 @@ class Parser {
         this.eat(TokenType.Rparen)
         return {
             relation,
-            terms
+            terms,
+            isNegated
         }
     }
 
