@@ -740,6 +740,9 @@ function chooseDriver(rule: CompiledRule): CompiledAtom {
     let bestSize = best.relation.deltaRows.length
 
     for (let atom of rule.body) {
+        if (atom.isNegated) {
+            continue
+        }
         const size = atom.relation.deltaRows.length
         if (size > 0 && size < bestSize) {
             best = atom
@@ -852,13 +855,11 @@ class Language9 {
 
         for (const stratum of this.stratums) {
 
-            /*
             for (let rule of stratum) {
                 for (let b of rule.body) {
                     b.relation.seed_deltas()
                 }
             }
-                */
 
             // Initial delta already exists from seeds
             let anyChange: boolean
@@ -867,9 +868,14 @@ class Language9 {
                 anyChange = false
 
                 let SS = this.relations
-                    .find(_ => _.name === 'world')!
+                    .find(_ => _.name === 'open_obligation')!
                     .list_cols()
-                    .map(_ => this.mz.sans(_[0]))
+                    .map(_ => this.mz.sans(_[1]))
+
+                //console.log(SS)
+
+                let A = this.relations.find(_ => _.name === 'world')!.list_cols().length
+                let B = this.mz.nodes.size
 
                 // Run all rules in this stratum
                 for (const rule of stratum) {
@@ -940,6 +946,7 @@ export function Language9_Build(text: string, mz: PositionMaterializer) {
 
 const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
     return new Map([
+        ['$resolves_threat', external$resolves_threat],
         ['$legal_world', external$legal_worlds],
         ['$is_attacker', external$is_attacker],
         ['$is_defender', external$is_defender],
@@ -948,6 +955,32 @@ const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
         ['$is_forcing_move', external$is_forcing_move],
     ])
 }
+
+
+const external$resolves_threat: ExternalRelation = {
+    name: '$resolves_threat',
+    inputArity: 2,
+    outputArity: 0,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotC = atom.argSlots[1]
+
+        const P = frame.values[slotP]
+        const C = frame.values[slotC]
+
+        let resolves_threat = false
+
+
+        if (mz.is_check(P)) {
+            return true
+        }
+
+
+        return resolves_threat
+    }
+}
+
+
 
 
 const external$is_forcing_move: ExternalRelation = {

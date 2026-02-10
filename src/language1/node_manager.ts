@@ -22,6 +22,10 @@ class NodeCache {
     add_node(node: Node) {
         this.cache.set(node.id, node)
     }
+
+    get size() {
+        return this.cache.size
+    }
 }
 
 class NodeRoot {
@@ -91,6 +95,10 @@ export class NodeManager {
     constructor() {
         this.cache = new NodeCache()
         this.root = new NodeRoot()
+    }
+
+    get size() {
+        return this.cache.size
     }
 
     move_of_world(world: NodeId) {

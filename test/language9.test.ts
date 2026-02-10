@@ -7,13 +7,18 @@ import { puzzles } from './fixture'
 let m = await PositionManager.make()
 it('works', () => {
 
-  let i = 0
+  let i = 11
   console.log(puzzles[i].link)
     let pos = m.create_position(puzzles[i].move_fens[0])
     let mz = new PositionMaterializer(m, pos)
 
-    let res = Language9_Build(`
+    let res = Language9_Build(rules, mz)
 
+    console.log(res)
+})
+
+
+let rules = `
 world(W) :- root_world(_, W).
 world(W) :- world_edge(_, _, W).
 
@@ -58,7 +63,8 @@ world_edge(R, P, C) :-
 open_obligation(R, P, C) :-
   expand_ready(R, P)
   defender_to_move(R, P)
-  $legal_world(P, C).
+  $legal_world(P, C)
+  $resolves_threat(P, C).
 
 
 attacker_moves_enumerated(R, P) :-
@@ -101,20 +107,17 @@ terminal_forced(R, W) :-
 
 #boundary
 
-root_success(R) :-
+root_success(R, W) :-
   terminal_forced(R, W)
   invariant(R, W).
 
-puzzle_solved(R) :-
-  root_success(R).
+puzzle_solved(R, W) :-
+  root_success(R, W).
 
 #boundary
 
 query(R, W) :-
-  root_world(R, W).
+  puzzle_solved(R, W).
 
 
-`, mz)
-
-    console.log(res)
-})
+`
