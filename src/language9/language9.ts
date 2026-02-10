@@ -610,7 +610,8 @@ function joinRestUsing(
             */
         for (let i = 0; i < atom.argSlots.length; i++) {
             if (!frame.bound[atom.argSlots[i]]) {
-                return
+                /* NOT open_obligation(R, W, _). */
+                //return
             }
         }
 
@@ -925,7 +926,13 @@ export function Language9_Build(text: string, mz: PositionMaterializer) {
 
     ll.loop()
 
-    return relations.get('defender_replies_enumerated')!.list_cols()
+    // Output
+    let res = relations.get('query')!.list_cols()
+
+    //console.log(res.find(_ => _[1] === 32))
+    return res.map(_ => [_, mz.sans(_[1])])
+
+    return res
 }
 
 const buildExternalsRegistry = (): Map<string, ExternalRelation> => {

@@ -7,7 +7,8 @@ import { puzzles } from './fixture'
 let m = await PositionManager.make()
 it('works', () => {
 
-    let pos = m.create_position(puzzles[1].move_fens[0])
+  console.log(puzzles[6].link)
+    let pos = m.create_position(puzzles[6].move_fens[0])
     let mz = new PositionMaterializer(m, pos)
 
     let res = Language9_Build(`
@@ -51,7 +52,13 @@ invariant(R, W) :-
 
 expand_ready(R, W) :-
   forced_reachable(R, W)
-  NOT terminal_forced(R, W).
+  attacker_to_move(R, W)
+  NOT attacker_moves_enumerated(R, W).
+
+expand_ready(R, W) :-
+  forced_reachable(R, W)
+  defender_to_move(R, W)
+  NOT defender_replies_enumerated(R, W).
 
 forcing_attacker_move(R, P, C) :-
   expand_ready(R, P)
@@ -89,6 +96,8 @@ terminal_forced(R, W) :-
   defender_replies_enumerated(R, W)
   NOT open_obligation(R, W, _).
 
+query(R, W) :-
+  open_obligation(R, W, _).
 
 #boundary
 
