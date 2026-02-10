@@ -270,6 +270,8 @@ class Relation1 {
     tuplesSet = new Set<number>()
     deltaRows: number[] = []
 
+    nextDeltaRows: number[] = []
+
     indexA: Map<number, Set<number>> = new Map()
 
     seed_deltas() {
@@ -290,7 +292,7 @@ class Relation1 {
         this.colA[row] = A
 
         this.tuplesSet.add(key)
-        this.deltaRows.push(row)
+        this.nextDeltaRows.push(row)
 
         if (!this.indexA.has(A)) this.indexA.set(A, new Set())
 
@@ -316,6 +318,7 @@ class Relation2 {
 
     tuplesSet = new Set<number>()
     deltaRows: number[] = []
+    nextDeltaRows: number[] = []
 
     indexA: Map<number, Set<number>> = new Map()
     indexB: Map<number, Set<number>> = new Map()
@@ -341,7 +344,8 @@ class Relation2 {
         this.colB[row] = B
 
         this.tuplesSet.add(key)
-        this.deltaRows.push(row)
+        this.nextDeltaRows.push(row)
+
 
         if (!this.indexA.has(A)) this.indexA.set(A, new Set())
         if (!this.indexB.has(B)) this.indexB.set(B, new Set())
@@ -375,6 +379,7 @@ class Relation3 {
     tuplesSet: Set<TupleKey>
 
     deltaRows: number[]
+    nextDeltaRows: number[] = []
 
     indexR: Index
     indexP: Index
@@ -416,7 +421,7 @@ class Relation3 {
 
         this.tuplesSet.add(key)
 
-        this.deltaRows.push(row)
+        this.nextDeltaRows.push(row)
 
         {
             this.indexR.get(R)?.add(row)
@@ -696,32 +701,35 @@ function rowMatches(
     row: number
 ): boolean {
 
-    const rel = atom.relation as Relation3
+    if (atom.relation instanceof Relation3) {
+        const rel = atom.relation
 
-    for (let i = 0; i < atom.argSlots.length; i++) {
+        for (let i = 0; i < atom.argSlots.length; i++) {
 
-        const slot = atom.argSlots[i]
-        const column = atom.columnIndexes![i]
+            const slot = atom.argSlots[i]
+            const column = atom.columnIndexes![i]
 
-        if (slot === -1) continue   // constant handling later
+            if (slot === -1) continue   // constant handling later
 
-        if (frame.bound[slot]) {
+            if (frame.bound[slot]) {
 
-            const frameVal = frame.values[slot]
+                const frameVal = frame.values[slot]
 
-            let rowVal: number
+                let rowVal: number
 
-            if (column === 0) rowVal = rel.colR[row]
-            else if (column === 1) rowVal = rel.colP[row]
-            else rowVal = rel.colC[row]
+                if (column === 0) rowVal = rel.colR[row]
+                else if (column === 1) rowVal = rel.colP[row]
+                else rowVal = rel.colC[row]
 
-            if (frameVal !== rowVal) {
-                return false
+                if (frameVal !== rowVal) {
+                    return false
+                }
             }
         }
-    }
 
-    return true
+        return true
+    }
+    return false
 }
 
 
@@ -844,13 +852,15 @@ class Language9 {
 
         for (const stratum of this.stratums) {
 
+            /*
             for (let rule of stratum) {
                 for (let b of rule.body) {
                     b.relation.seed_deltas()
                 }
             }
+                */
 
-           // Initial delta already exists from seeds
+            // Initial delta already exists from seeds
             let anyChange: boolean
 
             do {
@@ -862,10 +872,10 @@ class Language9 {
                     if (changed) anyChange = true
                 }
 
-                // After rules, merge deltas into base
-                const merged = this.mergeAllDeltas()
-
-                if (merged) anyChange = true
+                for (let relation of this.relations) {
+                    relation.deltaRows = relation.nextDeltaRows
+                    relation.nextDeltaRows = []
+                }
 
             } while (anyChange)
         }
@@ -875,25 +885,11 @@ class Language9 {
     executeRule(rule: CompiledRule) {
 
         const target = rule.headRelation
-        let before = target.deltaRows.length
+        let before = target.nextDeltaRows.length
         executeRule(this.mz, rule)
 
-        let after = target.deltaRows.length
+        let after = target.nextDeltaRows.length
         return after > before
-    }
-
-    mergeAllDeltas(): boolean {
-
-        let any = false
-
-        for (const rel of this.relations) {
-            if (rel.deltaRows.length > 0) {
-                any = true
-                rel.deltaRows = []
-            }
-        }
-
-        return any
     }
 
 }
@@ -922,12 +918,14 @@ export function Language9_Build(text: string, mz: PositionMaterializer) {
         root_world.insert2(R, w)
     }
 
+    root_world.deltaRows = root_world.nextDeltaRows
+
     let ll = new Language9(mz, [...relations.values()], C_rules)
 
     ll.loop()
 
     // Output
-    let res = relations.get('query')!.list_cols()
+    let res = relations.get('query')!.list_cols() as [number, number][]
 
     //console.log(res.find(_ => _[1] === 32))
     return res.map(_ => [_, mz.sans(_[1])])
