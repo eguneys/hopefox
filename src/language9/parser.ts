@@ -236,16 +236,25 @@ class Parser {
         while (this.current_token.type !== TokenType.Dot) {
             body.push(this.parse_atom())
         }
+        this.eat(TokenType.Dot)
 
         return {
             head,
             body
         }
     }
+
+    parse_rules(): Rule[] {
+        let res = []
+        while (this.current_token.type !== TokenType.Eof) {
+            res.push(this.parse_rule())
+        }
+        return res
+    }
 }
 
 
 export function parse_program9(text: string) {
     let p = new Parser(new Lexer(text))
-    return p.parse_rule()
+    return p.parse_rules()
 }

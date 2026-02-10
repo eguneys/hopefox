@@ -90,9 +90,6 @@ function compileBody(
     return compiledBody
 }
 
-export function Language9_Build(text: string) {
-    return parse_program9(text)
-}
 
 function buildRelationRegistry(rules: Rule[]): Map<string, Relation> {
 
@@ -145,6 +142,10 @@ function createRelationForHead(head: Atom): Relation {
         return new Relation3(name)
     }
 
+    if (arity === 1) {
+        return new Relation1(name)
+    }
+
     throw new Error(`Unsupported arity ${arity} for relation ${name}`)
 }
 
@@ -160,6 +161,13 @@ function createRelationGuess(atom: Atom): Relation {
     if (arity === 3) {
         return new Relation3(name)
     }
+
+    if (arity === 1) {
+        return new Relation1(name)
+    }
+
+
+
 
     throw new Error(`Unsupported arity ${arity} for relation ${name}`)
 }
@@ -217,22 +225,19 @@ const compileAtom = (
             let external = externals.get(atom.relation)
 
             return {
-                relation: new Relation2('$external'),
+                relation: new Relation2('dummy_not_used_$external'),
                 external,
                 argSlots,
                 constValues,
-                inputArity: 1
             }
         } else {
             let relation = relations.get(atom.relation)!
             let columnIndexes = atom.terms.map((_, i) => i)
             return {
-
                 relation,
                 argSlots,
                 columnIndexes,
                 constValues,
-                inputArity: -1
             }
         }
 
@@ -242,6 +247,49 @@ const decode_const = ($const: string) => {
     return 0
 
 }
+
+
+class Relation1 {
+    name: string
+    arity = 1
+
+    i_nb: number = 0
+
+    colA: number[] = []
+
+    tuplesSet = new Set<number>()
+    deltaRows: number[] = []
+
+    indexA: Map<number, Set<number>> = new Map()
+
+    constructor(name: string) {
+        this.name = name
+    }
+
+    insert1(A: number) {
+        const key = A
+
+        if (this.tuplesSet.has(key)) return
+
+        const row = this.i_nb++
+
+        this.colA[row] = A
+
+        this.tuplesSet.add(key)
+        this.deltaRows.push(row)
+
+        if (!this.indexA.has(A)) this.indexA.set(A, new Set())
+
+        this.indexA.get(A)!.add(row)
+    }
+
+    list_cols() {
+        return this.colA.slice(0)
+    }
+
+}
+
+
 
 class Relation2 {
     name: string
@@ -262,7 +310,7 @@ class Relation2 {
         this.name = name
     }
 
-    insert(A: number, B: number) {
+    insert2(A: number, B: number) {
         const key = (A << 20) | B
 
         if (this.tuplesSet.has(key)) return
@@ -280,6 +328,17 @@ class Relation2 {
 
         this.indexA.get(A)!.add(row)
         this.indexB.get(B)!.add(row)
+    }
+
+
+    list_cols() {
+
+        let res = []
+
+        for (let i = 0; i < this.i_nb; i++) {
+            res.push([this.colA[i], this.colB[i]])
+        }
+        return res
     }
 }
 
@@ -317,7 +376,7 @@ class Relation3 {
         this.indexC = new Map()
     }
 
-    insert(R: number, P: number, C: number) {
+    insert3(R: number, P: number, C: number) {
         let key = tuple_key(R, P, C)
 
         if (this.tuplesSet.has(key)) {
@@ -363,6 +422,17 @@ class Relation3 {
             }
         }
     }
+
+
+    list_cols() {
+
+        let res = []
+
+        for (let i = 0; i < this.i_nb; i++) {
+            res.push([this.colP[i], this.colR[i], this.colC[i]])
+        }
+        return res
+    }
 }
 
 type TupleKey = number
@@ -377,7 +447,7 @@ type Tuple = Int32Array  | number[]
 
 type Index = Map<number, Set<RowId>>
 
-type Relation = Relation3 | Relation2
+type Relation = Relation3 | Relation2 | Relation1
 
 type CompiledRule = {
     headRelation: Relation
@@ -394,10 +464,14 @@ type CompiledAtom = {
     constValues: (number | null)[]
     external?: ExternalRelation
     columnIndexes?: number[]
-    inputArity: number
 }
 
-type ExternalRelation = (mz: PositionMaterializer, frame: Frame, emit: (values: number[]) => void) => void
+type ExternalRelation = {
+    name: string
+    inputArity: number,
+    outputArity: number,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => boolean
+}
 
 
 
@@ -453,6 +527,9 @@ function bindRowIntoFrame(frame: Frame, atom: CompiledAtom, row: RowId) {
         bindValue(frame, slots[0], v0)
         bindValue(frame, slots[1], v1)
         bindValue(frame, slots[2], v2)
+    } else if (rel instanceof Relation1) {
+        const v0 = rel.colA[row]
+        bindValue(frame, slots[0], v0)
     }
 }
 
@@ -502,11 +579,25 @@ function joinRestUsing(
 
     if (atom.external) {
 
+        for (let i = 0; i < atom.external.inputArity; i++) {
+            if (!frame.bound[atom.argSlots[i]]) {
+                return
+            }
+        }
+
+        if (atom.external.outputArity === 0) {
+            if (atom.external.invoke(mz, atom, frame, () => {})) {
+                joinRestUsing(mz, rule, rest, atomIndex + 1, frame)
+            } else {
+                return
+            }
+        }
+
         const snapshot = snapshotFrame(frame)
         const slotC = atom.argSlots[1]
-        atom.external(mz, frame, (values) => {
+        atom.external.invoke(mz, atom, frame, (values) => {
             for (let i = 0; i < values.length; i++) {
-                const slot = atom.argSlots[i + atom.inputArity]
+                const slot = atom.argSlots[i + atom.external!.inputArity]
 
                 if (!bindValue(frame, slot, values[i])) return
             }
@@ -538,19 +629,6 @@ function joinRestUsing(
     }
 }
 
-const external$legal_worlds = (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
-    const slotP = atom.argSlots[0]
-    const slotC = atom.argSlots[1]
-
-    const P = frame.values[slotP]
-
-    const children = mz.generate_legal_worlds(P)
-
-    for (const C of children) {
-        emit([C])
-    }
-}
-
 
 function chooseDriver(rule: CompiledRule): CompiledAtom {
 
@@ -573,15 +651,18 @@ function emitHead(rule: CompiledRule, frame: Frame) {
     const slots = rule.headSlots
 
     if (rel instanceof Relation2) {
-        rel.insert(frame.values[slots[0]],
+        rel.insert2(frame.values[slots[0]],
             frame.values[slots[1]]
         )
     } else if (rel instanceof Relation3) {
-        rel.insert(
+        rel.insert3(
             frame.values[slots[0]],
             frame.values[slots[1]],
             frame.values[slots[2]],
         )
+
+    } else if (rel instanceof Relation1) {
+        rel.insert1(frame.values[slots[0]])
 
     }
 }
@@ -628,10 +709,13 @@ function unifyRow(frame: Frame, atom: CompiledAtom, row: RowId) {
         if (!bindValue(frame, slots[0], rel.colA[row])) return false
         if (!bindValue(frame, slots[1], rel.colB[row])) return false
         return true
-    } else {
+    } else if (rel instanceof Relation3) {
         if (!bindValue(frame, slots[0], rel.colR[row])) return false
         if (!bindValue(frame, slots[1], rel.colP[row])) return false
         if (!bindValue(frame, slots[2], rel.colC[row])) return false
+        return true
+    } else if (rel instanceof Relation1) {
+        if (!bindValue(frame, slots[0], rel.colA[row])) return false
         return true
     }
 }
@@ -654,10 +738,11 @@ function lookupUsingIndexes(atom: CompiledAtom, frame: Frame) {
 
 class Language9 {
 
-    relations: (Relation2 | Relation3)[]
-    stratums: CompiledRule[][]
-
-    constructor(private mz: PositionMaterializer) {}
+    constructor(
+        public mz: PositionMaterializer,
+        public relations: Relation[],
+        public stratums: CompiledRule[][]
+    ) {}
 
     loop() {
 
@@ -711,3 +796,88 @@ class Language9 {
     }
 
 }
+
+
+export function Language9_Build(text: string, mz: PositionMaterializer) {
+    let rules = parse_program9(text)
+
+
+    let relations = buildRelationRegistry(rules)
+    let externals = buildExternalsRegistry()
+
+    let c_rules = rules.map(_ => compileRule(_, relations, externals))
+
+    let cw = mz.generate_legal_worlds(0)
+
+    let root_world: Relation2 = relations.get('root_world')! as Relation2
+
+    for (let w of cw) {
+        let R = w
+        root_world.insert2(R, w)
+    }
+
+    let ll = new Language9(mz, [...relations.values()], [c_rules])
+
+    ll.loop()
+
+    return relations.get('defender_to_move')!.list_cols()
+}
+
+const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
+    return new Map([
+        ['$legal_world', external$legal_worlds],
+        ['$is_attacker', external$is_attacker],
+        ['$is_defender', external$is_defender],
+    ])
+}
+
+
+const external$is_defender: ExternalRelation = {
+    name: '$is_defender',
+    inputArity: 1,
+    outputArity: 0,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+    const slotP = atom.argSlots[0]
+
+    const P = frame.values[slotP]
+
+    const yes = mz.is_defender(P)
+
+    return yes
+}
+}
+
+const external$is_attacker: ExternalRelation = {
+    name: '$is_attacker',
+    inputArity: 1,
+    outputArity: 0,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+
+        const P = frame.values[slotP]
+
+        const yes = mz.is_attacker(P)
+
+        return yes
+    }
+}
+
+const external$legal_worlds: ExternalRelation = {
+    name: '$legal_worlds',
+    inputArity: 1,
+    outputArity: 1,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotC = atom.argSlots[1]
+
+        const P = frame.values[slotP]
+
+        const children = mz.generate_legal_worlds(P)
+
+        for (const C of children) {
+            emit([C])
+        }
+        return true
+    }
+}
+
