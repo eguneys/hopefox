@@ -272,6 +272,10 @@ class Relation1 {
 
     indexA: Map<number, Set<number>> = new Map()
 
+    seed_deltas() {
+        this.deltaRows = [...this.colA.keys()]
+    }
+
     constructor(name: string) {
         this.name = name
     }
@@ -315,6 +319,12 @@ class Relation2 {
 
     indexA: Map<number, Set<number>> = new Map()
     indexB: Map<number, Set<number>> = new Map()
+
+    seed_deltas() {
+        this.deltaRows = [...this.colA.keys()]
+    }
+
+
 
     constructor(name: string) {
         this.name = name
@@ -369,6 +379,11 @@ class Relation3 {
     indexR: Index
     indexP: Index
     indexC: Index
+
+
+    seed_deltas() {
+        this.deltaRows = [...this.colR.keys()]
+    }
 
     constructor(name: string) {
 
@@ -826,16 +841,15 @@ class Language9 {
 
     loop() {
 
-        let pz = this.relations.find(_ => _.name === 'puzzle_solved')!
         for (const stratum of this.stratums) {
 
-
-            if (pz.i_nb > 0) {
-                return
+            for (let rule of stratum) {
+                for (let b of rule.body) {
+                    b.relation.seed_deltas()
+                }
             }
 
-            // Initial delta already exists from seeds
-
+           // Initial delta already exists from seeds
             let anyChange: boolean
 
             do {
@@ -911,7 +925,7 @@ export function Language9_Build(text: string, mz: PositionMaterializer) {
 
     ll.loop()
 
-    return relations.get('defender_to_move')!.list_cols()
+    return relations.get('defender_replies_enumerated')!.list_cols()
 }
 
 const buildExternalsRegistry = (): Map<string, ExternalRelation> => {

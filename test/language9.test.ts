@@ -7,7 +7,7 @@ import { puzzles } from './fixture'
 let m = await PositionManager.make()
 it('works', () => {
 
-    let pos = m.create_position(puzzles[0].move_fens[0])
+    let pos = m.create_position(puzzles[1].move_fens[0])
     let mz = new PositionMaterializer(m, pos)
 
     let res = Language9_Build(`
@@ -33,8 +33,6 @@ attacker_to_move(R, W) :-
 defender_to_move(R, W) :-
   forced_reachable(R, W)
   $is_defender(W).
-
-
 
 #boundary
 
