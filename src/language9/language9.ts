@@ -300,7 +300,7 @@ class Relation1 {
     }
 
     list_cols() {
-        return this.colA.slice(0)
+        return this.colA.map(_ => [_])
     }
 
 }
@@ -865,6 +865,11 @@ class Language9 {
 
             do {
                 anyChange = false
+
+                let SS = this.relations
+                    .find(_ => _.name === 'world')!
+                    .list_cols()
+                    .map(_ => this.mz.sans(_[0]))
 
                 // Run all rules in this stratum
                 for (const rule of stratum) {
