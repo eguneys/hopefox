@@ -91,9 +91,7 @@ function compileBody(
 }
 
 
-function buildRelationRegistry(rules: Rule[]): Map<string, Relation> {
-
-    const relations = new Map<string, Relation>()
+function buildRelationRegistry(relations: Map<string, Relation>, rules: Rule[]): Map<string, Relation> {
 
     // Pass 1 — heads define schema
     for (const rule of rules) {
@@ -799,13 +797,18 @@ class Language9 {
 
 
 export function Language9_Build(text: string, mz: PositionMaterializer) {
-    let rules = parse_program9(text)
+
+    let texts = text.split('boundary')
+
+    let R_rules = texts.map(text => parse_program9(text))
 
 
-    let relations = buildRelationRegistry(rules)
+    let relations = new Map()
+    
+    R_rules.forEach(rules => buildRelationRegistry(relations, rules))
     let externals = buildExternalsRegistry()
 
-    let c_rules = rules.map(_ => compileRule(_, relations, externals))
+    let C_rules = R_rules.map(rules => rules.map(_ => compileRule(_, relations, externals)))
 
     let cw = mz.generate_legal_worlds(0)
 
@@ -816,7 +819,7 @@ export function Language9_Build(text: string, mz: PositionMaterializer) {
         root_world.insert2(R, w)
     }
 
-    let ll = new Language9(mz, [...relations.values()], [c_rules])
+    let ll = new Language9(mz, [...relations.values()], C_rules)
 
     ll.loop()
 
