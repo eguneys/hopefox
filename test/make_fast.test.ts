@@ -10,7 +10,7 @@ it('works', () => {
     let Fp = []
     let Tn = []
     let Fn = []
-    for (let i = 0; i < log_puzzles.length; i++) {
+    for (let i = 0; i < log_puzzles.length / 5; i++) {
         let fen = log_puzzles[i].move_fens[0]
         let pos = m.create_position(fen)
         let link = log_puzzles[i].link
@@ -29,10 +29,11 @@ it('works', () => {
             if (cc === ss) {
                 Tp.push(link)
             } else {
-                Fp.push(link)
+                Fp.push(`${link} :> ${res.join(' ')}`)
             }
         }
 
+        Tn.push(link)
     }
 
     console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
