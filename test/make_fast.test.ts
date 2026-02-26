@@ -29,7 +29,7 @@ it('works', () => {
             if (cc === ss) {
                 Tp.push(link)
             } else {
-                Fp.push(`${link} :> [${res.length}] ${res[0].join(' ')}`)
+                Fp.push(`${i} ${link} :> [${res.length}] ${res[0].join(' ')}`)
             }
             continue
         }

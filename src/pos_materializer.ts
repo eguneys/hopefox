@@ -38,6 +38,14 @@ export class PositionMaterializer {
         }
     }
 
+
+    pos_occupied(world_id: WorldId) {
+        this.make_to_world(world_id)
+        let res = this.m.pos_occupied(this.pos)
+        this.unmake_world(world_id)
+        return res
+    }
+
     generate_legal_worlds(world_id: WorldId) {
         return this.generate_legal_moves(world_id).map(_ => this.add_move(world_id, _))
     }

@@ -1,5 +1,5 @@
 import { Position } from "./distill/chess";
-import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager } from "./distill/hopefox_c";
+import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN } from "./distill/hopefox_c";
 import { makeSan } from "./distill/san";
 import { Move, Square } from "./distill/types";
 import { NodeId, NodeManager } from "./node_manager";
@@ -28,18 +28,23 @@ type Build0 = {
     attacked_by2: Relation
     defended_by2: Relation
     checks: Relation
+
+
+    queens: Relation
+    bishop_attacked_by_queen: Relation
 }
 
 
-function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
-    let occ = m.pos_occupied(pos)
+function build0(id: WorldId, mz: PositionMaterializer): Build0 {
+    mz.make_to_world(id)
+    let occ = mz.m.pos_occupied(mz.pos)
 
     let occupies: Relation = { rows: [] }
     let attacks: Relation = { rows: [] }
 
     for (let sq of occ) {
-        let piece = m.get_at(pos, sq)!
-        let aa = m.pos_attacks(pos, sq)
+        let piece = mz.m.get_at(mz.pos, sq)!
+        let aa = mz.m.pos_attacks(mz.pos, sq)
 
         let role = piece_c_type_of(piece)
         let color = piece_c_color_of(piece)
@@ -49,6 +54,28 @@ function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
             attacks.rows.push({ id, from: sq, to: a })
         }
     }
+
+    let attacks2: Relation = { rows: [] }
+    for (let a of attacks.rows) {
+        for (let o of occupies.rows) {
+            if (a.from !== o.from) {
+                continue
+            }
+
+            let occ = mz.m.pos_occupied(mz.pos).without(a.from).with(a.to)
+            let aa = mz.m.attacks(o.piece, a.to, occ)
+
+            for (let a2 of aa) {
+                if (a2 == a.from) {
+                    continue
+                }
+                attacks2.rows.push({ id, from: a.from, to: a.to, to2: a2 })
+            }
+        }
+    }
+
+
+    mz.unmake_world(id)
 
 
     let defended_by: Relation = { rows: [] }
@@ -95,6 +122,16 @@ function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
         knights.rows.push(o)
     }
 
+    let queens: Relation = { rows: [] }
+
+    for (let o of occupies.rows) {
+        if (o.role !== QUEEN) {
+            continue
+        }
+        queens.rows.push(o)
+    }
+
+
 
 
     let bishop_defended_by: Relation = { rows: [] }
@@ -135,26 +172,6 @@ function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
         bishop_only_defended_by_knight.rows.push(d)
     }
 
-    let attacks2: Relation = { rows: [] }
-    for (let a of attacks.rows) {
-        for (let o of occupies.rows) {
-            if (a.from !== o.from) {
-                continue
-            }
-
-            let occ = m.pos_occupied(pos).without(a.from).with(a.to)
-            let aa = m.attacks(o.piece, a.to, occ)
-
-            for (let a2 of aa) {
-                if (a2 == a.from) {
-                    continue
-                }
-                attacks2.rows.push({ id, from: a.from, to: a.to, to2: a2 })
-            }
-        }
-    }
-
-
     let attacked_by2: Relation = { rows: [] }
     let defended_by2: Relation = { rows: [] }
 
@@ -194,6 +211,28 @@ function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
         }
     }
 
+    let bishop_attacked_by: Relation = { rows: [] }
+    for (let a of attacked_by.rows) {
+        for (let b of bishops.rows) {
+            if (a.to !== b.from) {
+                continue
+            }
+            bishop_attacked_by.rows.push({ id, from: a.from, to: a.to })
+        }
+    }
+
+    let bishop_attacked_by_queen: Relation = { rows: [] }
+    for (let d of bishop_attacked_by.rows) {
+        for (let q of queens.rows) {
+            if (d.from !== q.from) {
+                continue
+            }
+            bishop_attacked_by_queen.rows.push({ id, from: d.from, to: d.to })
+        }
+    }
+
+
+
     return {
         occupies,
         attacks,
@@ -206,7 +245,10 @@ function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
         attacks2,
         attacked_by2,
         defended_by2,
-        checks
+        checks,
+
+        queens,
+        bishop_attacked_by_queen
     }
 }
 
@@ -215,7 +257,8 @@ function build0(id: WorldId, m: PositionManager, pos: PositionC): Build0 {
 export function make_fast(m: PositionManager, pos: PositionC) {
     let mz = new PositionMaterializer(m, pos)
 
-    function build2(id: WorldId, b0: Build0 = build0(id, m, pos)) {
+    function build2(id: WorldId, mz: PositionMaterializer) {
+        let b0 = build0(id, mz)
 
         let legal_moves: Relation = { rows: [] }
 
@@ -246,7 +289,7 @@ export function make_fast(m: PositionManager, pos: PositionC) {
                 if (check.to !== k.from) {
                     continue
                 }
-                legal_checks_captures_the_knight.rows.push(check)
+                legal_checks_captures_the_knight.rows.push({...check, bishop_only_defended_by_knight: k.to})
             }
         }
 
@@ -254,29 +297,31 @@ export function make_fast(m: PositionManager, pos: PositionC) {
         let responses1: Relation = { rows: [] }
 
         for (let lc of legal_checks_captures_the_knight.rows) {
-            responses1.rows.push(...build2(lc.id2).legal_moves.rows)
+            responses1.rows.push(...build2(lc.id2, mz).legal_moves.rows.map(_ => ({..._, bishop_only_defended_by_knight: lc.bishop_only_defended_by_knight })))
         }
 
         let responses1_b: Relation = { rows: [] }
         for (let r1 of responses1.rows) {
-            responses1_b.rows.push(...build0(r1.id2, m, pos).attacks.rows)
-        }
+            let bishop_attacked_by_queen = build0(r1.id2, mz).bishop_attacked_by_queen
 
-        for (let r1b of responses1_b.rows) {
+            for (let b of bishop_attacked_by_queen.rows) {
+                if (r1.bishop_only_defended_by_knight !== b.to) {
+                    continue
+                }
+                responses1_b.rows.push({ id: r1.id, from: r1.from, to: r1.to})
+            }
         }
 
         let res = {
-            legal_moves,
-            legal_checks_captures_the_knight,
-            responses1,
-            responses1_b
+            responses1_b,
+            legal_moves
         }
 
         return res
     }
 
-    let res = build2(0).responses1_b
+    let res = build2(0, mz).responses1_b
 
 
-    return res.rows.map(_ => mz.sans(_.id2))
+    return res.rows.map(_ => mz.sans(_.id))
 }

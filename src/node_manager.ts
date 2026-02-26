@@ -1,4 +1,4 @@
-import { MoveC } from "../distill/hopefox_c"
+import { MoveC } from "./distill/hopefox_c"
 
 export type NodeId = number
 
