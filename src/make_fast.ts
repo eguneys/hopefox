@@ -1,5 +1,5 @@
 import { Position } from "./distill/chess";
-import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN } from "./distill/hopefox_c";
+import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN, ROOK } from "./distill/hopefox_c";
 import { makeSan } from "./distill/san";
 import { Move, Square } from "./distill/types";
 import { NodeId, NodeManager } from "./node_manager";
@@ -33,6 +33,28 @@ type Build0 = {
     knights: Relation
     queens: Relation
     bishop_attacked_by_queen: Relation
+
+
+    queen_defended_by: Relation
+    queen_attacked_by: Relation
+    queen_only_defended_by_rook: Relation
+    queen_defended_by_rook: Relation
+    queen_attacked_by_queen: Relation
+
+    rooks: Relation
+
+    rook_attacks_to2: Relation
+
+    rook_attacks_to2_piece: Relation
+    rook_attacks_to2_2pieces: Relation
+
+    rook_forks2_king_and_rook: Relation
+
+    kings: Relation
+
+
+    queen_attacks: Relation
+    queen_attacks_through: Relation
 }
 
 
@@ -76,7 +98,6 @@ function build0(id: WorldId, mz: PositionMaterializer): Build0 {
     }
 
 
-    mz.unmake_world(id)
 
 
     let defended_by: Relation = { rows: [] }
@@ -130,6 +151,25 @@ function build0(id: WorldId, mz: PositionMaterializer): Build0 {
             continue
         }
         queens.rows.push(o)
+    }
+
+
+    let rooks: Relation = { rows: [] }
+
+    for (let o of occupies.rows) {
+        if (o.role !== ROOK) {
+            continue
+        }
+        rooks.rows.push(o)
+    }
+
+    let kings: Relation = { rows: [] }
+
+    for (let o of occupies.rows) {
+        if (o.role !== KING) {
+            continue
+        }
+        kings.rows.push(o)
     }
 
 
@@ -232,7 +272,197 @@ function build0(id: WorldId, mz: PositionMaterializer): Build0 {
         }
     }
 
+    let queen_attacked_by: Relation = { rows: [] }
+    let queen_defended_by: Relation = { rows: [] }
 
+    
+    for (let a of attacked_by.rows) {
+        for (let q of queens.rows) {
+            if (a.to !== q.from) {
+                continue
+            }
+            queen_attacked_by.rows.push({ id: a.id, from: a.from, to: a.to })
+        }
+    }
+
+    for (let d of defended_by.rows) {
+        for (let q of queens.rows) {
+            if (d.to !== q.from) {
+                continue
+            }
+            queen_defended_by.rows.push({ id, from: d.from, to: d.to })
+        }
+    }
+
+
+    let queen_defended_by_rook: Relation = { rows: [] }
+    for (let d of queen_defended_by.rows) {
+        for (let k of rooks.rows) {
+            if (d.from !== k.from) {
+                continue
+            }
+            queen_defended_by_rook.rows.push({ id, from: d.from, to: d.to })
+        }
+    }
+
+
+
+    let queen_only_defended_by_rook: Relation = { rows: [] }
+    outer: for (let d of queen_defended_by_rook.rows) {
+        let only = false
+        for (let b of queen_defended_by.rows) {
+            if (d.to !== b.to) {
+                continue
+            }
+            if (!only) {
+                only = true
+                continue
+            }
+            continue outer
+        }
+        queen_only_defended_by_rook.rows.push(d)
+    }
+
+    let queen_attacked_by_queen: Relation = { rows: [] }
+    for (let d of queen_attacked_by.rows) {
+        for (let q of queens.rows) {
+            if (d.from !== q.from) {
+                continue
+            }
+            queen_attacked_by_queen.rows.push({ id, from: d.from, to: d.to })
+        }
+    }
+
+
+    let rook_attacks_to2: Relation = { rows: [] }
+    for (let a of attacks2.rows) {
+        for (let r of rooks.rows) {
+            if (a.from !== r.from) {
+                continue
+            }
+            rook_attacks_to2.rows.push(a)
+        }
+    }
+
+    let rook_attacks_to2_piece: Relation = { rows: [] }
+    rows = []
+    for (let r2 of rook_attacks_to2.rows) {
+        for (let o of occupies.rows) {
+            if (r2.from !== o.from) {
+                continue
+            }
+            rows.push({ ...r2, ...o })
+        }
+    }
+
+    for (let r2 of rows) {
+        for (let o2 of occupies.rows) {
+            if (r2.to2 !== o2.from) {
+                continue
+            }
+            if (r2.color === o2.color) {
+                continue
+            }
+            rook_attacks_to2_piece.rows.push(r2)
+        }
+    }
+
+    let rook_attacks_to2_2pieces: Relation = { rows: [] }
+
+    let group_by_fromTo: Map<number, Relation> = new Map()
+    for (let r2 of rook_attacks_to2_piece.rows) {
+        let fromToKey = make_move_from_to(r2.from, r2.to)
+        let group = group_by_fromTo.get(fromToKey)
+
+        if (!group) {
+            group_by_fromTo.set(fromToKey, { rows: [] })
+            group = group_by_fromTo.get(fromToKey)
+        }
+
+        group!.rows.push(r2)
+    }
+
+    for (let ra_to of group_by_fromTo.keys()) {
+        let group = group_by_fromTo.get(ra_to)!
+        if (group.rows.length === 2) {
+            rook_attacks_to2_2pieces.rows.push({ 
+                id, 
+                from: group.rows[0].from, 
+                to: group.rows[0].to, 
+                to2_a: group.rows[0].to2, 
+                to2_b: group.rows[1].to2 
+            })
+            rook_attacks_to2_2pieces.rows.push({ 
+                id, 
+                from: group.rows[0].from, 
+                to: group.rows[0].to, 
+                to2_a: group.rows[1].to2, 
+                to2_b: group.rows[0].to2 
+            })
+        }
+    }
+
+    let rook_forks2_king_and_rook: Relation = { rows: [] }
+
+    for (let r2 of rook_attacks_to2_2pieces.rows) {
+        let a_is_found = false
+        for (let k of rooks.rows) {
+            if (r2.to2_b !== k.from) {
+                continue
+            }
+            a_is_found = true
+            break
+        }
+
+        if (!a_is_found) {
+            continue
+        }
+
+        for (let k of kings.rows) {
+            if (r2.to2_a !== k.from) {
+                continue
+            }
+            rook_forks2_king_and_rook.rows.push(r2)
+        }
+    }
+
+
+    let queen_attacks: Relation = { rows: [] }
+
+    for (let a of attacks.rows) {
+        for (let q of queens.rows) {
+            if (a.from !== q.from) {
+                continue
+            }
+            queen_attacks.rows.push(a)
+        }
+    }
+
+
+    let queen_attacks_through: Relation = { rows: [] }
+
+
+    for (let q of queen_attacks.rows) {
+
+        for (let o of occupies.rows) {
+            if (q.from !== o.from) {
+                continue
+            }
+
+            let occ = mz.m.pos_occupied(mz.pos)
+
+            let aa1 = mz.m.attacks(o.piece, o.from, occ)
+            let aa2 = mz.m.attacks(o.piece, o.from, occ.without(q.to))
+            let aa = aa2.diff(aa1)
+
+            for (let a of aa) {
+                queen_attacks_through.rows.push({ id, from: q.from, to: a, to_through: q.to })
+            }
+        }
+    }
+
+
+    mz.unmake_world(id)
 
     return {
         occupies,
@@ -250,14 +480,114 @@ function build0(id: WorldId, mz: PositionMaterializer): Build0 {
 
         knights,
         queens,
-        bishop_attacked_by_queen
+        bishop_attacked_by_queen,
+
+        queen_attacked_by,
+        queen_defended_by,
+        queen_only_defended_by_rook,
+        queen_defended_by_rook,
+        queen_attacked_by_queen,
+
+        rooks,
+        rook_attacks_to2,
+        rook_attacks_to2_2pieces,
+        rook_attacks_to2_piece,
+
+        rook_forks2_king_and_rook,
+        kings,
+
+        queen_attacks,
+        queen_attacks_through
+    }
+}
+
+
+function build3(id: WorldId, mz: PositionMaterializer) {
+
+    let b0 = build0(id, mz)
+
+    let queen_rook_queen_alignment: Relation = { rows: [] }
+
+    let rows = []
+    for (let q of b0.queen_only_defended_by_rook.rows) {
+        for (let q2 of b0.queen_attacked_by_queen.rows) {
+            if (q.to !== q2.to) {
+                continue
+            }
+
+            rows.push({ id, from: q.from, to: q.to, queen2: q2.from })
+        }
+    }
+
+    for (let q of rows) {
+        for (let qt of b0.queen_attacks_through.rows) {
+            if (q.queen2 !== qt.from) {
+                continue
+            }
+            if (q.to !== qt.to_through) {
+                continue
+            }
+            if (q.from !== qt.to) {
+                continue
+            }
+            queen_rook_queen_alignment.rows.push(qt)
+        }
+    }
+
+    let goods: Relation = { rows: [] }
+
+    for (let r2 of b0.rook_forks2_king_and_rook.rows) {
+        let to_rook = r2.to2_b
+        for (let q of queen_rook_queen_alignment.rows) {
+            if (q.to !== to_rook) {
+                continue
+            }
+
+            goods.rows.push(r2)
+        }
+    }
+
+    let b2 = build2(id, mz)
+
+    let legal_goods: Relation = { rows: [] }
+
+    for (let legal of b2.legal_moves.rows) {
+
+        for (let g of goods.rows) {
+            if (legal.from !== g.from) {
+                continue
+            }
+            if (legal.to !== g.to) {
+                continue
+            }
+
+
+            legal_goods.rows.push({id: legal.id2})
+        }
+    }
+
+    let candidates: Relation = legal_goods
+
+    return {
+        candidates
     }
 }
 
 
 
+
 export function make_fast(m: PositionManager, pos: PositionC) {
     let mz = new PositionMaterializer(m, pos)
+
+    let res = build3(0, mz).candidates
+
+
+    return res.rows.map(_ => mz.sans(_.id))
+}
+
+
+
+
 
     function build2(id: WorldId, mz: PositionMaterializer) {
         let b0 = build0(id, mz)
@@ -334,8 +664,3 @@ export function make_fast(m: PositionManager, pos: PositionC) {
         return res
     }
 
-    let res = build2(0, mz).responses1_b
-
-
-    return res.rows.map(_ => mz.sans(_.id))
-}
