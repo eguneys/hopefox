@@ -1,5 +1,5 @@
 import { it } from 'vitest'
-import { extract_moves_relation, make_fast, PositionManager } from '../src'
+import { make_fast, PositionManager } from '../src'
 import { log_puzzles } from './fixture'
 
 let m = await PositionManager.make()
@@ -22,15 +22,16 @@ it('works', () => {
             continue
         }
 
-        if (res.length === 1) {
+        if (res.length > 0) {
             let cc = res[0][0]
             let ss = log_puzzles[i].sans[0]
 
             if (cc === ss) {
                 Tp.push(link)
             } else {
-                Fp.push(`${link} :> ${res.join(' ')}`)
+                Fp.push(`${link} :> [${res.length}] ${res[0].join(' ')}`)
             }
+            continue
         }
 
         Tn.push(link)
