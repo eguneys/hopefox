@@ -3,7 +3,7 @@ import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, piece_c
 import { makeSan } from "./distill/san";
 import { Move, Square } from "./distill/types";
 import { NodeId, NodeManager } from "./node_manager";
-import { PositionMaterializer } from "./pos_materializer";
+import { PositionMaterializer, san_moves_c } from "./pos_materializer";
 
 type Row = {
     id: number
@@ -203,5 +203,20 @@ export function make_fast(m: PositionManager, pos: PositionC) {
         }
     }
 
-    return legal_checks
+    let legal_checks_captures_the_knight: Relation = { rows: [] }
+
+    for (let check of legal_checks.rows) {
+        for (let k of bishop_only_defended_by_knight.rows) {
+            if (check.to !== k.from) {
+                continue
+            }
+            legal_checks_captures_the_knight.rows.push(check)
+        }
+    }
+
+
+    let res = legal_checks_captures_the_knight
+
+
+    return res.rows.map(_ => mz.sans(_.id2))
 }

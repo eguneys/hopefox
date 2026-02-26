@@ -1,13 +1,41 @@
 import { it } from 'vitest'
-import { make_fast, PositionManager } from '../src'
+import { extract_moves_relation, make_fast, PositionManager } from '../src'
+import { log_puzzles } from './fixture'
 
 let m = await PositionManager.make()
 
 
 it('works', () => {
-    let fen = 'N6r/1p1k1ppp/2np4/b3p3/4P1b1/N1Q5/P4PPP/R3KB1R b KQ - 0 1'
-    let pos = m.create_position(fen)
+    let Tp = []
+    let Fp = []
+    let Tn = []
+    let Fn = []
+    for (let i = 0; i < log_puzzles.length; i++) {
+        let fen = log_puzzles[i].move_fens[0]
+        let pos = m.create_position(fen)
+        let link = log_puzzles[i].link
 
-    let res = make_fast(m, pos)
-    console.log(res)
+        let res = make_fast(m, pos)
+        if (res.length === 0) {
+
+            Tn.push(link)
+            continue
+        }
+
+        if (res.length === 1) {
+            let cc = res[0][0]
+            let ss = log_puzzles[i].sans[0]
+
+            if (cc === ss) {
+                Tp.push(link)
+            } else {
+                Fp.push(link)
+            }
+        }
+
+    }
+
+    console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
+    console.log(Fp.slice(0, 8))
+    console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
 })
