@@ -1,0 +1,10 @@
+knight takes knight with check
+bishop only_defense knight
+bishop attacks queen
+  knight recaptures
+  queen recaptures with an attack on hanging bishop
+  knight discovers a bishop defense
+  piece recapture discovers a bishop defense
+
+  piece recaptures
+    queen capture bishop hangs piece queen undefends

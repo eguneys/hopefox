@@ -1,0 +1,12 @@
+It's still early and I have hard coded all the rules for one specific case of a puzzle that I am working on and isolated 4000 puzzles for.
+I am thinking about putting this into DSL, and considering the case where the rejection reasons are somehow expressed with the DSL in some sort of way along with the simple static rules that are mostly geometric and simple move sequence cases that adds a little bit of dynamism and search space into the system. 
+
+To be specific along 19 false positives, I've encountered:
+Categories involving:
+a. artifact defense
+b. counter defense
+c. counter attack
+d. different case of counter attack
+e. 2 different cases of complications
+
+In summary, I am not sure if this can be captured in an expressive pattern.

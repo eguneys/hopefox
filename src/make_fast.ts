@@ -30,6 +30,7 @@ type Build0 = {
     checks: Relation
 
 
+    knights: Relation
     queens: Relation
     bishop_attacked_by_queen: Relation
 }
@@ -247,6 +248,7 @@ function build0(id: WorldId, mz: PositionMaterializer): Build0 {
         defended_by2,
         checks,
 
+        knights,
         queens,
         bishop_attacked_by_queen
     }
@@ -282,21 +284,32 @@ export function make_fast(m: PositionManager, pos: PositionC) {
             }
         }
 
-        let legal_checks_captures_the_knight: Relation = { rows: [] }
+        let legal_knight_checks: Relation = { rows: [] }
 
-        for (let check of legal_checks.rows) {
+        for (let k of b0.knights.rows) {
+            for (let l of legal_checks.rows) {
+                if (k.from !== l.from) {
+                    continue
+                }
+                legal_knight_checks.rows.push(l)
+            }
+        }
+
+        let legal_knight_checks_captures_the_knight: Relation = { rows: [] }
+
+        for (let check of legal_knight_checks.rows) {
             for (let k of b0.bishop_only_defended_by_knight.rows) {
                 if (check.to !== k.from) {
                     continue
                 }
-                legal_checks_captures_the_knight.rows.push({...check, bishop_only_defended_by_knight: k.to})
+                legal_knight_checks_captures_the_knight.rows.push({...check, bishop_only_defended_by_knight: k.to})
             }
         }
 
 
         let responses1: Relation = { rows: [] }
 
-        for (let lc of legal_checks_captures_the_knight.rows) {
+        for (let lc of legal_knight_checks_captures_the_knight.rows) {
             responses1.rows.push(...build2(lc.id2, mz).legal_moves.rows.map(_ => ({..._, bishop_only_defended_by_knight: lc.bishop_only_defended_by_knight })))
         }
 
@@ -314,7 +327,8 @@ export function make_fast(m: PositionManager, pos: PositionC) {
 
         let res = {
             responses1_b,
-            legal_moves
+            legal_moves,
+            legal_checks
         }
 
         return res
