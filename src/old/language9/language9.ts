@@ -870,7 +870,18 @@ class Language9 {
                 let SS = this.relations
                     .find(_ => _.name === 'open_obligation')!
                     .list_cols()
-                    .map(_ => this.mz.sans(_[1]))
+                    .reverse()
+
+                let ZZ = SS.map(_ => this.mz.sans(_[2]))
+
+                let SS2 = this.relations
+                    .find(_ => _.name === 'world')!
+                    .list_cols()
+                    .reverse()
+
+                let ZZ2 = SS2.map(_ => this.mz.sans(_[0]))
+
+
 
                 //console.log(SS)
 
@@ -920,7 +931,7 @@ export function Language9_Build(text: string, mz: PositionMaterializer) {
 
     let C_rules = R_rules.map(rules => rules.map(_ => compileRule(_, relations, externals)))
 
-    let cw = mz.generate_legal_worlds(0)
+    let cw = candidate_attack_moves(mz)
 
     let root_world: Relation2 = relations.get('root_world')! as Relation2
 
@@ -1080,3 +1091,30 @@ const external$legal_worlds: ExternalRelation = {
     }
 }
 
+
+
+function candidate_attack_moves(mz: PositionMaterializer) {
+
+    let res = []
+    let moves = mz.generate_legal_moves(0)
+
+    for (let move of moves) {
+        let next_world = mz.add_move(0, move)
+
+
+        let is_check = mz.is_check(next_world)
+
+        let is_capture = mz.is_capture(next_world)
+
+        let is_forcing = is_check || is_capture
+
+        if (!is_forcing) {
+            continue
+        }
+
+
+        res.push(next_world)
+    }
+
+    return res
+}

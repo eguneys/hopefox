@@ -1,0 +1,52 @@
+bishop only_defense knight
+bishop attacks queen
+knight takes knight with check
+queen recaptures
+queen takes hanging bishop
+
+king evades_to_zero_check
+mate_in_1_threat with knight and queen
+cannot_be_defended cannot_be_evaded
+queen sacrifices vs knight
+
+
+king evades queen check
+discovers_attack_on_queen with rook
+attacks bishop defended_by queen
+queen evades attack by rook
+checks
+hangs bishop
+king captures hanging bishop
+
+queen vs queen through rook
+queen only_defenses rook
+rook forks king and rook
+sacrifices zero
+rook captures rook
+hangs queen
+queen captures hanging queen
+
+pawn captures knight
+forks queen and knight
+queen evades
+pawn captures knight
+
+king evades check
+queen holds mate_in_1
+no_more_safe_checks
+queen attacks hanging rook
+king attacks hanging bishop
+rook evades
+king takes bishop
+
+pawn takes knight
+attacks knight
+discovers attack on hanging rook
+rook exchange
+
+queen zone_checks with rook support
+king_evades
+blocks rook support on pawn tension
+pawn captures pawn
+attacks rook
+sets_up discovered check on rook_capture

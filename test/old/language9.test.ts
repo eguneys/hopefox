@@ -9,6 +9,7 @@ it('works', () => {
 
   let i = 11
   console.log(puzzles[i].link)
+
     let pos = m.create_position(puzzles[i].move_fens[0])
     let mz = new PositionMaterializer(m, pos)
 
