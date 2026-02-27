@@ -25,13 +25,16 @@ class RelationManager {
         mz.make_to_world(id)
 
         let occ = mz.m.pos_occupied(mz.pos)
+        let turn = mz.m.pos_turn(mz.pos)
 
         for (let o of occ) {
             let piece = mz.m.get_at(mz.pos, o)!
             let role = piece_c_type_of(piece)
             let color = piece_c_color_of(piece)
 
-            rm.occupies.push({ id, from: o, role, color, piece })
+            let has_turn = color === turn ? 1 : 0
+
+            rm.occupies.push({ id, from: o, role, color, piece, has_turn })
         }
 
         rm.join_forEach(rm.occupies, rm.occupies, (a, b) => {
@@ -48,6 +51,8 @@ class RelationManager {
                 color_b: b.color,
                 piece_a: a.piece,
                 piece_b: b.piece,
+                has_turn_a: a.has_turn,
+                has_turn_b: b.has_turn,
             })
         })
 
@@ -69,6 +74,9 @@ class RelationManager {
                 piece_a: a.piece,
                 piece_b: bc.piece_a,
                 piece_c: bc.piece_b,
+                has_turn_a: a.has_turn,
+                has_turn_b: bc.has_turn_a,
+                has_turn_c: bc.has_turn_b,
             })
         })
 
@@ -168,258 +176,6 @@ class RelationManager {
             }
         })
 
-
-
-        rm.join_forEach(rm.occupies, rm.occupies2, (a, bc) => {
-            if (a.from === bc.from_a || a.from === bc.from_b) {
-                return
-            }
-
-            let res = {
-                    id,
-                    from_a: a.from,
-                    from_b: bc.from_a,
-                    from_c: bc.from_b,
-                    role_a: a.role,
-                    role_b: bc.role_a,
-                    role_c: bc.role_b,
-                    color_a: a.color,
-                    color_b: bc.color_a,
-                    color_c: bc.color_b,
-                    piece_a: a.piece,
-                    piece_b: bc.piece_a,
-                    piece_c: bc.piece
-                }
-
-            switch (a.role) {
-                case KING:
-                    switch (bc.role_a) {
-                        case BISHOP:
-                            switch (bc.role_b) {
-                                case KNIGHT:
-                                    rm.king_bishop_knights.push(res)
-                                    break
-                                case ROOK:
-                                    rm.king_bishop_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.king_bishop_queens.push(res)
-                                    break
-                            }
-                            break
-                        case KNIGHT:
-                            switch (bc.role_b) {
-                                case ROOK:
-                                    rm.king_knight_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.king_knight_queens.push(res)
-                                    break
-                            }
-                            break
-                        case ROOK:
-                            switch (bc.role_b) {
-                                case QUEEN:
-                                    rm.king_rook_queens.push(res)
-                                    break
-                            }
-                    }
-                    break
-                case BISHOP:
-                    switch (bc.role_a) {
-                        case BISHOP:
-                            switch (bc.role_b) {
-                                case KING:
-                                    rm.bishop_bishop_kings.push(res)
-                                    break
-                                case ROOK:
-                                    rm.bishop_bishop_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.bishop_bishop_queens.push(res)
-                                    break
-                                case KNIGHT:
-                                    rm.bishop_bishop_knights.push(res)
-                                    break
-                            }
-                        case KNIGHT:
-                            switch (bc.role_b) {
-                                case ROOK:
-                                    rm.bishop_knight_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.bishop_knight_queens.push(res)
-                                    break
-                            }
-                            break
-                        case ROOK:
-                            switch (bc.role_b) {
-                                case QUEEN:
-                                    rm.bishop_rook_queens.push(res)
-                                    break
-                            }
-                    }
-                    break
-
-                case KNIGHT:
-                    switch (bc.role_a) {
-                        case BISHOP:
-                            switch (bc.role_b) {
-                                case KNIGHT:
-                                    rm.knight_bishop_knights.push(res)
-                                    break
-                                case ROOK:
-                                    rm.knight_bishop_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.knight_bishop_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.knight_bishop_kings.push(res)
-                                    break
-                            }
-                            break
-                        case KNIGHT:
-                            switch (bc.role_b) {
-                                case ROOK:
-                                    rm.knight_knight_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.knight_knight_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.knight_knight_kings.push(res)
-                                    break
-                            }
-                            break
-                        case ROOK:
-                            switch (bc.role_b) {
-                                case QUEEN:
-                                    rm.knight_rook_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.knight_rook_kings.push(res)
-                                    break
-                            }
-                            break;
-                        case QUEEN:
-                            switch (bc.role_b) {
-                                case KING:
-                                    rm.knight_queen_kings.push(res)
-                                    break
-                            }
-                            break
-                    } break
-
-                case ROOK:
-
-                    switch (bc.role_a) {
-                        case BISHOP:
-                            switch (bc.role_b) {
-                                case KNIGHT:
-                                    rm.rook_bishop_knights.push(res)
-                                    break
-                                case ROOK:
-                                    rm.rook_bishop_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.rook_bishop_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.rook_bishop_kings.push(res)
-                                    break
-                            }
-                            break
-                        case KNIGHT:
-                            switch (bc.role_b) {
-                                case ROOK:
-                                    rm.rook_knight_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.rook_knight_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.rook_knight_kings.push(res)
-                                    break
-                            }
-                            break
-                        case ROOK:
-                            switch (bc.role_b) {
-                                case QUEEN:
-                                    rm.rook_rook_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.rook_rook_kings.push(res)
-                                    break
-                            }
-                            break
-                        case QUEEN:
-                            switch (bc.role_b) {
-                                case KING:
-                                    rm.rook_queen_kings.push(res)
-                                    break
-                            }
-                            break
-
-                    }
-                    break
-                case QUEEN:
-                    switch (bc.role_a) {
-                        case BISHOP:
-                            switch (bc.role_b) {
-                                case KNIGHT:
-                                    rm.queen_bishop_knights.push(res)
-                                    break
-                                case ROOK:
-                                    rm.queen_bishop_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.queen_bishop_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.queen_bishop_kings.push(res)
-                                    break
-                            }
-                            break
-                        case KNIGHT:
-                            switch (bc.role_b) {
-                                case ROOK:
-                                    rm.queen_knight_rooks.push(res)
-                                    break
-                                case QUEEN:
-                                    rm.queen_knight_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.queen_knight_kings.push(res)
-                                    break
-                            }
-                            break
-                        case ROOK:
-                            switch (bc.role_b) {
-                                case QUEEN:
-                                    rm.queen_rook_queens.push(res)
-                                    break
-                                case KING:
-                                    rm.queen_rook_kings.push(res)
-                                    break
-                            }
-                            break
-                        case QUEEN:
-                            switch (bc.role_b) {
-                                case KING:
-                                    rm.queen_queen_kings.push(res)
-                                    break
-                            }
-                            break
-                    }
-
-                    break
-
-                }
-
-        })
-
-
         mz.unmake_world(id)
     }
 
@@ -455,62 +211,6 @@ class RelationManager {
     rook_kings = new Relation()
     queen_kings = new Relation()
 
-    king_bishop_knights = new Relation()
-    king_bishop_rooks = new Relation()
-    king_bishop_queens = new Relation()
-    king_bishop_kings = new Relation()
-    king_knight_rooks = new Relation()
-    king_knight_queens = new Relation()
-    king_knight_kings = new Relation()
-    king_rook_queens = new Relation()
-    king_rook_kings = new Relation()
-    king_queen_kings = new Relation()
-
-
-    bishop_bishop_knights = new Relation()
-    bishop_bishop_rooks = new Relation()
-    bishop_bishop_queens = new Relation()
-    bishop_bishop_kings = new Relation()
-    bishop_knight_rooks = new Relation()
-    bishop_knight_queens = new Relation()
-    bishop_knight_kings = new Relation()
-    bishop_rook_queens = new Relation()
-    bishop_rook_kings = new Relation()
-    bishop_queen_kings = new Relation()
-
-    knight_bishop_knights = new Relation()
-    knight_bishop_rooks = new Relation()
-    knight_bishop_queens = new Relation()
-    knight_bishop_kings = new Relation()
-    knight_knight_rooks = new Relation()
-    knight_knight_queens = new Relation()
-    knight_knight_kings = new Relation()
-    knight_rook_queens = new Relation()
-    knight_rook_kings = new Relation()
-    knight_queen_kings = new Relation()
-
-    rook_bishop_knights = new Relation()
-    rook_bishop_rooks = new Relation()
-    rook_bishop_queens = new Relation()
-    rook_bishop_kings = new Relation()
-    rook_knight_rooks = new Relation()
-    rook_knight_queens = new Relation()
-    rook_knight_kings = new Relation()
-    rook_rook_queens = new Relation()
-    rook_rook_kings = new Relation()
-    rook_queen_kings = new Relation()
-
-    queen_bishop_knights = new Relation()
-    queen_bishop_rooks = new Relation()
-    queen_bishop_queens = new Relation()
-    queen_bishop_kings = new Relation()
-    queen_knight_rooks = new Relation()
-    queen_knight_queens = new Relation()
-    queen_knight_kings = new Relation()
-    queen_rook_queens = new Relation()
-    queen_rook_kings = new Relation()
-    queen_queen_kings = new Relation()
-
     forEach(a: Relation, f: (a: Row) => void) {
         for (let a_row of a.rows) {
             f(a_row)
@@ -524,6 +224,7 @@ class RelationManager {
             }
         }
     }
+
 }
 
 
