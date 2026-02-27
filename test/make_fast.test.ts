@@ -16,7 +16,6 @@ it('works', () => {
     let Fn = []
     for (let k = 0; k < log_puzzles.length / 20; k++) {
         let i = k
-        //i = 50
         let fen = log_puzzles[i].move_fens[0]
         //if (i > 100) break
         //if (k === 1) break
@@ -47,8 +46,9 @@ it('works', () => {
         Tn.push(link)
     }
 
+    let C_percent = Math.round(((Tp.length + Fp.length) / Tn.length) * 100)
     let Tp_percent = Math.round((Fp.length / (Tp.length + Fp.length)) * 100)
-    console.log(`Error %${Tp_percent}`)
+    console.log(`Coverage % ${C_percent} Error %${Tp_percent}`)
     console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
     console.log(Fp.slice(0, 20))
     console.log(`Error %${Tp_percent}`)
