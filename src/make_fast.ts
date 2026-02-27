@@ -35,7 +35,65 @@ class RelationManager {
             let has_turn = color === turn ? 1 : 0
 
             rm.occupies.push({ id, from: o, role, color, piece, has_turn })
+
+            if (has_turn) {
+                rm.turns.push({ id, from: o, role, color, piece })
+            } else {
+                rm.opposite.push({ id, from: o, role, color, piece })
+            }
         }
+
+
+        rm.join_forEach(rm.turns, rm.turns, (a, b) => {
+            if (a.from === b.from) {
+                return
+            }
+            rm.turns2.push({
+                id,
+                from_a: a.from,
+                from_b: b.from,
+                role_a: a.role,
+                role_b: b.role,
+                color_a: a.color,
+                color_b: b.color,
+                piece_a: a.piece,
+                piece_b: b.piece,
+            })
+        })
+
+        rm.join_forEach(rm.opposite, rm.opposite, (a, b) => {
+            if (a.from === b.from) {
+                return
+            }
+            rm.opposite2.push({
+                id,
+                from_a: a.from,
+                from_b: b.from,
+                role_a: a.role,
+                role_b: b.role,
+                color_a: a.color,
+                color_b: b.color,
+                piece_a: a.piece,
+                piece_b: b.piece,
+            })
+        })
+
+
+        rm.join_forEach(rm.turns, rm.opposite, (a, b) => {
+            rm.turn_and_opposite.push({
+                id,
+                from_a: a.from,
+                from_b: b.from,
+                role_a: a.role,
+                role_b: b.role,
+                color_a: a.color,
+                color_b: b.color,
+                piece_a: a.piece,
+                piece_b: b.piece,
+            })
+        })
+
+
 
         rm.join_forEach(rm.occupies, rm.occupies, (a, b) => {
             if (a.from === b.from) {
@@ -181,6 +239,11 @@ class RelationManager {
 
 
 
+    turns = new Relation()
+    opposite = new Relation()
+    turns2 = new Relation()
+    opposite2 = new Relation()
+    turn_and_opposite = new Relation()
 
     occupies = new Relation()
     occupies2 = new Relation()
