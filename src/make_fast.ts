@@ -34,8 +34,6 @@ class RelationManager {
 
             let has_turn = color === turn ? 1 : 0
 
-            rm.occupies.push({ id, from: o, role, color, piece, has_turn })
-
             if (has_turn) {
                 rm.turns.push({ id, from: o, role, color, piece })
             } else {
@@ -43,236 +41,94 @@ class RelationManager {
             }
         }
 
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let aa = mz.m.attacks(piece, o, occ)
+            for (let a of aa) {
+                let piece2 = mz.m.get_at(mz.pos, a)
 
-        rm.join_forEach(rm.turns, rm.turns, (a, b) => {
-            if (a.from === b.from) {
-                return
+                if (!piece2) {
+                    rm.vacant_see.push({ id, from: o, to: a })
+                    continue
+                }
+
+                if (piece_c_color_of(piece) === piece_c_color_of(piece2)) {
+                    rm.defend_see.push({ id, from: o, to: a })
+                } else {
+                    rm.attack_see.push({ id, from: o, to: a })
+                }
             }
-            rm.turns2.push({
-                id,
-                from_a: a.from,
-                from_b: b.from,
-                role_a: a.role,
-                role_b: b.role,
-                color_a: a.color,
-                color_b: b.color,
-                piece_a: a.piece,
-                piece_b: b.piece,
-            })
-        })
-
-        rm.join_forEach(rm.opposite, rm.opposite, (a, b) => {
-            if (a.from === b.from) {
-                return
-            }
-            rm.opposite2.push({
-                id,
-                from_a: a.from,
-                from_b: b.from,
-                role_a: a.role,
-                role_b: b.role,
-                color_a: a.color,
-                color_b: b.color,
-                piece_a: a.piece,
-                piece_b: b.piece,
-            })
-        })
+        }
 
 
-        rm.join_forEach(rm.turns, rm.opposite, (a, b) => {
-            rm.turn_and_opposite.push({
-                id,
-                from_a: a.from,
-                from_b: b.from,
-                role_a: a.role,
-                role_b: b.role,
-                color_a: a.color,
-                color_b: b.color,
-                piece_a: a.piece,
-                piece_b: b.piece,
-            })
-        })
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let aa = mz.m.attacks(piece, o, occ)
+            for (let a of aa) {
 
+                let aa2 = mz.m.attacks(piece, a, occ)
+                for (let a2 of aa2) {
 
+                    let piece2 = mz.m.get_at(mz.pos, a2)
 
-        rm.join_forEach(rm.occupies, rm.occupies, (a, b) => {
-            if (a.from === b.from) {
-                return
-            }
-            rm.occupies2.push({
-                id,
-                from_a: a.from,
-                from_b: b.from,
-                role_a: a.role,
-                role_b: b.role,
-                color_a: a.color,
-                color_b: b.color,
-                piece_a: a.piece,
-                piece_b: b.piece,
-                has_turn_a: a.has_turn,
-                has_turn_b: b.has_turn,
-            })
-        })
-
-        rm.join_forEach(rm.occupies, rm.occupies2, (a, bc) => {
-            if (a.from === bc.from_a || a.from === bc.from_b) {
-                return
-            }
-            rm.occupies3.push({
-                id,
-                from_a: a.from,
-                from_b: bc.from_a,
-                from_c: bc.from_b,
-                role_a: a.role,
-                role_b: bc.role_a,
-                role_c: bc.role_b,
-                color_a: a.color,
-                color_b: bc.color_a,
-                color_c: bc.color_b,
-                piece_a: a.piece,
-                piece_b: bc.piece_a,
-                piece_c: bc.piece_b,
-                has_turn_a: a.has_turn,
-                has_turn_b: bc.has_turn_a,
-                has_turn_c: bc.has_turn_b,
-            })
-        })
-
-
-        rm.forEach(rm.occupies, (row) => {
-            switch (row.role) {
-                case ROOK:
-                    rm.rooks.push(row)
-                    break
-                case KNIGHT:
-                    rm.knights.push(row)
-                    break
-                case BISHOP:
-                    rm.bishops.push(row)
-                    break
-                case QUEEN:
-                    rm.queens.push(row)
-                    break
-                case KING:
-                    rm.kings.push(row)
-                    break
-                case PAWN:
-                    rm.pawns.push(row)
-                    break
-            }
-        })
-
-
-        rm.forEach(rm.occupies2, (a) => {
-            switch (a.role_a) {
-                case BISHOP:
-                    switch (a.role_b) {
-                        case BISHOP:
-                            rm.bishops.push(a)
-                            break
-                        case QUEEN:
-                            rm.bishop_queens.push(a)
-                            break
-                        case ROOK:
-                            rm.bishop_rooks.push(a)
-                            break
-                        case KNIGHT:
-                            rm.bishop_knights.push(a)
-                            break
-                        case KING:
-                            rm.bishop_kings.push(a)
-                            break
+                    if (!piece2) {
+                        rm.vacant_see2.push({ id, from: o, to: a2 })
+                        continue
                     }
-                    break
-                case KNIGHT:
-                    switch (a.role_b) {
-                        case KNIGHT:
-                            rm.knights2.push(a)
-                            break
-                        case QUEEN:
-                            rm.knight_queens.push(a)
-                            break
-                        case ROOK:
-                            rm.knight_rooks.push(a)
-                            break
-                        case KING:
-                            rm.knight_kings.push(a)
-                            break
-                    }
-                    break
-                case ROOK:
-                    switch (a.role_b) {
-                        case ROOK:
-                            rm.rooks2.push(a)
-                            break
-                        case QUEEN:
-                            rm.rook_queens.push(a)
-                            break
-                        case KING:
-                            rm.rook_kings.push(a)
-                            break
-                    }
-                    break
-                case QUEEN:
-                    switch (a.role_b) {
-                        case QUEEN:
-                            rm.queens2.push(a)
-                            break
 
-                        case KING:
-                            rm.queen_kings.push(a)
-                            break
+                    if (piece_c_color_of(piece) === piece_c_color_of(piece2)) {
+                        rm.defend_see2.push({ id, from: o, to: a2 })
+                    } else {
+                        rm.attack_see2.push({ id, from: o, to: a2 })
                     }
-                    break
-                case KING:
-                    switch (a.role_b) {
-                        case KING:
-                            rm.kings2.push(a)
-                            break
-                    }
-                    break
+                }
             }
-        })
+        }
+
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let aa = mz.m.attacks(piece, o, occ)
+            for (let a of aa) {
+
+                let aa1 = mz.m.attacks(piece, o, occ)
+                let aa2 = mz.m.attacks(piece, o, occ.without(a))
+                let aa3 = aa2.diff(aa1)
+                for (let a2 of aa3) {
+
+                    let piece2 = mz.m.get_at(mz.pos, a2)
+
+                    if (!piece2) {
+                        rm.vacant_see_through.push({ id, from: o, to: a2 })
+                        continue
+                    }
+
+                    if (piece_c_color_of(piece) === piece_c_color_of(piece2)) {
+                        rm.defend_see_through.push({ id, from: o, to: a2 })
+                    } else {
+                        rm.attack_see_through.push({ id, from: o, to: a2 })
+                    }
+                }
+            }
+        }
 
         mz.unmake_world(id)
     }
 
-
-
     turns = new Relation()
     opposite = new Relation()
-    turns2 = new Relation()
-    opposite2 = new Relation()
-    turn_and_opposite = new Relation()
 
-    occupies = new Relation()
-    occupies2 = new Relation()
-    occupies3 = new Relation()
+    vacant_see = new Relation()
+    attack_see = new Relation()
+    defend_see = new Relation()
 
-    bishops = new Relation()
-    knights = new Relation()
-    queens = new Relation()
-    rooks = new Relation()
-    kings = new Relation()
-    pawns = new Relation()
+    vacant_see2 = new Relation()
+    attack_see2 = new Relation()
+    defend_see2 = new Relation()
 
-    bishops2 = new Relation()
-    knights2 = new Relation()
-    queens2 = new Relation()
-    rooks2 = new Relation()
-    kings2 = new Relation()
-    pawns2 = new Relation()
-
-    bishop_knights = new Relation()
-    bishop_rooks = new Relation()
-    bishop_queens = new Relation()
-    bishop_kings = new Relation()
-    knight_rooks = new Relation()
-    knight_queens = new Relation()
-    knight_kings = new Relation()
-    rook_queens = new Relation()
-    rook_kings = new Relation()
-    queen_kings = new Relation()
+    vacant_see_through = new Relation()
+    attack_see_through = new Relation()
+    defend_see_through = new Relation()
 
     forEach(a: Relation, f: (a: Row) => void) {
         for (let a_row of a.rows) {
@@ -288,6 +144,11 @@ class RelationManager {
         }
     }
 
+
+
+    static add_world_build1 = (id: WorldId, mz: PositionMaterializer, rm: RelationManager) => {
+
+    }
 }
 
 
