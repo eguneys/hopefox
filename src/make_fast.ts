@@ -245,9 +245,14 @@ class RelationManager {
     get opponent_kings() {
         return this.select(this.opponent, (a) => a.role === KING)
     }
+
     get opponent_rooks() {
         return this.select(this.opponent, (a) => a.role === ROOK)
     }
+    get turn_kings() {
+        return this.select(this.turns, (a) => a.role === KING)
+    }
+
 
 
     get opponent_see() {
@@ -283,9 +288,28 @@ class RelationManager {
             a.from === b.fork_b
         )
 
-        return this.select_left(this.legal_moves, bishop_forks_king_and_rook, (a, b) => a.from === b.from && a.to === b.to)
+        return bishop_forks_king_and_rook
     }
 
+    king_takes_rook() {
+        let king_takes = this.select_right(this.turn_kings, this.attack_see, (a, b) => a.from === b.from)
+        let king_takes_rook = this.select_right(this.opponent_rooks, king_takes, (a, b) => a.from === b.to)
+
+        return king_takes_rook
+    }
+
+    bishop_takes_rook() {
+        let bishop_takes = this.select_right(this.turn_bishops, this.attack_see, (a, b) => a.from === b.from)
+        let bishop_takes_rook = this.select_right(this.opponent_rooks, bishop_takes, (a, b) => a.from === b.to)
+
+        return bishop_takes_rook
+    }
+
+
+
+    move_1(a: Relation) {
+        return this.select_left(this.legal_moves, a, (a, b) => a.from === b.from && a.to === b.to)
+    }
 
     anti_filter(aa: Relation, bb: Relation, filter: (a: Row, b: Row) => boolean) {
         let res: Relation = new Relation()
@@ -310,8 +334,32 @@ export function make_fast(m: PositionManager, pos: PositionC) {
     RelationManager.add_world_build0(0, mz, rm)
     rm.add_world_build1()
 
-    let result = rm.bishop_forks_king_and_rook()
+    let result = new Relation()
+    let bishop_forks = rm.bishop_forks_king_and_rook()
 
+    bishop_forks = rm.move_1(bishop_forks)
+
+    rm.forEach(bishop_forks, (a) => {
+        let rm2 = new RelationManager()
+        RelationManager.add_world_build0(a.id2, mz, rm2)
+        rm2.add_world_build1()
+
+        let response = rm2.move_1(rm2.king_takes_rook())
+
+        if (response.rows.length > 0) {
+            return
+        }
+
+        response = rm2.bishop_takes_rook()
+
+        if (response.rows.length > 0) {
+            return
+        }
+
+
+
+        result.push(a)
+    })
 
     return result.rows.map(_ => mz.sans(_.id2))
 }

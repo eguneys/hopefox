@@ -10,11 +10,13 @@ it('works', () => {
     let log_puzzles = test_qr_puzzles
     log_puzzles = test_b_forks_kr_puzzles
 
+    let total = log_puzzles.length / 2
+
     let Tp = []
     let Fp = []
     let Tn = []
     let Fn = []
-    for (let k = 0; k < log_puzzles.length / 20; k++) {
+    for (let k = 0; k < total; k++) {
         let i = k
         let fen = log_puzzles[i].move_fens[0]
         //if (i > 100) break
@@ -51,6 +53,6 @@ it('works', () => {
     console.log(`Coverage % ${C_percent} Error %${Tp_percent}`)
     console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
     console.log(Fp.slice(0, 20))
-    console.log(`Error %${Tp_percent}`)
+    console.log(`Coverage % ${C_percent} Error %${Tp_percent}`)
     console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
 })
