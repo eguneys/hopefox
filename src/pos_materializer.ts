@@ -18,6 +18,15 @@ export class PositionMaterializer {
         this.nodes = new NodeManager()
     }
 
+
+    is_checkmate(world_id: WorldId) {
+        this.make_to_world(world_id)
+        let res = this.m.is_checkmate(this.pos)
+        this.unmake_world(world_id)
+        return res
+    }
+
+
     add_move(world_id: WorldId, move: MoveC) {
         return this.nodes.add_move(world_id, move)
     }

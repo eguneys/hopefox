@@ -1,5 +1,5 @@
 import { Position } from "./distill/chess";
-import { BISHOP, color_c_opponent, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, PAWN, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN, ROOK } from "./distill/hopefox_c";
+import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, MoveC, PAWN, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, QUEEN, ROOK } from "./distill/hopefox_c";
 import { makeSan } from "./distill/san";
 import { Move, Square } from "./distill/types";
 import { NodeId, NodeManager } from "./node_manager";
@@ -350,13 +350,13 @@ export function make_fast(m: PositionManager, pos: PositionC) {
             return
         }
 
+
+
         response = rm2.bishop_takes_rook()
 
         if (response.rows.length > 0) {
-            return
+            //return
         }
-
-
 
         result.push(a)
     })
