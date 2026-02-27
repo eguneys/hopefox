@@ -1,0 +1,24 @@
+13 bishop forks king and rook that cannot connect, or both be protected in 1 move
+
+18 knight attacks rook and discovers attack on hanging knight
+
+
+24 pawn attacks trapped queen
+26
+
+
+25 knight captures rook and discovers attack on hanging bishop (bishop was defended by captured rook)
+
+32 knight forks queen and bishop, bishop only defended by queen, after knight bishop exchange, bishop can skewer queen and king protected by a pawn.
+
+39 bishop (captures a pawn and) attacks hanging rook with a discovered check
+
+
+44 queen forks 2 disconnected hanging rooks that cannot connect, or both be protected in 1 move.
+
+54*search opposing knights are hanging, hanging knight evades and attacks queen, after queen evades, pawn captures hanging knight and discovers rook defense on knight 
+
+62*search,incomplete queen forks hanging rook and bishop, rook can evade and defend bishop, pawn attacks rook ...
+
+63*search knight forks king and rook, king evades, queen trap
+

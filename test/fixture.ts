@@ -11,6 +11,7 @@ export const puzzles = parse_puzzles(fs.readFileSync('data/athousand_sorted.csv'
 export const tenk = parse_puzzles(fs.readFileSync('data/tenk_puzzle.csv').toString())
 export const test_puzzles = parse_puzzles(fs.readFileSync('data/test.log').toString())
 export const test_qr_puzzles = parse_puzzles(fs.readFileSync('data/test_qr.log').toString())
+export const test_b_forks_kr_puzzles = parse_puzzles(fs.readFileSync('data/test_b_forks_kr.log').toString())
 
 function parse_puzzles(str: string): Puzzle[] {
     return str.trim().split('\n').map(_ => {

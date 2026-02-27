@@ -1,6 +1,6 @@
 import { it } from 'vitest'
 import { make_fast, PositionManager } from '../src'
-import { test_qr_puzzles } from './fixture'
+import { test_b_forks_kr_puzzles, test_qr_puzzles } from './fixture'
 
 let m = await PositionManager.make()
 
@@ -8,12 +8,13 @@ let m = await PositionManager.make()
 it('works', () => {
 
     let log_puzzles = test_qr_puzzles
+    log_puzzles = test_b_forks_kr_puzzles
 
     let Tp = []
     let Fp = []
     let Tn = []
     let Fn = []
-    for (let k = 0; k < log_puzzles.length / 10; k++) {
+    for (let k = 0; k < log_puzzles.length / 20; k++) {
         let i = k
         //i = 50
         let fen = log_puzzles[i].move_fens[0]
