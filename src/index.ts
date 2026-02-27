@@ -7,4 +7,4 @@ export * from './distill/chess'
 export * from './distill/hopefox'
 
 
-export * from './make_fast'
+export * from './make_strata'

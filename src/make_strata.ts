@@ -892,15 +892,9 @@ export function StrataRun(text: string, m: PositionManager, pos: PositionC) {
     let C_rules = R_rules.map(rules => rules.map(_ => compileRule(_, relations, externals)))
 
 
-    let root_world: Relation2 = relations.get('root_world')! as Relation2
+    let root_world: Relation1 = relations.get('root_world')! as Relation1
 
-    /*
-    let cw = candidate_attack_moves(mz)
-    for (let w of cw) {
-        let R = w
-        root_world.insert2(R, w)
-    }
-        */
+    root_world.insert1(0)
 
     root_world.deltaRows = root_world.nextDeltaRows
 
@@ -911,15 +905,12 @@ export function StrataRun(text: string, m: PositionManager, pos: PositionC) {
     // Output
     let res = relations.get('query')!.list_cols() as [number, number][]
 
-    //console.log(res.find(_ => _[1] === 32))
-    return res.map(_ => [_, mz.sans(_[1])])
-
-    return res
+    return res.map(_ => mz.sans(_[0]))
 }
 
 const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
     return new Map([
-        ['$legal_world', external$legal_worlds],
+        ['$legal_worlds', external$legal_worlds],
         ['$is_checkmate', external$is_checkmate],
         ['$forced_recapture_exists', external$forced_recapture_exists],
     ])
