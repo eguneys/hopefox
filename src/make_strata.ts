@@ -1,4 +1,4 @@
-import { BISHOP, move_c_to_Move, piece_c_color_of, piece_c_type_of, PositionC, PositionManager } from "./distill/hopefox_c"
+import { BISHOP, KING, move_c_to_Move, piece_c_color_of, piece_c_type_of, PositionC, PositionManager, ROOK } from "./distill/hopefox_c"
 import { PositionMaterializer } from "./pos_materializer"
 import { parse_program9 } from "./strata_parser"
 
@@ -208,12 +208,20 @@ function compileRule(
 
     const frame = new Frame(varSlots.size)
 
+    const notEqualsSlots: number[][] = rule.notEquals.map(_ => {
+        let a = _.a.type === 'constant' ? -1 : varSlots.get(_.a.name)!
+        let b = _.b.type === 'constant' ? -1 : varSlots.get(_.b.name)!
+
+        return [a, b]
+    })
+
     return {
         headRelation: rel,
         headSlots,
         body,
         varSlots,
-        frame
+        frame,
+        notEqualsSlots
     }
 }
 
@@ -277,9 +285,9 @@ const compileAtom = (
 
 const decode_const = ($const: string) => {
     switch ($const) {
-        case "BISHOP": {
-            return BISHOP
-        }
+        case "BISHOP": return BISHOP
+        case "KING": return KING
+        case "ROOK": return ROOK
     }
     return 0
 
@@ -720,6 +728,7 @@ type CompiledRule = {
 
     varSlots: Map<string, number>
     frame: Frame
+    notEqualsSlots: number[][]
 }
 
 type CompiledAtom = {
@@ -852,6 +861,14 @@ function joinRestUsing(
 
     // Base case: all atoms satisfied
     if (atomIndex >= rest.length) {
+
+        for (let ne of rule.notEqualsSlots) {
+            if (frame.values[ne[0]] === frame.values[ne[1]]) {
+                return
+            }
+        }
+
+
         emitHead(rule, frame)
         return
     }
@@ -1222,7 +1239,7 @@ const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
         ['$attack_see', external$attack_see],
         ['$defend_see', external$defend_see],
         ['$vacant_see2', external$legal_worlds],
-        ['$attack_see2', external$legal_worlds],
+        ['$attack_see2', external$attack_see2],
         ['$defend_see2', external$legal_worlds],
         ['$vacant_see_through', external$legal_worlds],
         ['$attack_see_through', external$legal_worlds],
@@ -1370,6 +1387,48 @@ const external$attack_see: ExternalRelation = {
         return true
     }
 }
+
+
+
+const external$attack_see2: ExternalRelation = {
+    name: '$attack_see2',
+    inputArity: 1,
+    outputArity: 3,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+        const slotC = atom.argSlots[2]
+        const slotA = atom.argSlots[3]
+
+        const P = frame.values[slotP]
+
+        mz.make_to_world(P)
+
+        let occ = mz.m.pos_occupied(mz.pos)
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let color = piece_c_color_of(piece)
+
+            let aa = mz.m.pos_attacks(mz.pos, o)
+
+            for (let a of aa) {
+                let aa2 = mz.m.attacks(piece, a, occ)
+
+                for (let a2 of aa2) {
+                    let piece2 = mz.m.get_at(mz.pos, a2)
+
+                    if (piece2 && piece_c_color_of(piece2) !== color) {
+                        emit([o, a, a2])
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+}
+
 
 
 const external$opponent: ExternalRelation = {
