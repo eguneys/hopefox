@@ -70,7 +70,9 @@ bishop_forks(W, From, To) :- turn_bishops(W, From) fork(W, From, To, Fork_a, For
   opponent_rooks(W, Fork_b).
 
 
-solution(P) :- turn(W, From, "BISHOP", _, _) $legal_worlds(W, From, _, P).
+solution(P) :- turn(W, From, "BISHOP", _, _) 
+opponent_see(W, _, To)
+$legal_worlds(W, From, To, P).
 
 `, m, pos)
 }

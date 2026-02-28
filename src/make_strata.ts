@@ -1217,10 +1217,10 @@ const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
 
 
         ['$turn', external$turn],
-        ['$opponent', external$legal_worlds],
-        ['$vacant_see', external$legal_worlds],
-        ['$attack_see', external$legal_worlds],
-        ['$defend_see', external$legal_worlds],
+        ['$opponent', external$opponent],
+        ['$vacant_see', external$vacant_see],
+        ['$attack_see', external$attack_see],
+        ['$defend_see', external$defend_see],
         ['$vacant_see2', external$legal_worlds],
         ['$attack_see2', external$legal_worlds],
         ['$defend_see2', external$legal_worlds],
@@ -1263,6 +1263,150 @@ const external$is_checkmate: ExternalRelation = {
         return yes
     }
 }
+
+const external$vacant_see: ExternalRelation = {
+    name: '$vacant_see',
+    inputArity: 1,
+    outputArity: 2,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+        const slotC = atom.argSlots[2]
+
+        const P = frame.values[slotP]
+
+        mz.make_to_world(P)
+
+        let occ = mz.m.pos_occupied(mz.pos)
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let color = piece_c_color_of(piece)
+
+            let aa = mz.m.pos_attacks(mz.pos, o)
+
+            for (let a of aa) {
+                let piece2 = mz.m.get_at(mz.pos, a)
+
+                if (!piece2) {
+                    emit([o, a])
+                }
+            }
+        }
+
+        return true
+    }
+}
+
+
+const external$defend_see: ExternalRelation = {
+    name: '$defend_see',
+    inputArity: 1,
+    outputArity: 2,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+        const slotC = atom.argSlots[2]
+
+        const P = frame.values[slotP]
+
+        mz.make_to_world(P)
+
+        let occ = mz.m.pos_occupied(mz.pos)
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let color = piece_c_color_of(piece)
+
+            let aa = mz.m.pos_attacks(mz.pos, o)
+
+            for (let a of aa) {
+                let piece2 = mz.m.get_at(mz.pos, a)
+
+                if (piece2 && piece_c_color_of(piece2) === color) {
+                    emit([o, a])
+                }
+            }
+        }
+
+        return true
+    }
+}
+
+
+
+
+
+const external$attack_see: ExternalRelation = {
+    name: '$attack_see',
+    inputArity: 1,
+    outputArity: 2,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+        const slotC = atom.argSlots[2]
+
+        const P = frame.values[slotP]
+
+        mz.make_to_world(P)
+
+        let occ = mz.m.pos_occupied(mz.pos)
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let color = piece_c_color_of(piece)
+
+            let aa = mz.m.pos_attacks(mz.pos, o)
+
+            for (let a of aa) {
+                let piece2 = mz.m.get_at(mz.pos, a)
+
+                if (piece2 && piece_c_color_of(piece2) !== color) {
+                    emit([o, a])
+                }
+            }
+        }
+
+        return true
+    }
+}
+
+
+const external$opponent: ExternalRelation = {
+    name: '$opponent',
+    inputArity: 1,
+    outputArity: 4,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+        const slotC = atom.argSlots[2]
+        const slotA = atom.argSlots[3]
+        const slotB = atom.argSlots[4]
+
+        const P = frame.values[slotP]
+
+        mz.make_to_world(P)
+
+        let occ = mz.m.pos_occupied(mz.pos)
+        let turn = mz.m.pos_turn(mz.pos)
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let role = piece_c_type_of(piece)
+            let color = piece_c_color_of(piece)
+
+            let has_turn = color === turn ? 1 : 0
+
+            if (!has_turn) {
+                emit([o, role, color, piece])
+            }
+        }
+
+        return true
+    }
+}
+
+
 
 const external$turn: ExternalRelation = {
     name: '$turn',
