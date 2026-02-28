@@ -62,19 +62,28 @@ fork(W, From, To, Fork_a, Fork_b) :-
    attack_see2(W, From, To, Fork_b)
    Fork_a != Fork_b.
 
-#boundary
-
 bishop_forks(W, From, To) :- turn_bishops(W, From) fork(W, From, To, Fork_a, Fork_b)
   Not opponent_see(W, _, To)
   opponent_kings(W, Fork_a)
   opponent_rooks(W, Fork_b).
 
 
-solution(P, From, To) :- turn_bishops(W, From)
-  fork(W, From, To, Fork_a, _)
-  Not opponent_see(W, _, To)
-  opponent_kings(W, Fork_a)
+king_takes_rook(W) :- turn_kings(W, From) 
+  opponent_rooks(W, To)
+  attack_see(W, From, To).
+
+
+
+solution(P) :- 
+  king_takes_rook(P)
+  bishop_forks(W, From, To)
   legal_worlds(W, From, To, P).
+
+
+
+root_world(P) :- 
+bishop_forks(W, From, To)
+legal_worlds(W, From, To, P).
 
 
 
@@ -87,6 +96,7 @@ it('works', () => {
     log_puzzles = test_b_forks_kr_puzzles
 
     let total = log_puzzles.length / 20
+    //total = 1
 
     let Tp = []
     let Fp = []
@@ -94,11 +104,11 @@ it('works', () => {
     let Fn = []
     for (let k = 0; k < total; k++) {
         let i = k
-        //i = 7
+        //i = 13
         let fen = log_puzzles[i].move_fens[0]
         //if (i > 100) break
         //if (k === 1) break
-        //fen = '3qr1k1/p4p1p/6p1/3Q4/8/1P3P2/P5PP/3R2K1 b - - 0 26'
+        //fen = '1k6/R3B2p/P3p1p1/1p6/2b3P1/r7/5PP1/6K1 w - - 1 33'
         let pos = m.create_position(fen)
         let link = log_puzzles[i].link
 

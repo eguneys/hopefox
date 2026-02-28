@@ -835,10 +835,6 @@ function executeRule(mz: PositionMaterializer, rule: CompiledRule) {
     let driver = chooseDriver(rule)
     const rest = rule.body.filter(atom => atom !== driver)
 
-    if (rule.headRelation.name === 'solution') {
-        debugger
-    }
-
     for (let row of driver.relation.deltaRows) {
 
         frame.reset()
@@ -858,6 +854,15 @@ function joinRestUsing(
     atomIndex: number,
     frame: Frame
 ) {
+    if (rule.headRelation.name === 'king_takes_rook') {
+        debugger
+    }
+    if (rule.headRelation.name === 'solution') {
+        debugger
+    }
+
+
+
 
     // Base case: all atoms satisfied
     if (atomIndex >= rest.length) {
@@ -1311,6 +1316,7 @@ const external$vacant_see: ExternalRelation = {
             }
         }
 
+        mz.unmake_world(P)
         return true
     }
 }
@@ -1346,6 +1352,7 @@ const external$defend_see: ExternalRelation = {
             }
         }
 
+        mz.unmake_world(P)
         return true
     }
 }
@@ -1383,6 +1390,7 @@ const external$attack_see: ExternalRelation = {
                 }
             }
         }
+        mz.unmake_world(P)
 
         return true
     }
@@ -1425,6 +1433,7 @@ const external$attack_see2: ExternalRelation = {
             }
         }
 
+        mz.unmake_world(P)
         return true
     }
 }
@@ -1461,6 +1470,7 @@ const external$opponent: ExternalRelation = {
             }
         }
 
+        mz.unmake_world(P)
         return true
     }
 }
@@ -1497,6 +1507,7 @@ const external$turn: ExternalRelation = {
             }
         }
 
+        mz.unmake_world(P)
         return true
     }
 }
