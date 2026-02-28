@@ -23,7 +23,9 @@ export enum TokenType {
     Relation = 'Relation',
     Word = 'Word',
     Not = 'Not',
-    Dot = 'Dot'
+    Dot = 'Dot',
+    NotEqual = 'NotEqual',
+    Quote = 'Quote'
 }
 
 
@@ -76,10 +78,13 @@ class Lexer {
 
     private WORD() {
         let result = ''
-        while (this.current_char !== undefined && this.is_uppercase_num(this.current_char)) {
+        if (this.current_char === undefined || !this.is_uppercase_num(this.current_char)) {
+            return ''
+        }
+        do {
             result += this.current_char
             this.advance()
-        }
+        } while (this.current_char !== undefined && this.is_uppercase_num(this.current_char) || this.is_lowercase_num(this.current_char))
         return result
     }
 
@@ -88,6 +93,20 @@ class Lexer {
         while (this.current_char !== undefined) {
 
             this.skip_whitespace()
+
+
+            if (this.current_char === '"') {
+                this.advance()
+                return { type: TokenType.Quote , value: '"' }
+            }
+
+
+
+            if (this.current_char === '!') {
+                this.advance()
+                this.advance()
+                return { type: TokenType.NotEqual, value: '!=' }
+            }
 
             if (this.current_char === '.') {
                 this.advance()
@@ -132,7 +151,7 @@ class Lexer {
 
             let WORD = this.WORD()
 
-            if (WORD === 'NOT') {
+            if (WORD === 'Not') {
                 return { type: TokenType.Not, value: 'not' }
             }
 
@@ -210,18 +229,22 @@ class Parser {
             let name = this.eat(TokenType.Unanonymous)
             return {
                 type: 'variable',
-                name: this.current_token.value
+                name 
             }
         }
-        let value = this.eat(TokenType.Word)
-        return {
-            type: 'constant',
-            value
+        if (this.current_token.type === TokenType.Quote) {
+            this.eat(TokenType.Quote)
+            let value = this.eat(TokenType.Variable)
+            this.eat(TokenType.Quote)
+            return {
+                type: 'constant',
+                value
+            }
         }
+        throw this.error()
     }
  
     private parse_atom(): Atom {
-
         let isNegated
         if (this.current_token.type === TokenType.Not) {
             isNegated = true
@@ -256,14 +279,29 @@ class Parser {
         let head = this.parse_atom()
         this.eat(TokenType.Colon_dash)
         let body = []
+        let notEquals = []
         while (this.current_token.type !== TokenType.Dot) {
+
+
+            if (this.lookahead_token.type === TokenType.NotEqual) {
+                let a = this.parse_term()
+                this.eat(TokenType.NotEqual)
+                let b = this.parse_term()
+
+                notEquals.push({ a, b })
+
+                continue
+            }
+
+
             body.push(this.parse_atom())
         }
         this.eat(TokenType.Dot)
 
         return {
             head,
-            body
+            body,
+            notEquals
         }
     }
 

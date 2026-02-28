@@ -1,4 +1,4 @@
-import { PositionC, PositionManager } from "./distill/hopefox_c"
+import { BISHOP, move_c_to_Move, piece_c_color_of, piece_c_type_of, PositionC, PositionManager } from "./distill/hopefox_c"
 import { PositionMaterializer } from "./pos_materializer"
 import { parse_program9 } from "./strata_parser"
 
@@ -22,9 +22,15 @@ export type Atom = {
     isNegated?: boolean
 }
 
+export type NotEquals = {
+    a: Term
+    b: Term
+}
+
 export type Rule = {
     head: Atom
     body: Atom[]
+    notEquals: NotEquals[]
 }
 
 function collectVariables(rule: Rule): Map<string, number> {
@@ -138,6 +144,14 @@ function createRelationForHead(head: Atom): Relation {
     if (arity === 3) {
         return new Relation3(name)
     }
+    if (arity === 5) {
+        return new Relation5(name)
+    }
+    if (arity === 4) {
+        return new Relation4(name)
+    }
+
+
 
     if (arity === 1) {
         return new Relation1(name)
@@ -158,6 +172,15 @@ function createRelationGuess(atom: Atom): Relation {
     if (arity === 3) {
         return new Relation3(name)
     }
+    if (arity === 5) {
+        return new Relation5(name)
+    }
+    if (arity === 4) {
+        return new Relation4(name)
+    }
+
+
+
 
     if (arity === 1) {
         return new Relation1(name)
@@ -176,6 +199,7 @@ function compileRule(
     relations: Map<string, Relation>,
     externals: Map<string, ExternalRelation>
 ): CompiledRule {
+    
     const varSlots = collectVariables(rule)
 
     const { rel, headSlots } = compileHead(rule.head, varSlots, relations)
@@ -252,6 +276,11 @@ const compileAtom = (
     }
 
 const decode_const = ($const: string) => {
+    switch ($const) {
+        case "BISHOP": {
+            return BISHOP
+        }
+    }
     return 0
 
 }
@@ -365,6 +394,210 @@ class Relation2 {
 }
 
 
+class Relation4 {
+    name: string
+    arity = 4
+
+    i_nb: number
+    colR: number[]
+    colP: number[]
+    colC: number[]
+    colA: number[]
+
+    tuplesSet: Set<TupleKey>
+
+    deltaRows: number[]
+    nextDeltaRows: number[] = []
+
+    indexR: Index
+    indexP: Index
+    indexC: Index
+    indexA: Index
+
+    seed_deltas() {
+        this.deltaRows = [...this.colR.keys()]
+    }
+
+    constructor(name: string) {
+
+        this.name = name
+        this.i_nb = 0
+        this.colR = []
+        this.colP = []
+        this.colC = []
+        this.colA = []
+
+        this.tuplesSet = new Set()
+        this.deltaRows = []
+
+        this.indexR = new Map()
+        this.indexP = new Map()
+        this.indexC = new Map()
+        this.indexA = new Map()
+    }
+
+    insert4(R: number, P: number, C: number, A: number) {
+        let key = tuple_key5(R, P, C, A, 0)
+
+        if (this.tuplesSet.has(key)) {
+            return
+        }
+
+        this.colR[this.i_nb] = R
+        this.colP[this.i_nb] = P
+        this.colC[this.i_nb] = C
+        this.colA[this.i_nb] = A
+
+        let row = this.i_nb++
+
+        this.tuplesSet.add(key)
+
+        this.nextDeltaRows.push(row)
+
+        {
+            this.indexR.get(R)?.add(row)
+            this.indexP.get(P)?.add(row)
+            this.indexC.get(C)?.add(row)
+
+            this.indexA.get(A)?.add(row)
+
+            if (!this.indexR.has(R)) {
+                this.indexR.set(R, new Set([row]))
+            }
+
+            if (!this.indexP.has(P)) {
+                this.indexP.set(P, new Set([row]))
+            }
+
+            if (!this.indexC.has(C)) {
+                this.indexC.set(C, new Set([row]))
+            }
+            if (!this.indexA.has(A)) {
+                this.indexA.set(A, new Set([row]))
+            }
+        }
+    }
+
+    list_cols() {
+
+        let res = []
+
+        for (let i = 0; i < this.i_nb; i++) {
+            res.push([this.colP[i], this.colR[i], this.colC[i], this.colA[i]])
+        }
+        return res
+    }
+}
+
+
+
+
+class Relation5 {
+    name: string
+    arity = 5
+
+    i_nb: number
+    colR: number[]
+    colP: number[]
+    colC: number[]
+    colA: number[]
+    colB: number[]
+
+    tuplesSet: Set<TupleKey>
+
+    deltaRows: number[]
+    nextDeltaRows: number[] = []
+
+    indexR: Index
+    indexP: Index
+    indexC: Index
+    indexA: Index
+    indexB: Index
+
+    seed_deltas() {
+        this.deltaRows = [...this.colR.keys()]
+    }
+
+    constructor(name: string) {
+
+        this.name = name
+        this.i_nb = 0
+        this.colR = []
+        this.colP = []
+        this.colC = []
+        this.colA = []
+        this.colB = []
+
+        this.tuplesSet = new Set()
+        this.deltaRows = []
+
+        this.indexR = new Map()
+        this.indexP = new Map()
+        this.indexC = new Map()
+        this.indexA = new Map()
+        this.indexB = new Map()
+    }
+
+    insert5(R: number, P: number, C: number, A: number, B: number) {
+        let key = tuple_key5(R, P, C, A, B)
+
+        if (this.tuplesSet.has(key)) {
+            return
+        }
+
+        this.colR[this.i_nb] = R
+        this.colP[this.i_nb] = P
+        this.colC[this.i_nb] = C
+        this.colA[this.i_nb] = A
+        this.colB[this.i_nb] = B
+
+        let row = this.i_nb++
+
+        this.tuplesSet.add(key)
+
+        this.nextDeltaRows.push(row)
+
+        {
+            this.indexR.get(R)?.add(row)
+            this.indexP.get(P)?.add(row)
+            this.indexC.get(C)?.add(row)
+
+            this.indexA.get(A)?.add(row)
+            this.indexB.get(B)?.add(row)
+
+            if (!this.indexR.has(R)) {
+                this.indexR.set(R, new Set([row]))
+            }
+
+            if (!this.indexP.has(P)) {
+                this.indexP.set(P, new Set([row]))
+            }
+
+            if (!this.indexC.has(C)) {
+                this.indexC.set(C, new Set([row]))
+            }
+            if (!this.indexA.has(A)) {
+                this.indexA.set(A, new Set([row]))
+            }
+            if (!this.indexB.has(B)) {
+                this.indexB.set(B, new Set([row]))
+            }
+        }
+    }
+
+    list_cols() {
+
+        let res = []
+
+        for (let i = 0; i < this.i_nb; i++) {
+            res.push([this.colP[i], this.colR[i], this.colC[i], this.colA[i], this.colB[i]])
+        }
+        return res
+    }
+}
+
+
+
 class Relation3 {
     name: string
     arity = 3
@@ -457,7 +690,7 @@ class Relation3 {
         let res = []
 
         for (let i = 0; i < this.i_nb; i++) {
-            res.push([this.colP[i], this.colR[i], this.colC[i]])
+            res.push([this.colR[i], this.colP[i], this.colC[i]])
         }
         return res
     }
@@ -468,6 +701,9 @@ type TupleKey = number
 const tuple_key = (a: number, b: number, c: number) => {
     return (a << 40) | (b << 20) | c
 }
+const tuple_key5 = (a: number, b: number, c: number, d: number, e: number) => {
+    return (a << 60) | (b << 50) | (c << 40) | (d << 20) | e
+}
 
 type RowId = number
 
@@ -475,7 +711,7 @@ type Tuple = Int32Array  | number[]
 
 type Index = Map<number, Set<RowId>>
 
-type Relation = Relation3 | Relation2 | Relation1
+type Relation = Relation3 | Relation2 | Relation1 | Relation5 | Relation4
 
 type CompiledRule = {
     headRelation: Relation
@@ -522,28 +758,58 @@ function bindRowIntoFrame(frame: Frame, atom: CompiledAtom, row: RowId) {
 
     const rel = atom.relation
     const slots = atom.argSlots
+    const constValues = atom.constValues
 
     if (rel instanceof Relation2) {
         const v0 = rel.colA[row]
         const v1 = rel.colB[row]
 
-        bindValue(frame, slots[0], v0)
-        bindValue(frame, slots[1], v1)
+        if (!bindValue(frame, slots[0], v0, constValues[0])) { return false}
+        if (!bindValue(frame, slots[1], v1, constValues[1])) { return false }
+    } else if (rel instanceof Relation4) {
+        const v0 = rel.colR[row]
+        const v1 = rel.colP[row]
+        const v2 = rel.colC[row]
+        const v3 = rel.colA[row]
+
+        if (!bindValue(frame, slots[0], v0, constValues[0])) { return false }
+        if (!bindValue(frame, slots[1], v1, constValues[1])) { return false }
+        if (!bindValue(frame, slots[2], v2, constValues[2])) { return false }
+        if (!bindValue(frame, slots[3], v3, constValues[3])) { return false }
+    } else if (rel instanceof Relation5) {
+        const v0 = rel.colR[row]
+        const v1 = rel.colP[row]
+        const v2 = rel.colC[row]
+        const v3 = rel.colA[row]
+        const v4 = rel.colB[row]
+
+        if (!bindValue(frame, slots[0], v0, constValues[0])) { return false }
+        if (!bindValue(frame, slots[1], v1, constValues[1])) { return false }
+        if (!bindValue(frame, slots[2], v2, constValues[2])) { return false }
+        if (!bindValue(frame, slots[3], v3, constValues[3])) { return false }
+        if (!bindValue(frame, slots[4], v4, constValues[4])) { return false }
     } else if (rel instanceof Relation3) {
         const v0 = rel.colR[row]
         const v1 = rel.colP[row]
         const v2 = rel.colC[row]
 
-        bindValue(frame, slots[0], v0)
-        bindValue(frame, slots[1], v1)
-        bindValue(frame, slots[2], v2)
+        if (!bindValue(frame, slots[0], v0, constValues[0])) { return false }
+        if (!bindValue(frame, slots[1], v1, constValues[1])) { return false }
+        if (!bindValue(frame, slots[2], v2, constValues[2])) { return false }
     } else if (rel instanceof Relation1) {
         const v0 = rel.colA[row]
-        bindValue(frame, slots[0], v0)
+        if (!bindValue(frame, slots[0], v0, constValues[0])) { return false }
     }
+    return true
 }
 
-function bindValue(frame: Frame, slot: number, value: number) {
+function bindValue(frame: Frame, slot: number, value: number, c_value: number | null) {
+    if (slot === -1) {
+        if (value !== c_value) {
+            return false
+        }
+        return true
+    }
     if (frame.bound[slot] === 0) {
         frame.values[slot] = value
         frame.bound[slot] = 1
@@ -560,11 +826,17 @@ function executeRule(mz: PositionMaterializer, rule: CompiledRule) {
     let driver = chooseDriver(rule)
     const rest = rule.body.filter(atom => atom !== driver)
 
+    if (rule.headRelation.name === 'solution') {
+        debugger
+    }
+
     for (let row of driver.relation.deltaRows) {
 
         frame.reset()
 
-        bindRowIntoFrame(frame, driver, row)
+        if (!bindRowIntoFrame(frame, driver, row)) {
+            continue
+        }
 
         joinRestUsing(mz, rule, rest, 0, frame)
     }
@@ -629,7 +901,10 @@ function joinRestUsing(
             for (let i = 0; i < values.length; i++) {
                 const slot = atom.argSlots[i + atom.external!.inputArity]
 
-                if (!bindValue(frame, slot, values[i])) return
+                if (!bindValue(frame, slot, values[i], atom.constValues[i + atom.external!.inputArity])) {
+                    restoreFrame(frame, snapshot)
+                    return
+                }
             }
 
             joinRestUsing(mz, rule, rest, atomIndex + 1, frame)
@@ -740,6 +1015,21 @@ function emitHead(rule: CompiledRule, frame: Frame) {
         rel.insert2(frame.values[slots[0]],
             frame.values[slots[1]]
         )
+    } else if (rel instanceof Relation4) {
+        rel.insert4(
+            frame.values[slots[0]],
+            frame.values[slots[1]],
+            frame.values[slots[2]],
+            frame.values[slots[3]]
+        )
+    } else if (rel instanceof Relation5) {
+        rel.insert5(
+            frame.values[slots[0]],
+            frame.values[slots[1]],
+            frame.values[slots[2]],
+            frame.values[slots[3]],
+            frame.values[slots[4]],
+        )
     } else if (rel instanceof Relation3) {
         rel.insert3(
             frame.values[slots[0]],
@@ -790,18 +1080,32 @@ const range = (a: number, b: number)  => {
 function unifyRow(frame: Frame, atom: CompiledAtom, row: RowId) {
     const rel = atom.relation
     const slots = atom.argSlots
+    const constValues = atom.constValues
 
     if (rel instanceof Relation2) {
-        if (!bindValue(frame, slots[0], rel.colA[row])) return false
-        if (!bindValue(frame, slots[1], rel.colB[row])) return false
+        if (!bindValue(frame, slots[0], rel.colA[row], constValues[0])) return false
+        if (!bindValue(frame, slots[1], rel.colB[row], constValues[1])) return false
+        return true
+    } else if (rel instanceof Relation4) {
+        if (!bindValue(frame, slots[0], rel.colR[row], constValues[0])) return false
+        if (!bindValue(frame, slots[1], rel.colP[row], constValues[1])) return false
+        if (!bindValue(frame, slots[2], rel.colC[row], constValues[2])) return false
+        if (!bindValue(frame, slots[3], rel.colA[row], constValues[3])) return false
+        return true
+    } else if (rel instanceof Relation5) {
+        if (!bindValue(frame, slots[0], rel.colR[row], constValues[0])) return false
+        if (!bindValue(frame, slots[1], rel.colP[row], constValues[1])) return false
+        if (!bindValue(frame, slots[2], rel.colC[row], constValues[2])) return false
+        if (!bindValue(frame, slots[3], rel.colA[row], constValues[3])) return false
+        if (!bindValue(frame, slots[4], rel.colB[row], constValues[4])) return false
         return true
     } else if (rel instanceof Relation3) {
-        if (!bindValue(frame, slots[0], rel.colR[row])) return false
-        if (!bindValue(frame, slots[1], rel.colP[row])) return false
-        if (!bindValue(frame, slots[2], rel.colC[row])) return false
+        if (!bindValue(frame, slots[0], rel.colR[row], constValues[0])) return false
+        if (!bindValue(frame, slots[1], rel.colP[row], constValues[1])) return false
+        if (!bindValue(frame, slots[2], rel.colC[row], constValues[2])) return false
         return true
     } else if (rel instanceof Relation1) {
-        if (!bindValue(frame, slots[0], rel.colA[row])) return false
+        if (!bindValue(frame, slots[0], rel.colA[row], constValues[0])) return false
         return true
     }
 }
@@ -903,13 +1207,27 @@ export function StrataRun(text: string, m: PositionManager, pos: PositionC) {
     ll.loop()
 
     // Output
-    let res = relations.get('query')!.list_cols() as [number, number][]
+    let res = relations.get('solution')!.list_cols() as [number, number][]
 
     return res.map(_ => mz.sans(_[0]))
 }
 
 const buildExternalsRegistry = (): Map<string, ExternalRelation> => {
     return new Map([
+
+
+        ['$turn', external$turn],
+        ['$opponent', external$legal_worlds],
+        ['$vacant_see', external$legal_worlds],
+        ['$attack_see', external$legal_worlds],
+        ['$defend_see', external$legal_worlds],
+        ['$vacant_see2', external$legal_worlds],
+        ['$attack_see2', external$legal_worlds],
+        ['$defend_see2', external$legal_worlds],
+        ['$vacant_see_through', external$legal_worlds],
+        ['$attack_see_through', external$legal_worlds],
+        ['$defend_see_through', external$legal_worlds],
+
         ['$legal_worlds', external$legal_worlds],
         ['$is_checkmate', external$is_checkmate],
         ['$forced_recapture_exists', external$forced_recapture_exists],
@@ -946,21 +1264,59 @@ const external$is_checkmate: ExternalRelation = {
     }
 }
 
+const external$turn: ExternalRelation = {
+    name: '$turn',
+    inputArity: 1,
+    outputArity: 4,
+    invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
+        const slotP = atom.argSlots[0]
+        const slotR = atom.argSlots[1]
+        const slotC = atom.argSlots[2]
+        const slotA = atom.argSlots[3]
+        const slotB = atom.argSlots[4]
+
+        const P = frame.values[slotP]
+
+        mz.make_to_world(P)
+
+        let occ = mz.m.pos_occupied(mz.pos)
+        let turn = mz.m.pos_turn(mz.pos)
+
+        for (let o of occ) {
+            let piece = mz.m.get_at(mz.pos, o)!
+            let role = piece_c_type_of(piece)
+            let color = piece_c_color_of(piece)
+
+            let has_turn = color === turn ? 1 : 0
+
+            if (has_turn) {
+                emit([o, role, color, piece])
+            }
+        }
+
+        return true
+    }
+}
 
 const external$legal_worlds: ExternalRelation = {
     name: '$legal_worlds',
     inputArity: 1,
-    outputArity: 1,
+    outputArity: 3,
     invoke: (mz: PositionMaterializer, atom: CompiledAtom, frame: Frame, emit: (values: number[]) => void) => {
         const slotP = atom.argSlots[0]
         const slotC = atom.argSlots[1]
 
         const P = frame.values[slotP]
 
-        const children = mz.generate_legal_worlds(P)
+        const children = mz.generate_legal_moves(P)
 
-        for (const C of children) {
-            emit([C])
+        for (const move of children) {
+
+            let { from, to } = move_c_to_Move(move)
+            let w2 = mz.add_move(P, move)
+
+
+            emit([from, to, w2])
         }
         return true
     }

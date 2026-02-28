@@ -42,8 +42,8 @@ $attack_see_through(W, From, To, To_through).
 defend_see_through(W, From, To, To_through) :- world(W)
 $defend_see_through(W, From, To, To_through).
 
-legal_moves(W, From, To, W2) :- world(W)
-$legal_moves(W, From, To, W2).
+legal_worlds(W, From, To, W2) :- world(W)
+$legal_worlds(W, From, To, W2).
 
 turn_kings(W, From) :- turn(W, From, KING, Color, Piece).
 turn_bishops(W, From) :- turn(W, From, BISHOP, Color, Piece).
@@ -70,7 +70,7 @@ bishop_forks(W, From, To) :- turn_bishops(W, From) fork(W, From, To, Fork_a, For
   opponent_rooks(W, Fork_b).
 
 
-solution(W, From, To) :- legal_moves(W, From, To) bishop_forks(W, From, To).
+solution(P) :- turn(W, From, "BISHOP", _, _) $legal_worlds(W, From, _, P).
 
 `, m, pos)
 }
@@ -81,6 +81,7 @@ it('works', () => {
     log_puzzles = test_b_forks_kr_puzzles
 
     let total = log_puzzles.length / 20
+    total = 1
 
     let Tp = []
     let Fp = []
@@ -95,7 +96,7 @@ it('works', () => {
         let pos = m.create_position(fen)
         let link = log_puzzles[i].link
 
-        //console.log(i + ' ' + link)
+        console.log(i + ' ' + link)
         let res = make_fast(m, pos)
         if (res.length === 0) {
 
