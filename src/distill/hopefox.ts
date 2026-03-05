@@ -286,7 +286,7 @@ function xdefenders(pos: Position): [Piece, NormalMove, [Piece, NormalMove][]][]
 
 
 export function fen_pos(fen: string) {
-    let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+    let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
     return pos
 }
 
