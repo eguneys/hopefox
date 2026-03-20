@@ -1,4 +1,4 @@
-import { ContextDelta, FeatureStats, GameState, MoveDelta, NodeHook, SearchResult } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, FeatureStats, GameState, MoveDelta, NodeHook, SearchResult } from "./chat_alpha";
 
 /*
 generateMovesWithIntentions() {
@@ -57,7 +57,6 @@ function updateFeatureStats(
 }
 
 
-
 export function alphaBeta<TMove, Context>(
   state: GameState<TMove, Context>,
   depth: number,
@@ -106,8 +105,11 @@ export function alphaBeta<TMove, Context>(
   if (isMaximizing) {
     let value = -Infinity;
 
-    for (const [move, featureContributions] of movesAndFeatures) {
+    for (const m of movesAndFeatures) {
+      let { move } = m
       const ctxBefore = state.cloneContext();
+
+      state.applyIntentionDelta(m.intentionDelta)
 
       state.makeMove(move);
       const result = alphaBeta(
@@ -121,16 +123,19 @@ export function alphaBeta<TMove, Context>(
       );
 
 
-      const ctxAfter = state.getContext()
-      const delta = state.diffContext(ctxBefore, ctxAfter);
-      let intentionDelta = { features: featureContributions, ...delta }
-      state.applyIntentionDelta(delta)
       state.unmakeMove(move);
+
+      state.undoIntentionDelta(m.intentionDelta)
+
+      const ctxAfter = state.getContext()
+      const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
+
+      const fullDelta = { features: m.featureContributions, ...structuralDelta }
 
       moveDeltas.push({
         move,
-        featureContributions,
-        intentionDelta,
+        featureContributions: m.featureContributions,
+        intentionDelta: fullDelta,
         value: result.value,
         depth,
         isPV: false,
@@ -183,9 +188,11 @@ export function alphaBeta<TMove, Context>(
   } else {
     let value = Infinity;
 
-    for (const [move, featureContributions] of movesAndFeatures) {
+    for (const m of movesAndFeatures) {
+      let { move } = m
       const ctxBefore = state.cloneContext();
 
+      state.applyIntentionDelta(m.intentionDelta)
       state.makeMove(move);
 
 
@@ -200,17 +207,18 @@ export function alphaBeta<TMove, Context>(
       );
 
 
-      const ctxAfter = state.getContext();
-      const delta = state.diffContext(ctxBefore, ctxAfter);
-
-      let intentionDelta = { features: featureContributions, ...delta }
-      state.applyIntentionDelta(delta)
       state.unmakeMove(move);
 
+      state.undoIntentionDelta(m.intentionDelta)
+      const ctxAfter = state.getContext();
+      const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
+
+      let fullDelta = { features: m.featureContributions, ...structuralDelta }
+
       moveDeltas.push({
-        move,
-        intentionDelta,
-        featureContributions,
+        move: m.move,
+        featureContributions: m.featureContributions,
+        intentionDelta: fullDelta,
         value: result.value,
         depth,
         isPV: false,

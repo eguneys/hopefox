@@ -3,64 +3,26 @@ import { ContextDelta, FeatureContribution, Intention, intentionEqual } from './
 import { mz_forks, mz_typed_forks, mz_views } from './get_features'
 import { PositionMaterializer, WorldId } from './pos_materializer'
 
+/*
+generateMovesWithIntentions() {
+  const moves = [];
 
+  // detect fork opportunity
+  if (forkExists(position)) {
+    moves.push({
+      move: bishopMove,
+      delta: {
+        addedIntentions: [forkIntent],
+        updatedIntentions: [],
+        removedIntentions: [],
+        features: [...]
+      }
+    });
+  }
 
-class MyAlphaChatStateContext implements AlphaChatStateContext {
-
-
-    static diff(self: MyAlphaChatStateContext, other: MyAlphaChatStateContext): Omit<ContextDelta, 'features'> {
-        const added: Intention[] = [];
-        const removed: Intention[] = [];
-        const updated: Intention[] = [];
-
-        const aMap = self.intentions;
-        const bMap = other.intentions;
-
-        // detect added + updated
-        for (const [id, bIntent] of bMap) {
-            const aIntent = aMap.get(id);
-
-            if (!aIntent) {
-                added.push(bIntent);
-            } else if (!intentionEqual(aIntent, bIntent)) {
-                updated.push(bIntent);
-            }
-        }
-
-        // detect removed
-        for (const [id, aIntent] of aMap) {
-            if (!bMap.has(id)) {
-                removed.push(aIntent);
-            }
-        }
-
-        return {
-            addedIntentions: added,
-            removedIntentions: removed,
-            updatedIntentions: updated,
-        };
+  return moves;
 }
-
-    constructor(readonly intentions: Map<string, Intention>) {
-
-    }
-
-    applyIntentionDelta(delta: ContextDelta): void {
-    }
-
-    clone(): AlphaChatStateContext {
-        let res = new MyAlphaChatStateContext(new Map(this.intentions))
-        return res
-    }
-
-    diff(b: MyAlphaChatStateContext): Omit<ContextDelta, 'features'> {
-        return MyAlphaChatStateContext.diff(this, b)
-    }
-}
-
-
-export const ctx = new MyAlphaChatStateContext(new Map())
-
+*/
 
 export const hooks: AlphaChatStateHooks = {
     evaluate: function (ctx: AlphaChatStateContext, mz: PositionMaterializer): number {

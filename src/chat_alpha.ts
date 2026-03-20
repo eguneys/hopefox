@@ -9,11 +9,20 @@ export type NodeHook<TMove> = (info: {
 }) => void;
 
 
+export type GeneratedMove<TMove> = {
+  move: TMove;
+  featureContributions: FeatureContribution[];
+  intentionDelta: ContextDelta
+}
+
+
+
 /**
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove, Context> {
-  generateMovesWithIntentions(isMaxizing: boolean): [TMove, FeatureContribution[]][];
+  generateMovesWithIntentions(isMaxizing: boolean): GeneratedMove<TMove>[];
+  undoIntentionDelta(delta: ContextDelta): void;
   applyIntentionDelta(delta: ContextDelta): void;
   makeMove(move: TMove): void;
   unmakeMove(move: TMove): void;
@@ -68,7 +77,7 @@ export type ContextDelta = {
     features: FeatureContribution[];
     addedIntentions: Intention[]
     removedIntentions: Intention[]
-    updatedIntentions: Intention[]
+    updatedIntentions: { before: Intention, after: Intention }[]
 }
 
 export type MoveDelta<TMove> = {

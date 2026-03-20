@@ -1,4 +1,4 @@
-import { ContextDelta, FeatureContribution, GameState } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, GameState, Intention, intentionEqual } from "./chat_alpha";
 import { exampleUsage } from "./chat_alpha_v2";
 import { PositionC, PositionManager } from "./distill/hopefox_c";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
@@ -22,6 +22,7 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     constructor(readonly m: PositionManager, readonly pos: PositionC, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {
         this.mz = new PositionMaterializer(m, pos)
     }
+
     applyIntentionDelta(delta: ContextDelta): void {
         this.ctx.applyIntentionDelta(delta)
     }
@@ -66,8 +67,97 @@ export interface AlphaChatStateContext {
 }
 
 
+
+class MyAlphaChatStateContext implements AlphaChatStateContext {
+
+
+    static diff(self: MyAlphaChatStateContext, other: MyAlphaChatStateContext): Omit<ContextDelta, 'features'> {
+        const added: Intention[] = [];
+        const removed: Intention[] = [];
+        const updated: { before: Intention, after: Intention }[] = [];
+
+        const aMap = self.intentions;
+        const bMap = other.intentions;
+
+        // detect added + updated
+        for (const [id, bIntent] of bMap) {
+            const aIntent = aMap.get(id);
+
+            if (!aIntent) {
+                added.push(bIntent);
+            } else if (!intentionEqual(aIntent, bIntent)) {
+                updated.push({ before: aIntent, after: bIntent });
+            }
+        }
+
+        // detect removed
+        for (const [id, aIntent] of aMap) {
+            if (!bMap.has(id)) {
+                removed.push(aIntent);
+            }
+        }
+
+        return {
+            addedIntentions: added,
+            removedIntentions: removed,
+            updatedIntentions: updated,
+        };
+}
+
+    constructor(readonly intentions: Map<string, Intention>) {}
+
+    applyIntentionDelta(delta: ContextDelta): void {
+        for (const intent of delta.removedIntentions) {
+            this.intentions.delete(intent.id)
+        }
+
+        for (const intent of delta.addedIntentions) {
+            this.intentions.set(intent.id, intent)
+        }
+
+        for (const intent of delta.updatedIntentions) {
+            this.intentions.delete(intent.before.id)
+            this.intentions.set(intent.after.id, intent.after)
+        }
+    }
+
+    undoIntentionDelta(delta: ContextDelta) {
+        // reverse order
+
+        // undo updates // restore previous version
+        /*  TODO */
+        for (const intent of delta.updatedIntentions) {
+            this.intentions.delete(intent.after.id)
+            this.intentions.set(intent.before.id, intent.before)
+        }
+
+
+        for (const intent of delta.addedIntentions) {
+            this.intentions.delete(intent.id)
+        }
+
+        for (const intent of delta.removedIntentions) {
+            this.intentions.set(intent.id, intent)
+        }
+    }
+
+    clone(): AlphaChatStateContext {
+        let res = new MyAlphaChatStateContext(new Map(this.intentions))
+        return res
+    }
+
+    diff(b: MyAlphaChatStateContext): Omit<ContextDelta, 'features'> {
+        return MyAlphaChatStateContext.diff(this, b)
+    }
+}
+
+
+
+
+
 export function solve(m: PositionManager, pos: PositionC) {
-    let { hooks, ctx } = Get_Chat_Hooks
+    const ctx = new MyAlphaChatStateContext(new Map())
+    let { hooks } = Get_Chat_Hooks
     return ChessChatGameState.alpha_beta_summary(m, pos, 2, hooks, ctx)
 }
 
