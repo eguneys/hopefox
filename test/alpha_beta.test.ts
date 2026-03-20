@@ -25,7 +25,7 @@ it.skip('works', () => {
 it('works', () => {
 
 let Single_i
-Single_i = 5
+Single_i = 0
 
 let log_puzzles = test_b_forks_kr_puzzles
 
@@ -39,7 +39,7 @@ let log_puzzles = test_b_forks_kr_puzzles
     let Fn = []
     for (let k = 0; k < total; k++) {
         let i = k
-        if (Single_i) {
+        if (Single_i !== undefined) {
             i = Single_i
             k = total
         }

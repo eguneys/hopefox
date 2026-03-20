@@ -32,11 +32,11 @@ export const hooks: AlphaChatStateHooks = {
             let mz_vv = mz_views(mz)
             let mz_ff = mz_forks(mz_vv)
             let mzt = mz_typed_forks(mz_vv, mz_ff)
-
-
             let legals = mz.inc_generate_legal_moves()
 
             let res: GeneratedMove<WorldId>[] = []
+
+
 
             return res
     }
