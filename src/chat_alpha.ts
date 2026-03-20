@@ -13,7 +13,6 @@ export type NodeHook<TMove> = (info: {
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove, Context> {
-  updateIntentions();
   generateMovesWithIntentions(isMaxizing: boolean): TMove[];
   makeMove(move: TMove): void;
   unmakeMove(move: TMove): void;

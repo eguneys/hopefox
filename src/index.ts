@@ -10,4 +10,4 @@ export * from './distill/squareSet'
 
 
 //export * from './make_strata'
-export * from './alpha_beta'
+export * from './alpha_beta_v2'
