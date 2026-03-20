@@ -4,6 +4,10 @@ import { mz_forks, mz_typed_forks, mz_views } from './get_features'
 import { PositionMaterializer, WorldId } from './pos_materializer'
 
 class MyAlphaChatStateContext implements AlphaChatStateContext {
+
+    applyIntentionDelta(delta: ContextDelta): void {
+        throw new Error('Method not implemented.')
+    }
     clone(): AlphaChatStateContext {
         let res = new MyAlphaChatStateContext()
 

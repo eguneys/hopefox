@@ -25,8 +25,9 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     generateMovesWithIntentions(isMaximizing: boolean): [WorldId, FeatureContribution[]][] {
         return this.hooks.list_moves(isMaximizing, this.ctx, this.mz)
     }
-    makeMove(world_id: WorldId): void {
+    makeMove(world_id: WorldId, intentionDelta: ContextDelta): void {
         this.mz.inc_make_world(world_id)
+        this.ctx.applyIntentionDelta(intentionDelta)
     }
     unmakeMove(world_id: WorldId): void {
         this.mz.inc_unmake_world(world_id)
@@ -59,6 +60,7 @@ export type AlphaChatStateHooks = {
 export interface AlphaChatStateContext {
     clone(): AlphaChatStateContext
     diff(b: AlphaChatStateContext): ContextDelta
+    applyIntentionDelta(delta: ContextDelta): void
 }
 
 

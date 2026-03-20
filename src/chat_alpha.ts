@@ -14,7 +14,7 @@ export type NodeHook<TMove> = (info: {
  */
 export interface GameState<TMove, Context> {
   generateMovesWithIntentions(isMaxizing: boolean): [TMove, FeatureContribution[]][];
-  makeMove(move: TMove): void;
+  makeMove(move: TMove, intentionDelta: ContextDelta): void;
   unmakeMove(move: TMove): void;
   evaluate(): number; // Heuristic evaluation
   isGameOver(): boolean;
