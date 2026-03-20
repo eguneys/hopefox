@@ -2,6 +2,7 @@ import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
 import { PositionManager, solve } from "../src"
 
+
 let m = await PositionManager.make()
 
 it.skip('works', () => {
@@ -23,6 +24,9 @@ it.skip('works', () => {
 
 it('works', () => {
 
+let Single_i
+Single_i = 5
+
 let log_puzzles = test_b_forks_kr_puzzles
 
 
@@ -35,6 +39,10 @@ let log_puzzles = test_b_forks_kr_puzzles
     let Fn = []
     for (let k = 0; k < total; k++) {
         let i = k
+        if (Single_i) {
+            i = Single_i
+            k = total
+        }
         //i = 13
         let fen = log_puzzles[i].move_fens[0]
         //if (i > 100) break
@@ -59,7 +67,7 @@ let log_puzzles = test_b_forks_kr_puzzles
                 Tp.push(link)
             } else {
                 let res_length = res.length > 2 ? ` [${res.length}] ` : ' '
-                Fp.push(`${i}<${link}>${res_length}${res[0].join(' ')}`)
+                Fp.push(`${i} <${link}>${res_length}${res[0].join(' ')}`)
             }
             continue
         }
@@ -73,9 +81,9 @@ let log_puzzles = test_b_forks_kr_puzzles
     let Total = TpFp + Tn.length + 1
     let C_percent = Math.round(TpFp / Total * 100)
     let A_percent = Math.round(Tp.length / TpFp * 100)
-    console.log(`Coverage: % ${C_percent} Accuracy: %${A_percent}`)
-    console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
+    console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
+    console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
     console.log(Fp.slice(0, 10))
-    console.log(`Coverage: % ${C_percent} Accuracy: %${A_percent}`)
+    console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
 })

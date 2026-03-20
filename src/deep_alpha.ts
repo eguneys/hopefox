@@ -2,7 +2,7 @@
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove> {
-  getPossibleMoves(): TMove[];
+  getPossibleMoves(isMaxizing: boolean): TMove[];
   makeMove(move: TMove): void;
   unmakeMove(move: TMove): void;
   evaluate(): number; // Heuristic evaluation
@@ -29,7 +29,11 @@ export function alphaBeta<TMove>(
     return state.evaluate();
   }
 
-  const moves = state.getPossibleMoves();
+  const moves = state.getPossibleMoves(isMaximizing);
+
+  if (moves.length === 0) {
+    return state.evaluate();
+  }
 
   if (isMaximizing) {
     let maxEval = -Infinity;
