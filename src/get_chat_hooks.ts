@@ -4,24 +4,20 @@ import { mz_forks, mz_typed_forks, mz_views } from './get_features'
 import { PositionMaterializer, WorldId } from './pos_materializer'
 
 /*
-generateMovesWithIntentions() {
-  const moves = [];
 
-  // detect fork opportunity
-  if (forkExists(position)) {
-    moves.push({
-      move: bishopMove,
-      delta: {
-        addedIntentions: [forkIntent],
-        updatedIntentions: [],
-        removedIntentions: [],
-        features: [...]
-      }
-    });
-  }
-
-  return moves;
+if (forkDetected) {
+  moves.push({
+    move: bishopMove,
+    featureContributions: [...],
+    intentionDelta: {
+      addedIntentions: [forkIntent],
+      removedIntentions: [],
+      updatedIntentions: [],
+      features: [] // or omit here
+    }
+  });
 }
+
 */
 
 export const hooks: AlphaChatStateHooks = {
