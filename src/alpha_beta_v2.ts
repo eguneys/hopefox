@@ -22,12 +22,14 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     constructor(readonly m: PositionManager, readonly pos: PositionC, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {
         this.mz = new PositionMaterializer(m, pos)
     }
+    applyIntentionDelta(delta: ContextDelta): void {
+        this.ctx.applyIntentionDelta(delta)
+    }
     generateMovesWithIntentions(isMaximizing: boolean): [WorldId, FeatureContribution[]][] {
         return this.hooks.list_moves(isMaximizing, this.ctx, this.mz)
     }
-    makeMove(world_id: WorldId, intentionDelta: ContextDelta): void {
+    makeMove(world_id: WorldId): void {
         this.mz.inc_make_world(world_id)
-        this.ctx.applyIntentionDelta(intentionDelta)
     }
     unmakeMove(world_id: WorldId): void {
         this.mz.inc_unmake_world(world_id)
@@ -44,7 +46,7 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     getContext(): AlphaChatStateContext {
         return this.ctx
     }
-    diffContext(a: AlphaChatStateContext, b: AlphaChatStateContext): ContextDelta {
+    diffContext(a: AlphaChatStateContext, b: AlphaChatStateContext): Omit<ContextDelta, 'features'> {
         return a.diff(b)
     }
 
@@ -59,7 +61,7 @@ export type AlphaChatStateHooks = {
 
 export interface AlphaChatStateContext {
     clone(): AlphaChatStateContext
-    diff(b: AlphaChatStateContext): ContextDelta
+    diff(b: AlphaChatStateContext): Omit<ContextDelta, 'features'>
     applyIntentionDelta(delta: ContextDelta): void
 }
 

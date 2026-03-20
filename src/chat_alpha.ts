@@ -14,13 +14,14 @@ export type NodeHook<TMove> = (info: {
  */
 export interface GameState<TMove, Context> {
   generateMovesWithIntentions(isMaxizing: boolean): [TMove, FeatureContribution[]][];
-  makeMove(move: TMove, intentionDelta: ContextDelta): void;
+  applyIntentionDelta(delta: ContextDelta): void;
+  makeMove(move: TMove): void;
   unmakeMove(move: TMove): void;
   evaluate(): number; // Heuristic evaluation
   isGameOver(): boolean;
   cloneContext(): Context;
   getContext(): Context;
-  diffContext(a: Context, b: Context): ContextDelta
+  diffContext(a: Context, b: Context): Omit<ContextDelta, 'features'>
 }
 
 export type FeatureStats = {
@@ -46,11 +47,20 @@ export type Intention = {
   id: string;
   type: IntentionType // "fork" | "attack" | ...;
 
+  payload: any
+
   createdAtDepth: number;
   lastUpdatedDepth: number;
 
   status: "active" | "fulfilled" | "failed";
 };
+
+export function intentionEqual(a: Intention, b: Intention): boolean {
+  return (
+    a.status === b.status &&
+    a.lastUpdatedDepth === b.lastUpdatedDepth
+  );
+}
 
 
 

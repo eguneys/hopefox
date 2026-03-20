@@ -123,13 +123,14 @@ export function alphaBeta<TMove, Context>(
 
       const ctxAfter = state.getContext()
       const delta = state.diffContext(ctxBefore, ctxAfter);
-      delta.features = featureContributions
+      let intentionDelta = { features: featureContributions, ...delta }
+      state.applyIntentionDelta(delta)
       state.unmakeMove(move);
 
       moveDeltas.push({
         move,
         featureContributions,
-        intentionDelta: delta,
+        intentionDelta,
         value: result.value,
         depth,
         isPV: false,
@@ -202,12 +203,13 @@ export function alphaBeta<TMove, Context>(
       const ctxAfter = state.getContext();
       const delta = state.diffContext(ctxBefore, ctxAfter);
 
-      delta.features = featureContributions
+      let intentionDelta = { features: featureContributions, ...delta }
+      state.applyIntentionDelta(delta)
       state.unmakeMove(move);
 
       moveDeltas.push({
         move,
-        intentionDelta: delta,
+        intentionDelta,
         featureContributions,
         value: result.value,
         depth,
