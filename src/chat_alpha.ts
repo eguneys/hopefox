@@ -1,5 +1,5 @@
-
-type NodeHook<TMove> = (info: {
+// @ts-nocheck
+export type NodeHook<TMove> = (info: {
   depth: number;
   alpha: number;
   beta: number;
@@ -13,13 +13,14 @@ type NodeHook<TMove> = (info: {
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove, Context> {
-  context: Context;
-  getPossibleMoves(isMaxizing: boolean): TMove[];
+  updateIntentions();
+  generateMovesWithIntentions(isMaxizing: boolean): TMove[];
   makeMove(move: TMove): void;
   unmakeMove(move: TMove): void;
   evaluate(): number; // Heuristic evaluation
   isGameOver(): boolean;
   cloneContext(): Context;
+  getContext(): Context;
   diffContext(a: Context, b: Context): ContextDelta
 }
 
@@ -40,11 +41,28 @@ export type FeatureContribution = {
     weighted: number // effect on eval
 }
 
+export type IntentionType = string
+
+export type Intention = {
+  id: string;
+  type: IntentionType // "fork" | "attack" | ...;
+
+  createdAtDepth: number;
+  lastUpdatedDepth: number;
+
+  status: "active" | "fulfilled" | "failed";
+};
+
+
+
 export type ContextDelta = {
     features: Array<FeatureContribution>;
+    addedIntentions: Intention[]
+    removedIntentions: Intention[]
+    updatedIntentions: Intention[]
 }
 
-type MoveDelta<TMove> = {
+export type MoveDelta<TMove> = {
     move: TMove;
     delta: ContextDelta;
     value: number;
