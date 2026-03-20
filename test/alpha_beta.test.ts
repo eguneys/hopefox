@@ -58,7 +58,8 @@ let log_puzzles = test_b_forks_kr_puzzles
             if (cc === ss) {
                 Tp.push(link)
             } else {
-                Fp.push(`${i} ${link} :> [${res.length}] ${res[0].join(' ')}`)
+                let res_length = res.length > 2 ? ` [${res.length}] ` : ' '
+                Fp.push(`${i}<${link}>${res_length}${res[0].join(' ')}`)
             }
             continue
         }
@@ -74,7 +75,7 @@ let log_puzzles = test_b_forks_kr_puzzles
     let A_percent = Math.round(Tp.length / TpFp * 100)
     console.log(`Coverage: % ${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
-    console.log(Fp.slice(0, 20))
+    console.log(Fp.slice(0, 10))
     console.log(`Coverage: % ${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
 })
