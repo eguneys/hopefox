@@ -4,7 +4,9 @@ import { BISHOP, make_move_from_to, move_c_to_Move, MoveC, piece_c_color_of, pie
 import { Square } from './distill/types';
 import { PositionMaterializer, WorldId } from './pos_materializer';
 
-export type AlphaStateContext = {}
+export type AlphaStateContext = {
+    bishop_forks?: { from: Square, to: Square, w: WorldId }[] 
+}
 
 export type AlphaStateHooks = {
     evaluate(ctx: AlphaStateContext, mz: PositionMaterializer): number
@@ -29,11 +31,9 @@ export class ChessAlphaState implements GameState<WorldId> {
     }
 
     makeMove(world_id: WorldId): void {
-        console.log('make', world_id)
         this.mz.inc_make_world(world_id)
     }
     unmakeMove(world_id: WorldId): void {
-        console.log('unmake', world_id)
         this.mz.inc_unmake_world(world_id)
     }
     evaluate(): number {
@@ -65,13 +65,24 @@ export function get_hooks() {
             let mz_ff = mz_forks(mz_vv)
 
 
+            let legals = mz.inc_generate_legal_moves()
             let res = []
 
             let { bishop_fork } = mz_ff
 
             for (let b_f of bishop_fork) {
                 let move = make_move_from_to(b_f.from, b_f.to)
+
+                if (!legals.includes(move)) {
+                    continue
+                }
+
                 res.push(mz.inc_add_move(move))
+                if (!ctx.bishop_forks) {
+                    ctx.bishop_forks = [{ from: b_f.from, to: b_f.to, w: mz.incremented_to_world }]
+                } else {
+                    ctx.bishop_forks.push({ from: b_f.from, to: b_f.to, w: mz.incremented_to_world })
+                }
             }
 
             return res
@@ -83,7 +94,14 @@ export function get_hooks() {
             return false
         },
         summarize(ctx: AlphaStateContext, mz: PositionMaterializer) {
-            return mz.nodes
+            if (ctx.bishop_forks) {
+                let move = make_move_from_to(ctx.bishop_forks[0].from, ctx.bishop_forks[0].to)
+
+                let w2 = mz.add_move(ctx.bishop_forks[0].w, move)
+
+                return [mz.sans(w2)]
+            }
+            return []
         }
     }
 
@@ -94,7 +112,7 @@ type MZ_Forks = {
     bishop_fork: { from: Square, to: Square }[]
 }
 
-type AttackSee2 = { from: Square, to: Square, block: Square }
+type AttackSee2 = { from: Square, to: Square, to2: Square }
 
 function mz_forks(mz_views: MZ_Views): MZ_Forks {
 
@@ -118,11 +136,11 @@ function mz_forks(mz_views: MZ_Views): MZ_Forks {
 
     for (let [move, a2s] of bishop_attacks) {
         if (a2s.length === 2) {
-            if (a2s[0].block === a2s[1].block) {
+            if (a2s[0].to2 === a2s[1].to2) {
                 continue
             }
             let { from } = move_c_to_Move(move)
-            bishop_fork.push({ from, to: a2s[0].block, fork_a: a2s[0].to, fork_b: a2s[1].to })
+            bishop_fork.push({ from, to: a2s[0].to, fork_a: a2s[0].to2, fork_b: a2s[1].to2 })
         }
     }
 
@@ -138,16 +156,16 @@ type MZ_Views = {
     vacant_see: { from: Square, to: Square }[]
     defend_see: { from: Square, to: Square }[]
     attack_see: { from: Square, to: Square }[]
-    vacant_see2: { from: Square, to: Square, block: Square }[]
-    defend_see2: { from: Square, to: Square, block: Square }[]
-    attack_see2: { from: Square, to: Square, block: Square }[]
+    vacant_see2: { from: Square, to: Square, to2: Square }[]
+    defend_see2: { from: Square, to: Square, to2: Square }[]
+    attack_see2: { from: Square, to: Square, to2: Square }[]
 }
 
 function mz_views(mz: PositionMaterializer): MZ_Views {
 
-    let vacant_see2: { from: Square, to: Square, block: Square }[] = []
-    let defend_see2: { from: Square, to: Square, block: Square }[] = []
-    let attack_see2: { from: Square, to: Square, block: Square }[] = []
+    let vacant_see2: { from: Square, to: Square, to2: Square }[] = []
+    let defend_see2: { from: Square, to: Square, to2: Square }[] = []
+    let attack_see2: { from: Square, to: Square, to2: Square }[] = []
 
     let vacant_see: { from: Square, to: Square }[] = []
     let defend_see: { from: Square, to: Square }[] = []
@@ -199,11 +217,11 @@ function mz_views(mz: PositionMaterializer): MZ_Views {
                 let is_defend = piece3 && piece_c_color_of(piece3) === piece_color
 
                 if (is_vacant) {
-                    vacant_see2.push({ from: sq, to: a2, block: a })
+                    vacant_see2.push({ from: sq, to: a, to2: a2 })
                 } else if (is_defend) {
-                    defend_see2.push({ from: sq, to: a2, block: a })
+                    defend_see2.push({ from: sq, to: a, to2: a2 })
                 } else {
-                    attack_see2.push({ from: sq, to: a2, block: a })
+                    attack_see2.push({ from: sq, to: a, to2: a2 })
                 }
 
 

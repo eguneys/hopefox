@@ -4,7 +4,7 @@ import { PositionManager, solve } from "../src"
 
 let m = await PositionManager.make()
 
-it('works', () => {
+it.skip('works', () => {
 
     let log_puzzles = test_b_forks_kr_puzzles
 
@@ -21,7 +21,7 @@ it('works', () => {
 
 })
 
-it.skip('works', () => {
+it('works', () => {
 
 let log_puzzles = test_b_forks_kr_puzzles
 
@@ -68,11 +68,13 @@ let log_puzzles = test_b_forks_kr_puzzles
         m.delete_position(pos)
     }
 
-    let C_percent = Math.round(((Tp.length + Fp.length) / Tn.length) * 100)
-    let Tp_percent = Math.round((Fp.length / (Tp.length + Fp.length)) * 100)
-    console.log(`Coverage % ${C_percent} Error %${Tp_percent}`)
+    let TpFp = Tp.length + Fp.length  + 1
+    let Total = TpFp + Tn.length + 1
+    let C_percent = Math.round(TpFp / Total * 100)
+    let A_percent = Math.round(Tp.length / TpFp * 100)
+    console.log(`Coverage: % ${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
     console.log(Fp.slice(0, 20))
-    console.log(`Coverage % ${C_percent} Error %${Tp_percent}`)
-    console.log(`Tp/Fp/N ${Tp.length}/${Fp.length}/${Tn.length}`)
+    console.log(`Coverage: % ${C_percent} Accuracy: %${A_percent}`)
+    console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
 })
