@@ -110,8 +110,8 @@ export function alphaBeta<TMove, Context>(
       const ctxBefore = state.cloneContext();
 
       state.applyIntentionDelta(m.intentionDelta)
-
       state.makeMove(move);
+
       const result = alphaBeta(
         state,
         depth - 1,
@@ -124,7 +124,6 @@ export function alphaBeta<TMove, Context>(
 
 
       state.unmakeMove(move);
-
       state.undoIntentionDelta(m.intentionDelta)
 
       const ctxAfter = state.getContext()
@@ -208,8 +207,8 @@ export function alphaBeta<TMove, Context>(
 
 
       state.unmakeMove(move);
-
       state.undoIntentionDelta(m.intentionDelta)
+
       const ctxAfter = state.getContext();
       const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
 

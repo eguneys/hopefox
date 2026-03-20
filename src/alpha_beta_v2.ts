@@ -1,4 +1,4 @@
-import { ContextDelta, FeatureContribution, GameState, Intention, intentionEqual } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, GameState, GeneratedMove, Intention, intentionEqual } from "./chat_alpha";
 import { exampleUsage } from "./chat_alpha_v2";
 import { PositionC, PositionManager } from "./distill/hopefox_c";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
@@ -22,11 +22,13 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     constructor(readonly m: PositionManager, readonly pos: PositionC, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {
         this.mz = new PositionMaterializer(m, pos)
     }
-
+    undoIntentionDelta(delta: ContextDelta): void {
+        this.ctx.undoIntentionDelta(delta)
+    }
     applyIntentionDelta(delta: ContextDelta): void {
         this.ctx.applyIntentionDelta(delta)
     }
-    generateMovesWithIntentions(isMaximizing: boolean): [WorldId, FeatureContribution[]][] {
+    generateMovesWithIntentions(isMaximizing: boolean): GeneratedMove<WorldId>[] {
         return this.hooks.list_moves(isMaximizing, this.ctx, this.mz)
     }
     makeMove(world_id: WorldId): void {
@@ -57,13 +59,14 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
 export type AlphaChatStateHooks = {
     evaluate(ctx: AlphaChatStateContext, mz: PositionMaterializer): number
     is_terminal(ctx: AlphaChatStateContext, mz: PositionMaterializer): boolean
-    list_moves(isMaximizing: boolean, ctx: AlphaChatStateContext, mz: PositionMaterializer): [WorldId, FeatureContribution[]][]
+    list_moves(isMaximizing: boolean, ctx: AlphaChatStateContext, mz: PositionMaterializer): GeneratedMove<WorldId>[]
 }
 
 export interface AlphaChatStateContext {
     clone(): AlphaChatStateContext
     diff(b: AlphaChatStateContext): Omit<ContextDelta, 'features'>
     applyIntentionDelta(delta: ContextDelta): void
+    undoIntentionDelta(delta: ContextDelta): void
 }
 
 
