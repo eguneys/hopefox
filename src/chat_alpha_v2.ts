@@ -84,9 +84,9 @@ export function alphaBeta<TMove, Context>(
 
   //const moves = state.getPossibleMoves(isMaximizing);
 
-  const moves = state.generateMovesWithIntentions(isMaximizing)
+  const movesAndFeatures = state.generateMovesWithIntentions(isMaximizing)
 
-  if (moves.length === 0) {
+  if (movesAndFeatures.length === 0) {
     const value = state.evaluate();
 
     onNode?.({ depth, alpha, beta, value });
@@ -106,7 +106,7 @@ export function alphaBeta<TMove, Context>(
   if (isMaximizing) {
     let value = -Infinity;
 
-    for (const move of moves) {
+    for (const [move, featureContributions] of movesAndFeatures) {
       const ctxBefore = state.cloneContext();
 
       state.makeMove(move);
@@ -123,12 +123,13 @@ export function alphaBeta<TMove, Context>(
 
       const ctxAfter = state.getContext()
       const delta = state.diffContext(ctxBefore, ctxAfter);
-
+      delta.features = featureContributions
       state.unmakeMove(move);
 
       moveDeltas.push({
         move,
-        delta,
+        featureContributions,
+        intentionDelta: delta,
         value: result.value,
         depth,
         isPV: false,
@@ -160,7 +161,7 @@ export function alphaBeta<TMove, Context>(
 
         updateFeatureStats(
           featureTable,
-          m.delta,
+          m.intentionDelta,
           m.value,
           true,
           m.causedCutoff
@@ -168,7 +169,7 @@ export function alphaBeta<TMove, Context>(
       } else {
         updateFeatureStats(
           featureTable,
-          m.delta,
+          m.intentionDelta,
           m.value,
           false,
           m.causedCutoff
@@ -181,7 +182,7 @@ export function alphaBeta<TMove, Context>(
   } else {
     let value = Infinity;
 
-    for (const move of moves) {
+    for (const [move, featureContributions] of movesAndFeatures) {
       const ctxBefore = state.cloneContext();
 
       state.makeMove(move);
@@ -200,11 +201,14 @@ export function alphaBeta<TMove, Context>(
 
       const ctxAfter = state.getContext();
       const delta = state.diffContext(ctxBefore, ctxAfter);
+
+      delta.features = featureContributions
       state.unmakeMove(move);
 
       moveDeltas.push({
         move,
-        delta,
+        intentionDelta: delta,
+        featureContributions,
         value: result.value,
         depth,
         isPV: false,
@@ -236,7 +240,7 @@ export function alphaBeta<TMove, Context>(
 
         updateFeatureStats(
           featureTable,
-          m.delta,
+          m.intentionDelta,
           m.value,
           true,
           m.causedCutoff
@@ -244,7 +248,7 @@ export function alphaBeta<TMove, Context>(
       } else {
         updateFeatureStats(
           featureTable,
-          m.delta,
+          m.intentionDelta,
           m.value,
           false,
           m.causedCutoff
