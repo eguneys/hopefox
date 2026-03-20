@@ -47,6 +47,39 @@ export class PositionMaterializer {
         }
     }
 
+    incremented_to_world: WorldId = 0
+    inc_make_world(world_id: WorldId) {
+        this.incremented_to_world = world_id
+        this.m.make_move(this.pos, this.nodes.move_of_world(world_id))
+    }
+
+    inc_unmake_world(world_id: WorldId) {
+        let parent = this.nodes.parent_world_id(world_id)
+        if (parent === undefined) {
+            throw new Error('No parent')
+        }
+        this.incremented_to_world = parent
+        this.m.unmake_move(this.pos, this.nodes.move_of_world(world_id))
+    }
+
+    inc_generate_legal_worlds() {
+        let world_id = this.incremented_to_world
+        return this.inc_generate_legal_moves().map(_ => this.add_move(world_id, _))
+    }
+
+    inc_generate_legal_moves() {
+        let res = this.m.get_legal_moves(this.pos)
+        return res
+    }
+
+    inc_add_move(move: MoveC) {
+        let world_id = this.incremented_to_world
+        return this.nodes.add_move(world_id, move)
+    }
+
+
+
+
 
     pos_occupied(world_id: WorldId) {
         this.make_to_world(world_id)

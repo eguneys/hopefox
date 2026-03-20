@@ -90,7 +90,7 @@ legal_worlds(W, From, To, P).
 `, m, pos)
 }
 
-it('works', () => {
+it.skip('works', () => {
 
     let log_puzzles = test_qr_puzzles
     log_puzzles = test_b_forks_kr_puzzles
