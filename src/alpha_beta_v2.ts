@@ -145,7 +145,7 @@ export class MyAlphaChatStateContext implements AlphaChatStateContext {
     constructor(readonly intentions: Map<string, Intention>) {}
 
     find_intentions(type: IntentionType) {
-        return [...this.intentions.values().filter(_ => _.type === type)]
+        return this.intentions.values().filter(_ => _.type === type)
     }
 
     applyIntentionDelta(delta: ContextDelta): void {

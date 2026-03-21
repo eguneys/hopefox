@@ -23,14 +23,29 @@ if (forkDetected) {
 
 export const hooks: AlphaChatStateHooks = {
     evaluate: function (ctx: MyAlphaChatStateContext, mz: PositionMaterializer): number {
-        let b_f = ctx.find_intentions('bishop_fork')
-        if (b_f.length > 0) {
+        let q_m = ctx.find_intentions('queen_mate').next().value
+        if (q_m) {
+          return 5000
+        }
+
+
+        let n_c = ctx.find_intentions('knight_captures_hanging_queen').next().value
+        if (n_c) {
+          return -5
+        }
+        let k_c = ctx.find_intentions('king_captures_bishop_fork').next().value
+        if (k_c) {
+          return -5
+        }
+        let b_f = ctx.find_intentions('bishop_forks_king_and_rook').next().value
+        if (b_f) {
           return 5
         }
+
         return 0
     },
     is_terminal: function (ctx: MyAlphaChatStateContext, mz: PositionMaterializer): boolean {
-      let is_mate = ctx.find_intentions('queen_bishop_mate').length > 0
+      let is_mate = ctx.find_intentions('queen_bishop_mate').next().value
 
       if (is_mate) {
         return true
@@ -50,6 +65,85 @@ export const hooks: AlphaChatStateHooks = {
 
 
 
+            for (let q_a of ctx.find_intentions('queen_attacks_hanging_knight')) {
+
+              for (let n_c of mzt.knight_takes_hanging_queen) {
+                if (n_c.to !== q_a.payload.to) {
+                  continue
+                }
+
+                let move = make_move_from_to(n_c.from, n_c.to)
+
+                if (!legals.includes(move)) continue
+
+                res.push({
+                  move: mz.inc_add_move(move),
+                  featureContributions: [{
+                    feature: 'knight_captures_hanging_queen',
+                    delta: 0,
+                    weighted: 1
+                  }],
+                  intentionDelta: {
+                    features: [],
+                    addedIntentions: [{
+                      id: `${move}`,
+                      type: 'knight_captures_hanging_queen',
+                      payload: undefined,
+                      createdAtDepth: 0,
+                      lastUpdatedDepth: 0,
+                      status: 'active'
+                    }],
+                    removedIntentions: [],
+                    updatedIntentions: []
+                  }
+                })
+              }
+
+            }
+
+
+
+
+
+            for (let b_f of ctx.find_intentions('bishop_forks_king_and_rook')) {
+
+              for (let k_c of mz_ff.turn_king_capturable) {
+                if (k_c.to !== b_f.payload.to) {
+                  continue
+                }
+
+                let move = make_move_from_to(k_c.from, k_c.to)
+
+                if (!legals.includes(move)) continue
+
+                res.push({
+                  move: mz.inc_add_move(move),
+                  featureContributions: [{
+                    feature: 'king_captures_bishop_fork',
+                    delta: 0,
+                    weighted: 1
+                  }],
+                  intentionDelta: {
+                    features: [],
+                    addedIntentions: [{
+                      id: `${move}`,
+                      type: 'king_captures_bishop_fork',
+                      payload: undefined,
+                      createdAtDepth: 0,
+                      lastUpdatedDepth: 0,
+                      status: 'active'
+                    }],
+                    removedIntentions: [],
+                    updatedIntentions: []
+                  }
+                })
+
+
+              }
+
+            }
+
+
             for (let q_m of mzt.queen_attacks_hanging_knight) {
               let move = make_move_from_to(q_m.from, q_m.to)
 
@@ -67,7 +161,7 @@ export const hooks: AlphaChatStateHooks = {
                   addedIntentions: [{
                     id: `${move}`,
                     type: 'queen_attacks_hanging_knight',
-                    payload: undefined,
+                    payload: q_m,
                     createdAtDepth: 0,
                     lastUpdatedDepth: 0,
                     status: 'active'
@@ -115,11 +209,10 @@ export const hooks: AlphaChatStateHooks = {
 
               if (!legals.includes(move)) continue
 
-
               res.push({
                 move: mz.inc_add_move(move),
                 featureContributions: [{
-                  feature: 'bishop_fork',
+                  feature: 'bishop_forks_king_and_rook',
                   delta: 0,
                   weighted: 1
                 }],
@@ -127,8 +220,8 @@ export const hooks: AlphaChatStateHooks = {
                   features: [],
                   addedIntentions: [{
                     id: `${move}`,
-                    type: 'bishop_fork',
-                    payload: undefined,
+                    type: 'bishop_forks_king_and_rook',
+                    payload: b_f,
                     createdAtDepth: 0,
                     lastUpdatedDepth: 0,
                     status: 'active'
