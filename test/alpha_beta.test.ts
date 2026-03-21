@@ -63,7 +63,7 @@ function full_log(res: any) {
 it('works', () => {
 
 let Single_i
-//Single_i = 10
+//Single_i = 18
 
 let log_puzzles = test_b_forks_kr_puzzles
 

@@ -65,6 +65,37 @@ export const hooks: AlphaChatStateHooks = {
 
 
 
+      for (let r_r of mzt.queen_captures_queen) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+
+        if (!legals.includes(move)) continue
+
+        res.push({
+          move: mz.inc_add_move(move),
+          featureContributions: [{
+            feature: 'queen_captures_queen',
+            delta: 0,
+            weighted: 1
+          }],
+          intentionDelta: {
+            features: [],
+            addedIntentions: [{
+              id: `${move}`,
+              type: 'queen_captures_queen',
+              payload: r_r,
+              createdAtDepth: 0,
+              lastUpdatedDepth: 0,
+              status: 'active'
+            }],
+            removedIntentions: [],
+            updatedIntentions: []
+          }
+        })
+      }
+
+
+
+
       for (let r_r of mzt.rook_captures_rook) {
         let move = make_move_from_to(r_r.from, r_r.to)
 

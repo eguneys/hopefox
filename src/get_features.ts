@@ -11,6 +11,7 @@ export type MZ_Typed_Forks = {
     queen_bishop_mate: { queen: Square, to: Square, king: Square, bishop: Square }[]
     queen_attacks_hanging_knight: { from: Square, to: Square, knight: Square }[]
     rook_captures_rook: { from: Square, to: Square }[]
+    queen_captures_queen: { from: Square, to: Square }[]
 }
 
 export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed_Forks {
@@ -143,6 +144,18 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
 
 
 
+    let turn_queen_attack: { from: Square, to: Square }[] = []
+
+    for (let q of mz_forks.turn_queens) {
+        for (let a of mz_views.attack_see) {
+            if (a.from === q.from) {
+                turn_queen_attack.push(a)
+            }
+        }
+    }
+
+
+
     let knight_takes_hanging_queen: { from: Square, to: Square }[] = []
 
     for (let h of opponent_hanging_queen) {
@@ -163,13 +176,25 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     }
 
 
+    let queen_captures_queen: { from: Square, to: Square }[] = []
+    for (let r2 of mz_forks.opponent_queens) {
+        for (let r of turn_queen_attack) {
+            if (r2.from === r.to) {
+                queen_captures_queen.push(r)
+            }
+        }
+    }
+
+
+
     return {
         knight_takes_hanging_queen,
         queen_see_king_with_bishop,
         bishop_forks_king_and_rook,
         queen_bishop_mate,
         queen_attacks_hanging_knight,
-        rook_captures_rook
+        rook_captures_rook,
+        queen_captures_queen
     }
 }
 
@@ -280,13 +305,15 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
         turn_king_capturable.push({ from: o.from, to: o.to })
     }
 
+    let defend_or_vacant_see = [...mz_views.defend_see, ...mz_views.vacant_see]
+
     let non_king_opponent_capturable = SquareSet.empty()
     for (let o of mz_views.opponent) {
         if (o.from === opponent_king.from) {
             continue
         }
 
-        for (let a of mz_views.attack_see) {
+        for (let a of defend_or_vacant_see) {
            if (o.from === a.from) {
                 non_king_opponent_capturable = non_king_opponent_capturable.set(a.to, true)
             }
