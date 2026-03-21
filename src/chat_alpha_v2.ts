@@ -337,6 +337,9 @@ export function exampleUsage<TMove, Context>(
   console.log("Correct First Move:", metrics.correctFirstMove);
   */
 
+  let result_pvFeatures = state.get_pv_features(result)
+  //explainDivergence(result_pv, result_pvFeatures, solution)
+
   return {
     report,
     result_pv,
@@ -344,6 +347,7 @@ export function exampleUsage<TMove, Context>(
     evalRes,
     metrics,
     pv: result_pv,
+    pv_features: result_pvFeatures,
     solution
   }
 }
@@ -359,12 +363,24 @@ function evaluatePrediction<TMove>(
     half_solution.push(solution[i])
   }
   const isMatch = half_solution.every((m, i) => pv[i] === m);
+  const isNegative = pv.length === 0
 
+  if (isNegative) {
+    return { TP: 0, FP: 0, FN: 1, TN: 0 };
+  }
+  if (isMatch) {
+    return { TP: 1, FP: 0, FN: 0, TN: 0 };
+  } else {
+    return { TP: 0, FP: 1, FN: 0, TN: 0 };
+  }
+ 
+  /*
   if (isMatch) {
     return { TP: 1, FP: 0, FN: 0, TN: 0 };
   } else {
     return { TP: 0, FP: 1, FN: 1, TN: 0 };
   }
+    */
 }
 
 
@@ -450,4 +466,44 @@ export function evaluateLine<TMove>(
     accuracy,
     correctFirstMove
   };
+}
+
+
+export function explainDivergence<TMove>(
+  pv: TMove[],
+  pvFeatures: FeatureContribution[][],
+  solution: TMove[]
+) {
+  let divergenceIndex = -1;
+
+  for (let i = 0; i < Math.min(pv.length, solution.length); i++) {
+    if (pv[i] !== solution[i]) {
+      divergenceIndex = i;
+      break;
+    }
+  }
+
+  if (divergenceIndex === -1) {
+    console.log("No divergence — solution matched.");
+    return;
+  }
+
+  const features = pvFeatures[divergenceIndex];
+
+  console.log("Divergence at move:", divergenceIndex);
+  console.log("Engine move:", pv[divergenceIndex]);
+  console.log("Expected move:", solution[divergenceIndex]);
+
+  // rank features
+  const ranked = [...features].sort(
+    (a, b) => Math.abs(b.weighted) - Math.abs(a.weighted)
+  );
+
+  console.log("Top contributing features:");
+
+  for (const f of ranked.slice(0, 5)) {
+    console.log(
+      `${f.feature}: Δ=${f.delta}, impact=${f.weighted.toFixed(2)}`
+    );
+  }
 }

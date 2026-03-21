@@ -23,6 +23,7 @@ export type Pv = string
  */
 export interface GameState<TMove, Context> {
   get_pv(result: SearchResult<TMove>): Pv[];
+  get_pv_features(result: SearchResult<TMove>): FeatureContribution[][];
   generateMovesWithIntentions(isMaxizing: boolean): GeneratedMove<TMove>[];
   undoIntentionDelta(delta: ContextDelta): void;
   applyIntentionDelta(delta: ContextDelta): void;

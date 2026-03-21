@@ -19,6 +19,19 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
         this.mz = new PositionMaterializer(m, pos)
     }
 
+    get_pv_features(result: SearchResult<number>): FeatureContribution[][] {
+        if (!result.moveDeltas) {
+            return []
+        }
+
+        let pv = result.moveDeltas.filter(_ => _.isPV)
+        if (pv.length === 0) {
+            return []
+        }
+
+
+        return pv.map(_ => _.featureContributions)
+    }
 
     get_pv(result: SearchResult<WorldId>) {
         let res = []

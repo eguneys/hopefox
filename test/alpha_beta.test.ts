@@ -1,6 +1,7 @@
 import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
 import { PositionManager, solve } from "../src"
+import { explainDivergence } from "../src/chat_alpha_v2"
 
 
 let m = await PositionManager.make()
@@ -26,7 +27,7 @@ it.skip('works', () => {
 
 function full_log(res: any) {
 
-  let { report, result_pv, cmp, evalRes, metrics, pv, solution } = res
+  let { report, result_pv, cmp, evalRes, metrics, pv, solution, pv_features } = res
 
   console.table(report);
 
@@ -42,6 +43,7 @@ function full_log(res: any) {
   console.log("Correct First Move:", metrics.correctFirstMove);
 
 
+  /*
     if (metrics.divergenceIndex !== -1) {
         console.log(
             "Diverged at move",
@@ -52,6 +54,9 @@ function full_log(res: any) {
             solution[metrics.divergenceIndex]
         );
     }
+        */
+
+    explainDivergence(pv, pv_features, solution)
 
 }
 
@@ -90,8 +95,8 @@ let log_puzzles = test_b_forks_kr_puzzles
 
         let res = solve(m, pos, solution)
 
-        if (res.evalRes.TN === 1) {
-            Tn.push(link)
+        if (res.evalRes.FN === 1) {
+            Fn.push(link)
         }
 
         if (res.evalRes.TP === 1) {
@@ -105,18 +110,20 @@ let log_puzzles = test_b_forks_kr_puzzles
         m.delete_position(pos)
     }
 
+    let N = Tn.length + Fn.length
     let TpFp = Tp.length + Fp.length  + 1
-    let Total = TpFp + Tn.length + 1
+    let Total = TpFp + N + 1
     let C_percent = Math.round(TpFp / Total * 100)
     let A_percent = Math.round(Tp.length / TpFp * 100)
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
-    console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
+    console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${N}`)
     console.log('-----******----')
     Fp.slice(0, 3).map(([i, link, res]) => {
         console.log(`${i} <${link}>`)
         full_log(res)
+        console.log('')
     })
     console.log('-----*****----')
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
-    console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
+    console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${N}`)
 })
