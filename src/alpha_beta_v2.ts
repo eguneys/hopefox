@@ -36,6 +36,9 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
             */
 
         let pv = result.moveDeltas.filter(_ => _.isPV)
+        if (pv.length === 0) {
+            return []
+        }
         return this.mz.sans(pv[pv.length - 1].move)
     }
 

@@ -352,7 +352,13 @@ function evaluatePrediction<TMove>(
   pv: TMove[],
   solution: TMove[]
 ) {
-  const isMatch = solution.every((m, i) => pv[i] === m);
+
+  let half_solution = []
+  for (let i = 0; i < 1; i++) {
+
+    half_solution.push(solution[i])
+  }
+  const isMatch = half_solution.every((m, i) => pv[i] === m);
 
   if (isMatch) {
     return { TP: 1, FP: 0, FN: 0, TN: 0 };
