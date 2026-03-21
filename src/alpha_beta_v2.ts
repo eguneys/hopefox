@@ -1,4 +1,4 @@
-import { ContextDelta, FeatureContribution, GameState, GeneratedMove, Intention, intentionEqual, SearchResult } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, GameState, GeneratedMove, Intention, intentionEqual, IntentionType, SearchResult } from "./chat_alpha";
 import { exampleUsage } from "./chat_alpha_v2";
 import { MoveC, PositionC, PositionManager } from "./distill/hopefox_c";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
@@ -143,6 +143,10 @@ export class MyAlphaChatStateContext implements AlphaChatStateContext {
 }
 
     constructor(readonly intentions: Map<string, Intention>) {}
+
+    find_intentions(type: IntentionType) {
+        return [...this.intentions.values().filter(_ => _.type === type)]
+    }
 
     applyIntentionDelta(delta: ContextDelta): void {
         for (const intent of delta.removedIntentions) {

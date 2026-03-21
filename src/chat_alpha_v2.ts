@@ -269,6 +269,7 @@ export function alphaBeta<TMove, Context>(
   }
 }
 
+const percent = (v: number) => Math.round(v * 100)
 
 export function analyzeFeatures(table: FeatureTable) {
   const result = [];
@@ -286,9 +287,9 @@ export function analyzeFeatures(table: FeatureTable) {
 
     result.push({
       feature,
-      avg,
-      stability,
-      pvScore,
+      avg: percent(avg),
+      stability: percent(stability),
+      pvScore: percent(pvScore),
       label,
     });
   }
