@@ -15,12 +15,45 @@ it.skip('works', () => {
     let pos = m.create_position(fen)
     let link = log_puzzles[i].link
 
-    let res = solve(m, pos)
+    let solution = log_puzzles[i].sans
+    let res = solve(m, pos, solution)
 
     console.log(link)
     console.log(res)
+    full_log(res)
 
 })
+
+function full_log(res: any) {
+
+  let { report, result_pv, cmp, evalRes, metrics, pv, solution } = res
+
+  console.table(report);
+
+  console.log("PV:", result_pv);
+
+  console.log("Match length:", cmp.matchLength);
+
+  console.log("TP/FP/FN:", evalRes);
+
+  console.log("Match Length:", metrics.matchLength);
+  console.log("Divergence Index:", metrics.divergenceIndex);
+  console.log("Accuracy:", metrics.accuracy.toFixed(2));
+  console.log("Correct First Move:", metrics.correctFirstMove);
+
+
+    if (metrics.divergenceIndex !== -1) {
+        console.log(
+            "Diverged at move",
+            metrics.divergenceIndex,
+            "engine:",
+            pv[metrics.divergenceIndex] ?? '**',
+            "expected:",
+            solution[metrics.divergenceIndex]
+        );
+    }
+
+}
 
 it('works', () => {
 
@@ -52,27 +85,22 @@ let log_puzzles = test_b_forks_kr_puzzles
         let link = log_puzzles[i].link
 
         //console.log(i + ' ' + link)
-        let res = solve(m, pos)
-        if (res.length === 0) {
 
+        let solution = log_puzzles[i].sans
+
+        let res = solve(m, pos, solution)
+
+        if (res.evalRes.TN === 1) {
             Tn.push(link)
-            continue
         }
 
-        if (res.length > 0) {
-            let cc = res[0][0]
-            let ss = log_puzzles[i].sans[0]
-
-            if (cc === ss) {
-                Tp.push(link)
-            } else {
-                let res_length = res.length > 2 ? ` [${res.length}] ` : ' '
-                Fp.push(`${i} <${link}>${res_length}${res[0].join(' ')}`)
-            }
-            continue
+        if (res.evalRes.TP === 1) {
+            Tp.push(link)
         }
 
-        Tn.push(link)
+        if (res.evalRes.FP === 1) {
+            Fp.push([i, link, res])
+        }
 
         m.delete_position(pos)
     }
@@ -83,7 +111,12 @@ let log_puzzles = test_b_forks_kr_puzzles
     let A_percent = Math.round(Tp.length / TpFp * 100)
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
-    console.log(Fp.slice(0, 10))
+    console.log('-----******----')
+    Fp.slice(0, 3).map(([i, link, res]) => {
+        console.log(`${i} <${link}>`)
+        full_log(res)
+    })
+    console.log('-----*****----')
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${Tn.length}`)
 })

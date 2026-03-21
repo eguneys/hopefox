@@ -1,4 +1,6 @@
-import { ContextDelta, FeatureContribution, FeatureStats, GameState, MoveDelta, NodeHook, SearchResult } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, FeatureStats, GameState, MoveDelta, NodeHook, Pv, SearchResult } from "./chat_alpha";
+import { Position } from "./distill/chess";
+import { PositionMaterializer, WorldId } from "./pos_materializer";
 
 /*
 generateMovesWithIntentions() {
@@ -80,8 +82,6 @@ export function alphaBeta<TMove, Context>(
       moveDeltas: [],
     };
   }
-
-  //const moves = state.getPossibleMoves(isMaximizing);
 
   const movesAndFeatures = state.generateMovesWithIntentions(isMaximizing)
 
@@ -297,21 +297,151 @@ export function analyzeFeatures(table: FeatureTable) {
 }
 
 
-export function exampleUsage<TMove, Context>(state: GameState<TMove, Context>, depth: number) {
-   
-    const featureTable: FeatureTable = {};
+export function exampleUsage<TMove, Context>(
+  state: GameState<TMove, Context>,
+  depth: number,
+  solution: Pv[]
+) {
+  const featureTable: FeatureTable = {};
 
-    const result = alphaBeta(
-        state,
-        depth,
-        -Infinity,
-        Infinity,
-        true,
-        featureTable
-    );
+  const result = alphaBeta(
+    state,
+    depth,
+    -Infinity,
+    Infinity,
+    true,
+    featureTable
+  );
 
-    const report = analyzeFeatures(featureTable);
+  const report = analyzeFeatures(featureTable);
 
-    console.table(report);
+  //console.table(report);
+
+  let result_pv = state.get_pv(result)
+
+  //console.log("PV:", result_pv);
+
+  const cmp = compareLines(result_pv, solution);
+  //console.log("Match length:", cmp.matchLength);
+
+  const evalRes = evaluatePrediction(result_pv, solution);
+  //console.log("TP/FP/FN:", evalRes);
+
+  const metrics = evaluateLine(result_pv, solution)
+
+
+  /*
+  console.log("Match Length:", metrics.matchLength);
+  console.log("Divergence Index:", metrics.divergenceIndex);
+  console.log("Accuracy:", metrics.accuracy.toFixed(2));
+  console.log("Correct First Move:", metrics.correctFirstMove);
+  */
+
+  return {
+    report,
+    result_pv,
+    cmp,
+    evalRes,
+    metrics,
+    pv: result_pv,
+    solution
+  }
 }
-   
+
+function evaluatePrediction<TMove>(
+  pv: TMove[],
+  solution: TMove[]
+) {
+  const isMatch = solution.every((m, i) => pv[i] === m);
+
+  if (isMatch) {
+    return { TP: 1, FP: 0, FN: 0, TN: 0 };
+  } else {
+    return { TP: 0, FP: 1, FN: 1, TN: 0 };
+  }
+}
+
+
+function compareLines<TMove>(pv: TMove[], solution: TMove[]) {
+  let matchLength = 0;
+
+  for (let i = 0; i < Math.min(pv.length, solution.length); i++) {
+    if (pv[i] !== solution[i]) break;
+    matchLength++;
+  }
+
+  return {
+    matchLength,
+    fullMatch: matchLength === solution.length
+  };
+}
+
+
+function classifyRootMoves<TMove>(
+  rootMoves: TMove[],
+  bestMove: TMove | null,
+  solutionMoves: TMove[]
+) {
+  let TP = 0, FP = 0, FN = 0, TN = 0;
+
+  for (const move of rootMoves) {
+    const isSolution = solutionMoves.includes(move);
+    const isChosen = move === bestMove;
+
+    if (isSolution && isChosen) TP++;
+    else if (!isSolution && isChosen) FP++;
+    else if (isSolution && !isChosen) FN++;
+    else TN++;
+  }
+
+  return { TP, FP, FN, TN };
+}
+
+
+type LineMetrics = {
+  matchLength: number;
+  divergenceIndex: number;   // -1 if fully matches
+  accuracy: number;
+  correctFirstMove: boolean;
+};
+
+export function evaluateLine<TMove>(
+  pv: TMove[],
+  solution: TMove[]
+): LineMetrics {
+
+  let matchLength = 0;
+  let divergenceIndex = -1;
+
+  const minLen = Math.min(pv.length, solution.length);
+
+  for (let i = 0; i < minLen; i++) {
+    if (pv[i] === solution[i]) {
+      matchLength++;
+    } else {
+      divergenceIndex = i;
+      break;
+    }
+  }
+
+  // full match case
+  if (divergenceIndex === -1 && pv.length >= solution.length) {
+    divergenceIndex = -1;
+  } else if (divergenceIndex === -1) {
+    divergenceIndex = matchLength; // pv ended early
+  }
+
+  const accuracy = solution.length > 0
+    ? matchLength / solution.length
+    : 0;
+
+  const correctFirstMove =
+    pv.length > 0 && solution.length > 0 && pv[0] === solution[0];
+
+  return {
+    matchLength,
+    divergenceIndex,
+    accuracy,
+    correctFirstMove
+  };
+}

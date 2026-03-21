@@ -17,10 +17,12 @@ export type GeneratedMove<TMove> = {
 
 
 
+export type Pv = string
 /**
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove, Context> {
+  get_pv(result: SearchResult<TMove>): Pv[];
   generateMovesWithIntentions(isMaxizing: boolean): GeneratedMove<TMove>[];
   undoIntentionDelta(delta: ContextDelta): void;
   applyIntentionDelta(delta: ContextDelta): void;
