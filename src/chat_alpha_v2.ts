@@ -108,6 +108,9 @@ export function alphaBeta<TMove, Context>(
     let value = -Infinity;
 
     for (const m of movesAndFeatures) {
+
+      let currentChild: MoveDelta<TMove> | undefined
+
       let { move } = m
       const ctxBefore = state.cloneContext();
       state.applyIntentionDelta(m.intentionDelta)
@@ -128,18 +131,16 @@ export function alphaBeta<TMove, Context>(
       state.unmakeMove(move);
       state.undoIntentionDelta(m.intentionDelta)
 
+      currentChild = result.moveDeltas?.find(md => md.isPV)
+
       const ctxAfter = state.getContext()
       const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
 
       const fullDelta = { features: m.featureContributions, ...structuralDelta }
 
-      if (result.value > value) {
-        value = result.value;
-        bestMove = move;
-        bestChild = result.moveDeltas?.find(md => md.isPV)
-      }
 
-      moveDeltas.push({
+
+      const currentMoveDelta: MoveDelta<TMove> = {
         move,
         featureContributions: m.featureContributions,
         intentionDelta: fullDelta,
@@ -147,9 +148,16 @@ export function alphaBeta<TMove, Context>(
         depth,
         isPV: false,
         causedCutoff: false,
-        child: bestChild
-      });
+        child: currentChild
+      }
 
+      moveDeltas.push(currentMoveDelta);
+
+      if (result.value > value) {
+        value = result.value;
+        bestMove = move;
+        bestChild = result.moveDeltas?.find(md => md.isPV)
+      }
 
 
       alpha = Math.max(alpha, value);
@@ -157,7 +165,7 @@ export function alphaBeta<TMove, Context>(
       if (beta <= alpha) {
         isCutoff = true;
 
-        moveDeltas[moveDeltas.length - 1].causedCutoff = true;
+        currentMoveDelta.causedCutoff = true;
 
         onNode?.({ depth, alpha, beta, value, isCutoff: true, move });
 
@@ -194,6 +202,9 @@ export function alphaBeta<TMove, Context>(
     let value = Infinity;
 
     for (const m of movesAndFeatures) {
+
+      let currentChild: MoveDelta<TMove> | undefined
+
       let { move } = m
       const ctxBefore = state.cloneContext();
 
@@ -216,29 +227,34 @@ export function alphaBeta<TMove, Context>(
       state.unmakeMove(move);
       state.undoIntentionDelta(m.intentionDelta)
 
+      currentChild = result.moveDeltas?.find(md => md.isPV)
+
       const ctxAfter = state.getContext();
       const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
 
       let fullDelta = { features: m.featureContributions, ...structuralDelta }
 
-      if (result.value < value) {
-        value = result.value;
-        bestMove = move;
-        bestChild = result.moveDeltas?.find(md => md.isPV)
-      }
 
-      moveDeltas.push({
-        move: m.move,
+      const currentMoveDelta: MoveDelta<TMove> = {
+        move,
         featureContributions: m.featureContributions,
         intentionDelta: fullDelta,
         value: result.value,
         depth,
         isPV: false,
         causedCutoff: false,
-        child: bestChild
-      });
+        child: currentChild
+      }
+
+      moveDeltas.push(currentMoveDelta);
 
 
+
+      if (result.value < value) {
+        value = result.value;
+        bestMove = move;
+        bestChild = result.moveDeltas?.find(md => md.isPV)
+      }
 
       beta = Math.min(beta, value);
 
@@ -362,19 +378,20 @@ export function exampleUsage<Context>(
   let k = multiPV
   const topK = result.moveDeltas?.sort((a, b) => b.value - a.value).slice(0, k)
 
+  /*
+  console.log(1, mz.last_san(1))
+  console.log(2, mz.last_san(2))
+  console.log(3, mz.last_san(3))
+  console.log(4, mz.last_san(4))
+  console.log(5, mz.last_san(5))
+  console.log(6, mz.last_san(6))
+  */
 
   const evalRes = evaluatePrediction(result_pv, solution);
 
   return {
     report,
     evalRes,
-    /*
-    result_pv,
-    cmp,
-    metrics,
-    pv: result_pv,
-    pv_features: result_pvFeatures,
-    */
     solution,
     rootPV,
     topK
