@@ -6,7 +6,6 @@ import { PositionMaterializer, WorldId } from './pos_materializer'
 
 export const hooks: AlphaChatStateHooks = {
     evaluate: function (ctx: MyAlphaChatStateContext, mz: PositionMaterializer): number {
-      console.log(ctx)
         let q_m = ctx.find_intentions('mate').next().value
         if (q_m) {
           return 5000
@@ -97,7 +96,7 @@ export const hooks: AlphaChatStateHooks = {
 
 
     for (let q_a of ctx.find_intentions('queen_attacks_hanging_knight')) {
-
+      
       for (let n_c of mzt.knight_takes_hanging_queen) {
         if (n_c.to !== q_a.payload.to) {
           continue

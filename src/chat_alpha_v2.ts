@@ -110,7 +110,6 @@ export function alphaBeta<TMove, Context>(
     for (const m of movesAndFeatures) {
       let { move } = m
       const ctxBefore = state.cloneContext();
-
       state.applyIntentionDelta(m.intentionDelta)
       state.makeMove(move);
 
@@ -123,6 +122,7 @@ export function alphaBeta<TMove, Context>(
         featureTable,
         onNode
       );
+      result.value = -result.value
 
 
       state.unmakeMove(move);
@@ -132,6 +132,12 @@ export function alphaBeta<TMove, Context>(
       const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
 
       const fullDelta = { features: m.featureContributions, ...structuralDelta }
+
+      if (result.value > value) {
+        value = result.value;
+        bestMove = move;
+        bestChild = result.moveDeltas?.find(md => md.isPV)
+      }
 
       moveDeltas.push({
         move,
@@ -144,11 +150,7 @@ export function alphaBeta<TMove, Context>(
         child: bestChild
       });
 
-      if (result.value > value) {
-        value = result.value;
-        bestMove = move;
-        bestChild = result.moveDeltas?.find(md => md.isPV)
-      }
+
 
       alpha = Math.max(alpha, value);
 
@@ -186,7 +188,7 @@ export function alphaBeta<TMove, Context>(
       }
     }
 
-    return { value: -value, bestMove, isCutoff, moveDeltas };
+    return { value: value, bestMove, isCutoff, moveDeltas };
 
   } else {
     let value = Infinity;
@@ -208,6 +210,7 @@ export function alphaBeta<TMove, Context>(
         featureTable,
         onNode
       );
+      result.value = -result.value
 
 
       state.unmakeMove(move);
@@ -217,6 +220,12 @@ export function alphaBeta<TMove, Context>(
       const structuralDelta = state.diffContext(ctxBefore, ctxAfter);
 
       let fullDelta = { features: m.featureContributions, ...structuralDelta }
+
+      if (result.value < value) {
+        value = result.value;
+        bestMove = move;
+        bestChild = result.moveDeltas?.find(md => md.isPV)
+      }
 
       moveDeltas.push({
         move: m.move,
@@ -229,11 +238,7 @@ export function alphaBeta<TMove, Context>(
         child: bestChild
       });
 
-      if (result.value < value) {
-        value = result.value;
-        bestMove = move;
-        bestChild = result.moveDeltas?.find(md => md.isPV)
-      }
+
 
       beta = Math.min(beta, value);
 
@@ -271,7 +276,7 @@ export function alphaBeta<TMove, Context>(
       }
     }
 
-    return { value: - value, bestMove, isCutoff, moveDeltas };
+    return { value: value, bestMove, isCutoff, moveDeltas };
   }
 }
 
@@ -382,10 +387,14 @@ export function explainMultiPv(rootPV: MoveDelta<WorldId> | undefined, solution:
   const { line, features } = extractPV(rootPV)
   let result_pv = line.map(w => mz.last_san(w))
 
+  console.log('PV Preference against solution:')
+  explainPVPreference_(result_pv, features, solution, [])
+
+
+  console.log('PV Preference against Top 2:')
   const pvLines = topK?.map(md => extractPV(md))
   explainPVPreference_(_map_moves_to_sans(mz, pvLines![0].line), pvLines![0].features, _map_moves_to_sans(mz, pvLines![1].line), pvLines![1].features)
 
-  explainPVPreference_(result_pv, features, solution, [])
 }
 
 function _map_moves_to_sans(mz: PositionMaterializer, md: WorldId[]) {

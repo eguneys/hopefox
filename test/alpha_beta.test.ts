@@ -32,6 +32,7 @@ function full_log(res: any, mz: PositionMaterializer) {
   let { report, evalRes, solution, rootPV, topK } = res
 
   console.table(report);
+    printMultiPV(topK, mz)
 
   //console.log("PV:", result_pv);
 
@@ -63,7 +64,6 @@ function full_log(res: any, mz: PositionMaterializer) {
     //explainDivergence(pv, pv_features, solution)
 
     explainMultiPv(rootPV, solution, topK, mz)
-    printMultiPV(topK, mz)
 }
 
 it('works', () => {
