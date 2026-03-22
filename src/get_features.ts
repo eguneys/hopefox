@@ -1,4 +1,4 @@
-import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, piece_c_color_of, piece_c_type_of, PieceTypeC, QUEEN, ROOK } from "./distill/hopefox_c"
+import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, PieceTypeC, QUEEN, ROOK } from "./distill/hopefox_c"
 import { SquareSet } from "./distill/squareSet"
 import { Square } from "./distill/types"
 import { PositionMaterializer } from "./pos_materializer"
@@ -9,9 +9,11 @@ export type MZ_Typed_Forks = {
     bishop_forks_king_and_rook: { from: Square, to: Square, king: Square, rook: Square }[]
     queen_see_king_with_bishop: { queen: Square, king_to: Square, bishop: Square }[]
     queen_bishop_mate: { queen: Square, to: Square, king: Square, bishop: Square }[]
+    queen_rook_through_mate: { queen: Square, to: Square, king: Square, rook: Square }[]
     queen_attacks_hanging_knight: { from: Square, to: Square, knight: Square }[]
     rook_captures_rook: { from: Square, to: Square }[]
     queen_captures_queen: { from: Square, to: Square }[]
+    pawn_captures_bishop: { from: Square, to: Square }[]
 }
 
 export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed_Forks {
@@ -20,6 +22,30 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     let queen_see_king_with_bishop: { queen: Square, king_to: Square, bishop: Square }[] = []
 
     let queen_bishop_mate: { queen: Square, to: Square, king: Square, bishop: Square }[] = []
+
+    let queen_see_king_with_rook_through: { queen: Square, king_to: Square, rook: Square }[] = []
+
+    for (let a of mz_forks.attack_double_from_see_through) {
+        for (let k of mz_forks.opponent_king_see) {
+            if (k.to !== a.to) {
+                continue
+            }
+            for (let q of mz_forks.turn_queens) {
+                if (q.from !== a.from_a) {
+                    continue
+                }
+                for (let b of mz_forks.turn_rooks) {
+                    if (b.from !== a.from_b) {
+                        continue
+                    }
+
+                    queen_see_king_with_rook_through.push({ queen: q.from, king_to: a.to, rook: b.from })
+                }
+            }
+        }
+    }
+
+
 
 
     for (let a of mz_forks.attack_double_from_see) {
@@ -155,6 +181,18 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     }
 
 
+    let turn_pawn_attack: { from: Square, to: Square }[] = []
+
+    for (let q of mz_forks.turn_pawns) {
+        for (let a of mz_views.attack_see) {
+            if (a.from === q.from) {
+                turn_pawn_attack.push(a)
+            }
+        }
+    }
+
+
+
 
     let knight_takes_hanging_queen: { from: Square, to: Square }[] = []
 
@@ -185,6 +223,30 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         }
     }
 
+    let pawn_captures_bishop: { from: Square, to: Square }[] = []
+    for (let r2 of mz_forks.opponent_bishops) {
+        for (let r of turn_pawn_attack) {
+            if (r2.from === r.to) {
+                pawn_captures_bishop.push(r)
+            }
+        }
+    }
+
+
+    let queen_rook_through_mate: { queen: Square, to: Square, king: Square, rook: Square }[] = []
+
+    for (let q of queen_see_king_with_rook_through) {
+        for (let b of mz_forks.opponent_non_king_uncapturable) {
+            if (b.to !== q.king_to) {
+                continue
+            }
+
+            queen_rook_through_mate.push({ queen: q.queen, to: q.king_to, king: mz_forks.opponent_king.from, rook: q.rook })
+        }
+    }
+
+
+
 
 
     return {
@@ -192,9 +254,11 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         queen_see_king_with_bishop,
         bishop_forks_king_and_rook,
         queen_bishop_mate,
+        queen_rook_through_mate,
         queen_attacks_hanging_knight,
         rook_captures_rook,
-        queen_captures_queen
+        queen_captures_queen,
+        pawn_captures_bishop,
     }
 }
 
@@ -202,11 +266,13 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
 
 export type MZ_Forks = {
     turn_king: { from: Square }
+    turn_pawns: { from: Square }[]
     turn_queens: { from: Square }[]
     turn_bishops: { from: Square }[]
     turn_knights: { from: Square }[]
     turn_rooks: { from: Square }[]
     opponent_knights: { from: Square }[]
+    opponent_bishops: { from: Square }[]
     opponent_rooks: { from: Square }[]
     opponent_queens: { from: Square }[]
     opponent_king: { from: Square }
@@ -215,6 +281,7 @@ export type MZ_Forks = {
     turn_king_capturable: { from: Square, to: Square }[]
     fork: { from: Square, to: Square, fork_a: Square, fork_b: Square }[]
     attack_double_from_see: { from_a: Square, from_b: Square, to: Square }[]
+    attack_double_from_see_through: { from_a: Square, from_b: Square, to: Square }[]
     hanging: { from: Square }[]
 }
 
@@ -222,11 +289,13 @@ export type AttackSee2 = { from: Square, to: Square, to2: Square }
 
 export function mz_forks(mz_views: MZ_Views): MZ_Forks {
 
+    let turn_pawns: { from: Square }[] = []
     let turn_queens: { from: Square }[] = []
     let turn_bishops: { from: Square }[] = []
     let turn_knights: { from: Square }[] = []
     let turn_rooks: { from: Square }[] = []
 
+    let opponent_bishops: { from: Square }[] = []
     let opponent_knights: { from: Square }[] = []
     let opponent_rooks: { from: Square }[] = []
     let opponent_queens: { from: Square }[] = []
@@ -236,6 +305,7 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
     let turn_king!: { from: Square }
 
     let attack_double_from_see: { from_a: Square, from_b: Square, to: Square }[] = []
+    let attack_double_from_see_through: { from_a: Square, from_b: Square, to: Square }[] = []
 
     let opponent_non_king_uncapturable: { to: Square }[] = []
 
@@ -254,11 +324,15 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
             turn_queens.push({ from: b.from })
         } else if (b.role === KING) {
             turn_king = { from: b.from }
+        } else if (b.role === PAWN) {
+            turn_pawns.push({ from: b.from})
         }
     }
 
     for (let b of mz_views.opponent) {
-        if (b.role === KNIGHT) {
+        if (b.role === BISHOP) {
+            opponent_bishops.push({ from: b.from })
+        } else if (b.role === KNIGHT) {
             opponent_knights.push({ from: b.from })
         } else if (b.role === ROOK) {
             opponent_rooks.push({ from: b.from })
@@ -296,6 +370,20 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
             }
         }
     }
+
+    for (let a of mz_views.attack_see) {
+        for (let b of mz_views.attack_see_through) {
+            if (a.to === b.to) {
+                if (a.from !== b.from) {
+                    if (a.from === b.to_through) {
+                        attack_double_from_see_through.push({ from_a: a.from, from_b: b.from, to: a.to })
+                    }
+                }
+            }
+        }
+    }
+
+
 
     for (let o of mz_views.attack_see) {
         if (o.from !== turn_king.from) {
@@ -366,15 +454,18 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
     return {
         fork,
         turn_king,
+        turn_pawns,
         turn_queens,
         turn_rooks,
         turn_bishops,
         turn_knights,
         opponent_knights,
+        opponent_bishops,
         opponent_rooks,
         opponent_king,
         opponent_king_see,
         attack_double_from_see,
+        attack_double_from_see_through,
         opponent_non_king_uncapturable,
         turn_king_capturable,
         hanging,
@@ -392,9 +483,12 @@ export type MZ_Views = {
     vacant_see2: { from: Square, to: Square, to2: Square }[]
     defend_see2: { from: Square, to: Square, to2: Square }[]
     attack_see2: { from: Square, to: Square, to2: Square }[]
+    attack_see_through: { from: Square, to: Square, to_through: Square }[]
 }
 
 export function mz_views(mz: PositionMaterializer): MZ_Views {
+
+    let attack_see_through: { from: Square, to: Square, to_through: Square }[] = []
 
     let vacant_see2: { from: Square, to: Square, to2: Square }[] = []
     let defend_see2: { from: Square, to: Square, to2: Square }[] = []
@@ -456,12 +550,32 @@ export function mz_views(mz: PositionMaterializer): MZ_Views {
                 } else {
                     attack_see2.push({ from: sq, to: a, to2: a2 })
                 }
-
-
-
             }
-        }
 
+
+            let aa_through = 
+                mz.m.attacks(piece, a, aa_occupied.without(a))
+                    .diff(aa)
+
+            for (let a_through of aa_through) {
+                let piece3 = mz.m.get_at(mz.pos, a_through)
+
+                let is_vacant = !piece3
+
+                let is_defend = piece3 && piece_c_color_of(piece3) === piece_color
+
+                if (is_vacant) {
+                    //vacant_see2.push({ from: sq, to: a, to2: a2 })
+                } else if (is_defend) {
+                    //defend_see2.push({ from: sq, to: a, to2: a2 })
+                } else {
+                    attack_see_through.push({ from: sq, to: a_through, to_through: a })
+                }
+            }
+
+
+
+        }
     }
 
     return {
@@ -472,6 +586,7 @@ export function mz_views(mz: PositionMaterializer): MZ_Views {
         attack_see,
         vacant_see2,
         defend_see2,
-        attack_see2
+        attack_see2,
+        attack_see_through
     }
 }

@@ -6,56 +6,15 @@ import * as Get_Chat_Hooks from './get_chat_hooks'
 
 export class ChessChatGameState implements GameState<WorldId, AlphaChatStateContext> {
 
-    static alpha_beta_summary = (m: PositionManager, pos: PositionC, depth: number, hooks: AlphaChatStateHooks, ctx: AlphaChatStateContext, solution: SAN[]) => {
-        let state = new ChessChatGameState(m, pos, hooks, ctx)
+    static alpha_beta_summary = (mz: PositionMaterializer, depth: number, hooks: AlphaChatStateHooks, ctx: AlphaChatStateContext, solution: SAN[], multiPV: number) => {
+        let state = new ChessChatGameState(mz, hooks, ctx)
         //alphaBeta(state, depth, -Infinity, Infinity, true)
-        return exampleUsage(state, depth, solution)
+        return exampleUsage(mz, state, depth, solution, multiPV)
     }
 
 
 
-    mz: PositionMaterializer
-    constructor(readonly m: PositionManager, readonly pos: PositionC, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {
-        this.mz = new PositionMaterializer(m, pos)
-    }
-
-    get_pv_features(result: SearchResult<number>): FeatureContribution[][] {
-        if (!result.moveDeltas) {
-            return []
-        }
-
-        let pv = result.moveDeltas.filter(_ => _.isPV)
-        if (pv.length === 0) {
-            return []
-        }
-
-
-        return pv.map(_ => _.featureContributions)
-    }
-
-    get_pv(result: SearchResult<WorldId>) {
-        let res = []
-
-        if (!result.moveDeltas) {
-            return []
-        }
-
-        /*
-        for (let m of result.moveDeltas) {
-            if (m.isPV) {
-                res.push(this.mz.sans(m.move))
-            }
-        }
-            */
-
-        let pv = result.moveDeltas.filter(_ => _.isPV)
-        if (pv.length === 0) {
-            return []
-        }
-        return this.mz.sans(pv[pv.length - 1].move)
-    }
-
-
+    constructor(readonly mz: PositionMaterializer, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {}
 
     undoIntentionDelta(delta: ContextDelta): void {
         this.ctx.undoIntentionDelta(delta)
@@ -198,9 +157,9 @@ export class MyAlphaChatStateContext implements AlphaChatStateContext {
 
 
 type SAN = string
-export function solve(m: PositionManager, pos: PositionC, solution: SAN[]) {
+export function solve(mz: PositionMaterializer, solution: SAN[], multiPV: number) {
     const ctx = new MyAlphaChatStateContext(new Map())
     let { hooks } = Get_Chat_Hooks
-    return ChessChatGameState.alpha_beta_summary(m, pos, 2, hooks, ctx, solution)
+    return ChessChatGameState.alpha_beta_summary(mz, 5, hooks, ctx, solution, multiPV)
 }
 

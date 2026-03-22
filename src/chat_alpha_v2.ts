@@ -1,5 +1,6 @@
 import { ContextDelta, FeatureContribution, FeatureStats, GameState, MoveDelta, NodeHook, Pv, SearchResult } from "./chat_alpha";
 import { Position } from "./distill/chess";
+import { Move } from "./distill/types";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
 
 /*
@@ -98,6 +99,7 @@ export function alphaBeta<TMove, Context>(
     };
   }
 
+  let bestChild: MoveDelta<TMove> | undefined
   let bestMove: TMove | null = null;
   let isCutoff = false;
   const moveDeltas: MoveDelta<TMove>[] = [];
@@ -139,11 +141,13 @@ export function alphaBeta<TMove, Context>(
         depth,
         isPV: false,
         causedCutoff: false,
+        child: bestChild
       });
 
       if (result.value > value) {
         value = result.value;
         bestMove = move;
+        bestChild = result.moveDeltas?.find(md => md.isPV)
       }
 
       alpha = Math.max(alpha, value);
@@ -182,7 +186,7 @@ export function alphaBeta<TMove, Context>(
       }
     }
 
-    return { value, bestMove, isCutoff, moveDeltas };
+    return { value: -value, bestMove, isCutoff, moveDeltas };
 
   } else {
     let value = Infinity;
@@ -222,11 +226,13 @@ export function alphaBeta<TMove, Context>(
         depth,
         isPV: false,
         causedCutoff: false,
+        child: bestChild
       });
 
       if (result.value < value) {
         value = result.value;
         bestMove = move;
+        bestChild = result.moveDeltas?.find(md => md.isPV)
       }
 
       beta = Math.min(beta, value);
@@ -265,7 +271,7 @@ export function alphaBeta<TMove, Context>(
       }
     }
 
-    return { value, bestMove, isCutoff, moveDeltas };
+    return { value: - value, bestMove, isCutoff, moveDeltas };
   }
 }
 
@@ -298,10 +304,12 @@ export function analyzeFeatures(table: FeatureTable) {
 }
 
 
-export function exampleUsage<TMove, Context>(
-  state: GameState<TMove, Context>,
+export function exampleUsage<Context>(
+  mz: PositionMaterializer,
+  state: GameState<WorldId, Context>,
   depth: number,
-  solution: Pv[]
+  solution: Pv[],
+  multiPV: number
 ) {
   const featureTable: FeatureTable = {};
 
@@ -318,17 +326,16 @@ export function exampleUsage<TMove, Context>(
 
   //console.table(report);
 
-  let result_pv = state.get_pv(result)
+  //let result_pv = state.get_pv(result)
 
   //console.log("PV:", result_pv);
 
-  const cmp = compareLines(result_pv, solution);
+  //const cmp = compareLines(result_pv, solution);
   //console.log("Match length:", cmp.matchLength);
 
-  const evalRes = evaluatePrediction(result_pv, solution);
   //console.log("TP/FP/FN:", evalRes);
 
-  const metrics = evaluateLine(result_pv, solution)
+  //const metrics = evaluateLine(result_pv, solution)
 
 
   /*
@@ -338,19 +345,51 @@ export function exampleUsage<TMove, Context>(
   console.log("Correct First Move:", metrics.correctFirstMove);
   */
 
-  let result_pvFeatures = state.get_pv_features(result)
+  //let result_pvFeatures = state.get_pv_features(result)
   //explainDivergence(result_pv, result_pvFeatures, solution)
+
+
+  const rootPV = result.moveDeltas?.find(m => m.isPV)
+
+  const { line, features } = extractPV(rootPV)
+  let result_pv = line.map(w => mz.last_san(w))
+
+  let k = multiPV
+  const topK = result.moveDeltas?.sort((a, b) => b.value - a.value).slice(0, k)
+
+
+  const evalRes = evaluatePrediction(result_pv, solution);
 
   return {
     report,
+    evalRes,
+    /*
     result_pv,
     cmp,
-    evalRes,
     metrics,
     pv: result_pv,
     pv_features: result_pvFeatures,
-    solution
+    */
+    solution,
+    rootPV,
+    topK
   }
+}
+
+type SAN = string
+export function explainMultiPv(rootPV: MoveDelta<WorldId> | undefined, solution: SAN[], topK: MoveDelta<WorldId>[] | undefined, mz: PositionMaterializer) {
+
+  const { line, features } = extractPV(rootPV)
+  let result_pv = line.map(w => mz.last_san(w))
+
+  const pvLines = topK?.map(md => extractPV(md))
+  explainPVPreference_(_map_moves_to_sans(mz, pvLines![0].line), pvLines![0].features, _map_moves_to_sans(mz, pvLines![1].line), pvLines![1].features)
+
+  explainPVPreference_(result_pv, features, solution, [])
+}
+
+function _map_moves_to_sans(mz: PositionMaterializer, md: WorldId[]) {
+  return md.map(m => mz.last_san(m))
 }
 
 function evaluatePrediction<TMove>(
@@ -508,3 +547,138 @@ export function explainDivergence<TMove>(
     );
   }
 }
+
+
+function extractPV<TMove>(root: MoveDelta<TMove> | undefined) {
+  const line: TMove[] = [];
+  const features: FeatureContribution[][] = [];
+
+  let current = root;
+
+  while (current) {
+    line.push(current.move)
+    features.push(current.featureContributions)
+    current = current.child
+  }
+  return { line, features }
+}
+
+
+function findDivergenceIndex<TMove>(
+  a: TMove[],
+  b: TMove[]
+): number {
+  const len = Math.min(a.length, b.length)
+
+
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) {
+      return i;
+    }
+  }
+
+  return -1
+}
+
+
+function aggregateFeatures(features: FeatureContribution[]) {
+  const map: Record<string, number> = {}
+
+  for (const f of features) {
+    map[f.feature] = (map[f.feature] ?? 0) + f.weighted
+  }
+
+  return map
+}
+
+
+function compareFeatureMaps(
+  a: Record<string, number>,
+  b: Record<string, number>
+) {
+  const allKeys = new Set([...Object.keys(a), ...Object.keys(b)]);
+
+  const diffs: Array<{ feature: string, delta: number }> = []
+
+  for (const key of allKeys) {
+    const va = a[key] ?? 0
+    const vb = b[key] ?? 0
+
+    diffs.push({
+      feature: key,
+      delta: va - vb
+    })
+  }
+
+  return diffs.sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta))
+}
+
+export function explainPVPreference<TMove>(
+  pv1: MoveDelta<TMove>,
+  pv2: MoveDelta<TMove>,
+) {
+  let { line: line1, features: features1 } = extractPV(pv1)
+  let { line: line2, features: features2 } = extractPV(pv2)
+
+  explainPVPreference_(line1, features1, line2, features2)
+}
+
+export function explainPVPreference_<TMove>(
+  line1: TMove[],
+  features1: FeatureContribution[][],
+  line2: TMove[],
+  features2: FeatureContribution[][]
+) {
+  const idx = findDivergenceIndex(line1, line2)
+
+  if (idx === -1) {
+    console.log("Lines do not diverge.")
+    return
+  }
+
+  const f1 = aggregateFeatures(features1[idx] ?? [])
+  const f2 = aggregateFeatures(features2[idx] ?? [])
+
+  const diffs = compareFeatureMaps(f1, f2)
+
+  console.log("Divergence at move: ", idx)
+  console.log("PV1 move:", line1[idx])
+  console.log("PV2 move:", line2[idx])
+
+  console.log("Top feature differences:")
+
+  for (const d of diffs.slice(0, 5)) {
+     console.log(`${d.feature}: Δ=${d.delta.toFixed(2)}`);
+  }
+}
+
+export function printMultiPV(pvLines: MoveDelta<WorldId>[], mz: PositionMaterializer) {
+  pvLines.map((pv, i) => {
+    let pvLine = extractPV(pv)
+    console.log(`#${i + 1} | Eval: ${pv.value.toFixed(2)} | Line:`, _map_moves_to_sans(mz, pvLine.line))
+  })
+}
+
+
+/*
+
+#1 | Eval: +1.20 | Line: Bf7+ ...
+#2 | Eval: +0.95 | Line: Qd5 ...
+#3 | Eval: +0.40 | Line: Re1 ...
+
+Solution rank: 2
+*/
+function findSolutionRank<TMove>(pvLines: MoveDelta<TMove>[], solution: TMove[]) {
+  for (let i = 0; i < pvLines.length; i++) {
+    const pv = extractPV(pvLines[i]).line
+
+    if (solution.every((m, j) => pv[j] === m)) {
+      return i + 1
+    }
+  }
+  return -1
+}
+
+
+// TODO: Track Score gaps
+/* gap = pvLines[0].value - pvLines[1].value */

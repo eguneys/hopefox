@@ -39,7 +39,7 @@ export function alphaBeta<TMove>(
     let maxEval = -Infinity;
     for (const move of moves) {
       state.makeMove(move); // Change state
-      const evaluation = alphaBeta(state, depth - 1, alpha, beta, false);
+      const evaluation = -alphaBeta(state, depth - 1, alpha, beta, false);
       state.unmakeMove(move); // Revert state
 
       maxEval = Math.max(maxEval, evaluation);
@@ -52,7 +52,7 @@ export function alphaBeta<TMove>(
     let minEval = Infinity;
     for (const move of moves) {
       state.makeMove(move);
-      const evaluation = alphaBeta(state, depth - 1, alpha, beta, true);
+      const evaluation = -alphaBeta(state, depth - 1, alpha, beta, true);
       state.unmakeMove(move);
 
       minEval = Math.min(minEval, evaluation);

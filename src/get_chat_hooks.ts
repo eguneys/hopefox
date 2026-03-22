@@ -6,7 +6,8 @@ import { PositionMaterializer, WorldId } from './pos_materializer'
 
 export const hooks: AlphaChatStateHooks = {
     evaluate: function (ctx: MyAlphaChatStateContext, mz: PositionMaterializer): number {
-        let q_m = ctx.find_intentions('queen_mate').next().value
+      console.log(ctx)
+        let q_m = ctx.find_intentions('mate').next().value
         if (q_m) {
           return 5000
         }
@@ -14,16 +15,22 @@ export const hooks: AlphaChatStateHooks = {
 
         let n_c = ctx.find_intentions('knight_captures_hanging_queen').next().value
         if (n_c) {
-          return -5
+          return 10
         }
         let k_c = ctx.find_intentions('king_captures_bishop_fork').next().value
         if (k_c) {
-          return -5
+          return 5
         }
         let b_f = ctx.find_intentions('bishop_forks_king_and_rook').next().value
         if (b_f) {
+          return 7
+        }
+        let p_b = ctx.find_intentions('pawn_captures_bishop').next().value
+        if (p_b) {
           return 5
         }
+
+
 
         return 0
     },
@@ -62,6 +69,30 @@ export const hooks: AlphaChatStateHooks = {
         if (!legals.includes(move)) continue
         push('rook_captures_rook', r_r, move)
       }
+
+      for (let r_r of mzt.pawn_captures_bishop) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('pawn_captures_bishop', r_r, move)
+      }
+
+
+    for (let q_m of mzt.queen_bishop_mate) {
+      let move = make_move_from_to(q_m.queen, q_m.to)
+
+      if (!legals.includes(move)) continue
+
+      push('mate', q_m, move)
+    }
+
+    for (let q_m of mzt.queen_rook_through_mate) {
+      let move = make_move_from_to(q_m.queen, q_m.to)
+
+      if (!legals.includes(move)) continue
+
+      push('mate', q_m, move)
+    }
+
 
 
 
@@ -106,15 +137,6 @@ export const hooks: AlphaChatStateHooks = {
       push('queen_attacks_hanging_knight', q_m, move)
     }
 
-
-
-    for (let q_m of mzt.queen_bishop_mate) {
-      let move = make_move_from_to(q_m.queen, q_m.to)
-
-      if (!legals.includes(move)) continue
-
-      push('queen_mate', q_m, move)
-    }
 
     for (let b_f of mzt.bishop_forks_king_and_rook) {
       let move = make_move_from_to(b_f.from, b_f.to)

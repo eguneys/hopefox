@@ -99,6 +99,10 @@ export class PositionMaterializer {
         return res
     }
 
+    last_san(world_id: WorldId) {
+        return san_moves_c(this.m, this.pos, [this.nodes.move_of_world(world_id)])[0]
+    }
+
     sans(world_id: WorldId) {
 
         let res = this.nodes.history_moves(world_id)

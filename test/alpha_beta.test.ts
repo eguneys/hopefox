@@ -1,7 +1,8 @@
 import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
 import { PositionManager, solve } from "../src"
-import { explainDivergence } from "../src/chat_alpha_v2"
+import { explainMultiPv, printMultiPV } from "../src/chat_alpha_v2"
+import { PositionMaterializer } from "../src/pos_materializer"
 
 
 let m = await PositionManager.make()
@@ -17,30 +18,33 @@ it.skip('works', () => {
     let link = log_puzzles[i].link
 
     let solution = log_puzzles[i].sans
-    let res = solve(m, pos, solution)
+    let mz = new PositionMaterializer(m, pos)
+    let res = solve(mz, solution, 3)
 
     console.log(link)
     console.log(res)
-    full_log(res)
+    full_log(res, mz)
 
 })
 
-function full_log(res: any) {
+function full_log(res: any, mz: PositionMaterializer) {
 
-  let { report, result_pv, cmp, evalRes, metrics, pv, solution, pv_features } = res
+  let { report, evalRes, solution, rootPV, topK } = res
 
   console.table(report);
 
-  console.log("PV:", result_pv);
+  //console.log("PV:", result_pv);
 
-  console.log("Match length:", cmp.matchLength);
+  //console.log("Match length:", cmp.matchLength);
 
   console.log("TP/FP/FN:", evalRes);
 
+  /*
   console.log("Match Length:", metrics.matchLength);
   console.log("Divergence Index:", metrics.divergenceIndex);
   console.log("Accuracy:", metrics.accuracy.toFixed(2));
   console.log("Correct First Move:", metrics.correctFirstMove);
+  */
 
 
   /*
@@ -56,14 +60,16 @@ function full_log(res: any) {
     }
         */
 
-    explainDivergence(pv, pv_features, solution)
+    //explainDivergence(pv, pv_features, solution)
 
+    explainMultiPv(rootPV, solution, topK, mz)
+    printMultiPV(topK, mz)
 }
 
 it('works', () => {
 
 let Single_i
-//Single_i = 18
+Single_i = 5
 
 let log_puzzles = test_b_forks_kr_puzzles
 
@@ -93,7 +99,8 @@ let log_puzzles = test_b_forks_kr_puzzles
 
         let solution = log_puzzles[i].sans
 
-        let res = solve(m, pos, solution)
+        let mz = new PositionMaterializer(m, pos)
+        let res = solve(mz, solution, 3)
 
         if (res.evalRes.FN === 1) {
             Fn.push(link)
@@ -104,10 +111,9 @@ let log_puzzles = test_b_forks_kr_puzzles
         }
 
         if (res.evalRes.FP === 1) {
-            Fp.push([i, link, res])
+            Fp.push([i, link, res, mz])
         }
 
-        m.delete_position(pos)
     }
 
     let N = Tn.length + Fn.length
@@ -118,12 +124,13 @@ let log_puzzles = test_b_forks_kr_puzzles
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${N}`)
     console.log('-----******----')
-    Fp.slice(0, 3).map(([i, link, res]) => {
+    Fp.slice(0, 3).map(([i, link, res, mz]) => {
         console.log(`${i} <${link}>`)
-        full_log(res)
+        full_log(res, mz as any)
         console.log('')
     })
     console.log('-----*****----')
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${N}`)
+
 })

@@ -22,8 +22,6 @@ export type Pv = string
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove, Context> {
-  get_pv(result: SearchResult<TMove>): Pv[];
-  get_pv_features(result: SearchResult<TMove>): FeatureContribution[][];
   generateMovesWithIntentions(isMaxizing: boolean): GeneratedMove<TMove>[];
   undoIntentionDelta(delta: ContextDelta): void;
   applyIntentionDelta(delta: ContextDelta): void;
@@ -94,6 +92,7 @@ export type MoveDelta<TMove> = {
     depth: number;
     isPV: boolean; // part of principal variation
     causedCutoff: boolean
+    child?: MoveDelta<TMove> // link to next move in PV
   };
 
 export type SearchResult<TMove> = {
@@ -121,65 +120,6 @@ export function alphaBeta<TMove, Context>(
       isCutoff: false,
     };
 
-    /*
-
-    // is this here, where is delta?
-
-    for (const f of delta.features) {
-       const stats = featureTable[f.name] ?? initStats();
-   
-       stats.totalContribution += f.weighted;
-       stats.occurences++;
-
-       if (isPV) stats.pvContribution += f.weighted;
-       if (causedCutoff) stats.cutoffContribution += f.weighted;
-
-       if (result.value > 0) stats.positiveOutcomes++;
-       else stats.negativeOutcomes++;
-
-    }
-
-    */
-
-
-    /*
-
-       // where is these metrics computed and used
-
-       avgImpact = totalContribution / occurrences
-
-       pvScore = pvContribution / occurrences
-
-       stability = positiveOutcomes
-
-
-       if (avgImpact > threshold && stability < 0.5) {
-         // fake heuristic
-       }
-
-
-       if (pvScore high && stability high) {
-         // reliable heuristic
-       }
-
-       if (Math.abs(avgImpact) small && occurrences high) {
-         // noise
-       }
-    */
-
-
-    /*
-
-      Print a table ?
-
-      Feature           Avg     Stability   PV
-      -----------------------------------------
-      king_safety       +0.82   0.91        strong
-      fork_pressure     +1.20   0.38        misleading
-      mobility          +0.05   0.52        neutral
-
-    */
-
     onNode?.({
         depth, alpha, beta, value: res.value
     })
@@ -203,6 +143,7 @@ export function alphaBeta<TMove, Context>(
     return res
   }
 
+  let bestChild: MoveDelta<TMove> | undefined;
   let moveDeltas: MoveDelta<TMove>[] = []
   let bestMove: TMove | null = null;
   let isCutoff = false;
@@ -233,6 +174,8 @@ export function alphaBeta<TMove, Context>(
       if (result.value > value) {
         value = result.value;
         bestMove = move;
+
+        bestChild = result.moveDeltas?.find(md => md.isPV)
       }
 
       alpha = Math.max(alpha, value);
