@@ -27,8 +27,8 @@ export interface GameState<TMove, Context> {
   applyIntentionDelta(delta: ContextDelta): void;
   makeMove(move: TMove): void;
   unmakeMove(move: TMove): void;
-  evaluate(): number; // Heuristic evaluation
-  isGameOver(): boolean;
+  evaluate(isMaximizing: boolean): number; // Heuristic evaluation
+  isGameOver(isMaximizing: boolean): boolean;
   cloneContext(): Context;
   getContext(): Context;
   diffContext(a: Context, b: Context): Omit<ContextDelta, 'features'>
@@ -51,6 +51,8 @@ export type FeatureContribution = {
     weighted: number // effect on eval
 }
 
+export type MinMaxPlayer = 'min' | 'max'
+
 export type IntentionType = string
 
 export type Intention = {
@@ -58,6 +60,7 @@ export type Intention = {
   type: IntentionType // "fork" | "attack" | ...;
 
   payload: any
+  player: MinMaxPlayer
 
   createdAtDepth: number;
   lastUpdatedDepth: number;

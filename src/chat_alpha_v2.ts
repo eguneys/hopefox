@@ -71,8 +71,8 @@ export function alphaBeta<TMove, Context>(
 ): SearchResult<TMove> {
 
   // BASE
-  if (depth === 0 || state.isGameOver()) {
-    const value = state.evaluate();
+  if (depth === 0 || state.isGameOver(isMaximizing)) {
+    const value = state.evaluate(isMaximizing);
 
     onNode?.({ depth, alpha, beta, value });
 
@@ -87,7 +87,7 @@ export function alphaBeta<TMove, Context>(
   const movesAndFeatures = state.generateMovesWithIntentions(isMaximizing)
 
   if (movesAndFeatures.length === 0) {
-    const value = state.evaluate();
+    const value = state.evaluate(isMaximizing);
 
     onNode?.({ depth, alpha, beta, value });
 
@@ -378,6 +378,7 @@ export function exampleUsage<Context>(
   let k = multiPV
   const topK = result.moveDeltas?.sort((a, b) => b.value - a.value).slice(0, k)
 
+  //console.log(1, mz.last_san(1))
   /*
   console.log(1, mz.last_san(1))
   console.log(2, mz.last_san(2))
@@ -410,7 +411,8 @@ export function explainMultiPv(rootPV: MoveDelta<WorldId> | undefined, solution:
 
   console.log('PV Preference against Top 2:')
   const pvLines = topK?.map(md => extractPV(md))
-  explainPVPreference_(_map_moves_to_sans(mz, pvLines![0].line), pvLines![0].features, _map_moves_to_sans(mz, pvLines![1].line), pvLines![1].features)
+  if (pvLines && pvLines.length >= 2)
+    explainPVPreference_(_map_moves_to_sans(mz, pvLines![0].line), pvLines![0].features, _map_moves_to_sans(mz, pvLines![1].line), pvLines![1].features)
 
 }
 

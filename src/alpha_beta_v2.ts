@@ -1,4 +1,4 @@
-import { ContextDelta, FeatureContribution, GameState, GeneratedMove, Intention, intentionEqual, IntentionType, SearchResult } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, GameState, GeneratedMove, Intention, intentionEqual, IntentionType, MinMaxPlayer, SearchResult } from "./chat_alpha";
 import { exampleUsage } from "./chat_alpha_v2";
 import { MoveC, PositionC, PositionManager } from "./distill/hopefox_c";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
@@ -31,11 +31,11 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     unmakeMove(world_id: WorldId): void {
         this.mz.inc_unmake_world(world_id)
     }
-    evaluate(): number {
-        return this.hooks.evaluate(this.ctx, this.mz)
+    evaluate(isMaximizing: boolean): number {
+        return this.hooks.evaluate(isMaximizing, this.ctx, this.mz)
     }
-    isGameOver(): boolean {
-        return this.hooks.is_terminal(this.ctx, this.mz)
+    isGameOver(isMaximizing: boolean): boolean {
+        return this.hooks.is_terminal(isMaximizing, this.ctx, this.mz)
     }
     cloneContext(): AlphaChatStateContext {
         return this.ctx.clone()
@@ -51,8 +51,8 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
 
 
 export type AlphaChatStateHooks = {
-    evaluate(ctx: AlphaChatStateContext, mz: PositionMaterializer): number
-    is_terminal(ctx: AlphaChatStateContext, mz: PositionMaterializer): boolean
+    evaluate(isMaximizing: boolean, ctx: AlphaChatStateContext, mz: PositionMaterializer): number
+    is_terminal(isMaximizing: boolean, ctx: AlphaChatStateContext, mz: PositionMaterializer): boolean
     list_moves(isMaximizing: boolean, ctx: AlphaChatStateContext, mz: PositionMaterializer): GeneratedMove<WorldId>[]
 }
 
@@ -103,8 +103,8 @@ export class MyAlphaChatStateContext implements AlphaChatStateContext {
 
     constructor(readonly intentions: Map<string, Intention>) {}
 
-    find_intentions(type: IntentionType) {
-        return this.intentions.values().filter(_ => _.type === type)
+    find_intentions(player: MinMaxPlayer, type: IntentionType) {
+        return this.intentions.values().filter(_ => _.type === type && _.player === player)
     }
 
     applyIntentionDelta(delta: ContextDelta): void {
