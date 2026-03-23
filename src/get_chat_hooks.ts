@@ -35,6 +35,16 @@ export const hooks: AlphaChatStateHooks = {
       return 9
     }
 
+
+    if (ctx.find_intentions(player, 'rook_captures_queen').next().value) {
+      return 9
+    }
+    if (ctx.find_intentions(opponent, 'rook_captures_queen').next().value) {
+      return -9
+    }
+
+
+
     if (
       ctx.find_intentions(opponent, 'bishop_captures_rook').next().value &&
       ctx.find_intentions(player, 'bishop_captures_rook').next().value
@@ -62,6 +72,7 @@ export const hooks: AlphaChatStateHooks = {
     if (ctx.find_intentions(opponent, 'rook_takes_knight').next().value) {
       return -3
     }
+
 
     if(ctx.find_intentions(opponent, 'queen_captures_queen').next().value) {
 
@@ -183,6 +194,19 @@ export const hooks: AlphaChatStateHooks = {
         push('rook_attacks_queen', r_r, move)
       }
 
+      for (let r_r of mzt.rook_check) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('check', r_r, move)
+      }
+
+      for (let r_r of mzt.blocks_check) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('blocks_check', r_r, move)
+      }
+
+
 
 
     for (let q_m of mzt.queen_bishop_check) {
@@ -203,7 +227,6 @@ export const hooks: AlphaChatStateHooks = {
       if (!legals.includes(move)) continue
 
       push('mate', q_m, move)
-      debugger
     }
 
     for (let q_m of mzt.queen_bishop_through_check) {

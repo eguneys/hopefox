@@ -1,3 +1,4 @@
+import { between } from "./distill/attacks"
 import { BISHOP, KING, KNIGHT, make_move_from_to, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, PieceTypeC, QUEEN, ROOK } from "./distill/hopefox_c"
 import { SquareSet } from "./distill/squareSet"
 import { Square } from "./distill/types"
@@ -50,6 +51,8 @@ export type MZ_Typed_Forks = {
     bishop_captures_queen: { from: Square, to: Square }[]
     bishop_captures_rook: { from: Square, to: Square }[]
     pawn_captures_bishop: { from: Square, to: Square }[]
+    rook_check: { from: Square, to: Square }[]
+    blocks_check: { from: Square, to: Square, king: Square, check: Square }[]
 }
 
 export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed_Forks {
@@ -404,8 +407,23 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     }
 
 
+    let rook_check: { from: Square, to: Square }[] = []
 
 
+    for (let r of turn_rook_attack_see2) {
+        if (r.to2 === mz_forks.opponent_king.from) {
+            rook_check.push({ from: r.from, to: r.to })
+        }
+    }
+
+
+    let blocks_check: { from: Square, to: Square, king: Square, check: Square }[] = []
+
+    for (let b of mz_forks.block_attack) {
+        if (b.a_to === mz_forks.turn_king.from) {
+            blocks_check.push({ from: b.from, to: b.to, king: mz_forks.opponent_king.from, check: b.a_from })
+        }
+    }
 
     return {
         knight_takes_hanging_queen,
@@ -425,6 +443,8 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         rook_takes_knight,
         queen_captures_queen,
         pawn_captures_bishop,
+        rook_check,
+        blocks_check
     }
 }
 
@@ -454,6 +474,10 @@ export type MZ_Forks = {
     king_see: { to: Square }[]
     queens: { from: Square }[]
     bishops: { from: Square }[]
+    all_see: { from: Square, to: Square }[]
+    block_attack: { from: Square, to: Square, a_from: Square, a_to: Square }[]
+    block_defend: { from: Square, to: Square, a_from: Square, a_to: Square }[]
+    block_vacant: { from: Square, to: Square, a_from: Square, a_to: Square }[]
 }
 
 export type AttackSee2 = { from: Square, to: Square, to2: Square }
@@ -678,6 +702,46 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
     bishops = [...opponent_bishops, ...turn_bishops]
 
 
+    let all_see = [...mz_views.attack_see, ...mz_views.defend_see, ...mz_views.vacant_see]
+
+    let block_attack: { from: Square, to: Square, a_from: Square, a_to: Square }[] = []
+    let block_defend: { from: Square, to: Square, a_from: Square, a_to: Square }[] = []
+    let block_vacant: { from: Square, to: Square, a_from: Square, a_to: Square }[] = []
+
+    for (let a of mz_views.attack_see) {
+        let bb = between(a.from, a.to)
+        for (let b of all_see) {
+            if (a.from === b.from) continue
+            if (bb.has(b.to)) {
+                block_attack.push({ from: b.from, to: b.to, a_from: a.from, a_to: a.to })
+            }
+        }
+    }
+
+
+    for (let a of mz_views.defend_see) {
+        let bb = between(a.from, a.to)
+        for (let b of all_see) {
+            if (a.from === b.from) continue
+            if (bb.has(b.to)) {
+                block_defend.push({ from: b.from, to: b.to, a_from: a.from, a_to: a.to })
+            }
+        }
+    }
+
+
+    for (let a of mz_views.vacant_see) {
+        let bb = between(a.from, a.to)
+        for (let b of all_see) {
+            if (a.from === b.from) continue
+            if (bb.has(b.to)) {
+                block_vacant.push({ from: b.from, to: b.to, a_from: a.from, a_to: a.to })
+            }
+        }
+    }
+
+
+
     return {
         fork,
         turn_king,
@@ -701,7 +765,11 @@ export function mz_forks(mz_views: MZ_Views): MZ_Forks {
         opponent_queens,
         king_see,
         queens,
-        bishops
+        bishops,
+        block_attack,
+        block_defend,
+        block_vacant,
+        all_see
     }
 }
 
