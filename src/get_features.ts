@@ -8,9 +8,9 @@ export type MZ_Typed_Forks = {
     knight_takes_hanging_queen: { from: Square, to: Square }[]
     bishop_forks_king_and_rook: { from: Square, to: Square, king: Square, rook: Square }[]
     queen_see_king_with_bishop: { queen: Square, king_to: Square, bishop: Square }[]
-    queen_bishop_mate: { queen: Square, to: Square, king: Square, bishop: Square }[]
+    queen_bishop_check: { queen: Square, to: Square, king: Square, bishop: Square }[]
     queen_rook_through_mate: { queen: Square, to: Square, king: Square, rook: Square }[]
-    queen_bishop_through_mate: { queen: Square, to: Square, king: Square, bishop: Square }[]
+    queen_bishop_through_check: { queen: Square, to: Square, king: Square, bishop: Square }[]
     queen_attacks_hanging_knight: { from: Square, to: Square, knight: Square }[]
     rook_attacks_queen: { from: Square, to: Square, queen: Square }[]
     rook_takes_knight: { from: Square, to: Square }[]
@@ -27,7 +27,6 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     let bishop_forks_king_and_rook: { from: Square, to: Square, king: Square, rook: Square }[] = []
     let queen_see_king_with_bishop: { queen: Square, king_to: Square, bishop: Square }[] = []
 
-    let queen_bishop_mate: { queen: Square, to: Square, king: Square, bishop: Square }[] = []
 
 
 
@@ -98,6 +97,7 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         }
     }
 
+    let queen_bishop_check: { queen: Square, to: Square, king: Square, bishop: Square }[] = []
 
     for (let q of queen_see_king_with_bishop) {
         for (let b of mz_forks.opponent_non_king_uncapturable) {
@@ -105,7 +105,7 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
                 continue
             }
 
-            queen_bishop_mate.push({ queen: q.queen, to: q.king_to, king: mz_forks.opponent_king.from, bishop: q.bishop })
+            queen_bishop_check.push({ queen: q.queen, to: q.king_to, king: mz_forks.opponent_king.from, bishop: q.bishop })
         }
     }
 
@@ -349,7 +349,7 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         }
     }
 
-    let queen_bishop_through_mate: { queen: Square, to: Square, king: Square, bishop: Square }[] = []
+    let queen_bishop_through_check: { queen: Square, to: Square, king: Square, bishop: Square }[] = []
 
     for (let q of queen_see_king_with_bishop_through) {
         for (let b of mz_forks.opponent_non_king_uncapturable) {
@@ -357,7 +357,7 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
                 continue
             }
 
-            queen_bishop_through_mate.push({ queen: q.queen, to: q.king_to, king: mz_forks.opponent_king.from, bishop: q.bishop })
+            queen_bishop_through_check.push({ queen: q.queen, to: q.king_to, king: mz_forks.opponent_king.from, bishop: q.bishop })
         }
     }
 
@@ -369,9 +369,9 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         knight_takes_hanging_queen,
         queen_see_king_with_bishop,
         bishop_forks_king_and_rook,
-        queen_bishop_mate,
+        queen_bishop_check,
         queen_rook_through_mate,
-        queen_bishop_through_mate,
+        queen_bishop_through_check,
         queen_attacks_hanging_knight,
         rook_attacks_queen,
         rook_captures_rook,

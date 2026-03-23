@@ -63,7 +63,7 @@ function full_log(res: any, mz: PositionMaterializer) {
 
     //explainDivergence(pv, pv_features, solution)
 
-    //explainMultiPv(rootPV, solution, topK, mz)
+    explainMultiPv(rootPV, solution, topK, mz)
     if (topK) {
         printMultiPVReports(mz, topK)
     }

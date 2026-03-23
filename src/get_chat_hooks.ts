@@ -22,19 +22,30 @@ export const hooks: AlphaChatStateHooks = {
       return 5000
     }
 
+    if (ctx.find_intentions(opponent, 'knight_captures_hanging_queen').next().value) {
+      return -10
+    }
+
+    let n_c = ctx.find_intentions(player, 'knight_captures_hanging_queen').next().value
+    if (n_c) {
+      return 10
+    }
+
     if (ctx.find_intentions(opponent, 'bishop_forks_king_and_rook_dd').next().value) {
       return 9
     }
 
-    if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
-      return 5
-    }
-
-
 
     if (ctx.find_intentions(opponent, 'bishop_captures_rook').next().value) {
-      return -5
+      return -6
     }
+
+
+
+    if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
+      return 6
+    }
+
 
 
 
@@ -55,14 +66,6 @@ export const hooks: AlphaChatStateHooks = {
     }
 
 
-    if (ctx.find_intentions(opponent, 'knight_captures_hanging_queen').next().value) {
-      return -10
-    }
-
-    let n_c = ctx.find_intentions(player, 'knight_captures_hanging_queen').next().value
-    if (n_c) {
-      return 10
-    }
     let k_c = ctx.find_intentions(player, 'king_captures_bishop_fork').next().value
     if (k_c) {
       return 5
@@ -82,13 +85,6 @@ export const hooks: AlphaChatStateHooks = {
   },
     is_terminal: function (isMaximizing: boolean, ctx: MyAlphaChatStateContext, mz: PositionMaterializer): boolean {
       let player: MinMaxPlayer = isMaximizing ? 'max' : 'min'
-
-      let is_mate = ctx.find_intentions(player, 'queen_bishop_mate').next().value
-
-      if (is_mate) {
-        return true
-      }
-
 
         return false
     },
@@ -162,12 +158,12 @@ export const hooks: AlphaChatStateHooks = {
 
 
 
-    for (let q_m of mzt.queen_bishop_mate) {
+    for (let q_m of mzt.queen_bishop_check) {
       let move = make_move_from_to(q_m.queen, q_m.to)
 
       if (!legals.includes(move)) continue
 
-      push('mate', q_m, move)
+      push('check', q_m, move)
     }
 
     for (let q_m of mzt.queen_rook_through_mate) {
@@ -179,12 +175,12 @@ export const hooks: AlphaChatStateHooks = {
       debugger
     }
 
-    for (let q_m of mzt.queen_bishop_through_mate) {
+    for (let q_m of mzt.queen_bishop_through_check) {
       let move = make_move_from_to(q_m.queen, q_m.to)
 
       if (!legals.includes(move)) continue
 
-      push('mate', q_m, move)
+      push('check', q_m, move)
     }
 
 
