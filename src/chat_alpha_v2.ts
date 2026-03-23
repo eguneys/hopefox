@@ -1,4 +1,4 @@
-import { ContextDelta, FeatureContribution, FeatureStats, GameState, MoveDelta, NodeHook, Pv, SearchResult } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, FeatureStats, GameState, MinMaxPlayer, MoveDelta, NodeHook, Pv, SearchResult } from "./chat_alpha";
 import { Position } from "./distill/chess";
 import { Move } from "./distill/types";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
@@ -386,7 +386,11 @@ export function exampleUsage<Context>(
   console.log(4, mz.last_san(4))
   console.log(5, mz.last_san(5))
   console.log(6, mz.last_san(6))
+  console.log(7, mz.last_san(7))
+  console.log(8, mz.last_san(8))
+  console.log(9, mz.last_san(9))
   */
+
 
   const evalRes = evaluatePrediction(result_pv, solution);
 
@@ -710,3 +714,109 @@ function findSolutionRank<TMove>(pvLines: MoveDelta<TMove>[], solution: TMove[])
 
 // TODO: Track Score gaps
 /* gap = pvLines[0].value - pvLines[1].value */
+
+
+
+function aggregatePVFeatures(
+  pvFeatures: FeatureContribution[][]
+) {
+  const map: Record<string, number> = {};
+
+  for (const step of pvFeatures) {
+    for (const f of step) {
+      const key = `${'f.owner'}:${f.feature}`;
+      map[key] = (map[key] ?? 0) + f.weighted;
+    }
+  }
+
+  return map;
+}
+
+
+function splitFeatures(map: any) {
+  const my: any[] = [];
+  const opponent: any[] = [];
+
+  for (const [key, value] of Object.entries(map)) {
+    const [owner, feature] = key.split(":");
+
+    if (owner === "max") {
+      my.push({ feature, value });
+    } else {
+      opponent.push({ feature, value });
+    }
+  }
+
+  return {
+    myTopFeatures: my.sort((a,b) => Math.abs(b.value)-Math.abs(a.value)).slice(0,5),
+    opponentTopFeatures: opponent.sort((a,b) => Math.abs(b.value)-Math.abs(a.value)).slice(0,5)
+  };
+}
+
+type PVReport<TMove> = {
+  value: number;
+  line: TMove[];
+
+  // NEW
+  summary: {
+    myTopFeatures: any
+    opponentTopFeatures: any
+
+    //activeIntentions: Intention[];
+    //failedIntentions: Intention[];
+  };
+};
+
+function buildPVReport<TMove>(
+  root: MoveDelta<TMove>,
+  //initialContext: Context
+): PVReport<TMove> {
+
+  const { line, features } = extractPV(root);
+
+  const featureMap = aggregatePVFeatures(features);
+  const split = splitFeatures(featureMap);
+
+  //const intentions = collectIntentionsAlongPV(root, initialContext);
+
+  return {
+    value: root.value,
+    line,
+    summary: {
+      ...split,
+      //activeIntentions: intentions.active,
+      //failedIntentions: intentions.failed
+    }
+  };
+}
+
+
+export function printMultiPVReports(
+  mz: PositionMaterializer,
+  roots: MoveDelta<WorldId>[],
+  //ctx: Context
+) {
+  roots.forEach((root, i) => {
+    const report = buildPVReport(root)//, ctx);
+
+    console.log(`\n#${i+1} Eval: ${report.value}`);
+
+    console.log("Line:", _map_moves_to_sans(mz, report.line));
+
+    console.log("My Features:");
+    report.summary.myTopFeatures.forEach((f: any) =>
+      console.log(`  ${f.feature}: ${f.value.toFixed(2)}`)
+    );
+
+    console.log("Opponent Features:");
+    report.summary.opponentTopFeatures.forEach((f: any) =>
+      console.log(`  ${f.feature}: ${f.value.toFixed(2)}`)
+    );
+
+    /*
+    console.log("Active Intentions:",
+      report.summary.activeIntentions.map(i => i.type)
+    );
+    */
+  });
+}

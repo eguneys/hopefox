@@ -74,11 +74,9 @@ export class PositionMaterializer {
 
     inc_add_move(move: MoveC) {
         let world_id = this.incremented_to_world
-        return this.nodes.add_move(world_id, move)
+        let res = this.nodes.add_move(world_id, move)
+        return res
     }
-
-
-
 
 
     pos_occupied(world_id: WorldId) {
@@ -100,7 +98,8 @@ export class PositionMaterializer {
     }
 
     last_san(world_id: WorldId) {
-        return san_moves_c(this.m, this.pos, [this.nodes.move_of_world(world_id)])[0]
+        let res = this.sans(world_id)
+        return res[res.length - 1]
     }
 
     sans(world_id: WorldId) {

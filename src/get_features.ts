@@ -12,6 +12,7 @@ export type MZ_Typed_Forks = {
     queen_rook_through_mate: { queen: Square, to: Square, king: Square, rook: Square }[]
     queen_bishop_through_mate: { queen: Square, to: Square, king: Square, bishop: Square }[]
     queen_attacks_hanging_knight: { from: Square, to: Square, knight: Square }[]
+    rook_attacks_queen: { from: Square, to: Square, queen: Square }[]
     rook_takes_knight: { from: Square, to: Square }[]
     rook_captures_rook: { from: Square, to: Square }[]
     queen_captures_queen: { from: Square, to: Square }[]
@@ -142,6 +143,18 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     }
 
 
+    let turn_rook_attack_see2: { from: Square, to: Square, to2: Square }[] = []
+
+    for (let q of mz_forks.turn_rooks) {
+        for (let a2 of mz_views.attack_see2) {
+            if (a2.from === q.from) {
+                turn_rook_attack_see2.push(a2)
+            }
+        }
+    }
+
+
+
     let opponent_hanging_queen: { from: Square }[] = []
 
     for (let q of mz_forks.opponent_queens) {
@@ -173,6 +186,18 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
             }
         }
     }
+
+    let rook_attacks_queen: { from: Square, to: Square, queen: Square }[] = []
+
+    for (let h of mz_forks.opponent_queens) {
+        for (let q of turn_rook_attack_see2) {
+            if (h.from === q.to2) {
+                rook_attacks_queen.push({ from: q.from, to: q.to, queen: h.from })
+            }
+        }
+    }
+
+
 
     let turn_knight_attack: { from: Square, to: Square }[] = []
 
@@ -336,6 +361,7 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         queen_rook_through_mate,
         queen_bishop_through_mate,
         queen_attacks_hanging_knight,
+        rook_attacks_queen,
         rook_captures_rook,
         rook_captures_queen,
         bishop_captures_queen,

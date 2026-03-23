@@ -1,7 +1,7 @@
 import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
 import { PositionManager, solve } from "../src"
-import { explainMultiPv, printMultiPV } from "../src/chat_alpha_v2"
+import { explainMultiPv, printMultiPV, printMultiPVReports } from "../src/chat_alpha_v2"
 import { PositionMaterializer } from "../src/pos_materializer"
 
 
@@ -63,13 +63,16 @@ function full_log(res: any, mz: PositionMaterializer) {
 
     //explainDivergence(pv, pv_features, solution)
 
-    explainMultiPv(rootPV, solution, topK, mz)
+    //explainMultiPv(rootPV, solution, topK, mz)
+    if (topK) {
+        printMultiPVReports(mz, topK)
+    }
 }
 
 it('works', () => {
 
 let Single_i
-Single_i = 18
+Single_i = 5
 
 let log_puzzles = test_b_forks_kr_puzzles
 
