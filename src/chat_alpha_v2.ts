@@ -131,7 +131,7 @@ export function alphaBeta<TMove, Context>(
       //result.value = -result.value
 
 
-      console.log(result.value, state.print_history())
+      //console.log(result.value, state.print_history())
       state.unmakeMove(move);
       state.undoIntentionDelta(m.intentionDelta)
 

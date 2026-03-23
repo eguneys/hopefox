@@ -35,12 +35,27 @@ export const hooks: AlphaChatStateHooks = {
       return 9
     }
 
+    if (ctx.find_intentions(player, 'knight_captures_queen').next().value) {
+      return 9
+    }
+    if (ctx.find_intentions(opponent, 'knight_captures_queen').next().value) {
+      return -9
+    }
+
+
 
     if (ctx.find_intentions(player, 'rook_captures_queen').next().value) {
       return 9
     }
     if (ctx.find_intentions(opponent, 'rook_captures_queen').next().value) {
       return -9
+    }
+
+    if (ctx.find_intentions(player, 'rook_captures_bishop').next().value) {
+      return 3
+    }
+    if (ctx.find_intentions(opponent, 'rook_captures_bishop').next().value) {
+      return -3
     }
 
 
@@ -68,6 +83,12 @@ export const hooks: AlphaChatStateHooks = {
     if (ctx.find_intentions(opponent, 'bishop_captures_queen').next().value) {
       return -9
     }
+
+    if (ctx.find_intentions(player, 'pawn_captures_rook').next().value) {
+      return 5
+    }
+
+
 
     if (ctx.find_intentions(opponent, 'rook_takes_knight').next().value) {
       return -3
@@ -99,8 +120,14 @@ export const hooks: AlphaChatStateHooks = {
     if (p_b) {
       return 5
     }
-
-
+    let p_n = ctx.find_intentions(player, 'pawn_captures_knight').next().value
+    if (p_n) {
+      return 3
+    }
+    let o_n = ctx.find_intentions(opponent, 'pawn_captures_knight').next().value
+    if (o_n) {
+      return -3
+    }
 
     return 0
   },
@@ -182,11 +209,49 @@ export const hooks: AlphaChatStateHooks = {
         push('rook_captures_rook', r_r, move)
       }
 
+
+      for (let r_r of mzt.knight_captures_queen) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('knight_captures_queen', r_r, move)
+      }
+
+
+
+      for (let r_r of mzt.pawn_captures_knight) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('pawn_captures_knight', r_r, move)
+      }
+
+
       for (let r_r of mzt.pawn_captures_bishop) {
         let move = make_move_from_to(r_r.from, r_r.to)
         if (!legals.includes(move)) continue
         push('pawn_captures_bishop', r_r, move)
       }
+
+
+      for (let r_r of mzt.pawn_captures_rook) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('pawn_captures_rook', r_r, move)
+      }
+
+      for (let d_c of mzt.discovered_check) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('discovered_check', d_c, move)
+      }
+
+      for (let d_c of mzt.king_evades_check) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('king_evades_check', d_c, move)
+      }
+
+
+
 
       for (let r_r of mzt.rook_attacks_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)

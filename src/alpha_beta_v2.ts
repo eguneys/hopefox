@@ -164,6 +164,6 @@ type SAN = string
 export function solve(mz: PositionMaterializer, solution: SAN[], multiPV: number) {
     const ctx = new MyAlphaChatStateContext(new Map())
     let { hooks } = Get_Chat_Hooks
-    return ChessChatGameState.alpha_beta_summary(mz, 3, hooks, ctx, solution, multiPV)
+    return ChessChatGameState.alpha_beta_summary(mz, 5, hooks, ctx, solution, multiPV)
 }
 

@@ -63,6 +63,7 @@ function full_log(res: any, mz: PositionMaterializer) {
 
     //explainDivergence(pv, pv_features, solution)
 
+    console.log(solution)
     explainMultiPv(rootPV, solution, topK, mz)
     if (topK) {
         printMultiPVReports(mz, topK)
@@ -72,7 +73,7 @@ function full_log(res: any, mz: PositionMaterializer) {
 it('works', () => {
 
 let Single_i
-Single_i = 3
+Single_i = 4
 
 let log_puzzles = test_b_forks_kr_puzzles
 
