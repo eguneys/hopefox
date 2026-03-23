@@ -72,12 +72,12 @@ function full_log(res: any, mz: PositionMaterializer) {
 it('works', () => {
 
 let Single_i
-Single_i = 5
+//Single_i = 17
 
 let log_puzzles = test_b_forks_kr_puzzles
 
 
-    let total = log_puzzles.length / 20
+    let total = log_puzzles.length / 40
     //total = 1
 
     let Tp = []

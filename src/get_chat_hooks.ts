@@ -1,13 +1,13 @@
 import type { AlphaChatStateHooks, MyAlphaChatStateContext } from './alpha_beta_v2'
 import { ContextDelta, FeatureContribution, GeneratedMove, Intention, intentionEqual, MinMaxPlayer } from './chat_alpha'
-import { make_move_from_to } from './distill/hopefox_c'
-import { mz_forks, mz_typed_forks, mz_views } from './get_features'
+import { make_move_from_to, move_c_to_Move } from './distill/hopefox_c'
+import { mz_forks, mz_future, mz_typed_forks, mz_views } from './get_features'
 import { PositionMaterializer, WorldId } from './pos_materializer'
 
 export const hooks: AlphaChatStateHooks = {
     evaluate: function (isMaximizing: boolean, ctx: MyAlphaChatStateContext, mz: PositionMaterializer): number {
-    let player: MinMaxPlayer = isMaximizing ? 'max' : 'min'
-    let opponent: MinMaxPlayer = isMaximizing ? 'min' : 'max'
+    let player: MinMaxPlayer = 'max' //isMaximizing ? 'max' : 'min'
+    let opponent: MinMaxPlayer = 'min'//isMaximizing ? 'min' : 'max'
 
     if(ctx.find_intentions(opponent, 'mate').next().value) {
 
@@ -35,15 +35,21 @@ export const hooks: AlphaChatStateHooks = {
       return 9
     }
 
+    if (
+      ctx.find_intentions(opponent, 'bishop_captures_rook').next().value &&
+      ctx.find_intentions(player, 'bishop_captures_rook').next().value
+    ) {
+      return 0
+    }
 
     if (ctx.find_intentions(opponent, 'bishop_captures_rook').next().value) {
-      return -6
+      return -6.7
     }
 
 
 
     if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
-      return 6
+      return 6.2
     }
 
 
@@ -65,6 +71,10 @@ export const hooks: AlphaChatStateHooks = {
       return - 10
     }
 
+    if (ctx.find_intentions(opponent, 'king_captures_bishop_fork').next().value) {
+
+      return -5
+    }
 
     let k_c = ctx.find_intentions(player, 'king_captures_bishop_fork').next().value
     if (k_c) {
@@ -107,7 +117,13 @@ export const hooks: AlphaChatStateHooks = {
       for (let r_r of mzt.rook_captures_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)
         if (!legals.includes(move)) continue
-        push('rook_captures_queen', r_r, move)
+
+        let mz_fu = mz_future(mz, { from: r_r.from, to: r_r.to })
+        if (mz_fu.mate) {
+          push('mate', r_r, move)
+        } else {
+          push('rook_captures_queen', r_r, move)
+        }
       }
 
       for (let r_r of mzt.bishop_captures_queen) {
@@ -127,7 +143,14 @@ export const hooks: AlphaChatStateHooks = {
       for (let r_r of mzt.queen_captures_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)
         if (!legals.includes(move)) continue
-        push('queen_captures_queen', r_r, move)
+
+
+        let mz_fu = mz_future(mz, { from: r_r.from, to: r_r.to })
+        if (mz_fu.mate) {
+          push('mate', r_r, move)
+        } else {
+          push('queen_captures_queen', r_r, move)
+        }
       }
 
       for (let r_r of mzt.rook_takes_knight) {
@@ -136,7 +159,11 @@ export const hooks: AlphaChatStateHooks = {
         push('rook_takes_knight', r_r, move)
       }
 
-
+      for (let r_r of mzt.rook_captures_bishop) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('rook_captures_bishop', r_r, move)
+      }
 
       for (let r_r of mzt.rook_captures_rook) {
         let move = make_move_from_to(r_r.from, r_r.to)
@@ -160,10 +187,14 @@ export const hooks: AlphaChatStateHooks = {
 
     for (let q_m of mzt.queen_bishop_check) {
       let move = make_move_from_to(q_m.queen, q_m.to)
-
       if (!legals.includes(move)) continue
 
-      push('check', q_m, move)
+      let mz_fu = mz_future(mz, { from: q_m.queen, to: q_m.to })
+      if (mz_fu.mate) {
+        push('mate', q_m, move)
+      } else {
+        push('check', q_m, move)
+      }
     }
 
     for (let q_m of mzt.queen_rook_through_mate) {
@@ -180,7 +211,13 @@ export const hooks: AlphaChatStateHooks = {
 
       if (!legals.includes(move)) continue
 
-      push('check', q_m, move)
+
+      let mz_fu = mz_future(mz, { from: q_m.queen, to: q_m.to })
+      if (mz_fu.mate) {
+        push('mate', q_m, move)
+      } else {
+        push('check', q_m, move)
+      }
     }
 
 
@@ -250,14 +287,80 @@ export const hooks: AlphaChatStateHooks = {
     }
 
 
+    for (let q_m of mzt.queen_see_king_with_bishop) {
+      for (let d_d of mz_ff.defend_double_from_see2) {
+        if (q_m.king_to !== d_d.to) {
+          continue
+        }
+        let move = make_move_from_to(d_d.from, d_d.to_a)
+
+        if (!legals.includes(move)) continue
+
+        push('double_defend_king', q_m, move)
+      }
+    }
+
+    for (let q_m of mzt.queen_see_king_with_bishop_through) {
+      for (let d_d of mz_ff.defend_double_from_see2) {
+        if (q_m.king_to !== d_d.to) {
+          continue
+        }
+        let move = make_move_from_to(d_d.from, d_d.to_a)
+
+        if (!legals.includes(move)) continue
+
+        push('double_defend_king', q_m, move)
+      }
+    }
+
+
+
+
+    /*
+    for (let r of res) {
+      let legal = move_c_to_Move(mz.nodes.move_of_world(r.move))
+
+      let fu = mz_future(mz, legal)
+
+      mz.inc_make_world(r.move)
+
+      for (let legal2  of fu._mz_views.legals) {
+
+        let fu2 = mz_future(mz, legal2)
+
+        if (fu2.mate) {
+
+          for (let q_m of mz_ff.defend_double_from_see2) {
+            if (q_m.from_b !== mz_ff.turn_king.from) {
+              continue
+            }
+            let move = make_move_from_to(q_m.from, q_m.to_a)
+
+            if (!legals.includes(move)) continue
+
+            console.log(q_m)
+            //push('defend_double', q_m, move)
+          }
+        }
+      }
+
+      mz.inc_unmake_world(r.move)
+    }
+      */
+
     return res
   }
 }
 
 
-function mk_push(player: MinMaxPlayer, type_feature: string, res: GeneratedMove<WorldId>[], move: WorldId, mz: PositionMaterializer, payload: any) {
+function mk_push(player: MinMaxPlayer, type_feature: string, res: GeneratedMove<WorldId>[], w: WorldId, mz: PositionMaterializer, payload: any) {
+
+  let move = mz.inc_add_move(w)
+  if (res.find(_ => _.move === move)) {
+    return
+  }
         res.push({
-          move: mz.inc_add_move(move),
+          move,
           featureContributions: [{
             feature: type_feature,
             delta: 0,

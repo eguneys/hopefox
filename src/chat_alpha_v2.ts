@@ -84,7 +84,7 @@ export function alphaBeta<TMove, Context>(
     };
   }
 
-  const movesAndFeatures = state.generateMovesWithIntentions(isMaximizing)
+  let movesAndFeatures = state.generateMovesWithIntentions(isMaximizing)
 
   if (movesAndFeatures.length === 0) {
     const value = state.evaluate(isMaximizing);
@@ -107,6 +107,9 @@ export function alphaBeta<TMove, Context>(
   if (isMaximizing) {
     let value = -Infinity;
 
+    if (depth === 5) {
+      //movesAndFeatures = movesAndFeatures.slice(0, 1)
+    }
     for (const m of movesAndFeatures) {
 
       let currentChild: MoveDelta<TMove> | undefined
@@ -125,7 +128,7 @@ export function alphaBeta<TMove, Context>(
         featureTable,
         onNode
       );
-      result.value = -result.value
+      //result.value = -result.value
 
 
       //console.log(result.value, state.print_history())
@@ -222,7 +225,7 @@ export function alphaBeta<TMove, Context>(
         featureTable,
         onNode
       );
-      result.value = -result.value
+      //result.value = -result.value
 
 
       //console.log(result.value, state.print_history())
