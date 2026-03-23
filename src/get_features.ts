@@ -18,6 +18,7 @@ export type MZ_Typed_Forks = {
     queen_captures_queen: { from: Square, to: Square }[]
     rook_captures_queen: { from: Square, to: Square }[]
     bishop_captures_queen: { from: Square, to: Square }[]
+    bishop_captures_rook: { from: Square, to: Square }[]
     pawn_captures_bishop: { from: Square, to: Square }[]
 }
 
@@ -295,6 +296,17 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
     }
 
 
+    let bishop_captures_rook: { from: Square, to: Square }[] = []
+    for (let r2 of mz_forks.opponent_rooks) {
+        for (let r of turn_bishop_attack) {
+            if (r2.from === r.to) {
+                bishop_captures_rook.push(r)
+            }
+        }
+    }
+
+
+
     let bishop_captures_queen: { from: Square, to: Square }[] = []
     for (let r2 of mz_forks.opponent_queens) {
         for (let r of turn_bishop_attack) {
@@ -364,6 +376,7 @@ export function mz_typed_forks(mz_views: MZ_Views, mz_forks: MZ_Forks): MZ_Typed
         rook_attacks_queen,
         rook_captures_rook,
         rook_captures_queen,
+        bishop_captures_rook,
         bishop_captures_queen,
         rook_takes_knight,
         queen_captures_queen,

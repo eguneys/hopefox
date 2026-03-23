@@ -11,17 +11,29 @@ export const hooks: AlphaChatStateHooks = {
 
     if(ctx.find_intentions(opponent, 'mate').next().value) {
 
+      //console.log('opponent', opponent)
       return - 5000
     }
 
 
     let q_m = ctx.find_intentions(player, 'mate').next().value
     if (q_m) {
+      //console.log('player', player)
       return 5000
     }
 
     if (ctx.find_intentions(opponent, 'bishop_forks_king_and_rook_dd').next().value) {
       return 9
+    }
+
+    if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
+      return 5
+    }
+
+
+
+    if (ctx.find_intentions(opponent, 'bishop_captures_rook').next().value) {
+      return -5
     }
 
 
@@ -108,6 +120,12 @@ export const hooks: AlphaChatStateHooks = {
         push('bishop_captures_queen', r_r, move)
       }
 
+      for (let r_r of mzt.bishop_captures_rook) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('bishop_captures_rook', r_r, move)
+      }
+
 
 
       for (let r_r of mzt.queen_captures_queen) {
@@ -167,7 +185,6 @@ export const hooks: AlphaChatStateHooks = {
       if (!legals.includes(move)) continue
 
       push('mate', q_m, move)
-      debugger
     }
 
 

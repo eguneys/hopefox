@@ -32,6 +32,7 @@ export interface GameState<TMove, Context> {
   cloneContext(): Context;
   getContext(): Context;
   diffContext(a: Context, b: Context): Omit<ContextDelta, 'features'>
+  print_history(): void;
 }
 
 export type FeatureStats = {

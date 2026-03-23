@@ -79,6 +79,26 @@ export class PositionMaterializer {
     }
 
 
+    inc_sans() {
+        let res = this.nodes.history_moves(this.incremented_to_world)
+
+        let tmp = []
+
+        while (this.incremented_to_world > 0) {
+            tmp.unshift(this.incremented_to_world)
+            this.inc_unmake_world(this.incremented_to_world)
+        }
+
+        let res2 = san_moves_c(this.m, this.pos, res)
+
+        for (let i = 0; i < tmp.length; i++) {
+            this.inc_make_world(tmp[i])
+        }
+
+        return res2
+    }
+
+
     pos_occupied(world_id: WorldId) {
         this.make_to_world(world_id)
         let res = this.m.pos_occupied(this.pos)
@@ -103,9 +123,11 @@ export class PositionMaterializer {
     }
 
     sans(world_id: WorldId) {
-
         let res = this.nodes.history_moves(world_id)
+
         let res2 = san_moves_c(this.m, this.pos, res)
+
+
         return res2
     }
 }

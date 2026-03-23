@@ -128,6 +128,7 @@ export function alphaBeta<TMove, Context>(
       result.value = -result.value
 
 
+      //console.log(result.value, state.print_history())
       state.unmakeMove(move);
       state.undoIntentionDelta(m.intentionDelta)
 
@@ -224,6 +225,7 @@ export function alphaBeta<TMove, Context>(
       result.value = -result.value
 
 
+      //console.log(result.value, state.print_history())
       state.unmakeMove(move);
       state.undoIntentionDelta(m.intentionDelta)
 
@@ -379,18 +381,9 @@ export function exampleUsage<Context>(
   const topK = result.moveDeltas?.sort((a, b) => b.value - a.value).slice(0, k)
 
   //console.log(1, mz.last_san(1))
-  /*
-  console.log(1, mz.last_san(1))
-  console.log(2, mz.last_san(2))
-  console.log(3, mz.last_san(3))
-  console.log(4, mz.last_san(4))
-  console.log(5, mz.last_san(5))
-  console.log(6, mz.last_san(6))
-  console.log(7, mz.last_san(7))
-  console.log(8, mz.last_san(8))
-  console.log(9, mz.last_san(9))
-  */
-
+  for (let i = 0; i < 38; i++) {
+    //console.log(i, mz.last_san(i))
+  }
 
   const evalRes = evaluatePrediction(result_pv, solution);
 

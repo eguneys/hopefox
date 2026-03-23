@@ -16,6 +16,10 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
 
     constructor(readonly mz: PositionMaterializer, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {}
 
+    print_history() {
+        return this.mz.inc_sans()
+    }
+
     undoIntentionDelta(delta: ContextDelta): void {
         this.ctx.undoIntentionDelta(delta)
     }
