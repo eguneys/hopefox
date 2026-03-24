@@ -33,7 +33,7 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
         return 0.2
     }
     get_max_nodes_per_move() {
-        return 3
+        return 2
     }
 
 
