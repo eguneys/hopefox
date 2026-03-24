@@ -55,10 +55,16 @@ export const hooks: AlphaChatStateHooks = {
       return 3
     }
     if (ctx.find_intentions(opponent, 'rook_captures_bishop').next().value) {
+      if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
+        return 2
+      }
       return -3
     }
 
 
+    if (ctx.find_intentions(opponent, 'king_captures_rook').next().value) {
+      return -5
+    }
 
     if (
       ctx.find_intentions(opponent, 'bishop_captures_rook').next().value &&
@@ -87,6 +93,10 @@ export const hooks: AlphaChatStateHooks = {
     if (ctx.find_intentions(player, 'pawn_captures_rook').next().value) {
       return 5
     }
+    if (ctx.find_intentions(opponent, 'pawn_captures_rook').next().value) {
+      return -5
+    }
+
 
 
 
@@ -244,11 +254,26 @@ export const hooks: AlphaChatStateHooks = {
         push('discovered_check', d_c, move)
       }
 
+      for (let d_c of mzt.king_captures_rook) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('king_captures_rook', d_c, move)
+      }
+
+
+
       for (let d_c of mzt.king_evades_check) {
         let move = make_move_from_to(d_c.from, d_c.to)
         if (!legals.includes(move)) continue
         push('king_evades_check', d_c, move)
       }
+
+      for (let d_c of mzt.queen_evades_attack) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('queen_evades_attack', d_c, move)
+      }
+
 
 
 
@@ -445,7 +470,7 @@ function mk_push(player: MinMaxPlayer, type_feature: string, res: GeneratedMove<
 
   let move = mz.inc_add_move(w)
   if (res.find(_ => _.move === move)) {
-    return
+    //return
   }
         res.push({
           move,
