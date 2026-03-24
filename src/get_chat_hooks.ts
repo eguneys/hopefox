@@ -43,6 +43,9 @@ export const hooks: AlphaChatStateHooks = {
     }
 
 
+    if (mz.inc_sans()[0]=== 'Bxg1+') {
+      debugger
+    }
 
     if (ctx.find_intentions(player, 'rook_captures_queen').next().value) {
       return 9
@@ -56,10 +59,25 @@ export const hooks: AlphaChatStateHooks = {
     }
     if (ctx.find_intentions(opponent, 'rook_captures_bishop').next().value) {
       if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
-        return 2
+
+        if (ctx.find_intentions(opponent, 'queen_evades_attack').next().value) {
+          return 1
+        }
+
+        return 2.1
       }
       return -3
     }
+
+
+    if (ctx.find_intentions(opponent, 'bishop_captures_queen').next().value) {
+      return -9
+    }
+    if (ctx.find_intentions(player, 'bishop_captures_queen').next().value) {
+      return 9
+    }
+
+
 
 
     if (ctx.find_intentions(opponent, 'king_captures_rook').next().value) {
@@ -84,11 +102,6 @@ export const hooks: AlphaChatStateHooks = {
     }
 
 
-
-
-    if (ctx.find_intentions(opponent, 'bishop_captures_queen').next().value) {
-      return -9
-    }
 
     if (ctx.find_intentions(player, 'pawn_captures_rook').next().value) {
       return 5
@@ -174,6 +187,13 @@ export const hooks: AlphaChatStateHooks = {
         }
       }
 
+      for (let r_r of mzt.bishop_captures_hanging_pawn) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('bishop_captures_hanging_pawn', r_r, move)
+      }
+
+
       for (let r_r of mzt.bishop_captures_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)
         if (!legals.includes(move)) continue
@@ -258,6 +278,12 @@ export const hooks: AlphaChatStateHooks = {
         let move = make_move_from_to(d_c.from, d_c.to)
         if (!legals.includes(move)) continue
         push('king_captures_rook', d_c, move)
+      }
+
+      for (let d_c of mzt.queen_captures_bishop) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('queen_captures_bishop', d_c, move)
       }
 
 

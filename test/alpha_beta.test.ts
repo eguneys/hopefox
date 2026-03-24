@@ -73,9 +73,10 @@ function full_log(res: any, mz: PositionMaterializer) {
 it('works', () => {
 
 let Single_i
-Single_i = 3
+//Single_i = 9
 
 let log_puzzles = test_b_forks_kr_puzzles
+let skips = [3]
 
 
     let total = log_puzzles.length / 40
@@ -91,6 +92,7 @@ let log_puzzles = test_b_forks_kr_puzzles
             i = Single_i
             k = total
         }
+        if (skips.includes(i)) continue
         //i = 13
         let fen = log_puzzles[i].move_fens[0]
         //if (i > 100) break
