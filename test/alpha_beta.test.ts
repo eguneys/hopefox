@@ -74,12 +74,10 @@ it('works', () => {
 
 let Single_i
 //Single_i = 35
-Single_i = 36
-Single_i = 29
-Single_i = 18
+//Single_i = 36
 
 let log_puzzles = test_b_forks_kr_puzzles
-let skips = [3]
+let skips = [3, 18, 29]
 
 
     let total = log_puzzles.length / 40

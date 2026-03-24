@@ -238,6 +238,13 @@ export const hooks: AlphaChatStateHooks = {
       }
 
 
+      for (let r_r of mzt.bishop_attack_queen) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('bishop_attack_queen', r_r, move)
+      }
+
+
 
       for (let r_r of mzt.bishop_captures_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)
