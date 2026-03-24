@@ -43,7 +43,7 @@ export const hooks: AlphaChatStateHooks = {
     }
 
 
-    if (mz.inc_sans()[0]=== 'Bxg1+') {
+    if (mz.inc_sans()[2]=== 'Bxf8') {
       debugger
     }
 
@@ -70,6 +70,11 @@ export const hooks: AlphaChatStateHooks = {
     }
 
     if (ctx.find_intentions(opponent, 'bishop_captures_hanging_bishop').next().value) {
+      if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
+        return 2
+      }
+
+
       if (ctx.find_intentions(player, 'rook_takes_knight').next().value) {
         return .1
       }
@@ -93,8 +98,6 @@ export const hooks: AlphaChatStateHooks = {
     if (ctx.find_intentions(player, 'bishop_captures_queen').next().value) {
       return 9
     }
-
-
 
 
     if (ctx.find_intentions(opponent, 'king_captures_rook').next().value) {
@@ -131,13 +134,25 @@ export const hooks: AlphaChatStateHooks = {
 
 
     if (ctx.find_intentions(opponent, 'rook_takes_knight').next().value) {
+      if (ctx.find_intentions(player, 'pawn_captures_knight').next().value) {
+        return 0.3
+
+      }
       return -3
     }
+
+    if(ctx.find_intentions(player, 'queen_captures_hanging_rook').next().value) {
+      return 5.7
+    }
+
 
 
     if(ctx.find_intentions(opponent, 'queen_captures_queen').next().value) {
 
       if (ctx.find_intentions(player, 'rook_captures_queen').next().value) {
+        return 0
+      }
+      if (ctx.find_intentions(player, 'pawn_captures_queen').next().value) {
         return 0
       }
       return - 10
@@ -236,6 +251,27 @@ export const hooks: AlphaChatStateHooks = {
         push('bishop_captures_rook', r_r, move)
       }
 
+      for (let r_r of mzt.queen_takes_knight) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('queen_takes_knight', r_r, move)
+      }
+
+
+
+      for (let r_r of mzt.queen_captures_hanging_rook) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+
+
+        let mz_fu = mz_future(mz, { from: r_r.from, to: r_r.to })
+        if (mz_fu.mate) {
+          push('mate', r_r, move)
+        } else {
+          push('queen_captures_hanging_rook', r_r, move)
+        }
+      }
+
 
 
       for (let r_r of mzt.queen_captures_queen) {
@@ -297,6 +333,12 @@ export const hooks: AlphaChatStateHooks = {
         push('pawn_captures_bishop', r_r, move)
       }
 
+      for (let r_r of mzt.pawn_captures_queen) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('pawn_captures_queen', r_r, move)
+      }
+
 
       for (let r_r of mzt.pawn_captures_rook) {
         let move = make_move_from_to(r_r.from, r_r.to)
@@ -341,6 +383,13 @@ export const hooks: AlphaChatStateHooks = {
         if (!legals.includes(move)) continue
         push('queen_captures_bishop', d_c, move)
       }
+
+      for (let d_c of mzt.queen_captures_pin_defended_pawn) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('queen_captures_pin_defended_pawn', d_c, move)
+      }
+
 
 
 
