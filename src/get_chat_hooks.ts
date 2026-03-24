@@ -69,6 +69,23 @@ export const hooks: AlphaChatStateHooks = {
       return -3
     }
 
+    if (ctx.find_intentions(opponent, 'bishop_captures_hanging_bishop').next().value) {
+      if (ctx.find_intentions(player, 'rook_takes_knight').next().value) {
+        return .1
+      }
+
+      return -4
+    }
+    if (ctx.find_intentions(player, 'bishop_captures_hanging_bishop').next().value) {
+      if (ctx.find_intentions(opponent, 'rook_takes_knight').next().value) {
+        return .1
+      }
+
+
+      return 4
+    }
+
+
 
     if (ctx.find_intentions(opponent, 'bishop_captures_queen').next().value) {
       return -9
@@ -193,6 +210,19 @@ export const hooks: AlphaChatStateHooks = {
         push('bishop_captures_hanging_pawn', r_r, move)
       }
 
+      for (let r_r of mzt.bishop_captures_hanging_knight) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('bishop_captures_hanging_knight', r_r, move)
+      }
+
+      for (let r_r of mzt.bishop_captures_hanging_bishop) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('bishop_captures_hanging_bishop', r_r, move)
+      }
+
+
 
       for (let r_r of mzt.bishop_captures_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)
@@ -239,6 +269,12 @@ export const hooks: AlphaChatStateHooks = {
         push('rook_captures_rook', r_r, move)
       }
 
+      for (let r_r of mzt.knight_captures_bishop) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+        push('knight_captures_bishop', r_r, move)
+      }
+
 
       for (let r_r of mzt.knight_captures_queen) {
         let move = make_move_from_to(r_r.from, r_r.to)
@@ -273,6 +309,26 @@ export const hooks: AlphaChatStateHooks = {
         if (!legals.includes(move)) continue
         push('discovered_check', d_c, move)
       }
+
+      for (let r_r of mzt.uncapturable_knight_check) {
+        let move = make_move_from_to(r_r.from, r_r.to)
+        if (!legals.includes(move)) continue
+
+        let mz_fu = mz_future(mz, { from: r_r.from, to: r_r.to })
+        if (mz_fu.mate) {
+          push('mate', r_r, move)
+        } else {
+          push('check', r_r, move)
+        }
+      }
+
+      for (let d_c of mzt.king_captures_bishop) {
+        let move = make_move_from_to(d_c.from, d_c.to)
+        if (!legals.includes(move)) continue
+        push('king_captures_bishop', d_c, move)
+      }
+
+
 
       for (let d_c of mzt.king_captures_rook) {
         let move = make_move_from_to(d_c.from, d_c.to)

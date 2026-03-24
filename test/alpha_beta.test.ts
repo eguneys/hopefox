@@ -73,7 +73,7 @@ function full_log(res: any, mz: PositionMaterializer) {
 it('works', () => {
 
 let Single_i
-//Single_i = 9
+Single_i = 33
 
 let log_puzzles = test_b_forks_kr_puzzles
 let skips = [3]
