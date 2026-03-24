@@ -68,21 +68,23 @@ function full_log(res: any, mz: PositionMaterializer) {
     if (topK) {
         //printMultiPVReports(mz, topK)
     }
+    printNode(mz, [rootPV])
     printNode(mz, topK)
 }
 
 it('works', () => {
 
 let Single_i
-Single_i = 4
-//Single_i = 36
+Single_i = 11
+Single_i = 10
+Single_i = 5
 
 let log_puzzles = test_b_forks_kr_puzzles
 let skips = [3, 18, 29]
 
 
     let total = log_puzzles.length / 40
-    total = 5
+    total = 100
 
     let Tp = []
     let Fp = []
@@ -125,10 +127,12 @@ let skips = [3, 18, 29]
     }
 
     let N = Tn.length + Fn.length
-    let TpFp = Tp.length + Fp.length  + 1
-    let Total = TpFp + N + 1
-    let C_percent = Math.round(TpFp / Total * 100)
-    let A_percent = Math.round(Tp.length / TpFp * 100)
+    let TpFp = Tp.length + Fp.length
+    let Total = TpFp + N
+    let C_percent: any = Math.round(TpFp / Total * 100)
+    let A_percent: any = Math.round(Tp.length / TpFp * 100)
+    if (isNaN(C_percent)) C_percent = '--'
+    if (isNaN(A_percent)) A_percent = '--'
     console.log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     console.log(`Tp/Fp: ${Tp.length}/${Fp.length} N: ${N}`)
     console.log('-----******----')

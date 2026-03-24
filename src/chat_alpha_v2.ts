@@ -253,7 +253,8 @@ export function alphaBeta<TMove, Context>(
 
       const cost = computeCost(result.metrics)
 
-      const adjustedValue = result.value - LAMBDA * cost;
+      //const adjustedValue = result.value - LAMBDA * cost;
+      const adjustedValue = result.value - LAMBDA * cost / depth
 
 
 
@@ -1017,6 +1018,7 @@ export function printNode(
       `${prefix}${mz.last_san(md.move)} ` +
       `val:${md.value.toFixed(2)} ` +
       `adj:${md.adjustedValue.toFixed(2)} ` +
+      `cost:${md.cost.toFixed(2)} ` +
       `nodes:${md.metrics.nodes}${star} ` +
       'feat:' + shortFeatures(md.featureContributions)
     );
