@@ -1,4 +1,12 @@
-// @ts-nocheck
+export type NodeMetrics = {
+  nodes: number
+  leafNodes: number
+  cutoffs: number
+
+  branching: number
+}
+
+
 export type NodeHook<TMove> = (info: {
   depth: number;
   alpha: number;
@@ -22,6 +30,7 @@ export type Pv = string
  * Interface for the game state to ensure it supports backtracking.
  */
 export interface GameState<TMove, Context> {
+  get_lambda(): number
   generateMovesWithIntentions(isMaxizing: boolean): GeneratedMove<TMove>[];
   undoIntentionDelta(delta: ContextDelta): void;
   applyIntentionDelta(delta: ContextDelta): void;
@@ -97,6 +106,10 @@ export type MoveDelta<TMove> = {
     isPV: boolean; // part of principal variation
     causedCutoff: boolean
     child?: MoveDelta<TMove> // link to next move in PV
+
+    metrics: NodeMetrics
+    cost: number
+    adjustedValue: number
   };
 
 export type SearchResult<TMove> = {
@@ -106,141 +119,7 @@ export type SearchResult<TMove> = {
 
 
   moveDeltas?: Array<MoveDelta<TMove>>;
+
+
+  metrics: NodeMetrics
 };
-
-export function alphaBeta<TMove, Context>(
-  state: GameState<TMove, Context>,
-  depth: number,
-  alpha: number,
-  beta: number,
-  isMaximizing: boolean,
-  onNode?: NodeHook<TMove>
-): SearchResult<TMove> {
-  // 1. Base Case
-  if (depth === 0 || state.isGameOver()) {
-    let res = {
-      value: state.evaluate(),
-      bestMove: null,
-      isCutoff: false,
-    };
-
-    onNode?.({
-        depth, alpha, beta, value: res.value
-    })
-
-    return res
-  }
-
-  const moves = state.getPossibleMoves(isMaximizing);
-
-  if (moves.length === 0) {
-    let res= {
-      value: state.evaluate(),
-      bestMove: null,
-      isCutoff: false,
-    };
-
-    onNode?.({
-        depth, alpha, beta, value: res.value
-    })
-
-    return res
-  }
-
-  let bestChild: MoveDelta<TMove> | undefined;
-  let moveDeltas: MoveDelta<TMove>[] = []
-  let bestMove: TMove | null = null;
-  let isCutoff = false;
-
-  if (isMaximizing) {
-    let value = -Infinity;
-
-    for (const move of moves) {
-
-      const ctxBefore = state.cloneContext();
-
-      state.makeMove(move);
-
-      const ctxAfter = state.cloneContext();
-
-      const delta = state.diffContext(ctxBefore, ctxAfter);
-
-      const result = alphaBeta(state, depth - 1, alpha, beta, false);
-
-      state.unmakeMove(move);
-
-      moveDeltas.push({
-        move,
-        delta,
-        value: result.value
-      })
-
-      if (result.value > value) {
-        value = result.value;
-        bestMove = move;
-
-        bestChild = result.moveDeltas?.find(md => md.isPV)
-      }
-
-      alpha = Math.max(alpha, value);
-
-      if (beta <= alpha) {
-        isCutoff = true;
-
-          onNode?.({
-              depth, alpha, beta, value, isCutoff: true, move
-          })
-
-        break;
-      }
-    }
-
-    return { value, bestMove, isCutoff };
-
-  } else {
-    let value = Infinity;
-
-    for (const move of moves) {
-      state.makeMove(move);
-
-      const result = alphaBeta(state, depth - 1, alpha, beta, true);
-
-      state.unmakeMove(move);
-
-      if (result.value < value) {
-        value = result.value;
-        bestMove = move;
-      }
-
-      beta = Math.min(beta, value);
-
-      if (beta <= alpha) {
-        isCutoff = true;
-
-        onNode?.({
-            depth, alpha, beta, value, isCutoff: true, move
-        })
-
-
-        break;
-      }
-    }
-
-    return { value, bestMove, isCutoff };
-  }
-}
-
-
-export function extract_pv<TMove, Context>(rootState: GameState<TMove, Context>, depth: number) {
-    let current = rootState;
-    let pv: TMove[] = [];
-
-    for (let d = 0; d < depth; d++) {
-        const result = alphaBeta(current, depth - d, -Infinity, Infinity, true);
-        if (!result.bestMove) break;
-
-        pv.push(result.bestMove);
-        current.makeMove(result.bestMove);
-    }
-    return pv
-}

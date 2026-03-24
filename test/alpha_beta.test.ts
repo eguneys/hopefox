@@ -1,7 +1,7 @@
 import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
 import { PositionManager, solve } from "../src"
-import { explainMultiPv, printMultiPV, printMultiPVReports } from "../src/chat_alpha_v2"
+import { explainMultiPv, printMultiPV, printMultiPVReports, printNode } from "../src/chat_alpha_v2"
 import { PositionMaterializer } from "../src/pos_materializer"
 
 
@@ -63,17 +63,18 @@ function full_log(res: any, mz: PositionMaterializer) {
 
     //explainDivergence(pv, pv_features, solution)
 
-    console.log(solution)
-    explainMultiPv(rootPV, solution, topK, mz)
+    console.log(`Solution: `, solution)
+    //explainMultiPv(rootPV, solution, topK, mz)
     if (topK) {
-        printMultiPVReports(mz, topK)
+        //printMultiPVReports(mz, topK)
     }
+    printNode(mz, topK)
 }
 
 it('works', () => {
 
 let Single_i
-//Single_i = 35
+Single_i = 4
 //Single_i = 36
 
 let log_puzzles = test_b_forks_kr_puzzles
@@ -81,7 +82,7 @@ let skips = [3, 18, 29]
 
 
     let total = log_puzzles.length / 40
-    total = 100
+    total = 5
 
     let Tp = []
     let Fp = []

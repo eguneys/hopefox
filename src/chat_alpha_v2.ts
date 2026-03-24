@@ -1,28 +1,12 @@
-import { ContextDelta, FeatureContribution, FeatureStats, GameState, MinMaxPlayer, MoveDelta, NodeHook, Pv, SearchResult } from "./chat_alpha";
+import { ContextDelta, FeatureContribution, FeatureStats, GameState, MinMaxPlayer, MoveDelta, NodeHook, NodeMetrics, Pv, SearchResult } from "./chat_alpha";
 import { Position } from "./distill/chess";
 import { Move } from "./distill/types";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
 
-/*
-generateMovesWithIntentions() {
-  const moves = [];
 
-  // detect patterns
-  const forks = detectForks(position);
-
-  for (const fork of forks) {
-    moves.push({
-      move: forkMove,
-      intentionDelta: {
-        add: [{ type: "fork", targets: [...] }]
-      }
-    });
-  }
-
-  return { moves };
-}
-
-*/
+// const LAMBDA = 0.2
+// too high engine becomes lazy
+// too low no effect
 
 export type FeatureTable = Record<string, FeatureStats>;
 
@@ -70,6 +54,8 @@ export function alphaBeta<TMove, Context>(
   onNode?: NodeHook<TMove>
 ): SearchResult<TMove> {
 
+  let LAMBDA = state.get_lambda()
+
   // BASE
   if (depth === 0 || state.isGameOver(isMaximizing)) {
     const value = state.evaluate(isMaximizing);
@@ -81,6 +67,12 @@ export function alphaBeta<TMove, Context>(
       bestMove: null,
       isCutoff: false,
       moveDeltas: [],
+      metrics: {
+        nodes: 1,
+        leafNodes: 1,
+        cutoffs: 0,
+        branching: 0
+      }
     };
   }
 
@@ -96,6 +88,12 @@ export function alphaBeta<TMove, Context>(
       bestMove: null,
       isCutoff: false,
       moveDeltas: [],
+      metrics: {
+        nodes: 1,
+        leafNodes: 1,
+        cutoffs: 0,
+        branching: 0
+      }
     };
   }
 
@@ -104,8 +102,15 @@ export function alphaBeta<TMove, Context>(
   let isCutoff = false;
   const moveDeltas: MoveDelta<TMove>[] = [];
 
+
+  let totalNodes = 1;
+  let totalLeafs = 0;
+  let totalCutoffs = 0;
+
+
   if (isMaximizing) {
-    let value = -Infinity;
+    //let value = -Infinity;
+    let bestAdjustedValue = -Infinity
 
     if (depth === 5) {
       //movesAndFeatures = movesAndFeatures.slice(0, 1)
@@ -130,6 +135,14 @@ export function alphaBeta<TMove, Context>(
       );
       //result.value = -result.value
 
+      totalNodes += result.metrics.nodes
+      totalLeafs += result.metrics.leafNodes
+      totalCutoffs += result.metrics.cutoffs
+
+      const cost = computeCost(result.metrics)
+
+      //const adjustedValue = result.value - LAMBDA * cost
+      const adjustedValue = result.value - LAMBDA * cost / depth;
 
       //console.log(result.value, state.print_history())
       state.unmakeMove(move);
@@ -152,26 +165,33 @@ export function alphaBeta<TMove, Context>(
         depth,
         isPV: false,
         causedCutoff: false,
-        child: currentChild
+        child: currentChild,
+        metrics: result.metrics,
+        adjustedValue,
+        cost
       }
 
       moveDeltas.push(currentMoveDelta);
 
-      if (result.value > value) {
-        value = result.value;
+      //if (result.value > value) {
+      if (adjustedValue > bestAdjustedValue) {
+        //value = result.value;
+        bestAdjustedValue = adjustedValue
         bestMove = move;
         bestChild = result.moveDeltas?.find(md => md.isPV)
       }
 
 
-      alpha = Math.max(alpha, value);
+      //alpha = Math.max(alpha, value);
+      alpha = Math.max(alpha, bestAdjustedValue);
 
       if (beta <= alpha) {
         isCutoff = true;
+        totalCutoffs += 1;
 
         currentMoveDelta.causedCutoff = true;
 
-        onNode?.({ depth, alpha, beta, value, isCutoff: true, move });
+        onNode?.({ depth, alpha, beta, value: bestAdjustedValue, isCutoff: true, move });
 
         break;
       }
@@ -200,10 +220,11 @@ export function alphaBeta<TMove, Context>(
       }
     }
 
-    return { value: value, bestMove, isCutoff, moveDeltas };
+    return { value: bestAdjustedValue, bestMove, isCutoff, moveDeltas, metrics: { nodes: totalNodes, leafNodes: totalLeafs, cutoffs: totalCutoffs, branching: moveDeltas.length } };
 
   } else {
-    let value = Infinity;
+    //let value = Infinity;
+    let bestAdjustedValue = Infinity;
 
     for (const m of movesAndFeatures) {
 
@@ -226,6 +247,14 @@ export function alphaBeta<TMove, Context>(
         onNode
       );
       //result.value = -result.value
+      totalNodes += result.metrics.nodes
+      totalLeafs += result.metrics.leafNodes
+      totalCutoffs += result.metrics.cutoffs
+
+      const cost = computeCost(result.metrics)
+
+      const adjustedValue = result.value - LAMBDA * cost;
+
 
 
       //console.log(result.value, state.print_history())
@@ -248,27 +277,34 @@ export function alphaBeta<TMove, Context>(
         depth,
         isPV: false,
         causedCutoff: false,
-        child: currentChild
+        child: currentChild,
+        metrics: result.metrics,
+        adjustedValue,
+        cost
       }
 
       moveDeltas.push(currentMoveDelta);
 
 
 
-      if (result.value < value) {
-        value = result.value;
+      //if (result.value < value) {
+      if (adjustedValue < bestAdjustedValue) {
+        //value = result.value;
+        bestAdjustedValue = adjustedValue
         bestMove = move;
         bestChild = result.moveDeltas?.find(md => md.isPV)
       }
 
-      beta = Math.min(beta, value);
+      //beta = Math.min(beta, value);
+      beta = Math.min(beta, bestAdjustedValue);
 
       if (beta <= alpha) {
         isCutoff = true;
+        totalCutoffs += 1;
 
         moveDeltas[moveDeltas.length - 1].causedCutoff = true;
 
-        onNode?.({ depth, alpha, beta, value, isCutoff: true, move });
+        onNode?.({ depth, alpha, beta, value: bestAdjustedValue, isCutoff: true, move });
 
         break;
       }
@@ -297,7 +333,7 @@ export function alphaBeta<TMove, Context>(
       }
     }
 
-    return { value: value, bestMove, isCutoff, moveDeltas };
+    return { value: bestAdjustedValue, bestMove, isCutoff, moveDeltas, metrics: { nodes: totalNodes, leafNodes: totalLeafs, cutoffs: totalCutoffs, branching: moveDeltas.length } };
   }
 }
 
@@ -381,7 +417,8 @@ export function exampleUsage<Context>(
   let result_pv = line.map(w => mz.last_san(w))
 
   let k = multiPV
-  const topK = result.moveDeltas?.sort((a, b) => b.value - a.value).slice(0, k)
+  //const topK = result.moveDeltas?.sort((a, b) => b.value - a.value).slice(0, k)
+  const topK = result.moveDeltas?.sort((a, b) => b.adjustedValue - a.adjustedValue).slice(0, k)
 
   //console.log(1, mz.last_san(1))
   for (let i = 0; i < 38; i++) {
@@ -683,7 +720,7 @@ export function explainPVPreference_<TMove>(
 export function printMultiPV(pvLines: MoveDelta<WorldId>[], mz: PositionMaterializer) {
   pvLines.map((pv, i) => {
     let pvLine = extractPV(pv)
-    console.log(`#${i + 1} | Eval: ${pv.value.toFixed(2)} | Line:`, _map_moves_to_sans(mz, pvLine.line))
+    console.log(`#${i + 1} | Eval Adj: ${pv.adjustedValue.toFixed(2)} | Eval: ${pv.value.toFixed(2)} | Line:`, _map_moves_to_sans(mz, pvLine.line))
   })
 }
 
@@ -814,5 +851,179 @@ export function printMultiPVReports(
       report.summary.activeIntentions.map(i => i.type)
     );
     */
+  });
+}
+
+
+
+function focusScore(m: NodeMetrics) {
+  return m.nodes / Math.max(1, m.branching)
+}
+
+function moveFocus<TMove>(m: MoveDelta<TMove>) {
+  return m.metrics.nodes
+}
+
+
+// sort moves by score = evaluation / nodes
+
+// search steering based on cost
+/*
+if (result.metrics.nodes > MAX_NODE_BUDGET_PER_MOVE) {
+  deprioritize move
+}
+*/
+// visualization
+/*
+
+Depth 3:
+  Bf7+ → nodes: 8
+    → child: nodes: 5
+      → child: nodes: 2
+
+  Qd5 → nodes: 3   ← clean line
+*/
+
+/* 
+Move: Bf7+  | value: +1.2 | nodes: 30 | cost: 3.4 | adj: +0.5
+Move: Qd5   | value: +1.0 | nodes: 5  | cost: 1.6 | adj: +0.8  ← chosen
+*/
+
+/* Final Form
+
+Root
+
+├─ Bf7+  val:+1.20 adj:+0.50 nodes:30 ⚠
+│   [fork:+1.2, king_exp:+0.8]
+│  └─ Ke7 val:+0.80 nodes:12
+
+├─ Qd5   val:+1.00 adj:+0.80 nodes:5 ★
+│   [center:+0.7, pressure:+0.5]
+│  └─ Ke7 val:+0.60 nodes:3
+
+└─ Re1   val:+0.40 adj:+0.10 nodes:20
+
+
+*/
+
+function computeCost(m: NodeMetrics): number {
+  //return Math.log(m.nodes + 1)
+
+  // more nodes -> worse
+  // wider branching -> worse
+  // more cutoffs -> better (good pruning)
+  return (
+    Math.log(m.nodes + 1) + 0.5 * m.branching - 0.3 * m.cutoffs
+  )
+}
+
+
+/*
+
+for (const m of moves) {
+  const localBudget = { remaining: MAX_NODES_PER_MOVE };
+
+  const result = alphaBeta(..., localBudget);
+}
+*/
+
+/*
+
+depth = 1 → evaluate
+depth = 2 → refine
+depth = 3 → refine further
+
+*/
+
+
+
+
+
+
+function printTree<TMove>(
+  node: MoveDelta<TMove>,
+  indent = "",
+  isLast = true,
+  isRoot = false
+) {
+  const prefix = isRoot
+    ? ""
+    : indent + (isLast ? "└─ " : "├─ ");
+
+  const nextIndent = indent + (isLast ? "   " : "│  ");
+
+  const star = node.isPV ? " ★" : "";
+
+  console.log(
+    `${prefix}${node.move} ` +
+    `val:${node.value.toFixed(2)} ` +
+    `adj:${node.adjustedValue.toFixed(2)} ` +
+    `nodes:${node.metrics.nodes}${star}`,
+    shortFeatures(node.featureContributions)
+  );
+
+  if (node.child) {
+    printTree(node.child, nextIndent, true);
+  }
+
+  /*
+  if (node.children) {
+    node.children.forEach((child, i) => {
+      printTree(child, nextIndent, i === node.children.length - 1);
+    });
+  }
+    */
+}
+
+function shortFeatures(f: FeatureContribution[]) {
+  return f
+    .sort((a,b)=>Math.abs(b.weighted)-Math.abs(a.weighted))
+    .slice(0,2)
+    .map(f => `${f.feature}:${f.weighted.toFixed(1)}`)
+    .join(", ");
+}
+
+/*
+
+★ = chosen PV
+! = cutoff happened
+⚠ = high cost node
+
+:example
+Bf7+ val:+1.2 nodes:30 ⚠
+Qd5  val:+1.0 nodes:5  ★
+*/
+
+
+export function printNode(
+  mz: PositionMaterializer,
+  moveDeltas: MoveDelta<WorldId>[],
+  indent = "",
+  isRoot = true
+) {
+  const sorted = [...moveDeltas].sort((a, b) => b.value - a.value);
+
+  sorted.forEach((md, i) => {
+    const isLast = i === sorted.length - 1;
+    const prefix = isRoot
+      ? ""
+      : indent + (isLast ? "└─ " : "├─ ");
+
+    const nextIndent = indent + (isLast ? "   " : "│  ");
+
+    const star = md.isPV ? " ★" : "";
+
+    console.log(
+      `${prefix}${mz.last_san(md.move)} ` +
+      `val:${md.value.toFixed(2)} ` +
+      `adj:${md.adjustedValue.toFixed(2)} ` +
+      `nodes:${md.metrics.nodes}${star} ` +
+      'feat:' + shortFeatures(md.featureContributions)
+    );
+
+    // recurse into THIS move's subtree
+    if (md.child) {
+      printNode(mz, [md.child], nextIndent, false);
+    }
   });
 }
