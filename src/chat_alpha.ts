@@ -31,6 +31,7 @@ export type Pv = string
  */
 export interface GameState<TMove, Context> {
   get_lambda(): number
+  get_max_nodes_per_move(): number
   generateMovesWithIntentions(isMaxizing: boolean): GeneratedMove<TMove>[];
   undoIntentionDelta(delta: ContextDelta): void;
   applyIntentionDelta(delta: ContextDelta): void;

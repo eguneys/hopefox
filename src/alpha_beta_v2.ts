@@ -32,6 +32,11 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
     get_lambda() {
         return 0.2
     }
+    get_max_nodes_per_move() {
+        return 3
+    }
+
+
 
     print_history() {
         return this.mz.inc_sans()

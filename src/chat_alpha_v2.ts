@@ -51,10 +51,32 @@ export function alphaBeta<TMove, Context>(
   beta: number,
   isMaximizing: boolean,
   featureTable: FeatureTable,
+  budget: { remaining: number },
   onNode?: NodeHook<TMove>
+
 ): SearchResult<TMove> {
 
+  if (budget.remaining-- <= 0) {
+    const value = state.evaluate(isMaximizing);
+
+    onNode?.({ depth, alpha, beta, value });
+
+    return {
+      value,
+      bestMove: null,
+      isCutoff: false,
+      moveDeltas: [],
+      metrics: {
+        nodes: 1,
+        leafNodes: 1,
+        cutoffs: 0,
+        branching: 0
+      }
+    };
+  }
+
   let LAMBDA = state.get_lambda()
+  let max_nodes_per_move = state.get_max_nodes_per_move()
 
   // BASE
   if (depth === 0 || state.isGameOver(isMaximizing)) {
@@ -117,6 +139,7 @@ export function alphaBeta<TMove, Context>(
     }
     for (const m of movesAndFeatures) {
 
+      const localBudget = { remaining: Math.min(max_nodes_per_move, budget.remaining) }
       let currentChild: MoveDelta<TMove> | undefined
 
       let { move } = m
@@ -131,6 +154,7 @@ export function alphaBeta<TMove, Context>(
         beta,
         false,
         featureTable,
+        localBudget,
         onNode
       );
       //result.value = -result.value
@@ -233,6 +257,7 @@ export function alphaBeta<TMove, Context>(
     let bestAdjustedValue = Infinity;
 
     for (const m of movesAndFeatures) {
+      const localBudget = { remaining: Math.min(max_nodes_per_move, budget.remaining) }
 
       let currentChild: MoveDelta<TMove> | undefined
 
@@ -250,6 +275,7 @@ export function alphaBeta<TMove, Context>(
         beta,
         true,
         featureTable,
+        localBudget,
         onNode
       );
       //result.value = -result.value
@@ -395,7 +421,8 @@ export function exampleUsage<Context>(
     -Infinity,
     Infinity,
     true,
-    featureTable
+    featureTable,
+    { remaining: state.get_max_nodes_per_move() }
   );
 
   const report = analyzeFeatures(featureTable);
@@ -1033,8 +1060,8 @@ export function printNode(
       `adj:${md.adjustedValue.toFixed(2)} ` +
       `cost:${md.cost.toFixed(2)} ` +
       `brch:${md.metrics.branching} ` + 
-      `leaf:${md.metrics.leafNodes} ` + 
-      `cut:${md.metrics.cutoffs} ` + 
+      //`leaf:${md.metrics.leafNodes} ` + 
+      //`cut:${md.metrics.cutoffs} ` + 
       `node:${md.metrics.nodes}${star} ` +
       'feat:' + shortFeatures(md.featureContributions)
     );
