@@ -3,6 +3,7 @@ import { exampleUsage } from "./chat_alpha_v2";
 import { MoveC, PositionC, PositionManager } from "./distill/hopefox_c";
 import { PositionMaterializer, WorldId } from "./pos_materializer";
 import * as Get_Chat_Hooks from './get_chat_hooks'
+import { explainLine, printLineExplanation } from "./explain_line";
 
 export class ChessChatGameState implements GameState<WorldId, AlphaChatStateContext> {
 
@@ -12,6 +13,18 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
         return exampleUsage(mz, state, depth, solution, multiPV)
     }
 
+    static explain_sans = (mz: PositionMaterializer, depth: number, hooks: AlphaChatStateHooks, ctx: AlphaChatStateContext, sans: SAN[]) => {
+        let state = new ChessChatGameState(mz, hooks, ctx)
+
+        let line = mz.add_sans_get_line(sans)
+
+        let res = explainLine(state, line, depth)
+
+        while (mz.incremented_to_world > 0) {
+            mz.inc_unmake_world(mz.incremented_to_world)
+        }
+        printLineExplanation(mz, res)
+    }
 
 
     constructor(readonly mz: PositionMaterializer, readonly hooks: AlphaChatStateHooks, readonly ctx: AlphaChatStateContext) {}
@@ -22,6 +35,10 @@ export class ChessChatGameState implements GameState<WorldId, AlphaChatStateCont
 
     print_history() {
         return this.mz.inc_sans()
+    }
+
+    get_san_move(world_id: WorldId): SAN {
+        return this.mz.last_san(world_id)
     }
 
     undoIntentionDelta(delta: ContextDelta): void {
@@ -171,3 +188,8 @@ export function solve(mz: PositionMaterializer, solution: SAN[], multiPV: number
     return ChessChatGameState.alpha_beta_summary(mz, 5, hooks, ctx, solution, multiPV)
 }
 
+export function explain_line(mz: PositionMaterializer, line: SAN[]) {
+    const ctx = new MyAlphaChatStateContext(new Map())
+    let { hooks } = Get_Chat_Hooks
+    ChessChatGameState.explain_sans(mz, 5, hooks, ctx, line)
+}

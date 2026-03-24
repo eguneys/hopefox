@@ -1,6 +1,6 @@
 import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
-import { PositionManager, solve } from "../src"
+import { explain_line, PositionManager, solve } from "../src"
 import { explainMultiPv, printMultiPV, printMultiPVReports, printNode } from "../src/chat_alpha_v2"
 import { PositionMaterializer } from "../src/pos_materializer"
 
@@ -70,6 +70,7 @@ function full_log(res: any, mz: PositionMaterializer) {
     }
     printNode(mz, [rootPV])
     printNode(mz, topK)
+
 }
 
 it('works', () => {
@@ -79,8 +80,21 @@ Single_i = 11
 Single_i = 10
 Single_i = 5
 
+let _explain_line: any
+//_explain_line = ['Qd4', 'Nxd4']
+
+
 let log_puzzles = test_b_forks_kr_puzzles
 let skips = [3, 18, 29]
+
+
+    if (_explain_line && Single_i) {
+        let pos = m.create_position(log_puzzles[Single_i].move_fens[0])
+        let mz = new PositionMaterializer(m, pos)
+        explain_line(mz, _explain_line)
+        return
+    }
+
 
 
     let total = log_puzzles.length / 40

@@ -1,6 +1,6 @@
 import { Position } from "./distill/chess"
-import { move_c_to_Move, MoveC, PositionC, PositionManager } from "./distill/hopefox_c"
-import { makeSan } from "./distill/san"
+import { make_move_from_to, move_c_to_Move, MoveC, PositionC, PositionManager } from "./distill/hopefox_c"
+import { makeSan, parseSan } from "./distill/san"
 import { Move } from "./distill/types"
 import { NodeId, NodeManager } from "./node_manager"
 
@@ -130,7 +130,34 @@ export class PositionMaterializer {
 
         return res2
     }
+
+
+    add_sans_get_line(sans: SAN[]) {
+        let res2 = moves_c_from_sans(this.m, this.pos, sans)
+
+        let w = 0
+        let line = []
+        for (let i = 0; i < res2.length; i++) {
+            w = this.add_move(w, res2[i])
+            line.push(w)
+        }
+
+        return line
+    }
 }
+
+export function moves_c_from_sans(m: PositionManager, pos: PositionC, sans: SAN[]) {
+    let moves = []
+    let p = m.get_pos_read_fen(pos)
+    for (let i = 0; i < sans.length; i++) {
+        let move = parseSan(p, sans[i])!
+        moves.push(make_move_from_to(move.from, move.to))
+        p.play(move)
+    }
+    return moves
+}
+
+
 
 export function san_moves_c(m: PositionManager, pos: PositionC, moves: MoveC[]) {
     return san_moves(m.get_pos_read_fen(pos), moves.map(m => move_c_to_Move(m)))
