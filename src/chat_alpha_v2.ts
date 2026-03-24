@@ -142,9 +142,15 @@ export function alphaBeta<TMove, Context>(
       const cost = computeCost(result.metrics)
 
       //const adjustedValue = result.value - LAMBDA * cost
-      const adjustedValue = result.value - LAMBDA * cost / depth;
+      //const adjustedValue = result.value - LAMBDA * cost / depth;
+      const adjustedValue = result.value
 
-      //console.log(result.value, state.print_history())
+      if (depth === 5) {
+        //console.log(adjustedValue, state.print_history())
+      }
+
+
+
       state.unmakeMove(move);
       state.undoIntentionDelta(m.intentionDelta)
 
@@ -254,8 +260,12 @@ export function alphaBeta<TMove, Context>(
       const cost = computeCost(result.metrics)
 
       //const adjustedValue = result.value - LAMBDA * cost;
-      const adjustedValue = result.value - LAMBDA * cost / depth
+      //const adjustedValue = result.value - LAMBDA * cost / depth
+      const adjustedValue = result.value
 
+      if (depth === 4) {
+        //console.log(result.value, adjustedValue, alpha, beta, state.print_history())
+      }
 
 
       //console.log(result.value, state.print_history())
@@ -303,6 +313,9 @@ export function alphaBeta<TMove, Context>(
         isCutoff = true;
         totalCutoffs += 1;
 
+        if (depth === 4) {
+        //console.log('cutoff', beta, alpha)
+        }
         moveDeltas[moveDeltas.length - 1].causedCutoff = true;
 
         onNode?.({ depth, alpha, beta, value: bestAdjustedValue, isCutoff: true, move });

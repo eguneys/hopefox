@@ -55,9 +55,13 @@ export const hooks: AlphaChatStateHooks = {
     }
 
     if (ctx.find_intentions(player, 'rook_captures_bishop').next().value) {
-      return 3
+      return 3.2
     }
     if (ctx.find_intentions(opponent, 'rook_captures_bishop').next().value) {
+
+      if (ctx.find_intentions(player, 'pawn_captures_rook').next().value) {
+        return 3
+      }
       if (ctx.find_intentions(player, 'bishop_captures_rook').next().value) {
 
         if (ctx.find_intentions(opponent, 'queen_evades_attack').next().value) {
@@ -66,7 +70,7 @@ export const hooks: AlphaChatStateHooks = {
 
         return 2.1
       }
-      return -3
+      return -3.21
     }
 
     if (ctx.find_intentions(opponent, 'bishop_captures_hanging_bishop').next().value) {
