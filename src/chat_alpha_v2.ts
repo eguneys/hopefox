@@ -142,8 +142,8 @@ export function alphaBeta<TMove, Context>(
       const cost = computeCost(result.metrics)
 
       //const adjustedValue = result.value - LAMBDA * cost
-      //const adjustedValue = result.value - LAMBDA * cost / depth;
-      const adjustedValue = result.value
+      let adjustedValue = result.value
+      //adjustedValue = result.value - LAMBDA * cost / depth;
 
       if (depth === 5) {
         //console.log(adjustedValue, state.print_history())
@@ -260,8 +260,8 @@ export function alphaBeta<TMove, Context>(
       const cost = computeCost(result.metrics)
 
       //const adjustedValue = result.value - LAMBDA * cost;
-      //const adjustedValue = result.value - LAMBDA * cost / depth
-      const adjustedValue = result.value
+      let adjustedValue = result.value
+      //adjustedValue = result.value - LAMBDA * cost / depth
 
       if (depth === 4) {
         //console.log(result.value, adjustedValue, alpha, beta, state.print_history())
@@ -1032,7 +1032,10 @@ export function printNode(
       `val:${md.value.toFixed(2)} ` +
       `adj:${md.adjustedValue.toFixed(2)} ` +
       `cost:${md.cost.toFixed(2)} ` +
-      `nodes:${md.metrics.nodes}${star} ` +
+      `brch:${md.metrics.branching} ` + 
+      `leaf:${md.metrics.leafNodes} ` + 
+      `cut:${md.metrics.cutoffs} ` + 
+      `node:${md.metrics.nodes}${star} ` +
       'feat:' + shortFeatures(md.featureContributions)
     );
 
