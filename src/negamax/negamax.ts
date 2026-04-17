@@ -8,7 +8,7 @@ function negaMax(pv_line: PvLine[], node: Node, ctx: Context, depth: number, alp
 
     let side = (color > 0)
 
-    let moves = generate_moves(ctx, side)
+    let moves = generate_moves(node, ctx, side)
 
 
     if (moves.length === 0) {

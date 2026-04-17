@@ -11,4 +11,5 @@ export * from './distill/squareSet'
 
 //export * from './make_strata'
 //export * from './alpha_beta_v2'
-export * from './negamax/usage'
+//export * from './negamax/usage'
+export * from './negamax/rules'

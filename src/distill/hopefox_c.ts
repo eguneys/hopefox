@@ -143,6 +143,13 @@ function make_move(move: Move, castling?: boolean, en_passant?: boolean): MoveC 
     return type + ((pt - KNIGHT) << 12) + (move.from << 6) + move.to
 }
 
+
+export function make_move_from_to_promotion(from: Square, to: Square, promotion: PieceTypeC) {
+    return PROMOTION + ((promotion - KNIGHT) << 12) + (from << 6) + to;
+}
+
+
+
 export function make_move_from_to(from: Square, to: Square) {
     return NORMAL_MOVE + (from << 6) + to
 }

@@ -9,7 +9,7 @@ export type PvLine = {
 
 export type Context = {
     mz: PositionMaterializer
-}
+} & Record<string, any>
 
 export type FeatureDelta = {
     name: string
