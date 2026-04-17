@@ -172,6 +172,7 @@ export function alphaBeta<TMove, Context>(
       if (depth === 5) {
         //console.log(adjustedValue, state.print_history())
       }
+      //console.log(adjustedValue, state.print_history())
 
 
 

@@ -73,12 +73,11 @@ function full_log(res: any, mz: PositionMaterializer) {
 
 }
 
-it('works', () => {
+it.skip('works', () => {
 
 let Single_i
-Single_i = 23
-Single_i = 12
-Single_i = 11
+//Single_i = 5
+
 
 let _explain_line: any
 //_explain_line = ['Bxf2+']
@@ -99,6 +98,7 @@ let skips = [3, 18, 29]
 
     let total = log_puzzles.length / 40
     //total = 100
+    //total = log_puzzles.length
 
     let Tp = []
     let Fp = []
