@@ -77,6 +77,25 @@ export const checks = (ctx: Context) => (from: string, to: string, king: string)
     return aa
 }
 
+
+export const captures_hanging = (ctx: Context) => (from: string, to: string, hanging_a: string): Map<string, number>[] => {
+    let aa = captures(ctx)(from, to)
+    let bb = hanging(ctx)(to.split('_')[0])
+
+    let res: Map<string, number>[] = []
+    for (let a of aa) {
+        for (let b of bb) {
+            let new_binding = merge_binding(a, b)
+            if (new_binding !== undefined) {
+                res.push(new_binding)
+            }
+        }
+    }
+    return res
+}
+
+
+
 export const attacks_hanging = (ctx: Context) => (from: string, to: string, hanging_a: string): Map<string, number>[] => {
     let aa = from_to2(ctx)(from, to, hanging_a)
     let bb = hanging(ctx)(hanging_a)
@@ -92,6 +111,25 @@ export const attacks_hanging = (ctx: Context) => (from: string, to: string, hang
     }
     return res
 }
+
+
+export const attacks_with_capture = (ctx: Context) => (from: string, to: string, attack_to: string): Map<string, number>[] => {
+    let aa = from_to2(ctx)(from, to, attack_to)
+    let bb = captures(ctx)(from, to)
+
+    let res: Map<string, number>[] = []
+    for (let a of aa) {
+        for (let b of bb) {
+            let new_binding = merge_binding(a, b)
+            if (new_binding !== undefined) {
+                res.push(new_binding)
+            }
+        }
+    }
+    return res
+}
+
+
 
 export const attacks_with_discovered_check = (ctx: Context) => (knight: string, knight2: string, queen: string, rook: string, king: string): Map<string, number>[] => {
 
@@ -362,6 +400,66 @@ export const from_to = (ctx: Context) => (from: string, to: string): Map<string,
     return res
 }
 
+export const from_to2_through = (ctx: Context) => (from: string, to: string, to2: string, to2_through: string): Map<string, number>[] => {
+    let res: Map<string, number>[] = []
+
+    let occupied = ctx.mz.m.pos_occupied(ctx.mz.pos)
+
+    for (let sq of occupied) {
+        let piece_c = ctx.mz.m.get_at(ctx.mz.pos, sq)!
+        let piece = piece_c_to_piece(piece_c)
+
+        if (!role_match(piece.role, from)) {
+            continue
+        }
+
+        let aa = ctx.mz.m.attacks(piece_c, sq, occupied)
+
+        for (let a of aa) {
+            let aa2 = ctx.mz.m.attacks(piece_c, a, occupied.without(sq))
+
+            for (let a2 of aa2) {
+                let piece2_c = ctx.mz.m.get_at(ctx.mz.pos, a2)
+
+                if (piece2_c === undefined) {
+                    continue
+                }
+
+                let piece2 = piece_c_to_piece(piece2_c)
+
+                if (!role_match(piece2.role, to2)) {
+                    continue
+                }
+
+                let aa3 = ctx.mz.m.attacks(piece_c, a, occupied.without(sq).without(a2))
+
+                let aa2_through = aa3.diff(aa2)
+
+                for (let a2_through of aa2_through) {
+                    let piece3_c = ctx.mz.m.get_at(ctx.mz.pos, a2_through)
+
+                    if (piece3_c === undefined) {
+                        continue
+                    }
+
+                    let piece3 = piece_c_to_piece(piece3_c)
+
+                    if (!role_match(piece3.role, to2_through)) {
+                        continue
+                    }
+
+
+
+                    res.push(new Map([[from, sq], [to, a], [to2, a2], [to2_through, a2_through]]))
+                }
+            }
+        }
+    }
+
+    return res
+}
+
+
 
 export const from_to2 = (ctx: Context) => (from: string, to: string, to2: string): Map<string, number>[] => {
     let res: Map<string, number>[] = []
@@ -503,7 +601,6 @@ export const blocks = (ctx: Context) => (from: string, to: string, check: string
             }
 
         }
-        return res
     }
 
 
@@ -615,3 +712,28 @@ export const pawn_push_from_to_attacks = (ctx: Context) => (from: string, to: st
     }
     return res
 }
+
+
+export const defends_hanging = (ctx: Context) => (from: string, to: string, defends: string): Map<string, number>[] => {
+    let aa = from_to2(ctx)(from, to, defends)
+    let bb = hanging(ctx)(defends)
+
+    let res: Map<string, number>[] = []
+    for (let a of aa) {
+        for (let b of bb) {
+            let new_binding = merge_binding(a, b)
+            if (new_binding !== undefined) {
+                res.push(new_binding)
+            }
+        }
+    }
+    return res
+}
+
+
+export const skewers = (ctx: Context) => (from: string, to: string, skewer_a: string, skewer_b: string): Map<string, number>[] => {
+    let aa = from_to2_through(ctx)(from, to, skewer_a, skewer_b)
+    return aa
+}
+
+

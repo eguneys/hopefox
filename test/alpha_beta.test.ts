@@ -1,6 +1,6 @@
 import { it } from "vitest"
 import { test_b_forks_kr_puzzles } from "./fixture"
-import { explain_line, PositionManager, solve } from "../src"
+import { PositionManager } from "../src"
 import { explainMultiPv, printMultiPV, printMultiPVReports, printNode } from "../src/chat_alpha_v2"
 import { PositionMaterializer } from "../src/pos_materializer"
 

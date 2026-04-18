@@ -45,8 +45,8 @@ function if_then(name: BindingName, fields: string[]) {
 
 export function match_rules_all(m: PositionManager, pos: PositionC, rules: string) {
     let res = []
-    for (let rule of rules.split('\n\n')) {
-        let r = match_rules(m, pos, rule)
+    for (let rule of rules.trim().split('\n\n')) {
+        let r = match_rules(m, pos, rule.trim())
         res.push(...r)
     }
     return res
