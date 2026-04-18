@@ -134,7 +134,14 @@ export function match_rules(m: PositionManager, pos: PositionC, rule_a: string) 
 
 
         for (let a of aa) {
+
             let move = make_move_from_to(a.get(from)!, a.get(to)!)
+            if (name.includes('promote')) {
+                let promotion = role_to_c(to.split('_')[to.split('_').length - 1] as Role)
+                move = make_move_from_to_promotion(a.get(from)!, a.get(to)!, promotion)
+            }
+
+
 
             if (!ctx.mz.inc_generate_legal_moves().includes(move)) {
                 continue

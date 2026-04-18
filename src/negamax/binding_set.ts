@@ -5,6 +5,12 @@ import { squareRank } from '../distill/util'
 import { merge_binding } from './binding_util'
 import type { Context } from './types'
 
+export const pawn_push_attacks = (ctx: Context) => (from: string, to: string, attack: string): Map<string, number>[] => {
+    let bb = pawn_push_from_to_attacks(ctx)(from, to, attack)
+
+    return bb
+}
+
 export const pawn_push_promotes = (ctx: Context) => (from: string, to: string): Map<string, number>[] => {
     let aa = pawn_push_from_to_promotes(ctx)(from, to)
 
@@ -565,6 +571,47 @@ export const pawn_push_from_to_promotes = (ctx: Context) => (from: string, to: s
             res.push(new Map([[from, sq], [to, p]]))
         }
 
+    }
+    return res
+}
+
+
+export const pawn_push_from_to_attacks = (ctx: Context) => (from: string, to: string, attack: string): Map<string, number>[] => {
+    let res: Map<string, number>[] = []
+
+
+    let occupied = ctx.mz.m.pos_occupied(ctx.mz.pos)
+
+    for (let sq of occupied) {
+        let piece_c = ctx.mz.m.get_at(ctx.mz.pos, sq)!
+        let piece = piece_c_to_piece(piece_c)
+
+        if (!role_match(piece.role, from)) {
+            continue
+        }
+
+        let pp = ctx.mz.m.pawn_pushes(ctx.mz.pos, sq)
+
+        for (let p of pp) {
+            let aa = ctx.mz.m.attacks(piece_c, p, occupied)
+
+            for (let a of aa) {
+                let piece2_c = ctx.mz.m.get_at(ctx.mz.pos, a)!
+
+                if (piece2_c === undefined) {
+                    continue
+                }
+
+                let piece2 = piece_c_to_piece(piece2_c)
+
+                if (!role_match(piece2.role, attack)) {
+                    continue
+                }
+
+                res.push(new Map([[from, sq], [to, p], [attack, a]]))
+
+            }
+        }
     }
     return res
 }

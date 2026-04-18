@@ -7,6 +7,13 @@ export function merge_binding(a: Map<string, number>, b: Map<string, number>) {
                 return undefined
             }
         }
+        if (c.has(key)) {
+            if (c.get(key) !== value) {
+                return undefined
+            }
+        }
+
+
 
         c.set(key, value)
     }
