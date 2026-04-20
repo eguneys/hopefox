@@ -33,28 +33,28 @@ type FreeCompositeActionCall = {
     params: PieceSymbol[]
 }
 
-type CompositeActionId = number
+export type CompositeActionId = number
 
-type CompositeActionDefinition = {
+export type CompositeActionDefinition = {
     id: CompositeActionId
     params: ActionParameters
     body: (AtomicAction | CompositeAction)[]
     body_binders: ActionBinder[]
 };
 
-type CompositeAction = {
+export type CompositeAction = {
     id: CompositeActionId
     params: ActionParameters
 }
 
-type AtomicAction = {
+export type AtomicAction = {
     id: AtomicActionId
     params: ActionParameters
 }
 
-type ActionParameters = PieceSymbolVariable[]
+export type ActionParameters = PieceSymbolVariable[]
 
-enum AtomicActionId {
+export enum AtomicActionId {
     Move,
     Push,
     Capture,
@@ -62,7 +62,7 @@ enum AtomicActionId {
     Attack_Through,
 };
 
-enum ActionBinder {
+export enum ActionBinder {
     Then,
     And,
     Or
@@ -70,6 +70,9 @@ enum ActionBinder {
 
 type PieceSymbolVariableIdNull = 0
 const PieceSymbolVariableIdNull = 0
+
+type PieceSymbolVariableIdUndefined = -1
+const PieceSymbolVariableIdUndefined = -1
 
 type VariableId = number
 
