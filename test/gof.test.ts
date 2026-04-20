@@ -2,6 +2,9 @@ import fs from 'fs'
 import {it} from 'vitest'
 import { gofchess, PositionManager } from '../src'
 import { test_b_forks_kr_puzzles } from "./fixture"
+//@ts-ignore
+import './hello.gof?raw'
+
 
 let m = await PositionManager.make()
 let log_puzzles = test_b_forks_kr_puzzles

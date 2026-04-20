@@ -186,6 +186,14 @@ function GCapture(
         }
 
         for (let sq of occ) {
+
+            let piece = m.get_at(pos, sq)!
+
+            let piece_type = piece_c_type_of(piece)
+            if (from.piece != piece_type) {
+                continue
+            }
+
             let aa = m.pos_attacks(pos, sq)
 
             let b_to = b.map.get(h_to)

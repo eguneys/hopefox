@@ -1,14 +1,24 @@
 if has_fork(bishop, bishop2, rook, king) then
-  if king_evades(king, king2) then
-    if captures(bishop2, rook_bishop3) then
+ if king_evades(king, king2) then
+   if captures(bishop2, rook_bishop3) then
 
 if has_fork(bishop, bishop2, rook, king) then
 
 if has_fork(queen, queen2, rook, king) then
 
 if blocks_check(knight, knight2, rook, king) then
+ if captures(rook, knight2_rook2) then
+   if captures(pawn, rook2_pawn2) then
+     if checks(queen, queen2, king2) then
+       if captures(queen3, queen2_queen4) then
+         if has_fork(bishop, bishop2, king2, queen4) then
+           if captures(queen4, bishop2_queen5) then
 
 ##
+
+def checks(From, To, King) then
+  move(From, To)
+  attack(To, King)
 
 def blocks_check(From, To, AFrom, ATo)
   attack(AFrom, ATo) and
