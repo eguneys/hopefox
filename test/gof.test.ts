@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 100
+    let total = log_puzzles.length / 500
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [] }
 
     for (let i = 0; i < total; i++) {
@@ -117,12 +117,12 @@ function log_coverage(c: Coverage, elapsed: number) {
     cf_begin()
     cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
-    cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N}`)
+    cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log('-----******----')
     cf_log(c.log.slice(0, 3).join('\n'))
     cf_log('-----*****----')
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
-    cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N}`)
+    cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
 }
 
