@@ -2,6 +2,7 @@ import { squareSet } from "../distill/debug";
 import { make_move_from_to, MoveC, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c";
 import { SquareSet } from "../distill/squareSet";
 import { Square } from "../distill/types";
+import { GofHashTable } from "./gof_compiler";
 import { ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, Gof, PieceSymbol, PieceSymbolVariableIdUndefined } from "./types";
 
 type GApplication = (
@@ -15,12 +16,13 @@ const GApplications: Map<AtomicActionId | CompositeActionId, GApplication> = new
 
 const HashTable: Map<PieceSymbolHash, PieceSymbol> = new Map()
 
-function Clear_table() {
+export function Clear_table() {
     GApplications.clear()
     HashTable.clear()
 }
 
 function Fill_Applications(defs: CompositeActionDefinition[]) {
+    GApplications.set(AtomicActionId.Capture, GCapture)
     GApplications.set(AtomicActionId.Attack, GAttack)
     GApplications.set(AtomicActionId.Move, GMove)
 }
@@ -44,7 +46,7 @@ export type Gofer = (m: PositionManager, pos: PositionC) => SanLine[]
 
 class UnrecognizedGDefinitionException extends Error {
     constructor(id: AtomicActionId | CompositeActionId) {
-        super(`Unrecognized G Definition: ${id}`)
+        super(`Unrecognized G Definition: ${GofHashTable.get(id)}`)
     }
 }
 
@@ -52,12 +54,11 @@ class UnrecognizedGDefinitionException extends Error {
 
 class UnrecognizedGofDefinitionException extends Error {
     constructor(id: CompositeActionId) {
-        super(`Unrecognized Gof Definition: ${id}`)
+        super(`Unrecognized Gof Definition: ${GofHashTable.get(id)}`)
     }
 }
 
 export function gofer(defs: CompositeActionDefinition[], gof: Gof) {
-    Clear_table()
     Fill_Applications(defs)
 
     function apply_g(binding_out: BindingOut, m: PositionManager, pos: PositionC, b: AtomicAction | CompositeAction, d_params: ActionParameters, params: PieceSymbol[]) {
@@ -99,7 +100,7 @@ export function gofer(defs: CompositeActionDefinition[], gof: Gof) {
                 res.push(binding_out)
         }
 
-        return res.map(_ => _.map(_ => history_to_san_line(m, pos, _.history)))
+        return res.flatMap(_ => _.map(_ => history_to_san_line(m, pos, _.history)))
     }
 }
 
@@ -133,6 +134,75 @@ function extract_fields(b_params: ActionParameters, d_params: ActionParameters, 
     }
     return res
 }
+
+
+function GCapture(
+    binding_out: BindingOut,
+    m: PositionManager,
+    pos: PositionC,
+    fields: PieceSymbol[]
+) {
+    let res: BindingOut = []
+
+    assert_length(fields, 3)
+    let [from, to, captured] = fields
+
+    let h_from = piece_symbol_hash(from)
+    let h_to = piece_symbol_hash(to)
+    let h_captured = piece_symbol_hash(captured)
+
+    let from_pieces = [from.piece, from.piece + 8]
+
+
+    for (let b of binding_out) {
+        apply_history(m, pos, b.history)
+
+        let occ = m.get_pieces_bb(pos, from_pieces)
+
+        let legals = m.get_legal_moves(pos)
+
+        let b_from = b.map.get(h_from)
+        if (b_from !== undefined) {
+            occ = SquareSet.fromSquare(b_from)
+        }
+
+        for (let sq of occ) {
+            let aa = m.pos_attacks(pos, sq)
+
+            let b_to = b.map.get(h_to)
+            if (b_to !== undefined) {
+                aa = SquareSet.fromSquare(b_to)
+            }
+
+            let c_to = b.map.get(h_captured)
+            if (c_to !== undefined) {
+                aa = SquareSet.fromSquare(c_to)
+            }
+
+            for (let a of aa) {
+                let piece = m.get_at(pos, a)
+                if (piece === undefined) {
+                    continue
+                }
+
+                let move = make_move_from_to(sq, a)
+                if (!legals.includes(move)) {
+                    continue
+                }
+                let history = [...b.history, move]
+                let map = new Map(b.map)
+                map.set(h_from, sq)
+                map.set(h_to, a)
+                map.set(h_captured, a)
+                res.push({ map, history})
+            }
+        }
+
+        unapply_history(m, pos, b.history)
+    }
+    return res
+}
+
 
 
 function GMove(

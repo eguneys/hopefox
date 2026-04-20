@@ -1,7 +1,14 @@
 import { No_Piece_Type, role_to_c } from "../distill/hopefox_c"
 import { Role, ROLES } from "../distill/types"
 import { composite_name_hash } from "./compiler"
-import { FreeCompositeRing, Gof, PieceSymbolIdNull, PieceSymbolIdUndefined } from "./types"
+import { CompositeActionId, FreeCompositeRing, Gof, PieceSymbolIdNull, PieceSymbolIdUndefined } from "./types"
+
+
+export const GofHashTable: Map<CompositeActionId, string> = new Map()
+
+export function Clear_table() {
+    GofHashTable.clear()
+}
 
 class UnrecognizedPieceIdException extends Error {
     constructor(text: string) {
@@ -69,6 +76,8 @@ function parse_call(text: string) {
 
     let id = composite_name_hash(m[1])
     let params = m[2].split(', ').map(_ => piece_symbol_make(_))
+
+    GofHashTable.set(id, text)
 
     return {
         id,
