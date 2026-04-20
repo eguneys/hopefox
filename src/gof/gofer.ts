@@ -43,6 +43,7 @@ function Fill_Applications(defs: CompositeActionDefinition[]) {
     GApplications.set(AtomicActionId.Capture, GCapture)
     GApplications.set(AtomicActionId.Attack, GAttack)
     GApplications.set(AtomicActionId.Move, GMove)
+    GApplications.set(AtomicActionId.Push, GPush)
     GApplications.set(AtomicActionId.Attack_Through, GAttack_Through)
 }
 
@@ -81,8 +82,6 @@ export function gofer(defs: CompositeActionDefinition[], gof: Gof): Gofer {
     Fill_Applications(defs)
 
     function apply_g(binding_out: BindingOut, m: PositionManager, pos: PositionC, b: AtomicAction | CompositeAction, d_params: ActionParameters, params: PieceSymbol[]) {
-        let unmakes: (() => void)[] = []
-
         let g = GApplications.get(b.id)
 
         if (!g) {
@@ -272,6 +271,63 @@ function GMove(
 
         for (let sq of occ) {
             let aa = m.pos_attacks(pos, sq)
+
+            let b_to = b.map.get(h_to)
+            if (b_to !== undefined) {
+                aa = aa.intersect(SquareSet.fromSquare(b_to))
+            }
+
+            for (let a of aa) {
+                let move = make_move_from_to(sq, a)
+                if (!legals.includes(move)) {
+                    continue
+                }
+                let history = [...b.history, move]
+                let map = new Map(b.map)
+                map.set(h_from, sq)
+                map.set(h_to, a)
+                push_to_binding_out(res, {map, history})
+            }
+        }
+
+        unapply_history(m, pos, b.history)
+    }
+    return res
+}
+
+
+function GPush(
+    binding_out: BindingOut,
+    m: PositionManager,
+    pos: PositionC,
+    fields: PieceSymbol[]
+) {
+    let res: BindingOut = new Set()
+
+    assert_length(fields, 2)
+    let [from, to] = fields
+
+    let h_from = piece_symbol_hash(from)
+    let h_to = piece_symbol_hash(to)
+
+    let from_pieces = [from.piece, from.piece + 8]
+
+
+    for (let b_hash of binding_out) {
+        let b = BindingHashTable.get(b_hash)!
+        apply_history(m, pos, b.history)
+
+        let occ = m.get_pieces_bb(pos, from_pieces)
+
+        let legals = m.get_legal_moves(pos)
+
+        let b_from = b.map.get(h_from)
+        if (b_from !== undefined) {
+            occ = SquareSet.fromSquare(b_from)
+        }
+
+        for (let sq of occ) {
+            let aa = m.pawn_pushes(pos, sq)
 
             let b_to = b.map.get(h_to)
             if (b_to !== undefined) {

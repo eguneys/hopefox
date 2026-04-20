@@ -56,7 +56,6 @@ it('works', () => {
 
 
 function solve_i(i: number) {
-
     let fen = log_puzzles[i].move_fens[0]
 
     let pos = m.create_position(fen)

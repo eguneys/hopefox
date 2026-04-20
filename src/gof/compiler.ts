@@ -1,3 +1,4 @@
+import { GofHashTable } from "./gof_compiler"
 import { ActionBinder, ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, PieceSymbolVariableIdNull, PieceSymbolVariableIdUndefined } from "./types"
 
 export const str_hash = (text: string) => {
@@ -39,6 +40,9 @@ function parse_def(text: string) {
     let id = composite_name_hash(m[1])
     let params = m[2].split(', ').map(_ => composite_variable_make(_))
 
+
+    GofHashTable.set(id, text)
+
     return {
         id,
         params
@@ -51,6 +55,7 @@ function action_hash(text: string) {
     if (text === 'capture') return AtomicActionId.Capture
     if (text === 'attack') return AtomicActionId.Attack
     if (text === 'attack_through') return AtomicActionId.Attack_Through
+    if (text === 'pawn_push') return AtomicActionId.Push
 
     return composite_name_hash(text)
 }
@@ -78,6 +83,8 @@ function parse_body(text: string) {
     let id = action_hash(m[1])
     let params = m[2].split(', ').map(_ => composite_variable_make(_))
     let binder = m[3] ? action_binder_make(m[3].trim()) : undefined
+
+    GofHashTable.set(id, text)
 
     return {
         body: { id, params },

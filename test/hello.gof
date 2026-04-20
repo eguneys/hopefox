@@ -25,7 +25,16 @@ if attacks_hanging(queen, queen2, knight) then
     if captures(knight3, knight2_knight4) then
       if captures(rook, knight4_rook2) then
         if captures(queen2, rook2_queen3) then
+
+if has_fork(bishop, bishop2, rook, king) then
+ if pawn_push_blocks_check(pawn, pawn2, bishop2, king) then
+   if captures(bishop2, rook_bishop3) then
 ##
+
+def pawn_push_blocks_check(From, To, AFrom, ATo) then
+  attack(AFrom, ATo)
+  pawn_push(From, To)
+  attack_through(AFrom, ATo, To)
 
 def evades(From, To)
   move(From, To)
