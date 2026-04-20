@@ -19,7 +19,14 @@ if has_fork(bishop, bishop2, rook, king) then
      if discovered_check(knight, knight2, rook2, king2) then
        if king_evades(king2, king3) then
          if captures(knight2, queen_knight3) then
+
+if attacks_hanging(queen, queen2, knight) then
 ##
+
+def attacks_hanging(From, To, Hanging)
+  attack(Hanging, null)
+  move(From, To)
+  attack(To, Hanging)
 
 def discovered_check(From, To, AFrom, ATo)
   attack_through(AFrom, ATo, From) and

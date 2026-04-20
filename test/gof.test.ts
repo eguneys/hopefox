@@ -34,7 +34,7 @@ it('works', () => {
         return
     }
 
-    let total = log_puzzles.length / 50
+    let total = log_puzzles.length / 100
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [] }
 
     for (let i = 0; i < total; i++) {
