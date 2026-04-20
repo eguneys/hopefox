@@ -61,7 +61,7 @@ export type Gofer = (m: PositionManager, pos: PositionC) => SanLine[]
 
 class UnrecognizedGDefinitionException extends Error {
     constructor(id: AtomicActionId | CompositeActionId) {
-        super(`Unrecognized G Definition: ${GofHashTable.get(id)}`)
+        super(`Unrecognized G Definition: \n "${GofHashTable.get(id)}"`)
     }
 }
 
@@ -69,11 +69,11 @@ class UnrecognizedGDefinitionException extends Error {
 
 class UnrecognizedGofDefinitionException extends Error {
     constructor(id: CompositeActionId) {
-        super(`Unrecognized Gof Definition: ${GofHashTable.get(id)}`)
+        super(`Unrecognized Gof Definition: \n "${GofHashTable.get(id)}"`)
     }
 }
 
-export function gofer(defs: CompositeActionDefinition[], gof: Gof) {
+export function gofer(defs: CompositeActionDefinition[], gof: Gof): Gofer {
     Fill_Applications(defs)
 
     function apply_g(binding_out: BindingOut, m: PositionManager, pos: PositionC, b: AtomicAction | CompositeAction, d_params: ActionParameters, params: PieceSymbol[]) {

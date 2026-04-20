@@ -14,6 +14,9 @@ if blocks_check(knight, knight2, rook, king) then
          if has_fork(bishop, bishop2, king2, queen4) then
            if captures(queen4, bishop2_queen5) then
 
+if has_fork(bishop, bishop2, rook, king) then
+   if captures(king, bishop2_king2) then
+     if discovered_check(knight, knight2, rook2, king2) then
 ##
 
 def checks(From, To, King) then

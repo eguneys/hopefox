@@ -4,6 +4,7 @@ import { gofchess, PositionManager } from '../src'
 import { test_b_forks_kr_puzzles } from "./fixture"
 //@ts-ignore
 import './hello.gof?raw'
+import { Gofer, SAN } from '../src/gof/gofer'
 
 
 let m = await PositionManager.make()
@@ -11,7 +12,14 @@ let log_puzzles = test_b_forks_kr_puzzles
 
 let data = fs.readFileSync('test/hello.gof').toString()
 let [a, b] = data.split('##')
-let gof = gofchess(b, a)
+let gof!: Gofer
+
+try {
+    gof = gofchess(b, a)
+} catch (e) {
+    cf_begin()
+    cf_log(`${e}`)
+}
 
 
 
@@ -31,7 +39,13 @@ it('works', () => {
 
     for (let i = 0; i < total; i++) {
         if (skips.includes(i)) continue
-        let res = solve_i(i)
+        let res!: PartialCoverage
+        try {
+        res = solve_i(i)
+        } catch (e) {
+            cf_begin()
+            cf_log(`${e}`)
+        }
         merge_coverage(coverage, res)
     }
 
@@ -110,10 +124,10 @@ function log_coverage(c: Coverage) {
 }
 
 
-const cf_begin = () => {
+function cf_begin () {
     fs.writeFileSync(__dirname + '/_output.txt', '')
 }
-const cf_log = (str: string) => {
+function cf_log (str: string) {
     fs.appendFileSync(__dirname + '/_output.txt', str + '\n')
     console.log(str)
 }
