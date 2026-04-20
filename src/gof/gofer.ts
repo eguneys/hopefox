@@ -1,5 +1,5 @@
 import { squareSet } from "../distill/debug";
-import { make_move_from_to, MoveC, piece_c_to_piece, PositionC, PositionManager } from "../distill/hopefox_c";
+import { make_move_from_to, MoveC, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c";
 import { SquareSet } from "../distill/squareSet";
 import { Square } from "../distill/types";
 import { ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, Gof, PieceSymbol, PieceSymbolVariableIdUndefined } from "./types";
@@ -99,13 +99,8 @@ export function gofer(defs: CompositeActionDefinition[], gof: Gof) {
                 res.push(binding_out)
         }
 
-        return res.map(_ => _.map(_ => history_to_san_line(m, pos, extract_history(_))))
+        return res.map(_ => _.map(_ => history_to_san_line(m, pos, _.history)))
     }
-}
-
-function extract_history(a: Binding) {
-    let res: MoveC[] = []
-    return res
 }
 
 type PieceSymbolHash = number
@@ -114,10 +109,6 @@ type Binding = {
     map: Map<PieceSymbolHash, Square>
 }
 type BindingOut = Binding[]
-
-function piece_symbol_unify(a: PieceSymbol, b: PieceSymbol, a_val: Square, b_val: Square) {
-    return false
-}
 
 class UnrecognizedGParamException extends Error {
     constructor(id: AtomicActionId | CompositeActionId) {
@@ -160,10 +151,14 @@ function GMove(
 
     let from_pieces = [from.piece, from.piece + 8]
 
-    let occ = m.get_pieces_bb(pos, from_pieces)
 
     for (let b of binding_out) {
         apply_history(m, pos, b.history)
+
+        let occ = m.get_pieces_bb(pos, from_pieces)
+
+        let legals = m.get_legal_moves(pos)
+
         let b_from = b.map.get(h_from)
         if (b_from !== undefined) {
             occ = SquareSet.fromSquare(b_from)
@@ -179,6 +174,9 @@ function GMove(
 
             for (let a of aa) {
                 let move = make_move_from_to(sq, a)
+                if (!legals.includes(move)) {
+                    continue
+                }
                 let history = [...b.history, move]
                 let map = new Map(b.map)
                 map.set(h_from, sq)
@@ -238,6 +236,20 @@ function GAttack(
             }
 
             for (let a of aa) {
+
+                let piece2 = m.get_at(pos, a)
+
+                if (piece2 === undefined) {
+                    continue
+                }
+
+                let piece_type2 = piece_c_type_of(piece2)
+                if (to.piece != piece_type2) {
+                    continue
+                }
+
+
+
                 let history = b.history
                 let map = new Map(b.map)
                 map.set(h_from, sq)
@@ -253,8 +265,12 @@ function GAttack(
 }
 
 function piece_symbol_hash(a: PieceSymbol) {
-    return (a.id * 2 * a.id_to * 3 * a.piece * 5 * a.piece_to * 7 *
-        (a.id * 2 + a.id_to * 3 + a.piece * 5 + a.piece_to * 7)) | 0
+    let hash = 0
+    hash = (hash * 31) + a.piece
+    hash = (hash * 31) + a.id
+    hash = (hash * 31) + a.piece_to
+    hash = (hash * 31) + a.id_to
+    return hash
 }
 
 class UnmatchedFieldParityException extends Error {
