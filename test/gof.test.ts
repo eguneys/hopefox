@@ -11,7 +11,7 @@ it('works', () => {
     let [a, b] = data.split('##')
     let gof = gofchess(b, a)
 
-    let i = 0
+    let i = 3
     let fen = log_puzzles[i].move_fens[0]
 
     let pos = m.create_position(fen)

@@ -15,6 +15,20 @@ type GApplication = (
 const GApplications: Map<AtomicActionId | CompositeActionId, GApplication> = new Map()
 
 const HashTable: Map<PieceSymbolHash, PieceSymbol> = new Map()
+const BindingHashTable: Map<BindingHash, Binding> = new Map()
+
+function hash_binding(b: Binding) {
+    let hash = 0
+    for (let move of b.history) 
+        hash = (hash * 31) + move
+    return hash
+}
+
+function push_to_binding_out(out: BindingOut, b: Binding) {
+    let hash = hash_binding(b)
+    BindingHashTable.set(hash, b)
+    out.add(hash)
+}
 
 export function Clear_table() {
     GApplications.clear()
@@ -25,6 +39,7 @@ function Fill_Applications(defs: CompositeActionDefinition[]) {
     GApplications.set(AtomicActionId.Capture, GCapture)
     GApplications.set(AtomicActionId.Attack, GAttack)
     GApplications.set(AtomicActionId.Move, GMove)
+    GApplications.set(AtomicActionId.Attack_Through, GAttack_Through)
 }
 
 const history_to_san_line = (m: PositionManager, pos: PositionC, history: MoveC[]) => {
@@ -83,7 +98,7 @@ export function gofer(defs: CompositeActionDefinition[], gof: Gof) {
 
         for (let b of d.body) {
             binding_out = apply_g(binding_out, m, pos, b, d.params, params)
-            if (binding_out.length === 0) break
+            if (binding_out.size === 0) break
         }
         return binding_out
     }
@@ -91,16 +106,17 @@ export function gofer(defs: CompositeActionDefinition[], gof: Gof) {
     return (m: PositionManager, pos: PositionC) => {
         let res = []
         for (let g of gof) {
-            let binding_out: BindingOut = [{ history: [], map: new Map()}]
+            let binding_out: BindingOut = new Set()
+            push_to_binding_out(binding_out, {map: new Map(), history: []})
             for (let i of g) {
                 binding_out = apply_definition(binding_out, m, pos, i.id, i.params)
-                if (binding_out.length === 0) break
+                if (binding_out.size === 0) break
             }
-            if (binding_out.length > 0)
+            if (binding_out.size > 0)
                 res.push(binding_out)
         }
 
-        return res.flatMap(_ => _.map(_ => history_to_san_line(m, pos, _.history)))
+        return res.flatMap(_ => [..._].map(_ => history_to_san_line(m, pos, BindingHashTable.get(_)!.history)))
     }
 }
 
@@ -109,7 +125,8 @@ type Binding = {
     history: MoveC[]
     map: Map<PieceSymbolHash, Square>
 }
-type BindingOut = Binding[]
+type BindingHash = number
+type BindingOut = Set<BindingHash>
 
 class UnrecognizedGParamException extends Error {
     constructor(id: AtomicActionId | CompositeActionId) {
@@ -142,7 +159,7 @@ function GCapture(
     pos: PositionC,
     fields: PieceSymbol[]
 ) {
-    let res: BindingOut = []
+    let res: BindingOut = new Set()
 
     assert_length(fields, 3)
     let [from, to, captured] = fields
@@ -154,7 +171,9 @@ function GCapture(
     let from_pieces = [from.piece, from.piece + 8]
 
 
-    for (let b of binding_out) {
+    for (let b_hash of binding_out) {
+        let b = BindingHashTable.get(b_hash)!
+
         apply_history(m, pos, b.history)
 
         let occ = m.get_pieces_bb(pos, from_pieces)
@@ -194,7 +213,7 @@ function GCapture(
                 map.set(h_from, sq)
                 map.set(h_to, a)
                 map.set(h_captured, a)
-                res.push({ map, history})
+                push_to_binding_out(res, { map, history})
             }
         }
 
@@ -211,7 +230,7 @@ function GMove(
     pos: PositionC,
     fields: PieceSymbol[]
 ) {
-    let res: BindingOut = []
+    let res: BindingOut = new Set()
 
     assert_length(fields, 2)
     let [from, to] = fields
@@ -222,7 +241,8 @@ function GMove(
     let from_pieces = [from.piece, from.piece + 8]
 
 
-    for (let b of binding_out) {
+    for (let b_hash of binding_out) {
+        let b = BindingHashTable.get(b_hash)!
         apply_history(m, pos, b.history)
 
         let occ = m.get_pieces_bb(pos, from_pieces)
@@ -251,7 +271,7 @@ function GMove(
                 let map = new Map(b.map)
                 map.set(h_from, sq)
                 map.set(h_to, a)
-                res.push({ map, history})
+                push_to_binding_out(res, {map, history})
             }
         }
 
@@ -278,7 +298,7 @@ function GAttack(
     pos: PositionC,
     fields: PieceSymbol[]
 ) {
-    let res: BindingOut = []
+    let res: BindingOut = new Set()
 
     assert_length(fields, 2)
     let [from, to] = fields
@@ -290,7 +310,8 @@ function GAttack(
 
     let occ = m.get_pieces_bb(pos, from_pieces)
 
-    for (let b of binding_out) {
+    for (let b_hash of binding_out) {
+        let b = BindingHashTable.get(b_hash)!
         apply_history(m, pos, b.history)
         let b_from = b.map.get(h_from)
         if (b_from !== undefined) {
@@ -324,7 +345,7 @@ function GAttack(
                 let map = new Map(b.map)
                 map.set(h_from, sq)
                 map.set(h_to, a)
-                res.push({ history, map })
+                push_to_binding_out(res, {map, history})
             }
         }
 
@@ -333,6 +354,94 @@ function GAttack(
 
     return res
 }
+
+
+function GAttack_Through(
+    binding_out: BindingOut,
+    m: PositionManager,
+    pos: PositionC,
+    fields: PieceSymbol[]
+) {
+    let res: BindingOut = new Set()
+
+    assert_length(fields, 3)
+    let [from, to, to_through] = fields
+
+    let h_from = piece_symbol_hash(from)
+    let h_to = piece_symbol_hash(to)
+    let h_to_through = piece_symbol_hash(to_through)
+
+    let from_pieces = [from.piece, from.piece + 8]
+    let to_through_pieces = [to_through.piece, to_through.piece + 8]
+
+    for (let b_hash of binding_out) {
+        let b = BindingHashTable.get(b_hash)!
+
+        apply_history(m, pos, b.history)
+
+        let occ = m.get_pieces_bb(pos, from_pieces)
+        let aa_through = m.get_pieces_bb(pos, to_through_pieces)
+
+        let b_from = b.map.get(h_from)
+        if (b_from !== undefined) {
+            occ = SquareSet.fromSquare(b_from)
+        }
+
+        let b_to_through = b.map.get(h_to_through)
+        if (b_to_through !== undefined) {
+            aa_through = SquareSet.fromSquare(b_to_through)
+        }
+
+        for (let sq of occ) {
+
+            let piece = m.get_at(pos, sq)!
+
+            for (let a_through of aa_through) {
+
+                let piece_through = m.get_at(pos, a_through)
+                if (!piece_through) {
+                    continue
+                }
+                let pt_through = piece_c_type_of(piece_through)
+                if (to_through.piece != pt_through) {
+                    continue
+                }
+
+                let aa = m.pos_attacks(pos, sq)
+                let through = m.attacks(piece, sq, occ.without(a_through))
+
+                let aa_to = through.diff(aa)
+
+                for (let a_to of aa_to) {
+
+                    let piece2 = m.get_at(pos, a_to)!
+
+                    if (!piece2) {
+                        continue
+                    }
+
+                    let pt2 = piece_c_type_of(piece2)
+                    if (to.piece != pt2) {
+                        continue
+                    }
+
+                    let history = b.history
+                    let map = new Map(b.map)
+                    map.set(h_from, sq)
+                    map.set(h_to, a_to)
+                    map.set(h_to_through, a_through)
+                    push_to_binding_out(res, { history, map })
+                }
+            }
+        }
+
+        unapply_history(m, pos, b.history)
+    }
+
+    return res
+}
+
+
 
 function piece_symbol_hash(a: PieceSymbol) {
     let hash = 0
