@@ -21,10 +21,17 @@ if has_fork(bishop, bishop2, rook, king) then
          if captures(knight2, queen_knight3) then
 
 if attacks_hanging(queen, queen2, knight) then
+  if evades(knight, knight2) then
+    if captures(knight3, knight2_knight4) then
+      if captures(rook, knight4_rook2) then
+        if captures(queen2, rook2_queen3) then
 ##
 
+def evades(From, To)
+  move(From, To)
+
 def attacks_hanging(From, To, Hanging)
-  attack(Hanging, null)
+  attack(null, Hanging)
   move(From, To)
   attack(To, Hanging)
 

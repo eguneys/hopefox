@@ -1,9 +1,9 @@
 import { squareSet } from "../distill/debug";
-import { make_move_from_to, MoveC, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c";
+import { make_move_from_to, MoveC, No_Piece_Type, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c";
 import { SquareSet } from "../distill/squareSet";
 import { Square } from "../distill/types";
 import { GofHashTable } from "./gof_compiler";
-import { ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, Gof, PieceSymbol, PieceSymbolVariableIdUndefined } from "./types";
+import { ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, Gof, PieceSymbol, PieceSymbolIdNull, PieceSymbolIdUndefined, PieceSymbolVariableIdNull, PieceSymbolVariableIdUndefined } from "./types";
 
 type GApplication = (
     binding_out: BindingOut, 
@@ -21,6 +21,10 @@ function hash_binding(b: Binding) {
     let hash = 0
     for (let move of b.history) 
         hash = (hash * 31) + move
+    for (let [k, v] of b.map.entries()) {
+        hash = (hash * 31) + k
+        hash = (hash * 31) + v
+    }
     return hash
 }
 
@@ -139,6 +143,10 @@ class UnrecognizedGParamException extends Error {
 function extract_fields(b_params: ActionParameters, d_params: ActionParameters, symbols: PieceSymbol[]) {
     let res = []
     for (let b_param of b_params) {
+        if (b_param.id === PieceSymbolVariableIdNull) {
+            res.push({ piece: No_Piece_Type, piece_to: No_Piece_Type, id: PieceSymbolIdNull, id_to: PieceSymbolIdUndefined })
+            continue
+        }
         let i = d_params.findIndex(_ => _.id === b_param.id)
         if (i === -1) {
             i = d_params.findIndex(_ => _.id_to === b_param.id)
@@ -198,12 +206,12 @@ function GCapture(
 
             let b_to = b.map.get(h_to)
             if (b_to !== undefined) {
-                aa = SquareSet.fromSquare(b_to)
+                aa = aa.intersect(SquareSet.fromSquare(b_to))
             }
 
             let c_to = b.map.get(h_captured)
             if (c_to !== undefined) {
-                aa = SquareSet.fromSquare(c_to)
+                aa = aa.intersect(SquareSet.fromSquare(c_to))
             }
 
             for (let a of aa) {
@@ -267,7 +275,7 @@ function GMove(
 
             let b_to = b.map.get(h_to)
             if (b_to !== undefined) {
-                aa = SquareSet.fromSquare(b_to)
+                aa = aa.intersect(SquareSet.fromSquare(b_to))
             }
 
             for (let a of aa) {
@@ -315,6 +323,46 @@ function GAttack(
     let h_to = piece_symbol_hash(to)
 
     let from_pieces = [from.piece, from.piece + 8]
+    let to_pieces = [to.piece, to.piece + 8]
+
+    if (from.id === PieceSymbolIdNull) {
+
+        let occ = m.pos_occupied(pos)
+        let to_occ = occ
+
+        for (let b_hash of binding_out) {
+            let b = BindingHashTable.get(b_hash)!
+            apply_history(m, pos, b.history)
+
+            let b_to = b.map.get(h_to)
+            if (b_to !== undefined) {
+                to_occ = SquareSet.fromSquare(b_to)
+            }
+
+            outer: for (let sq of to_occ) {
+                for (let sq2 of occ) {
+                    let a_piece = m.get_at(pos, sq2)!
+                    let a_pt = piece_c_type_of(a_piece)
+
+                    let aa = m.pos_attacks(pos, sq2)
+
+                    if (aa.has(sq)) {
+                        continue outer
+                    }
+                }
+                let history = b.history
+                let map = new Map(b.map)
+                map.set(h_to, sq)
+                push_to_binding_out(res, {map, history})
+            }
+
+            unapply_history(m, pos, b.history)
+        }
+
+        return res
+    }
+
+
 
     let occ = m.get_pieces_bb(pos, from_pieces)
 
@@ -331,7 +379,20 @@ function GAttack(
 
             let b_to = b.map.get(h_to)
             if (b_to !== undefined) {
-                aa = SquareSet.fromSquare(b_to)
+                aa = aa.intersect(SquareSet.fromSquare(b_to))
+            }
+
+            if (to.id === PieceSymbolIdNull) {
+                if (aa.isEmpty()) {
+
+
+                    let history = b.history
+                    let map = new Map(b.map)
+                    map.set(h_from, sq)
+                    push_to_binding_out(res, { map, history })
+                } else {
+                    continue
+                }
             }
 
             for (let a of aa) {
