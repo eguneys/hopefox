@@ -34,6 +34,7 @@ it('works', () => {
         return
     }
 
+    let start_now = performance.now()
     let total = log_puzzles.length / 100
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [] }
 
@@ -49,7 +50,8 @@ it('works', () => {
         merge_coverage(coverage, res)
     }
 
-    log_coverage(coverage)
+    let elapsed = performance.now() - start_now
+    log_coverage(coverage, elapsed)
 })
 
 
@@ -103,7 +105,7 @@ function merge_coverage(c: Coverage, res: PartialCoverage) {
 
 
 
-function log_coverage(c: Coverage) {
+function log_coverage(c: Coverage, elapsed: number) {
     let N = c.n
     let Tp = c.tp
     let Fp = c.fp
@@ -114,6 +116,7 @@ function log_coverage(c: Coverage) {
     if (isNaN(C_percent)) C_percent = '--'
     if (isNaN(A_percent)) A_percent = '--'
     cf_begin()
+    cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N}`)
     cf_log('-----******----')
@@ -121,6 +124,7 @@ function log_coverage(c: Coverage) {
     cf_log('-----*****----')
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N}`)
+    cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
 }
 
 
