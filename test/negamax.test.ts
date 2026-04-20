@@ -2,6 +2,29 @@ import { it } from 'vitest'
 import { test_b_forks_kr_puzzles } from "./fixture"
 import { match_rules, match_rules_all, PositionManager } from '../src'
 
+`
+if has_fork(bishop, bishop2, rook, king) then
+   if pawn_push_blocks_check(pawn, pawn2, bishop2, king) then
+      if captures(bishop2, rook_bishop3) then
+
+def has_fork(From, To, ForkA, ForkB)
+  move(From, To) then
+  attack(To, ForkA) and
+  attack(To, ForkB)
+
+def captures(From, Captured_To)
+  capture(From, To, Captured)
+
+def pawn_push_blocks_check(From, To, AttackFrom, AttackTo)
+  attack(AttackFrom, AttackTo) and
+  push(From, To) then
+  attack_through(AttackFrom, AttackTo, To)
+
+
+def king_evades(From, To)
+  move(From, To) then
+  attack(null, To)
+`;
 
     `
     if has_fork(bishop, bishop2, rook, king) then
