@@ -76,7 +76,7 @@ export const PieceSymbolVariableIdUndefined = -1
 
 type VariableId = number
 
-type PieceSymbolVariable = {
+export type PieceSymbolVariable = {
     id: VariableId
     id_to: VariableId
 };
@@ -91,7 +91,7 @@ export const PieceSymbolIdUndefined = -1
 
 type SymbolId = number
 
-type PieceSymbol = {
+export type PieceSymbol = {
     piece: PieceTypeC
     id: SymbolId
     piece_to: PieceTypeC

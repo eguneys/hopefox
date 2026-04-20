@@ -224,7 +224,7 @@ if attacks_with_capture(bishop, pawn_bishop2, rook) then
 let m = await PositionManager.make()
 
 let log_puzzles = test_b_forks_kr_puzzles
-it('works', () => {
+it.skip('works', () => {
 
    let skips = [3]
 

@@ -1,6 +1,13 @@
 import { ActionBinder, ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, PieceSymbolVariableIdNull, PieceSymbolVariableIdUndefined } from "./types"
 
-export const str_hash = (text: string) => 0
+export const str_hash = (text: string) => {
+    let hash = 0
+    for (const char of text) {
+        hash = (hash << 5) - hash + char.charCodeAt(0)
+        hash |= 0
+    }
+    return hash
+}
 
 export const composite_name_hash = (name: string) => str_hash(`Name_$${name}`)
 const composite_variable_hash = (variable: string) => variable === 'null' ? PieceSymbolVariableIdNull : str_hash(`Variable_$${variable}`)
@@ -62,7 +69,7 @@ function action_binder_make(text: string) {
 }
 
 function parse_body(text: string) {
-    let m = text.match(/(.*)\((.*)\)(\w*)([a-z]*)?/)
+    let m = text.match(/(.*)\((.*)\)( [a-z]*)?/)
 
     if (!m) {
         return undefined
@@ -70,7 +77,7 @@ function parse_body(text: string) {
 
     let id = action_hash(m[1])
     let params = m[2].split(', ').map(_ => composite_variable_make(_))
-    let binder = m[3] ? action_binder_make(m[3]) : undefined
+    let binder = m[3] ? action_binder_make(m[3].trim()) : undefined
 
     return {
         body: { id, params },
@@ -108,6 +115,8 @@ export function compile_str_to_composite_defs(text: string): CompositeActionDefi
             }
             c_def_id = p_def.id
             c_params = p_def.params
+            c_body = []
+            c_body_binders = []
             continue
         }
 
@@ -115,8 +124,16 @@ export function compile_str_to_composite_defs(text: string): CompositeActionDefi
 
         if (p_body !== undefined) {
             c_body.push(p_body.body)
-            if (p_body.binder) c_body_binders.push(p_body.binder)
+            if (p_body.binder !== undefined) c_body_binders.push(p_body.binder)
         }
+    }
+    if (c_def_id !== undefined) {
+        res.push({
+            id: c_def_id,
+            params: c_params,
+            body: c_body,
+            body_binders: c_body_binders
+        })
     }
 
     return res
