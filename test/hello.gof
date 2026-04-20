@@ -29,7 +29,41 @@ if attacks_hanging(queen, queen2, knight) then
 if has_fork(bishop, bishop2, rook, king) then
  if pawn_push_blocks_check(pawn, pawn2, bishop2, king) then
    if captures(bishop2, rook_bishop3) then
+
+if captures_with_check(rook, rook2_rook3, king) then
+  if captures(rook4, rook3_rook5) then
+    if pawn_push_attacks(pawn, pawn2, bishop) then
+
+if has_fork(bishop, bishop2, rook, king) then
+  if captures(rook2, bishop2_rook3) then
+    if checks(rook4, rook5, king) then
+      if captures(king, rook5_king2) then
+        if captures(pawn, rook3_pawn2) then
+
+if captures_with_check(rook, rook2_rook3, king) then
+  if captures(queen, rook3_queen2) then
+    if captures_hanging(bishop, bishop2_bishop3) then
+      if has_fork(knight, knight2, queen3, bishop3) then
+        if evades(queen3, queen4) then
+          if captures(knight2, bishop3_knight3) then
+            if captures(queen2, knight3_queen5) then
+
+
+
 ##
+
+def captures_hanging(From, Captured_To)
+  defend(null, Captured) and
+  capture(From, To, Captured)
+
+def pawn_push_attacks(From, To, AttackTo)
+  pawn_push(From, To) then
+  attack(To, AttackTo)
+
+def captures_with_check(From, Captured_To, King)
+  capture(From, To, Captured) then
+  attack(To, King)
+
 
 def pawn_push_blocks_check(From, To, AFrom, ATo) then
   attack(AFrom, ATo)

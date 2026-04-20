@@ -54,6 +54,7 @@ function action_hash(text: string) {
     if (text === 'push') return AtomicActionId.Push
     if (text === 'capture') return AtomicActionId.Capture
     if (text === 'attack') return AtomicActionId.Attack
+    if (text === 'defend') return AtomicActionId.Defend
     if (text === 'attack_through') return AtomicActionId.Attack_Through
     if (text === 'pawn_push') return AtomicActionId.Push
 

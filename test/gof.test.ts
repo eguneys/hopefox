@@ -27,7 +27,7 @@ it('works', () => {
     let skips = [3]
 
     let single_i = -1
-    //single_i = 5 
+    //single_i =  12
 
     if (single_i != -1) {
         console.log(solve_i(single_i).log)
