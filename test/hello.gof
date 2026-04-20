@@ -17,7 +17,7 @@ if blocks_check(knight, knight2, rook, king) then
 ##
 
 def checks(From, To, King) then
-  move(From, To)
+  move(From, To) then
   attack(To, King)
 
 def blocks_check(From, To, AFrom, ATo)
