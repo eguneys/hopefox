@@ -86,8 +86,10 @@ export function compile_str_to_gof(text: string) {
         let t_line = line.trim()
 
         if (t_line === '') {
-            if (ring.length > 0)
-                 res.push(ring)
+            if (ring.length > 0) {
+                res.push(ring.slice(0))
+                ring.length = 0
+            }
             continue
         }
 
