@@ -17,7 +17,14 @@ if blocks_check(knight, knight2, rook, king) then
 if has_fork(bishop, bishop2, rook, king) then
    if captures(king, bishop2_king2) then
      if discovered_check(knight, knight2, rook2, king2) then
+       if king_evades(king2, king3) then
+         if captures(knight2, queen_knight3) then
 ##
+
+def discovered_check(From, To, AFrom, ATo)
+  attack_through(AFrom, ATo, From) and
+  move(From, To) then
+  attack(AFrom, ATo)
 
 def checks(From, To, King) then
   move(From, To) then
