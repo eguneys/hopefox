@@ -24,9 +24,9 @@ def king_evades(From, To)
   attack(null, To)
 `;
 
-type Gof = FreeCompositeRing[]
+export type Gof = FreeCompositeRing[]
 
-type FreeCompositeRing = FreeCompositeActionCall[]
+export type FreeCompositeRing = FreeCompositeActionCall[]
 
 type FreeCompositeActionCall = {
     id: CompositeActionId
@@ -69,10 +69,10 @@ export enum ActionBinder {
 };
 
 type PieceSymbolVariableIdNull = 0
-const PieceSymbolVariableIdNull = 0
+export const PieceSymbolVariableIdNull = 0
 
 type PieceSymbolVariableIdUndefined = -1
-const PieceSymbolVariableIdUndefined = -1
+export const PieceSymbolVariableIdUndefined = -1
 
 type VariableId = number
 
@@ -81,6 +81,14 @@ type PieceSymbolVariable = {
     id_to: VariableId
 };
 
+type PieceSymbolIdNull = 0
+export const PieceSymbolIdNull = 0
+
+type PieceSymbolIdUndefined = -1
+export const PieceSymbolIdUndefined = -1
+
+
+
 type SymbolId = number
 
 type PieceSymbol = {
@@ -88,10 +96,4 @@ type PieceSymbol = {
     id: SymbolId
     piece_to: PieceTypeC
     id_to: SymbolId
-};
-
-type GofParameters = PieceSymbol[]
-
-type G = {
-
 };

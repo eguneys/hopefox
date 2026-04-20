@@ -21,6 +21,7 @@ export const WHITE = 0
 export const BLACK = 1
 
 
+export const No_Piece_Type = 0
 export const PAWN = 1
 export const KNIGHT = 2
 export const BISHOP = 3

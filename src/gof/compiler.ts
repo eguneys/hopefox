@@ -1,14 +1,16 @@
-import { ActionBinder, ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId } from "./types"
+import { ActionBinder, ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, PieceSymbolVariableIdNull, PieceSymbolVariableIdUndefined } from "./types"
 
-const composite_name_hash = (name: string) => 0
-const composite_variable_hash = (variable: string) => 0
+export const str_hash = (text: string) => 0
+
+export const composite_name_hash = (name: string) => str_hash(`Name_$${name}`)
+const composite_variable_hash = (variable: string) => variable === 'null' ? PieceSymbolVariableIdNull : str_hash(`Variable_$${variable}`)
 
 const composite_variable_make = (variable: string) => {
     let [a, b] = variable.split('_')
     if (b === undefined) {
         return {
             id: composite_variable_hash(a),
-            id_to: -1
+            id_to: PieceSymbolVariableIdUndefined
         }
     } else {
         return {
