@@ -1,4 +1,4 @@
-import { squareSet } from "../distill/debug";
+import { piece, squareSet } from "../distill/debug";
 import { make_move_from_to, make_move_from_to_promotion, MoveC, No_Piece_Type, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager, WHITE } from "../distill/hopefox_c";
 import { go_black, go_white, SquareSet } from "../distill/squareSet";
 import { Square } from "../distill/types";
@@ -174,6 +174,8 @@ function lift_symbol_to(a: PieceSymbol) {
     return {
         piece: a.piece_to,
         id: a.id_to,
+        piece_to: No_Piece_Type,
+        id_to: PieceSymbolIdUndefined
     }
 }
 

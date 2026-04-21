@@ -1,3 +1,81 @@
+if has_fork(bishop, bishop2, rook, king) then
+ if king_evades(king, king2) then
+   if captures(bishop2, rook_bishop3) then
+
+if has_fork(bishop, bishop2, rook, king) then
+
+if has_fork(queen, queen2, rook, king) then
+
+if blocks_check(knight, knight2, rook, king) then
+ if captures(rook, knight2_rook2) then
+   if captures(pawn, rook2_pawn2) then
+     if checks(queen, queen2, king2) then
+       if captures(queen3, queen2_queen4) then
+         if has_fork(bishop, bishop2, king2, queen4) then
+           if captures(queen4, bishop2_queen5) then
+
+if has_fork(bishop, bishop2, rook, king) then
+   if captures(king, bishop2_king2) then
+     if discovered_check(knight, knight2, rook2, king2) then
+       if king_evades(king2, king3) then
+         if captures(knight2, queen_knight3) then
+
+if attacks_hanging(queen, queen2, knight) then
+  if evades(knight, knight2) then
+    if captures(knight3, knight2_knight4) then
+      if captures(rook, knight4_rook2) then
+        if captures(queen2, rook2_queen3) then
+
+if has_fork(bishop, bishop2, rook, king) then
+ if pawn_push_blocks_check(pawn, pawn2, bishop2, king) then
+   if captures(bishop2, rook_bishop3) then
+
+if captures_with_check(rook, rook2_rook3, king) then
+  if captures(rook4, rook3_rook5) then
+    if pawn_push_attacks(pawn, pawn2, bishop) then
+
+if has_fork(bishop, bishop2, rook, king) then
+  if captures(rook2, bishop2_rook3) then
+    if checks(rook4, rook5, king) then
+      if captures(king, rook5_king2) then
+        if captures(pawn, rook3_pawn2) then
+
+if captures_with_check(rook, rook2_rook3, king) then
+  if captures(queen, rook3_queen2) then
+    if captures_hanging(bishop, bishop2_bishop3) then
+      if has_fork(knight, knight2, queen3, bishop3) then
+        if evades(queen3, queen4) then
+          if captures(knight2, bishop3_knight3) then
+            if captures(queen2, knight3_queen5) then
+
+if captures(rook, knight_rook2) then
+  if captures(rook3, rook2_rook4) then
+    if captures_with_check(bishop, pawn_bishop2, king) then
+      if king_evades(king, king2) then
+        if captures(bishop2, rook5) then
+
+if has_fork(bishop, bishop2, rook, king) then
+ if king_evades(king, king2) then
+   if captures(bishop2, rook_bishop3) then
+     if checks(rook2, rook3, king3) then
+       if king_evades(king3, king4) then
+
+if has_fork(bishop, bishop2, rook, king) then
+  if captures(knight, bishop2_knigh2) then
+    if has_fork(queen, queen2, knight2, king) then
+      if king_evades(king, king2) then
+        if captures_with_check(knight3, knight2_knight4, king2) then
+
+if checks(queen, queen2, king) then
+
+if attacks2(rook, rook2, queen) then
+
+if captures(bishop, rook_bishop2) then
+  if captures_with_check(rook2, knight_rook3, king) then
+    if king_evades(king, king2) then
+      if checks(rook3, rook4, king2) then
+        if king_evades(king2, king3) then
+  
 if captures(bishop, rook_bishop2) then
   if captures(rook2, bishop2_rook3) then
     if promotes(pawn, rook2_queen) then
