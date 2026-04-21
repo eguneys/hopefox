@@ -48,7 +48,37 @@ if captures_with_check(rook, rook2_rook3, king) then
           if captures(knight2, bishop3_knight3) then
             if captures(queen2, knight3_queen5) then
 
+if captures(rook, knight_rook2) then
+  if captures(rook3, rook2_rook4) then
+    if captures_with_check(bishop, pawn_bishop2, king) then
+      if king_evades(king, king2) then
+        if captures(bishop2, rook5) then
 
+if has_fork(bishop, bishop2, rook, king) then
+ if king_evades(king, king2) then
+   if captures(bishop2, rook_bishop3) then
+     if checks(rook2, rook3, king3) then
+       if king_evades(king3, king4) then
+
+if has_fork(bishop, bishop2, rook, king) then
+  if captures(knight, bishop2_knigh2) then
+    if has_fork(queen, queen2, knight2, king) then
+      if king_evades(king, king2) then
+        if captures_with_check(knight3, knight2_knight4, king2) then
+
+if checks(queen, queen2, king) then
+
+if attacks2(rook, rook2, queen) then
+
+if captures(bishop, rook_bishop2) then
+  if captures_with_check(rook2, knight_rook3, king) then
+    if king_evades(king, king2) then
+      if checks(rook3, rook4, king2) then
+        if king_evades(king2, king3) then
+  
+if captures(bishop, rook_bishop2) then
+  if captures(rook2, bishop2_rook3) then
+    if promotes(pawn, rook2_queen) then
 
 ##
 
@@ -72,6 +102,10 @@ def pawn_push_blocks_check(From, To, AFrom, ATo) then
 
 def evades(From, To)
   move(From, To)
+
+def attacks2(From, To, AttackTo)
+  move(From, To)
+  attack(To, AttackTo)
 
 def attacks_hanging(From, To, Hanging)
   attack(null, Hanging)
@@ -97,7 +131,6 @@ def captures(From, Captured_To)
 
 def king_evades(From, To) then
   move(From, To) then
-  
 
 def has_fork(From, To, ForkA, ForkB)
   move(From, To) then

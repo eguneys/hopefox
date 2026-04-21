@@ -27,10 +27,10 @@ it('works', () => {
     let skips = [3]
 
     let single_i = -1
-    //single_i =  12
+    //single_i =  17
 
     if (single_i != -1) {
-        console.log(solve_i(single_i).log)
+        console.log(solve_i(single_i))
         return
     }
 

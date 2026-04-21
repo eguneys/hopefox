@@ -263,7 +263,6 @@ function GMove(
 
     let from_pieces = [from.piece, from.piece + 8]
 
-
     for (let b_hash of binding_out) {
         let b = BindingHashTable.get(b_hash)!
         apply_history(m, pos, b.history)
