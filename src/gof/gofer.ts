@@ -505,7 +505,8 @@ function GAttack(
         }
 
         for (let sq of occ) {
-            let aa = m.pos_attacks(pos, sq)
+            let piece = m.get_at(pos, sq)!
+            let aa = m.attacks(piece, sq, occ)
 
             let b_to = b.map.get(h_to)
             if (b_to !== undefined) {

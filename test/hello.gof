@@ -116,7 +116,32 @@ if captures_with_discovered_attack_and_check(bishop, pawn_bishop2, king, queen, 
   if captures(knight, bishop2) then
     if captures_hanging(queen, queen2_queen3) then
 
+
+if captures_and_checks_defended_with_pin(queen, pawn_queen2, bishop, king, pawn2) then
+  if king_evades(king, king2) then
+    if captures_with_check(queen2, pawn2_queen3, king2) then
+
+
+if checks(rook, rook2, king) then
+  if blocks_check(queen, queen2, rook2, king) then
+    if captures_with_check(rook2, queen2_rook3, king) then
+
+
+if checks(knight, knight2, king) then
+
+
+if has_fork(knight, knight2, king, bishop) then
+   if king_evades(king, king2) then
+     if captures(knight2, bishop_knight3) then
+     
 ##
+
+def captures_and_checks_defended_with_pin(From, Captured_To, PinFrom, PinTo, PinnedDefender)
+  attack_through(PinFrom, PinTo, PinnedDefender)
+  attack(PinnedDefender, Captured)
+  capture(From, To, Captured)
+  attack(To, PinTo)
+
 
 def captures_with_discovered_attack_and_check(From, Captured_To, King, AttackFrom, AttackTo) then
   attack_through(AttackFrom, AttackTo, From)

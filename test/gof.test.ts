@@ -27,7 +27,7 @@ it('works', () => {
     let skips = [3]
 
     let single_i = -1
-    //single_i =  27
+    //single_i =  33
 
     if (single_i != -1) {
         console.log(solve_i(single_i))
@@ -115,7 +115,7 @@ function log_coverage(c: Coverage, elapsed: number) {
     if (isNaN(C_percent)) C_percent = '--'
     if (isNaN(A_percent)) A_percent = '--'
     cf_begin()
-    cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
+    cf_log(`Time: ${Math.floor(elapsed / Total * 10) / 10}ms per puzzle`)
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log('-----******----')
