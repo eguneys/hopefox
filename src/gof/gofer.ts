@@ -1,6 +1,6 @@
 import { squareSet } from "../distill/debug";
-import { make_move_from_to, MoveC, No_Piece_Type, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager } from "../distill/hopefox_c";
-import { SquareSet } from "../distill/squareSet";
+import { make_move_from_to, make_move_from_to_promotion, MoveC, No_Piece_Type, piece_c_color_of, piece_c_to_piece, piece_c_type_of, PositionC, PositionManager, WHITE } from "../distill/hopefox_c";
+import { go_black, go_white, SquareSet } from "../distill/squareSet";
 import { Square } from "../distill/types";
 import { GofHashTable } from "./gof_compiler";
 import { ActionParameters, AtomicAction, AtomicActionId, CompositeAction, CompositeActionDefinition, CompositeActionId, Gof, PieceSymbol, PieceSymbolIdNull, PieceSymbolIdUndefined, PieceSymbolVariableIdNull, PieceSymbolVariableIdUndefined } from "./types";
@@ -47,6 +47,7 @@ export function Clear_table() {
 }
 
 function Fill_Applications(defs: CompositeActionDefinition[]) {
+    GApplications.set(AtomicActionId.Promote, GPromote)
     GApplications.set(AtomicActionId.Capture, GCapture)
     GApplications.set(AtomicActionId.Attack, GAttack)
     GApplications.set(AtomicActionId.Move, GMove)
@@ -161,12 +162,20 @@ function extract_fields(b_params: ActionParameters, d_params: ActionParameters, 
             if (i === -1) {
                 throw new UnrecognizedGParamException(b_param.id)
             }
+            res.push(lift_symbol_to(symbols[i]))
+            continue
         }
         res.push(symbols[i])
     }
     return res
 }
 
+function lift_symbol_to(a: PieceSymbol) {
+    return {
+        piece: a.piece_to,
+        id: a.id_to,
+    }
+}
 
 function GCapture(
     binding_out: BindingOut,
@@ -358,6 +367,61 @@ function GPush(
     }
     return res
 }
+
+
+function GPromote(
+    binding_out: BindingOut,
+    m: PositionManager,
+    pos: PositionC,
+    fields: PieceSymbol[]
+) {
+    let res: BindingOut = new Set()
+
+    assert_length(fields, 3)
+    let [from, to, promotion] = fields
+
+    let h_from = piece_symbol_hash(from)
+    let h_to = piece_symbol_hash(to)
+    let h_promotion = piece_symbol_hash(promotion)
+
+    let from_pieces = [from.piece, from.piece + 8]
+
+
+    for (let b_hash of binding_out) {
+        let b = BindingHashTable.get(b_hash)!
+        apply_history(m, pos, b.history)
+
+        let occ = m.get_pieces_bb(pos, from_pieces)
+
+        let legals = m.get_legal_moves(pos)
+
+        let b_from = b.map.get(h_from)
+        if (b_from !== undefined) {
+            occ = SquareSet.fromSquare(b_from)
+        }
+
+        for (let sq of occ) {
+            let piece = m.get_at(pos, sq)!
+
+            let color = piece_c_color_of(piece)
+            
+            let a = color === WHITE ? go_black(sq)! : go_white(sq)!
+            let move = make_move_from_to_promotion(sq, a, promotion.piece)
+            if (!legals.includes(move)) {
+                continue
+            }
+            let history = [...b.history, move]
+            let map = new Map(b.map)
+            map.set(h_from, sq)
+            map.set(h_to, a)
+            push_to_binding_out(res, { map, history })
+        }
+
+        unapply_history(m, pos, b.history)
+    }
+    return res
+}
+
 
 
 function apply_history(m: PositionManager, pos: PositionC, history: MoveC[]) {

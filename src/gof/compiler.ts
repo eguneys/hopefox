@@ -57,6 +57,7 @@ function action_hash(text: string) {
     if (text === 'defend') return AtomicActionId.Defend
     if (text === 'attack_through') return AtomicActionId.Attack_Through
     if (text === 'pawn_push') return AtomicActionId.Push
+    if (text === 'promote') return AtomicActionId.Promote
 
     return composite_name_hash(text)
 }

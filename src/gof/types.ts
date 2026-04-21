@@ -61,6 +61,7 @@ export enum AtomicActionId {
     Attack,
     Attack_Through,
     Defend,
+    Promote
 };
 
 export enum ActionBinder {
