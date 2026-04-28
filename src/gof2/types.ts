@@ -50,7 +50,7 @@ export enum AtomicActionId {
 }
 
 export enum AtomicFilterId {
-    Attack,
+    Attack = 80,
     Attack_Through,
 }
 

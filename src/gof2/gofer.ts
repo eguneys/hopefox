@@ -32,6 +32,7 @@ class IncompatibleSymbolException extends Error {
 
 
 export class Column {
+
     name: string
     rows: SquareSet[]
 
@@ -40,12 +41,21 @@ export class Column {
         this.rows = []
     }
 
+    set_raw(bb: SquareSet) {
+        this.rows[this.rows.length - 1] = bb
+    }
+
     push_raw(bb: SquareSet) {
         this.rows.push(bb)
     }
 }
 
 export class Columnar {
+    create_new_duplicate_row(i: number) {
+        for (let col of this.columns) {
+            col.rows.push(col.rows[i])
+        }
+    }
 
     clear_rows() {
         for (let col of this.columns) {
@@ -105,7 +115,7 @@ function extract_fields(symbol_per_column: PieceSymbol[], a_params: PieceSymbol[
     let res = []
 
     for (let param of a_params) {
-        for (let i = 0; i < symbol_per_column.length; i) {
+        for (let i = 0; i < symbol_per_column.length; i++) {
             if (symbol_equals(param, symbol_per_column[i])) {
                 res.push(i)
             }
@@ -169,6 +179,8 @@ export class BindingOut {
             }
 
         }
+
+        this.actions = res
     }
 
     fill_ring(ring: CompositeRing) {
@@ -176,13 +188,16 @@ export class BindingOut {
             for (let param of call.params) {
                 if (is_psymbol2(param)) {
                     if (!this.symbol_per_column.some(_ => symbol_equals(_, param.a))) {
+                        this.symbol_per_column.push(param.a)
                         this.table.add_column_type(param.a.id)
                     }
                     if (!this.symbol_per_column.some(_ => symbol_equals(_, param.b))) {
+                        this.symbol_per_column.push(param.b)
                         this.table.add_column_type(param.b.id)
                     }
                 } else {
                     if (!this.symbol_per_column.some(_ => symbol_equals(_, param))) {
+                        this.symbol_per_column.push(param)
                         this.table.add_column_type(param.id)
                     }
                 }
@@ -254,7 +269,24 @@ export function run_bindings(b: BindingOut, m: PositionManager, pos: PositionC) 
     let res = []
 
     for (let h of b.get_history()) {
-        res.push(h)
+        res.push(history_to_sans(h, m, pos))
+    }
+    return res
+}
+
+
+type SAN = string
+function history_to_sans(h: MoveC[], m: PositionManager, pos: PositionC) {
+    let res: SAN[] = []
+
+
+    for (let move of h) {
+        res.push(m.make_san(pos, move))
+        m.make_move(pos, move)
+    }
+
+    for (let i = h.length - 1; i >= 0; i--) {
+        m.unmake_move(pos, h[i])
     }
     return res
 }

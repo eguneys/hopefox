@@ -17,7 +17,13 @@ it('works', () => {
     let link = log_puzzles[i].link
     let pos = m.create_position(log_puzzles[i].move_fens[0])
 
+    let solution = `[${log_puzzles[i].sans.join(' ')}]`
 
     console.log(link)
-    console.log(gof_run(m, pos))
+    console.log(solution)
+    let sans = gof_run(m, pos)
+
+    let res = sans.map(_ => `{ ${_.join(' ')} }`).join('\n')
+
+    console.log(res)
 })
