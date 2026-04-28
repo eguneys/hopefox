@@ -1,4 +1,4 @@
-if has_fork(bishop, bishop2, rook, king) then
+if checkmate(bishop, bishop2, king) then
 
 ###
 
@@ -6,3 +6,11 @@ def has_fork(From, To, ForkA, ForkB)
   move(From, To)
   attack(To, ForkA)
   attack(To, ForkB)
+
+def checkmate(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)

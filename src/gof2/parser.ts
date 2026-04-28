@@ -103,6 +103,14 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
             return AtomicFilterId.Attack
         case 'attack_through':
             return AtomicFilterId.Attack_Through
+        case 'no_king_evades':
+            return AtomicFilterId.No_King_Evades
+        case 'no_captures':
+            return AtomicFilterId.No_Captures
+        case 'no_blocks_check':
+            return AtomicFilterId.No_Blocks_Check
+        case 'no_push_blocks_check':
+            return AtomicFilterId.No_Push_Blocks_Check
     }
     throw new BadAtomicIdException(s)
 }
