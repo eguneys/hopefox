@@ -1,0 +1,105 @@
+import { Role } from "../distill/types"
+
+export type VariableSymbol = {
+    id: string
+}
+
+export type Variable2Symbol = {
+    id: string
+    id2: string
+}
+
+export type VSymbol = VariableSymbol | Variable2Symbol
+
+export function is_vsymbol2(symbol: VSymbol): symbol is Variable2Symbol {
+    return (symbol as Variable2Symbol).id2 !== undefined
+}
+
+export function vsymbol_equals(a: VariableSymbol, b: VariableSymbol) {
+    return a.id === b.id
+}
+
+
+
+export type PieceSymbol = {
+    piece: Role
+    id: string
+}
+
+export type Piece2Symbol = {
+    a: PieceSymbol
+    b: PieceSymbol
+}
+
+export type PSymbol = PieceSymbol | Piece2Symbol
+
+export function is_psymbol2(symbol: PSymbol): symbol is Piece2Symbol {
+    return (symbol as Piece2Symbol).a !== undefined
+}
+
+export function symbol_equals(a: PieceSymbol, b: PieceSymbol) {
+    return a.piece === b.piece && a.id === b.id
+}
+
+export enum AtomicActionId {
+    Move,
+    Push,
+    Capture,
+
+    Promote
+}
+
+export enum AtomicFilterId {
+    Attack,
+    Attack_Through,
+}
+
+export function is_atomic_action(a: AtomicCall): a is AtomicActionCall {
+    return a.id in AtomicActionId
+}
+
+export type AtomicActionBodyDefinition = {
+    id: AtomicActionId
+    params: VSymbol[]
+}
+
+export type AtomicFilterBodyDefinition = {
+    id: AtomicFilterId
+    params: VSymbol[]
+}
+
+export type CompositeActionId = string
+
+export type CompositeActionHead = {
+    id: CompositeActionId
+    params: VSymbol[]
+}
+
+export type CompositeActionBody = (AtomicActionBodyDefinition | AtomicFilterBodyDefinition)[]
+
+export type CompositeActionDefinition = {
+    head: CompositeActionHead
+    body: CompositeActionBody
+}
+
+
+export type CompositeActionCall = {
+    id: CompositeActionId
+    params: PSymbol[]
+}
+
+
+export type CompositeRing = CompositeActionCall[]
+
+
+export type AtomicActionCall = {
+    id: AtomicActionId
+    fields: number[]
+}
+
+export type AtomicFilterCall = {
+    id: AtomicFilterId
+    fields: number[]
+}
+
+export type AtomicCall = AtomicActionCall | AtomicFilterCall
