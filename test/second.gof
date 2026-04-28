@@ -1,0 +1,8 @@
+if has_fork(bishop, bishop2, rook, king) then
+
+###
+
+def has_fork(From, To, ForkA, ForkB)
+  move(From, To)
+  attack(To, ForkA)
+  attack(To, ForkB)

@@ -2,6 +2,7 @@ import { MoveC, PositionC, PositionManager } from "../distill/hopefox_c";
 import { SquareSet } from "../distill/squareSet";
 import { Square } from "../distill/types";
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions";
+import { parse_defs, parse_ring } from "./parser";
 import { AtomicCall, CompositeActionDefinition, CompositeRing, is_atomic_action, is_psymbol2, is_vsymbol2, PieceSymbol, PSymbol, symbol_equals, VariableSymbol, VSymbol, vsymbol_equals } from "./types";
 
 class FieldsCannotExpandException extends Error {
@@ -56,6 +57,9 @@ export class Columnar {
     }
 
     columns: Column[]
+    constructor() {
+        this.columns = []
+    }
 
     add_column_type(name: string) {
         this.columns.push(new Column(name))
@@ -118,6 +122,26 @@ export class BindingOut {
     actions: AtomicCall[]
     symbol_per_column: PieceSymbol[]
     history_per_row: History[]
+
+    constructor() {
+        this.table = new Columnar()
+        this.start_row_index = 0
+        this.actions = []
+        this.symbol_per_column = []
+        this.history_per_row = []
+    }
+
+    static from_defs(defs: CompositeActionDefinition[], ring: CompositeRing) {
+        let res = new BindingOut()
+
+        res.fill_ring(ring)
+        res.fill_actions(defs, ring)
+        return res
+    }
+
+    get_history() {
+        return this.history_per_row.slice(this.start_row_index)
+    }
 
     fill_actions(defs: CompositeActionDefinition[], ring: CompositeRing) {
 
@@ -216,4 +240,21 @@ export class BindingOut {
 
         this.start_row_index = new_start_row_index
     }
+}
+
+
+export function parse_and_create_bindings(code: string): BindingOut {
+    return BindingOut.from_defs(parse_defs(code), parse_ring(code))
+}
+
+
+export function run_bindings(b: BindingOut, m: PositionManager, pos: PositionC) {
+    b.fill_history_for_position(m, pos)
+
+    let res = []
+
+    for (let h of b.get_history()) {
+        res.push(h)
+    }
+    return res
 }
