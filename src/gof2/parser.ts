@@ -1,5 +1,5 @@
 import { Role, ROLES } from "../distill/types";
-import { AtomicActionId, AtomicFilterId, CompositeActionBody, CompositeActionDefinition, CompositeActionHead, CompositeRing, PieceSymbol, PSymbol, VariableSymbol, VSymbol } from "./types";
+import { AtomicActionId, AtomicFilterId, CompositeActionBody, CompositeActionCall, CompositeActionDefinition, CompositeActionHead, CompositeNestedGraphNode, CompositeNestedGraphRoot, CompositeRing, PieceSymbol, PSymbol, Quantification, VariableSymbol, VSymbol } from "./types";
 
 export function parse_defs(code: string): CompositeActionDefinition[] {
     let res: CompositeActionDefinition[] = []
@@ -179,4 +179,60 @@ function piece_symbol_make(s: string): PSymbol {
         }
         return undefined
     }
+}
+
+
+export function parse_nested_graph_root(code: string): CompositeNestedGraphRoot {
+
+    const lines = code.split('\n').filter(line => line.trim() !== '');
+
+    let root: CompositeNestedGraphRoot = []
+    const stack: { indent: number; node: CompositeNestedGraphNode }[] = [];
+
+    lines.forEach(line => {
+        const indent = line.search(/\S/); // Count leading spaces
+        const trimmed = line.trim();
+
+        // Extract Type and Condition using Regex
+        const match = trimmed.match(/^(if|forall)\s+(.*?)\s+then$/);
+        if (!match) return;
+
+        let quantification = match[1] === 'if' ? Quantification.IfThen : Quantification.ForAll
+
+        let m2 = match[2].trim().match(/(.*)\((.*)\)/)
+
+        if (!m2) return
+
+        let id = m2[1]
+        let params = m2[2].split(', ').map(_ => piece_symbol_make(_))
+
+        let call = {
+            id,
+            params
+        }
+
+        const newNode: CompositeNestedGraphNode = {
+            data: {
+                quantification,
+                call
+            },
+            children: []
+        };
+
+        // Find the correct parent based on indentation
+        while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+            stack.pop();
+        }
+
+        if (stack.length === 0) {
+            root.push(newNode);
+        } else {
+            stack[stack.length - 1].node.children.push(newNode);
+        }
+
+        stack.push({ indent, node: newNode });
+    });
+
+    return root
+
 }

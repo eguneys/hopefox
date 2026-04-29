@@ -2,6 +2,7 @@ import { PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
 import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, extract_fields } from "./gofer"
+import { parse_defs, parse_nested_graph_root } from "./parser"
 import { AtomicCall, CompositeActionCallWithQuantification, CompositeActionDefinition, CompositeNestedGraphNode, CompositeNestedGraphRoot, is_atomic_action, is_psymbol2, PieceSymbol, Quantification, symbol_equals, VSymbol } from "./types"
 
 class UnreachableCodeException extends Error {
@@ -227,3 +228,11 @@ function is_subset(a: number[], b: number[]) {
     }
     return true
 }
+
+export function parse_and_create_bindings(code: string): BindingOutWithQuantifiers[] {
+    let defs = parse_defs(code)
+    let nodes = parse_nested_graph_root(code)
+
+    return nodes.map(_ => BindingOutWithQuantifiers.from_defs(defs, _))
+}
+
