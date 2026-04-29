@@ -91,6 +91,8 @@ function parse_vsymbol(s: string): VSymbol {
 
 function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
     switch (s) {
+        case 'safe_move':
+            return AtomicActionId.Safe_Move
         case 'move':
             return AtomicActionId.Move
         case 'push':

@@ -5,7 +5,7 @@ import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions
 import { parse_defs, parse_ring } from "./parser";
 import { AtomicCall, CompositeActionDefinition, CompositeRing, is_atomic_action, is_psymbol2, is_vsymbol2, PieceSymbol, PSymbol, symbol_equals, VariableSymbol, VSymbol, vsymbol_equals } from "./types";
 
-class FieldsCannotExpandException extends Error {
+export class FieldsCannotExpandException extends Error {
     constructor(params: VSymbol[]) {
         super(`Fields cannot expand : ${params.join(' ')}`);
         this.name = "FieldsCannotExpandException";
@@ -14,7 +14,7 @@ class FieldsCannotExpandException extends Error {
 
 
 
-class DefNotFoundException extends Error {
+export class DefNotFoundException extends Error {
     constructor(id: string) {
         super(`Definition not found: ${id}`);
         this.name = "DefNotFoundException";
@@ -22,7 +22,7 @@ class DefNotFoundException extends Error {
 }
 
 
-class IncompatibleSymbolException extends Error {
+export class IncompatibleSymbolException extends Error {
     constructor(a: VSymbol, b: PSymbol) {
         super(`Incompatible Symbol Exception: ${a.id} and ${b}`);
         this.name = "IncompatibleSymbolException";
@@ -79,7 +79,7 @@ export class Columnar {
 export type History = MoveC[]
 
 
-function extract_action_parameters(
+export function extract_action_parameters(
     c_params: VariableSymbol[],
     d_params: VSymbol[],
     i_params: PSymbol[]) {
@@ -111,7 +111,7 @@ function extract_action_parameters(
         return res
 }
 
-function extract_fields(symbol_per_column: PieceSymbol[], a_params: PieceSymbol[]) {
+export function extract_fields(symbol_per_column: PieceSymbol[], a_params: PieceSymbol[]) {
     let res = []
 
     for (let param of a_params) {

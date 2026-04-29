@@ -45,8 +45,8 @@ export enum AtomicActionId {
     Move,
     Push,
     Capture,
-
-    Promote
+    Promote,
+    Safe_Move,
 }
 
 export enum AtomicFilterId {
@@ -107,3 +107,20 @@ export type AtomicFilterCall = {
 }
 
 export type AtomicCall = AtomicActionCall | AtomicFilterCall
+
+export enum Quantification {
+    IfThen,
+    ForAll
+}
+
+export type CompositeActionCallWithQuantification = {
+    quantification: Quantification
+    call: CompositeActionCall
+}
+
+export type CompositeNestedGraphNode = {
+    data: CompositeActionCallWithQuantification
+    children: CompositeNestedGraphNode[]
+}
+
+export type CompositeNestedGraphRoot = CompositeNestedGraphNode[]

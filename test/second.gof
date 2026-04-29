@@ -1,4 +1,13 @@
-if checkmate(bishop, bishop2, king) then
+if checks_for_only_king_evades(queen, queen2, king) then
+  forall king_evades(king, king2) then
+    if checkmate(queen2, queen3, king2) then
+    if checks_for_only_king_evades(queen2, queen3, king2) then
+      forall king_evades(king2, king3) then
+        if checkmate(queen3, queen4, king3) then
+
+if has_fork_with_checks_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook) then
 
 ###
 
@@ -14,3 +23,13 @@ def checkmate(From, To, King)
   no_captures(To)
   no_blocks_check(To, King)
   no_push_blocks_check(To, King)
+
+def checks_for_only_king_evades(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+
+def king_evades(From, To)
+  safe_move(From, To)

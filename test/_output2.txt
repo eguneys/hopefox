@@ -1,9 +1,9 @@
 Time: 0.2ms per puzzle
-Coverage: %1 Accuracy: %100
-Tp/Fp: 13/0 N: 1447 Total: 1460
+Coverage: %0 Accuracy: %--
+Tp/Fp: 0/0 N: 1459 Total: 1459
 -----******----
 
 -----*****----
-Coverage: %1 Accuracy: %100
-Tp/Fp: 13/0 N: 1447 Total: 1460
-Time: 0.286ms per puzzle
+Coverage: %0 Accuracy: %--
+Tp/Fp: 0/0 N: 1459 Total: 1459
+Time: 0.244ms per puzzle

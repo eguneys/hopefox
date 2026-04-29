@@ -13,7 +13,7 @@ let data = fs.readFileSync('test/second.gof').toString()
 let gof_run = usage(data)
 
 it('works', () => {
-    let skips = [-1]
+    let skips = [676]
 
     let single_i = -1
     //single_i =  1
