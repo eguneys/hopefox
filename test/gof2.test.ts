@@ -16,9 +16,10 @@ it('works', () => {
     let skips = [676]
 
     let single_i = -1
-    //single_i =  1
+    //single_i =  14
 
     if (single_i != -1) {
+        console.log(log_puzzles[single_i].link)
         console.log(solve_i(single_i))
         return
     }

@@ -1,7 +1,7 @@
 import { PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
-import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, extract_fields } from "./gofer"
+import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, extract_fields, history_to_sans } from "./gofer"
 import { parse_defs, parse_nested_graph_root } from "./parser"
 import { AtomicCall, CompositeActionCallWithQuantification, CompositeActionDefinition, CompositeNestedGraphNode, CompositeNestedGraphRoot, is_atomic_action, is_psymbol2, PieceSymbol, Quantification, symbol_equals, VSymbol } from "./types"
 
@@ -39,8 +39,8 @@ export class BindingOutWithQuantifiers {
         return res
     }
 
-    get_history() {
-        return this.history_per_row.slice(this.start_row_index)
+    get_history_for_groups(group: IndexGroups) {
+        return group.map(_ => this.history_per_row.slice(_.start_row_index, _.end_row_index))
     }
 
 
@@ -127,50 +127,76 @@ export class BindingOutWithQuantifiers {
         this.history_per_row.push([])
 
 
-        return this.atomic_step_for_node(m, pos, this.atomic_call_root)
+        return this.atomic_step_for_node(m, pos, this.atomic_call_root, [{ start_row_index: 0, end_row_index: 1 }])
     }
 
-    atomic_step_for_node(m: PositionManager, pos: PositionC, node: AtomicCallNode): boolean {
+    atomic_step_for_node(m: PositionManager, pos: PositionC, node: AtomicCallNode, index_group: IndexGroups): IndexGroups {
 
-        for (let action of node.actions) {
-            this.run_action_on_position(m, pos, action)
+        let local_groups = []
+        for (let index_range of index_group) {
+            let index_range_start_row_index = index_range.start_row_index
+            let index_range_end_row_index = index_range.end_row_index
+
+            let start_row_index = -1
+            let end_row_index = -1
+            for (let action of node.actions) {
+                let local_begin_index = this.history_per_row.length
+                this.run_action_on_position(m, pos, action, index_range_start_row_index, index_range_end_row_index)
+                let local_end_index = this.history_per_row.length
+
+                start_row_index = local_begin_index
+                end_row_index = local_end_index
+
+                index_range_start_row_index = local_begin_index
+                index_range_end_row_index = local_end_index
+            }
+
+            if (start_row_index !== end_row_index) {
+                local_groups.push({ start_row_index, end_row_index })
+            }
         }
 
-        let S0 = []
-        for (let i = this.start_row_index; i < this.history_per_row.length; i++) {
-            S0.push(i)
+        if (node.children.length === 0) {
+            return local_groups
         }
 
-        let child_begin_row_index = this.history_per_row.length
+        let children_groups = []
         for (let child of node.children) {
-            this.atomic_step_for_node(m, pos, child)
+            children_groups.push(...this.atomic_step_for_node(m, pos, child, local_groups))
         }
-
-        let C0 = []
-        for (let i = child_begin_row_index; i < this.history_per_row.length; i++) {
-            C0.push(i)
-        }
-
-        let S_Covered = this.extract_S_Covered_from_C0(C0, S0)
 
         if (node.quantification === Quantification.IfThen) {
-            if (S0.length === 0) {
-                return true
-            }
-            if (S_Covered.length > 0) {
-                return true
-            }
-            return false
+            return children_groups
         } else if (node.quantification === Quantification.ForAll) {
-            if (S0.length === 0) {
-                return false
+
+            if (this.local_groups_covered_by_sub_groups(local_groups, children_groups)) {
+                return children_groups
+            } else {
+                return []
             }
-            if (!is_subset(S0, S_Covered)) {
-                return false
-            }
-            return true
         }
         throw new UnreachableCodeException()
+    }
+
+    local_groups_covered_by_sub_groups(a: IndexGroups, b: IndexGroups) {
+        for (let range of a) {
+            outer: for (let i = range.start_row_index; i < range.end_row_index; i++) {
+                let h = this.history_per_row[i]
+
+                for (let sub_range of b) {
+                    for (let j = sub_range.start_row_index; j < sub_range.end_row_index; j++) {
+                        let sub_h = this.history_per_row[j]
+
+                        if (is_subset(h, sub_h)) {
+                            continue outer
+                        }
+                    }
+                }
+
+                return false
+            }
+        }
+        return true
     }
 
     // TODO expects only one action per definition
@@ -190,13 +216,12 @@ export class BindingOutWithQuantifiers {
         return res
     }
 
-    run_action_on_position(m: PositionManager, pos: PositionC, action: AtomicCall) {
-        let new_start_row_index = this.history_per_row.length
-
+    run_action_on_position(m: PositionManager, pos: PositionC, action: AtomicCall, start_row_index: number, end_row_index: number) {
         if (is_atomic_action(action)) {
             atomic_action_handlers[action.id](
                 action.fields, 
-                this.start_row_index, 
+                start_row_index, 
+                end_row_index,
                 this.symbol_per_column,
                 m,
                 pos,
@@ -206,7 +231,8 @@ export class BindingOutWithQuantifiers {
         } else {
             atomic_filter_handlers[action.id](
                 action.fields, 
-                this.start_row_index, 
+                start_row_index, 
+                end_row_index,
                 this.symbol_per_column,
                 m,
                 pos,
@@ -214,8 +240,6 @@ export class BindingOutWithQuantifiers {
                 this.table
             )
         }
-
-        this.start_row_index = new_start_row_index
     }
 }
 
@@ -236,3 +260,23 @@ export function parse_and_create_bindings(code: string): BindingOutWithQuantifie
     return nodes.map(_ => BindingOutWithQuantifiers.from_defs(defs, _))
 }
 
+
+export function run_bindings(b: BindingOutWithQuantifiers, m: PositionManager, pos: PositionC) {
+    let gg = b.fill_history_for_position(m, pos)
+    if (gg.length === 0) {
+        return []
+    }
+
+    let res = []
+
+    for (let hh of b.get_history_for_groups(gg)) {
+        for (let h of hh) {
+            res.push(history_to_sans(h, m, pos))
+        }
+    }
+    return res
+}
+
+
+export type IndexRange = { start_row_index: number, end_row_index: number }
+export type IndexGroups = IndexRange[]

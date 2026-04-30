@@ -276,7 +276,7 @@ export function run_bindings(b: BindingOut, m: PositionManager, pos: PositionC) 
 
 
 type SAN = string
-function history_to_sans(h: MoveC[], m: PositionManager, pos: PositionC) {
+export function history_to_sans(h: MoveC[], m: PositionManager, pos: PositionC) {
     let res: SAN[] = []
 
 
