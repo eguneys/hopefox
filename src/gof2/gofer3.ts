@@ -1,4 +1,4 @@
-import { PositionC, PositionManager } from "../distill/hopefox_c"
+import { move_c_to_Move, PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
 import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, extract_fields, history_to_sans } from "./gofer"

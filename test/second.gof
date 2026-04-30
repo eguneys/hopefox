@@ -52,14 +52,44 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
   forall king_evades(king, king2) then
     if captures(bishop2, rook_bishop3) then
 
-###
+
+
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades_and_attacks_hanging(king, king2, rook2) then
+    if checks_defended_by(rook2, rook3, king2, bishop2) then
+      forall king_evades(king2, king3) then
+        if captures(bishop2, rook_bishop3) then
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades_and_attacks_hanging(king, king2, rook2) then
+    if checks_defended_by(rook2, rook3, king2, bishop2) then
+
 if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
   forall king_evades(king, king2) then
     if captures(bishop2, rook_bishop3) then
 
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+
+###
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, bishop3) then
+    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, king2) then
 
 
 ###
+
+def checks_defended_by_also_evades_attack(From, To, King, Defender, Attacker) then
+  attack(Attacker, From)
+  move(From, To)
+
+
+def checks_defended_by(From, To, King, Defender)
+  move(From, To)
+  attack(To, King)
+  defend(Defender, To)
 
 def has_no_captures(To)
   no_captures(To)
@@ -100,6 +130,12 @@ def checks_for_only_king_evades(From, To, King)
 
 def king_evades(From, To)
   safe_move(From, To)
+
+
+def king_evades_and_attacks_hanging(From, To, Hanging)
+  safe_move(From, To)
+  attack(To, Hanging)
+  no_defense(Hanging)
 
 
 def has_fork_with_checks_for_only_king_evades(From, To, King, ForkB)

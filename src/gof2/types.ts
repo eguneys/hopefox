@@ -52,6 +52,7 @@ export enum AtomicActionId {
 export enum AtomicFilterId {
     Attack = 80,
     Attack_Through,
+    Defend,
     No_King_Evades,
     No_Captures,
     No_Blocks_Check,
