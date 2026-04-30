@@ -73,24 +73,38 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
 
 ###
 
+if has_fork_with_checks_for_only_king_evades_and_discovered_attack(bishop, bishop2, king, rook, rook2, rook3) then
+  forall king_evades(king, king2) then
+    if captures(rook2, rook3_rook4) then
+
+
 
 if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
 
 if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
   forall king_evades(king, king2) then
+    if checks_with_a_skewer(rook2, rook3, king2, queen) then
     if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, knight) then
+    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, knight) then
+      forall king_evades(king2, king3) then
+        if captures(bishop2, rook_bishop4) then
+    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, bishop3) then
     if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, bishop3) then
       forall king_evades(king2, king3) then
         if captures(bishop2, rook_bishop4) then
     if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, king2) then
+    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, king2) then
       forall king_evades(king2, king3) then
         if captures(bishop2, rook_bishop4) then
-    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, bishop3) then
-    if checks_defended_by_also_evades_attack(rook2, rook3, king2, bishop2, king2) then
     if captures(bishop2, rook_bishop3) then
 
 
 ###
+
+def checks_with_a_skewer(From, To, King, SkewerTo) then
+  move(From, To)
+  attack(To, King)
+  attack_through(To, SkewerTo, King)
 
 def checks_defended_by_also_evades_attack(From, To, King, Defender, Attacker) then
   attack(Attacker, From)

@@ -1,46 +1,43 @@
-Time: 2.8ms per puzzle
-Coverage: %100 Accuracy: %96
-Tp/Fp: 211/9 N: 0 Total: 220
+Time: 3.2ms per puzzle
+Coverage: %100 Accuracy: %99
+Tp/Fp: 216/3 N: 0 Total: 219
 -----******----
-22940 https://lichess.org/training/JYlDu
-Solution: Rg8+ Kxg8 Rd8#
-{ Bd6+ }
-{ Bd6+ Ke8 Re7+ Kf8 Bxc5 }
-{ Bd6+ Ke8 Re7+ Kd8 Bxc5 }
-{ Bd6+ Ke8 Rd8+ Kxd8 Bxc5 }
-{ Bd6+ Ke8 Re7+ }
-{ Bd6+ Ke8 Rd8+ }
-{ Bd6+ Ke8 Bxc5 }
-{ Bd6+ Kxg7 Bxc5 }
-33926 https://lichess.org/training/T1JsH
-Solution: Be5+ Kf2 Rh2+
-{ Be5+ }
-{ Be5+ Kg2 Rg1+ Kh3 Bxb8 }
-{ Be5+ Kg2 Rg1+ Kxg1 Bxb8 }
-{ Be5+ Kg2 Rg1+ Kf2 Bxb8 }
-{ Be5+ Kg2 Rh2+ Kf1 Bxb8 }
-{ Be5+ Kg2 Rh2+ Kg1 Bxb8 }
-{ Be5+ Kg2 Rg1+ }
-{ Be5+ Kg2 Rh2+ }
-{ Be5+ Kf2 Bxb8 }
-{ Be5+ Kg2 Bxb8 }
-47490 https://lichess.org/training/eVNd5
-Solution: Bc5+ Kf7 Rxd2
-{ Bc5+ }
-{ Bc5+ Ke6 Re5+ Kf7 Bxa3 }
-{ Bc5+ Ke6 Re5+ Kxe5 Bxa3 }
-{ Bc5+ Ke6 Re5+ Kd7 Bxa3 }
-{ Bc5+ Ke6 Re5+ Kf6 Bxa3 }
-{ Bc5+ Ke6 Rd6+ Kf7 Bxa3 }
-{ Bc5+ Ke6 Rd6+ Ke5 Bxa3 }
-{ Bc5+ Ke6 Rd6+ Ke7 Bxa3 }
-{ Bc5+ Ke6 Re5+ }
-{ Bc5+ Ke6 Rd6+ }
-{ Bc5+ Ke8 Bxa3 }
-{ Bc5+ Ke6 Bxa3 }
-{ Bc5+ Kf6 Bxa3 }
-{ Bc5+ Kf7 Bxa3 }
+66649 https://lichess.org/training/uccnY
+Solution: Bd3+ Ke1 Re2+ Kd1 Bxa6 gxh7 Kg7
+{ Bd3+ }
+{ Bd3+ Ke1 Rd1+ }
+{ Bd3+ Ke1 Re2+ }
+{ Bd3+ Ke1 Rd1+ Kxd1 Bxa6 }
+{ Bd3+ Ke1 Rd1+ Kf2 Bxa6 }
+{ Bd3+ Ke1 Re2+ Kd1 Bxa6 }
+{ Bd3+ Ke1 Re2+ Kf1 Bxa6 }
+{ Bd3+ Ke1 Bxa6 }
+{ Bd3+ Kg1 Bxa6 }
+69808 https://lichess.org/training/xIErH
+Solution: Bd5+ Ke7 Re6+ Kxd7 Bxb3 c4 Bxc4
+{ Bd5+ }
+{ Bd5+ Ke7 Re6+ }
+{ Bd5+ Ke7 Re6+ Kf8 Bxb3 }
+{ Bd5+ Ke7 Re6+ Kf7 Bxb3 }
+{ Bd5+ Ke7 Re6+ Kxd7 Bxb3 }
+{ Bd5+ Kf8 Bxb3 }
+{ Bd5+ Kg7 Bxb3 }
+{ Bd5+ Ke7 Bxb3 }
+72600 https://lichess.org/training/zgAW0
+Solution: Bb5+ Ke7 Bxa4 Kxd6 a7 Rxb6 a8=Q
+{ Bb5+ }
+{ Bb5+ Ke7 Re6+ }
+{ Bb5+ Ke7 Rd7+ }
+{ Bb5+ Ke7 Re6+ Kf8 Bxa4 }
+{ Bb5+ Ke7 Re6+ Kxe6 Bxa4 }
+{ Bb5+ Ke7 Re6+ Kd8 Bxa4 }
+{ Bb5+ Ke7 Rd7+ Kf8 Bxa4 }
+{ Bb5+ Ke7 Rd7+ Ke6 Bxa4 }
+{ Bb5+ Ke7 Rd7+ Kf6 Bxa4 }
+{ Bb5+ Ke7 Rd7+ Ke8 Bxa4 }
+{ Bb5+ Kf8 Bxa4 }
+{ Bb5+ Ke7 Bxa4 }
 -----*****----
-Coverage: %100 Accuracy: %96
-Tp/Fp: 211/9 N: 0 Total: 220
-Time: 2.837ms per puzzle
+Coverage: %100 Accuracy: %99
+Tp/Fp: 216/3 N: 0 Total: 219
+Time: 3.239ms per puzzle
