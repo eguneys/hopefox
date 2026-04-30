@@ -1,7 +1,28 @@
+if has_fork_with_checks_for_only_king_evades_and_discovered_attack(bishop, bishop2, king, rook, rook2, rook3) then
+  forall king_evades(king, king2) then
+    if captures(rook2, rook3_rook4) then
+
+
+
+if has_fork_with_checks_for_only_king_evades_and_discovered_attack(bishop, bishop2, king, rook, queen, queen2) then
+  forall king_evades(king, king2) then
+    if captures(queen, queen2_queen3) then
+
+if has_fork_with_checks_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if captures(knight, bishop4_knight2) then
+        if captures(rook2, knight2_rook3) then
+
+
 if has_fork_with_checks_for_only_king_evades(bishop, bishop2, king, rook) then
   forall king_evades(king, king2) then
     if captures(bishop2, rook_bishop3) then
       forall has_no_captures(rook2) then
+
+if has_fork_with_checks_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if checkmate(rook2, rook3, king2) then
 
 
 
@@ -18,6 +39,23 @@ if has_fork_with_checks_for_only_king_evades(bishop, bishop2, king, rook) then
     if has_check_with_discovered_attack_on_hanging(bishop3, bishop4, king2, rook2, queen) then
       forall king_evades(king2, king3) then
         if captures(rook2, queen_rook3) then
+
+if has_fork_with_checks_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if captures(knight, bishop4_knight2) then
+        if captures(pawn, knight2_pawn2) then
+      if captures(rook2, bishop3_rook3) then
+        if captures(rook4, pawn_rook5) then
+        
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+
+###
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
 
 
 
@@ -71,3 +109,27 @@ def has_fork_with_checks_for_only_king_evades(From, To, King, ForkB)
   no_captures(To)
   no_blocks_check(To, King)
   no_push_blocks_check(To, King)
+
+
+def has_fork_with_checks_and_hanging_for_only_king_evades(From, To, King, ForkB)
+  move(From, To)
+  attack(To, King)
+  attack(To, ForkB)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+  no_defense(ForkB)
+
+
+
+
+  
+def has_fork_with_checks_for_only_king_evades_and_discovered_attack(From, To, King, ForkB, DiscoverFrom, DiscoverTo)
+  attack_through(DiscoverFrom, DiscoverTo, To)
+  move(From, To)
+  attack(To, King)
+  attack(To, ForkB)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+  attack(DiscoverFrom, DiscoverTo)

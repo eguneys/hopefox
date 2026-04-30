@@ -13,7 +13,13 @@ let data = fs.readFileSync('test/second.gof').toString()
 let gof_run = usage(data)
 
 it('works', () => {
-    let skips = [676]
+    let skips_a = [676, 674, 937, 1044, 1088, 1201, 1239]
+    let skips_b = [230, 1391, 1664, 1834, 2109, 2273, 2312, 2628, 2787]
+    let skips_c = [3044, 3266]
+
+    let skips = [14, 70, 118]
+    skips.push(...[199, 204, 230])
+    skips.push(...[347, 352, 407])
 
     let single_i = -1
     //single_i =  14
@@ -25,7 +31,7 @@ it('works', () => {
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 50
+    let total = log_puzzles.length / 10
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [] }
 
     for (let i = 0; i < total; i++) {

@@ -31,6 +31,7 @@ export const atomic_filter_handlers: Record<AtomicFilterId, AtomicHandler> = {
     [AtomicFilterId.No_Captures]: atomic_filter_no_captures,
     [AtomicFilterId.No_Blocks_Check]: atomic_filter_no_blocks_check,
     [AtomicFilterId.No_Push_Blocks_Check]: atomic_filter_no_push_blocks_check,
+    [AtomicFilterId.No_Defense]: atomic_filter_no_defense,
 }
 
 function atomic_action_safe_move(
@@ -640,6 +641,64 @@ function atomic_filter_no_push_blocks_check(
     }
 
 }
+
+
+
+function atomic_filter_no_defense(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+
+    let from_symbol = columns[from]
+
+    let Froms = table.get_column(from)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+        history_make_for_pos(h, m, pos)
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+
+        let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+
+        let occ = m.pos_occupied(pos)
+
+        let bb = occ.intersect(bb_from)
+
+        outer: for (let sq of bb) {
+
+            let color = piece_c_color_of(m.get_at(pos, sq)!)
+
+            let bb2 = m.get_pieces_color_bb(pos, color)
+
+            for (let b2 of bb2) {
+
+                let aa2 = m.pos_attacks(pos, b2)
+
+                if (aa2.has(sq)) {
+                    continue outer
+                }
+            }
+
+            table.create_new_duplicate_row(i)
+
+            Froms.set_raw(SquareSet.fromSquare(sq))
+            history_per_row.push(h)
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+
+}
+
+
 
 
 

@@ -1,33 +1,19 @@
-Time: 0.5ms per puzzle
-Coverage: %6 Accuracy: %89
-Tp/Fp: 81/10 N: 1368 Total: 1459
+Time: 0.2ms per puzzle
+Coverage: %10 Accuracy: %88
+Tp/Fp: 636/86 N: 6567 Total: 7289
 -----******----
-230 https://lichess.org/training/0BSM1
-Solution: Be5+ Kf3 Ra3+ Ke4 Bxc7
-{ Be5+ Kh3 Bxc7 }
-{ Be5+ Kf3 Bxc7 }
-347 https://lichess.org/training/0HKvf
-Solution: Bxc3+ Kd1 Bxa1 Nxe6+ fxe6
-{ Bxc3+ Kd1 Bxa1 }
-{ Bxc3+ Kd1 Bxa1 }
-{ Bxc3+ Kd1 Bxa1 }
-444 https://lichess.org/training/0MxAo
-Solution: Bc6+ Kd4 Bxb7 Rxb7 Rxg3
-{ Bc6+ Ke5 Bxb7 }
-{ Bc6+ Kd4 Bxb7 }
-{ Bc6+ Ke5 Bxb7 Rxf7+ Rxf7 }
-{ Bc6+ Kd4 Bxb7 Rxf7+ Rxf7 }
-{ Bc6+ Ke5 Bxb7 Rxf7+ Kg8 }
-{ Bc6+ Ke5 Bxb7 Rxf7+ Kxf7 }
-{ Bc6+ Ke5 Bxb7 Rxf7+ Ke8 }
-{ Bc6+ Ke5 Bxb7 Re8+ Kxe8 }
-{ Bc6+ Ke5 Bxb7 Re8+ Kg7 }
-{ Bc6+ Kd4 Bxb7 Rxf7+ Kg8 }
-{ Bc6+ Kd4 Bxb7 Rxf7+ Kxf7 }
-{ Bc6+ Kd4 Bxb7 Rxf7+ Ke8 }
-{ Bc6+ Kd4 Bxb7 Re8+ Kxe8 }
-{ Bc6+ Kd4 Bxb7 Re8+ Kg7 }
+480 https://lichess.org/training/0OrGJ
+Solution: Bc4+ Kf8 Rxe1
+{ Bc4+ Kh8 Bxa2 }
+{ Bc4+ Kf8 Bxa2 }
+489 https://lichess.org/training/0PEms
+Solution: Bd5+ Kf8 Rf7+ Ke8 Bxb3
+{ Bd5+ Kh8 Bxb3 }
+{ Bd5+ Kf8 Bxb3 }
+674 https://lichess.org/training/0Yl9r
+Solution: Bxd4+ Kh1 Bxa1 e7 Bd7
+{ Bxd4+ Kh1 Bxa1 }
 -----*****----
-Coverage: %6 Accuracy: %89
-Tp/Fp: 81/10 N: 1368 Total: 1459
-Time: 0.541ms per puzzle
+Coverage: %10 Accuracy: %88
+Tp/Fp: 636/86 N: 6567 Total: 7289
+Time: 0.213ms per puzzle

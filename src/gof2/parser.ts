@@ -4,13 +4,13 @@ import { AtomicActionId, AtomicFilterId, CompositeActionBody, CompositeActionCal
 export function parse_defs(code: string): CompositeActionDefinition[] {
     let res: CompositeActionDefinition[] = []
 
-    let in_def = false
+    let in_def = 0
     let current_head: CompositeActionHead | undefined
     let current_body: CompositeActionBody = []
     for (let line of code.split('\n')) {
-        if (!in_def) {
+        if (in_def < 2) {
             if (line.includes('#')) {
-                in_def = true
+                in_def++
             }
             continue
         }
@@ -113,6 +113,8 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
             return AtomicFilterId.No_Blocks_Check
         case 'no_push_blocks_check':
             return AtomicFilterId.No_Push_Blocks_Check
+        case 'no_defense':
+            return AtomicFilterId.No_Defense
     }
     throw new BadAtomicIdException(s)
 }
@@ -120,9 +122,16 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
 export function parse_ring(code: string): CompositeRing {
     let res: CompositeRing = []
 
+    let in_line = false
+
     for (let line of code.split('\n')) {
         if (line.includes('#')) {
-            break
+            if (!in_line) {
+                in_line = true
+                continue
+            } else {
+                break
+            }
         }
 
         let m = line.match(/if (.*)\((.*)\) then/)
@@ -184,6 +193,7 @@ function piece_symbol_make(s: string): PSymbol {
 
 export function parse_nested_graph_root(code: string): CompositeNestedGraphRoot {
 
+    code = code.split('###')[1]
     const lines = code.split('\n').filter(line => line.trim() !== '');
 
     let root: CompositeNestedGraphRoot = []

@@ -55,7 +55,8 @@ export enum AtomicFilterId {
     No_King_Evades,
     No_Captures,
     No_Blocks_Check,
-    No_Push_Blocks_Check
+    No_Push_Blocks_Check,
+    No_Defense
 }
 
 export function is_atomic_action(a: AtomicCall): a is AtomicActionCall {
