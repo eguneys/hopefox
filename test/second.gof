@@ -1,4 +1,4 @@
-14 70 118 204 230 347
+14 70 118 204 230 347 937
 ===
 
 
@@ -85,7 +85,44 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
           if pushes_to_promote(pawn, pawn2, sq3) then
             if defends_promotion_from_behind(rook3, rook4, pawn2, sq3) then
 
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if pushes_to_promote(pawn, pawn2, sq3) then
+        if defends_promotion(bishop4, bishop5, sq3) then
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if pushes_to_promote(pawn, pawn2, sq3) then
+        if blocks_promotion(rook2, sq3_rook3) then
+      
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if pushes_for_blocks(pawn, pawn2, sq3) then
+        if covers_push(bishop4, bishop5, sq3) then
+
+
+
 ###
+
+def covers_push(From, To, To2) then
+  move(From, To)
+  attack(To, To2)
+
+def pushes_for_blocks(From, To, To2) then
+  push(From, To)
+  about_to_push(To, To2)
+
+def blocks_promotion(From, Promotion_To) then
+  move(From, To)
+  same(Promotion, To)
+
+def defends_promotion(From, To, Pawn) then
+  move(From, To)
+  attack(To, Pawn)
 
 def defends_promotion_from_behind(From, To, Pawn, Promotion) then
   move(From, To)

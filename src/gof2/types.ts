@@ -58,7 +58,9 @@ export enum AtomicFilterId {
     No_Blocks_Check,
     No_Push_Blocks_Check,
     No_Defense,
-    About_To_Promote
+    About_To_Promote,
+    About_To_Push,
+    Same,
 }
 
 export function is_atomic_action(a: AtomicCall): a is AtomicActionCall {

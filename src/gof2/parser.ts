@@ -104,6 +104,8 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
             return AtomicFilterId.Defend
         case 'about_to_promote':
             return AtomicFilterId.About_To_Promote
+        case 'about_to_push':
+            return AtomicFilterId.About_To_Push
         case 'no_king_evades':
             return AtomicFilterId.No_King_Evades
         case 'no_captures':
@@ -114,6 +116,8 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
             return AtomicFilterId.No_Push_Blocks_Check
         case 'no_defense':
             return AtomicFilterId.No_Defense
+        case 'same':
+            return AtomicFilterId.Same
     }
     throw new BadAtomicIdException(s)
 }

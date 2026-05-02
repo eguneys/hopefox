@@ -25,7 +25,7 @@ it('works', () => {
     //onlies.length = 0
 
     let single_i = -1
-    //single_i =  407
+    //single_i =  1044
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)

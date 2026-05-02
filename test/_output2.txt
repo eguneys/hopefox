@@ -1,27 +1,69 @@
-Time: 2.4ms per puzzle
-Coverage: %100 Accuracy: %6
-Tp/Fp: 33/515 N: 0 Total: 548
+Time: 6.1ms per puzzle
+Coverage: %100 Accuracy: %14
+Tp/Fp: 74/473 N: 0 Total: 547
 -----******----
-674 https://lichess.org/training/0Yl9r
-Solution: Bxd4+ Kh1 Bxa1 e7 Bd7
-{ Bxd4+ }
-{ Bxd4+ Kh1 Bxa1 }
-{ Bxd4+ Kh1 Bxa1 }
-937 https://lichess.org/training/0mZY9
-Solution: Bxd5+ Kh8 Rb7 Ra1+ Kg2 Be4+ Bxe4 fxe4 Bg7+ Kg8 Bxa1
-{ Bxd5+ }
-{ Bxd5+ Kh8 Bxa2 }
-{ Bxd5+ Kh8 Bxa2 }
-1044 https://lichess.org/training/0sr6k
-Solution: Bd3+ Kf2 Bxb5 c7 Rc8
-{ Bd3+ }
-{ Bd3+ Ke1 Bxb5 }
-{ Bd3+ Kg1 Bxb5 }
-{ Bd3+ Kf2 Bxb5 }
-{ Bd3+ Ke1 Bxb5 }
-{ Bd3+ Kg1 Bxb5 }
-{ Bd3+ Kf2 Bxb5 }
+1239 https://lichess.org/training/13lw4
+Solution: Bd5+ Ke7 Bxa2 Nc3+ Kxd2
+{ Bd5+ }
+{ Bd5+ Kf8 Bxa2 }
+{ Bd5+ Ke8 Bxa2 }
+{ Bd5+ Kg6 Bxa2 }
+{ Bd5+ Ke7 Bxa2 }
+{ Bd5+ Kg7 Bxa2 }
+{ Bd5+ Kf8 Bxa2 }
+{ Bd5+ Ke8 Bxa2 }
+{ Bd5+ Kg6 Bxa2 }
+{ Bd5+ Ke7 Bxa2 }
+{ Bd5+ Kg7 Bxa2 }
+{ Bd5+ Kf8 Bxa2 a5 Bb3 }
+{ Bd5+ Ke8 Bxa2 a5 Bb3 }
+{ Bd5+ Kg6 Bxa2 a5 Bb3 }
+{ Bd5+ Ke7 Bxa2 a5 Bb3 }
+{ Bd5+ Kg7 Bxa2 a5 Bb3 }
+1362 https://lichess.org/training/1AGLW
+Solution: Bc3+ Ke4 Bxb2 c1=Q+ Kxc1 f4 gxf4
+{ Bc3+ }
+{ Bc3+ }
+{ Bc3+ Ke6 Bxb2 }
+{ Bc3+ Ke4 Bxb2 }
+{ Bc3+ Kd6 Bxb2 }
+{ Bc3+ Kd5 Bxb2 }
+{ Bc3+ Ke6 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Ke4 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Kd6 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Kd5 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Ke6 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Ke4 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Kd6 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Kd5 Bxb2 c1=Q+ Kxc1 }
+{ Bc3+ Ke6 Bxb2 }
+{ Bc3+ Ke4 Bxb2 }
+{ Bc3+ Kd6 Bxb2 }
+{ Bc3+ Kd5 Bxb2 }
+1387 https://lichess.org/training/1BVcM
+Solution: Bg3+ Kd4 Bxh2 Kc3 Bd1
+{ Bg3+ }
+{ Bg3+ Kd4 Bxh2 }
+{ Bg3+ Kf6 Bxh2 }
+{ Bg3+ Ke6 Bxh2 }
+{ Bg3+ Kd5 Bxh2 }
+{ Bg3+ Kd4 Bxh2 g3 Bxg3 }
+{ Bg3+ Kf6 Bxh2 g3 Bxg3 }
+{ Bg3+ Ke6 Bxh2 g3 Bxg3 }
+{ Bg3+ Kd5 Bxh2 g3 Bxg3 }
+{ Bg3+ Kd4 Bxh2 }
+{ Bg3+ Kf6 Bxh2 }
+{ Bg3+ Ke6 Bxh2 }
+{ Bg3+ Kd5 Bxh2 }
+{ Bg3+ Kd4 Bxh2 g3 Be4 }
+{ Bg3+ Kd4 Bxh2 b5 Bd6 }
+{ Bg3+ Kf6 Bxh2 g3 Be4 }
+{ Bg3+ Kf6 Bxh2 b5 Bd6 }
+{ Bg3+ Ke6 Bxh2 g3 Be4 }
+{ Bg3+ Ke6 Bxh2 b5 Bd6 }
+{ Bg3+ Kd5 Bxh2 g3 Be4+ }
+{ Bg3+ Kd5 Bxh2 b5 Bd6 }
 -----*****----
-Coverage: %100 Accuracy: %6
-Tp/Fp: 33/515 N: 0 Total: 548
-Time: 2.4ms per puzzle
+Coverage: %100 Accuracy: %14
+Tp/Fp: 74/473 N: 0 Total: 547
+Time: 6.129ms per puzzle

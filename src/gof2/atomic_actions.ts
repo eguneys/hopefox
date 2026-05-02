@@ -1,8 +1,9 @@
 import { between } from "../distill/attacks";
 import { BLACK, color_c_opposite, make_move_from_to, make_move_from_to_promotion, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
 import { go_black, go_white, SquareSet } from "../distill/squareSet";
-import { History, Columnar } from "./gofer";
+import { History, Columnar, history_to_sans } from "./gofer";
 import { AtomicActionId, AtomicFilterId, PieceSymbol } from "./types";
+import { squareSet } from '../distill/debug'
 
 export type AtomicHandler = (
     fields: number[],
@@ -29,11 +30,13 @@ export const atomic_filter_handlers: Record<AtomicFilterId, AtomicHandler> = {
     [AtomicFilterId.Attack_Through]: atomic_filter_attack_through,
     [AtomicFilterId.Defend]: atomic_filter_defend,
     [AtomicFilterId.About_To_Promote]: atomic_filter_about_to_promote,
+    [AtomicFilterId.About_To_Push]: atomic_filter_about_to_push,
     [AtomicFilterId.No_King_Evades]: atomic_filter_no_king_evades,
     [AtomicFilterId.No_Captures]: atomic_filter_no_captures,
     [AtomicFilterId.No_Blocks_Check]: atomic_filter_no_blocks_check,
     [AtomicFilterId.No_Push_Blocks_Check]: atomic_filter_no_push_blocks_check,
     [AtomicFilterId.No_Defense]: atomic_filter_no_defense,
+    [AtomicFilterId.Same]: atomic_filter_same,
 }
 
 function atomic_action_safe_move(
@@ -386,7 +389,7 @@ function atomic_filter_attack(
 
             aa = aa.intersect(bb_to)
 
-            aa = aa.intersect(m.get_pieces_color_bb(pos, color_c_opposite(color)))
+            //aa = aa.intersect(m.get_pieces_color_bb(pos, color_c_opposite(color)))
 
             for (let a of aa) {
                 table.create_new_duplicate_row(i)
@@ -538,6 +541,67 @@ function atomic_filter_attack_through(
 
 
 }
+
+
+function atomic_filter_about_to_push(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+    let to = fields[1]
+
+    let from_symbol = columns[from]
+    let to_symbol = columns[to]
+
+
+    let Tos = table.get_column(to)
+    let Froms = table.get_column(from)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+        history_make_for_pos(h, m, pos)
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+        let to_symbol_bb = bitboard_of_symbol(to_symbol, m, pos)
+
+        let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+        let bb_to = Tos.rows[i].intersect(to_symbol_bb)
+
+        let occ = m.pos_occupied(pos)
+
+        let bb = occ.intersect(bb_from)
+
+        bb = bb.intersect(m.get_pieces_bb(pos, [PAWN]))
+
+        for (let sq of bb) {
+
+            let color = piece_c_color_of(m.get_at(pos, sq)!)
+
+            let promotion = color === WHITE ? go_black(sq) : go_white(sq)
+
+            if (promotion === undefined) {
+                continue
+            }
+
+            table.create_new_duplicate_row(i)
+
+            Froms.set_raw(SquareSet.fromSquare(sq))
+            Tos.set_raw(SquareSet.fromSquare(promotion))
+
+            history_per_row.push(h)
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+}
+
+
 
 function atomic_filter_about_to_promote(
     fields: number[],
@@ -925,6 +989,62 @@ function atomic_filter_no_defense(
             table.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
+            history_per_row.push(h)
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+
+}
+
+
+function atomic_filter_same(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+    let to = fields[1]
+
+    let from_symbol = columns[from]
+    let to_symbol = columns[to]
+
+
+    let Tos = table.get_column(to)
+    let Froms = table.get_column(from)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+
+        let SS = history_to_sans(h, m, pos)
+
+        history_make_for_pos(h, m, pos)
+
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+        let to_symbol_bb = bitboard_of_symbol(to_symbol, m, pos)
+
+        let bb_from = Froms.rows[i];//.intersect(from_symbol_bb)
+        let bb_to = Tos.rows[i]; //.intersect(to_symbol_bb)
+
+        let bb = bb_from.intersect(bb_to)
+
+        let AA = squareSet(bb_to)
+        let BB = squareSet(bb_from)
+        let CC = squareSet(bb)
+
+        for (let sq of bb) {
+
+            table.create_new_duplicate_row(i)
+
+            Froms.set_raw(SquareSet.fromSquare(sq))
+            Tos.set_raw(SquareSet.fromSquare(sq))
+
             history_per_row.push(h)
         }
 
