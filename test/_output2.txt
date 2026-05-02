@@ -1,72 +1,694 @@
-Time: 9.3ms per puzzle
-Coverage: %100 Accuracy: %29
-Tp/Fp: 152/368 N: 0 Total: 520
+Time: 9.6ms per puzzle
+Coverage: %100 Accuracy: %32
+Tp/Fp: 159/343 N: 0 Total: 502
 -----******----
-7311 https://lichess.org/training/6DMbu
-Solution: Bc4+ Kg7 Rb7+ Kh6 Bxa2
-{ Bc4+ }
-{ Bc4+ Kg7 Bxa2 }
-{ Bc4+ Ke7 Bxa2 }
-{ Bc4+ Kg7 Bxa2 }
-{ Bc4+ Ke7 Bxa2 }
-{ Bc4+ Kg7 Bxa2 a5 Bb3 }
-{ Bc4+ Ke7 Bxa2 a5 Bb3 }
-7323 https://lichess.org/training/6ElA6
-Solution: Bf4+ Kg1 Bxe5 Bxf3 gxf3
-{ Bf4+ }
-{ Bf4+ Kg1 Rf1+ }
-{ Bf4+ Kh1 Rf1+ }
-{ Bf4+ Kh1 Rh3+ }
-{ Bf4+ Kg1 Rf1+ Kxf1 Bxe5 }
-{ Bf4+ Kh1 Rh3+ Kg1 Bxe5 }
-{ Bf4+ Kg1 Bxe5 }
-{ Bf4+ Kh1 Bxe5 }
-{ Bf4+ Kg1 Bxe5 }
-{ Bf4+ Kh1 Bxe5 }
-7379 https://lichess.org/training/6HS6j
-Solution: Bxb8 Rb3 Be5+
-{ Be5+ }
-{ Be5+ Kg8 Bxb8 }
-{ Be5+ Kh6 Bxb8 }
-{ Be5+ Kf7 Bxb8 }
-{ Be5+ Kf8 Bxb8 }
-{ Be5+ Kg8 Bxb8 }
-{ Be5+ Kh6 Bxb8 }
-{ Be5+ Kf7 Bxb8 }
-{ Be5+ Kf8 Bxb8 }
-{ Be5+ Kg8 Bxb8 Rxf2+ Kh3 }
-{ Be5+ Kg8 Bxb8 Rxf2+ Kg1 }
-{ Be5+ Kg8 Bxb8 Rxf2+ Kh1 }
-{ Be5+ Kg8 Bxb8 Rxf2+ Kxf2 }
-{ Be5+ Kg8 Bxb8 Rxg3+ Kf1 }
-{ Be5+ Kg8 Bxb8 Rxg3+ Kxg3 }
-{ Be5+ Kg8 Bxb8 Rxg3+ Kh1 }
-{ Be5+ Kh6 Bxb8 Rxf2+ Kh3 }
-{ Be5+ Kh6 Bxb8 Rxf2+ Kg1 }
-{ Be5+ Kh6 Bxb8 Rxf2+ Kh1 }
-{ Be5+ Kh6 Bxb8 Rxf2+ Kxf2 }
-{ Be5+ Kh6 Bxb8 Rxg3+ Kf1 }
-{ Be5+ Kh6 Bxb8 Rxg3+ Kxg3 }
-{ Be5+ Kh6 Bxb8 Rxg3+ Kh1 }
-{ Be5+ Kf7 Bxb8 Rxf2+ Kh3 }
-{ Be5+ Kf7 Bxb8 Rxf2+ Kg1 }
-{ Be5+ Kf7 Bxb8 Rxf2+ Kh1 }
-{ Be5+ Kf7 Bxb8 Rxf2+ Kxf2 }
-{ Be5+ Kf7 Bxb8 Rxg3+ Kf1 }
-{ Be5+ Kf7 Bxb8 Rxg3+ Kxg3 }
-{ Be5+ Kf7 Bxb8 Rxg3+ Kh1 }
-{ Be5+ Kf8 Bxb8 Rxf2+ Kh3 }
-{ Be5+ Kf8 Bxb8 Rxf2+ Kg1 }
-{ Be5+ Kf8 Bxb8 Rxf2+ Kh1 }
-{ Be5+ Kf8 Bxb8 Rxf2+ Kxf2 }
-{ Be5+ Kf8 Bxb8 Rxg3+ Kf1 }
-{ Be5+ Kf8 Bxb8 Rxg3+ Kxg3 }
-{ Be5+ Kf8 Bxb8 Rxg3+ Kh1 }
-{ Be5+ Kg8 Bxb8 f4 Bxf4 }
-{ Be5+ Kh6 Bxb8 f4 Bxf4+ }
-{ Be5+ Kf7 Bxb8 f4 Bxf4 }
-{ Be5+ Kf8 Bxb8 f4 Bxf4 }
+9832 https://lichess.org/training/8LhJy
+Solution: Be3+ Kf1 Bxd4 Ke2 Kxa2
+9840 https://lichess.org/training/8M0nh
+Solution: Bf3+ Kb6 Bxg2 Kxa5 hxg5 hxg5 Bxb7
+9934 https://lichess.org/training/8QscF
+Solution: Rxb7 Re8 Bxf6+
+10245 https://lichess.org/training/8hZNm
+Solution: Rc1+ Kf2 Bd4+ Ke2 Bxa7
+10564 https://lichess.org/training/8xS76
+Solution: Bc5+ Kh1 Bg2#
+10666 https://lichess.org/training/931oR
+Solution: Bc3+ Kd1 Qd2#
+10845 https://lichess.org/training/9DGyM
+Solution: Be6+ Kb4 Bxg8 d7 g1=Q d8=Q Qg4+
+10938 https://lichess.org/training/9HLXn
+Solution: Bxe6+ Kh8 Bxc8
+10972 https://lichess.org/training/9IfnD
+Solution: Bxe6+ Kh8 Rxc8+ Nf8 Rxf8#
+11027 https://lichess.org/training/9LcjK
+Solution: Bxc3+ Ke2 Qxf8
+11313 https://lichess.org/training/9Zyar
+Solution: Rb6+ Kh5 Bxb8
+11367 https://lichess.org/training/9cmWI
+Solution: gxf5 gxf5 Rxe4 Rb7 Re3+
+11624 https://lichess.org/training/9qfTE
+Solution: Bd4+ Kf1 Bxa7 Bxb8 Bxb8
+11844 https://lichess.org/training/A35wB
+Solution: Bd3+ Kg4 Bxc2 a6 Bf5+ Kxf5 h3 a7 h2 a8=Q h1=Q Qa7+ Kh6
+12443 https://lichess.org/training/AYLUi
+Solution: Bc5+ Ke8 Bf7#
+12764 https://lichess.org/training/AoDHd
+Solution: Bxc6+ Kf8 gxf3
+12863 https://lichess.org/training/Atwno
+Solution: Be6+ Kg7 Bxc4 Rd1+ Ne1
+12993 https://lichess.org/training/B1Ogh
+Solution: Bd2+ Kc4 Bxe1 b7 Kxb7
+13090 https://lichess.org/training/B6Gvg
+Solution: Be6+ Kg2 Bxd7 f7+ Kxf7
+13250 https://lichess.org/training/BF3fY
+Solution: Bc4+ Kg7 Bxa2 Kh6 Bf7
+13341 https://lichess.org/training/BJh5v
+Solution: Be3+ Kxf5 Bxc1 Ke4 Kg2
+13393 https://lichess.org/training/BMLVd
+Solution: Bc5+ Kf1 Bxb6 e7 Kf7
+13672 https://lichess.org/training/BbvPW
+Solution: Bd4+ Ke2 Bxa7 Bxc4 Bxc4+
+13733 https://lichess.org/training/BeqEc
+Solution: Bd4+ Kg2 Bxc5 Kf3 e5
+13829 https://lichess.org/training/BkjGd
+Solution: Bd6+ f4 Bxc7
+14017 https://lichess.org/training/Btwd7
+Solution: Bc4#
+14080 https://lichess.org/training/BwfS4
+Solution: Bd4+ Kf7 Rxd7+ exd7 Bxa1
+14274 https://lichess.org/training/C7EfJ
+Solution: Bxd6+ Kg8 Rxd1 Bg4 Rxd4
+14278 https://lichess.org/training/C7QOK
+Solution: Bxe3+ Kh2 Rxf1
+14409 https://lichess.org/training/CFgDV
+Solution: Bxe5+ Ka8 gxf3
+14618 https://lichess.org/training/CRwxE
+Solution: Bxc3+ Kd1 gxf6
+14758 https://lichess.org/training/CYb3v
+Solution: Bc5+ Kh1 Bxa7 c8=R+ Rxc8
+14847 https://lichess.org/training/CdFbA
+Solution: Bxc6+ Kd8 Bg5+
+15003 https://lichess.org/training/ClrwG
+Solution: Bd4+ Kg2 Bxb6 c5 Bc7
+15045 https://lichess.org/training/CoB5s
+Solution: Bxc3+ Kf1 Bxd4 Qxh7+ Qxh7
+15185 https://lichess.org/training/CwcdF
+Solution: Bd3+ Ka2 Nc1+
+15214 https://lichess.org/training/CyTZW
+Solution: Bxc3+ Kd1 Qxb5 Qxa8+ Ke7 Qxa7+ Nd7 Qa3+ Bb4
+15231 https://lichess.org/training/CzJaA
+Solution: Bxe3+ Kf1 Rxd8
+15424 https://lichess.org/training/D9vyq
+Solution: Bd4+ Kg2 Bxa7 Bc4 Kxc2
+15830 https://lichess.org/training/DVjBW
+Solution: Bd4+ Kf1 Bxb6 Bxd8 Bxd8
+16284 https://lichess.org/training/Dt4al
+Solution: Bd5+ Ke8 Bxb3 Kd7 Kd5
+16386 https://lichess.org/training/Dy5wv
+Solution: Bd4+ Ke2 Bxa7 f6 a2
+16698 https://lichess.org/training/EFqEc
+Solution: Kxh6 Rxd4 Be6+ Kf8 g7+ Ke7 g8=Q
+16701 https://lichess.org/training/EFwiJ
+Solution: Be3+ Kh1 Rf1+
+16739 https://lichess.org/training/EHc4R
+Solution: Bd4+ Kg6 Bxa1 Kf5 Ke3 Bf7 f3
+16783 https://lichess.org/training/EKBSI
+Solution: Bc6+ Kf8 Qxf4 Qxf4 Bxf4
+16822 https://lichess.org/training/EMSUr
+Solution: Be6+ Kf8 Bxa2 c2 Kxd2 cxd1=N Kxd1
+17111 https://lichess.org/training/EcQOq
+Solution: Bxd5+ Kc8 Bxf3 c3 Bd1 c2 Bxc2
+17144 https://lichess.org/training/EeAeu
+Solution: Be3+ Kf1 Bxc5 a3 bxa3
+17300 https://lichess.org/training/El7by
+Solution: Bxf6+ Kg8 Rg3#
+17638 https://lichess.org/training/F4FgD
+Solution: Bxc3+ Kd1 Qb4
+17682 https://lichess.org/training/F6Ng3
+Solution: Bf4+ Ke2 Bxh6 Bg3+ Kc8
+17829 https://lichess.org/training/FDRAQ
+Solution: Bb4+ Kd1 Bxa5 Nxc7 Bxc7
+17858 https://lichess.org/training/FEwyA
+Solution: Qxf3+ Ke1 Qe2#
+18018 https://lichess.org/training/FM8ke
+Solution: Bd4+ Ke2 Bxa7 Bd5 Bd4
+18563 https://lichess.org/training/FnsHq
+Solution: Bd6+ Ke4 Bxc7 h7 Kg7
+18621 https://lichess.org/training/Fr7Xi
+Solution: Bc3+ Ke2 dxc6 Qxc6+ Bd7 Qd5 Bxa1
+19433 https://lichess.org/training/GYphh
+Solution: Be2+ Kh4 Bxd1 f6 c3 f7 c2 f8=Q c1=Q
+19795 https://lichess.org/training/GqZUJ
+Solution: Bc3+ Kf4 Bxb2 Kxg4 Bf6
+20203 https://lichess.org/training/HCbSn
+Solution: Bxe6+ Kh8 Qxc8+ Qxc8 Bxc8
+20225 https://lichess.org/training/HDXrm
+Solution: Bc5+ Kd2 Bxa7 f6 Ke8
+20721 https://lichess.org/training/HgJ6V
+Solution: Be3+ Kb1 Bxf4 e5+ Kh8
+20913 https://lichess.org/training/HqUrk
+Solution: Bc5+ Kf4 Bxb6 Ke5 b4 axb4 axb4
+20963 https://lichess.org/training/HtJQP
+Solution: Bb6+ Kd5 Bxa7 Kc6 Kd8
+21022 https://lichess.org/training/HwRWr
+Solution: Bf3#
+21070 https://lichess.org/training/Hyx0k
+Solution: Bxf3+ Kh2 Qg2#
+21087 https://lichess.org/training/HzSnQ
+Solution: Bc4+ Ke1 Bxa6 Bd6 c4
+21125 https://lichess.org/training/I1lJO
+Solution: Bd5+ Ke8 Bxa2 c1=Q+ Nxc1
+21180 https://lichess.org/training/I4P4V
+Solution: Bf5+ Ke8 Rb8+ Kf7 Rxh8
+21356 https://lichess.org/training/ICrJU
+Solution: Bxe6+ Kxg7 Rxg2+ Kf6 Bxc8
+21387 https://lichess.org/training/IEF8n
+Solution: Bd3+ b5 Bxe2
+21394 https://lichess.org/training/IEPef
+Solution: Qd7+ Kf8 Qxf7#
+21538 https://lichess.org/training/IMWDW
+Solution: Bxd4+ Kf1 Bxa1 a5 Nd5
+21550 https://lichess.org/training/INDTo
+Solution: Be5+ Kf8 Bxc3 Bxd3 Kxd3
+21616 https://lichess.org/training/IQwko
+Solution: Bd4+ Kg3 Bxa7 b6 Bb8
+21705 https://lichess.org/training/IUw0a
+Solution: Bxe6+ Kf8 Rxd1
+21789 https://lichess.org/training/IZBjs
+Solution: Bc4+ Ke8 Bxa2 Bxb1 Bxb1
+21927 https://lichess.org/training/IgOtS
+Solution: Bc5+ Kf1 Bxa7 e7 Kf7
+21998 https://lichess.org/training/IkEgF
+Solution: Bd3+ Kg1 Bxc4 b7 Kc7 b8=R Kxb8
+22080 https://lichess.org/training/IoQDp
+Solution: Bc4+ Ke1 Bc3+ Kd1 Bxb5
+22111 https://lichess.org/training/IqWBL
+Solution: Bd4+ Kf5 Bxa1 h4+ Kf3
+22170 https://lichess.org/training/ItIlq
+Solution: Bxc6+ Kd8 gxf3
+22229 https://lichess.org/training/Ix2KD
+Solution: Bd5+ Kb8 Bxh1 Bd6 Kg7
+22257 https://lichess.org/training/IyNc3
+Solution: Be6+ Kh4 Bxd7 Bxd4 Rxb5
+22769 https://lichess.org/training/JPYZd
+Solution: Bf6+ Kd7 Bxg5 Kxd6 Bf4+
+22777 https://lichess.org/training/JPnh3
+Solution: Bxc6+ Kd8 Bg5+ hxg5 Qxa1
+23030 https://lichess.org/training/JdE9R
+Solution: Bc6+ Kb4 Bxd7 Kc3 Bf5
+23291 https://lichess.org/training/Js1dA
+Solution: Bxc3+ Ke2 gxf6
+23394 https://lichess.org/training/Jxg8S
+Solution: Bd4+ Kf1 Bxa7 cxd5 Rxc2
+23712 https://lichess.org/training/KCJkq
+Solution: Bxf5+ Kd8 Bxc2 Bxd1 Bxd1
+23768 https://lichess.org/training/KFBLZ
+Solution: Rxf8 Rf7 Rxf7
+24164 https://lichess.org/training/Kb4jW
+Solution: Bxd5+ Kg3 Bxa8 e2 Rh1
+24404 https://lichess.org/training/Kn77q
+Solution: Bc4+ Kf3 Bxb5 Kg3 Rh1
+24457 https://lichess.org/training/KqVqU
+Solution: Bxe3+ Kd1 Rxh8
+24577 https://lichess.org/training/KxXwU
+Solution: Bc5+ Kf6 Bxb4 g7 Bc3+
+24739 https://lichess.org/training/L5B4l
+Solution: Bc5+ Kd3 Bxa7 e7 Kf7 e8=R Kxe8
+25084 https://lichess.org/training/LOF7U
+Solution: Bxc3+ Ke2 Rf7
+25168 https://lichess.org/training/LSwHr
+Solution: Bd4+ Kf7 Bxb2 d2 Rd6
+25400 https://lichess.org/training/LeiJJ
+Solution: Bxd6+ Kg8 Re8+ Rxe8 Rxe8#
+25591 https://lichess.org/training/LogQF
+Solution: Bd4+ Ke6 Bxa1 f2 Ke2
+25908 https://lichess.org/training/M4Z4W
+Solution: Bxd4+ Kf1 Bxa1 Nxe8 Nxe8
+25920 https://lichess.org/training/M59SA
+Solution: Bf4+ Kc6 Bxg3 Nxf5+ Rxf5
+26138 https://lichess.org/training/MHGgJ
+Solution: Bxe3+ Kf1 Rxc1+ Rxc1 Rxa5
+26154 https://lichess.org/training/MIYjn
+Solution: Be6+ Kh7 Nf8+ Kh6 Bxa2
+26465 https://lichess.org/training/MYEbl
+Solution: Rh1+ Rh2 Rxh2#
+26533 https://lichess.org/training/Mc6OY
+Solution: Bxe6+ Kf8 Bxc8 c1=R Kxc1
+26639 https://lichess.org/training/MhJVX
+Solution: Bxc3+ Kf1 Kxh7
+27223 https://lichess.org/training/NCnZx
+Solution: Bxe4+ Kg1 d3+ Kf1 Bxd5 Rc8+ Kh7
+27310 https://lichess.org/training/NHvGz
+Solution: Bxf3+ Kd2 Qe2#
+27400 https://lichess.org/training/NMzhk
+Solution: Bxd4+ Kf1 Bb5+
+28042 https://lichess.org/training/Nuv7Y
+Solution: Be4+ f5 Bxb1
+28380 https://lichess.org/training/OETV0
+Solution: Bc5+ Kh1 Bxa7 Bxh5 Be6
+28451 https://lichess.org/training/OIAp8
+Solution: Bxf6+ Kg8 Rxd8+ Qxd8 Bxd8
+28582 https://lichess.org/training/OOvZa
+Solution: Bxc6+ Kd8 gxf3
+28883 https://lichess.org/training/Odb9r
+Solution: Be4+ Kg1 Be3#
+29155 https://lichess.org/training/OsXEE
+Solution: Bd4+ Kh1 Rf1+ Kg2 Rf2+ Kh3 Bxc5
+29465 https://lichess.org/training/P82F7
+Solution: Bf2+ Kg4 Bxe1 Qxf8 Rg2+
+29836 https://lichess.org/training/PSRrj
+Solution: Bc3+ Kf7 Bxb2 d2 Ke2 d1=R Kxd1
+29903 https://lichess.org/training/PWPp7
+Solution: Bf4+ Kg2 Rg3+ Kf2 Bxd6
+29938 https://lichess.org/training/PXvPD
+Solution: Bd6+ Ke8 Bxc5 Kd7 Bd6
+30231 https://lichess.org/training/PoveH
+Solution: Be6+ Kh8 Ra8+ Kh7 Bf5+ Kh6 Rh8+ Kg5 f7
+30260 https://lichess.org/training/PqG2C
+Solution: Bb4+ Ke8 Bxa3 f3+ Ke1
+30266 https://lichess.org/training/PqcVU
+Solution: Nd5+ Kf5 Nxc7
+30282 https://lichess.org/training/PrhNH
+Solution: Bf5+ Kd8 Ra8+ Ke7 Ra7+
+30430 https://lichess.org/training/Q0DAk
+Solution: Be3+ Kh2 Bxa7 h4 gxh4
+30648 https://lichess.org/training/QBq1Z
+Solution: Bd3+ Ka2 Nc1+ Ka3 Bxg6
+30704 https://lichess.org/training/QGErj
+Solution: Be6+ Kh7 Bxb3 d1=Q Bxd1
+30959 https://lichess.org/training/QV7iz
+Solution: Rf2+ Kg3 Kxh7
+31020 https://lichess.org/training/QYCie
+Solution: Bxc3+ Kd1 gxf6
+31079 https://lichess.org/training/Qaz2r
+Solution: Bf4+ Kh5 g4+
+32524 https://lichess.org/training/RpaFe
+Solution: Bxd4+ Kg2 Nf4#
+32555 https://lichess.org/training/RrYnm
+Solution: Rxb4 Qxb4 Bxe6+ Kh8 Bxc8
+32699 https://lichess.org/training/Rz6fr
+Solution: Bf6+ Kg8 Rb8+ Rd8 Rxd8#
+32834 https://lichess.org/training/S61fy
+Solution: Bd3+ Kh5 Bxb1 g4 Bf5 gxf3 Kxf3
+32862 https://lichess.org/training/S7eZj
+Solution: Bc3+ Kd1 Bxa6
+33250 https://lichess.org/training/SRg64
+Solution: Be2+ Kg3 Bxd1 d6 cxd6
+33419 https://lichess.org/training/SaKsR
+Solution: Be5+ Kd7 Bxh2 f2 Kxe2 fxe1=R+ Kxe1
+33464 https://lichess.org/training/SczBG
+Solution: Bg3+ Ke2 Qf2#
+33652 https://lichess.org/training/SnU7N
+Solution: Bd4+ Kf1 Bxa7 e8=R Kxe8
+33663 https://lichess.org/training/So5Ji
+Solution: Rh7+ Kf6 Rxc7
+33672 https://lichess.org/training/Sp0Ds
+Solution: Qh5+ Qg6 Qxc5 Ne7 Bg5
+33740 https://lichess.org/training/Ss5M9
+Solution: Be6+ Kd8 Bxf5 Bc5+ Kf1 Bxg1 Kxg1
+33895 https://lichess.org/training/T09iO
+Solution: Bxc6+ Ke7 g3 Bxg3 Qf3
+34839 https://lichess.org/training/TouLf
+Solution: Bc6+ Kf8 dxe5
+34977 https://lichess.org/training/TwAlT
+Solution: Bg6+ Ke2 Bxh7 Kf3 Be4+
+35024 https://lichess.org/training/Tym1o
+Solution: f2 Rxa3 f1=Q+ Kc3 Qc1
+35342 https://lichess.org/training/UEuCP
+Solution: exd7+ Kd8 Rf8#
+35719 https://lichess.org/training/UYPAV
+Solution: Be4+ Kg7 Bxb1 f7 Bc3+ Kg8 Ba2
+35988 https://lichess.org/training/UmyY5
+Solution: a7 Rxb7 a8=Q Bd5+ Kc5
+36079 https://lichess.org/training/Url4b
+Solution: Bg6+ Ke7 Qd6#
+36199 https://lichess.org/training/UyAgl
+Solution: Rg5 Rc1 Rxg4
+36489 https://lichess.org/training/VDAYQ
+Solution: Bxc3+ Ke2 Bxf5
+36662 https://lichess.org/training/VM1Jy
+Solution: Bd5+ Ke3 Bxb7 e6 fxe6
+36753 https://lichess.org/training/VQQ3w
+Solution: Bxf6+ Kc7 Bxh8 Qf2 Qd1
+36767 https://lichess.org/training/VR3xK
+Solution: Bf5+ Kc6 Bxg4 d2+ Kd1
+36954 https://lichess.org/training/VZrwb
+Solution: Bd5+ Kf4 Bxa8 Ke5 Kf7
+37528 https://lichess.org/training/W5G47
+Solution: Bxe3+
+37701 https://lichess.org/training/WDxG3
+Solution: Be3+ Kh2 Bxa7 Bxf5 Kxf5
+37917 https://lichess.org/training/WPtBL
+Solution: Bxc6+ Ke7 Rd7+ Kf6 fxe3+ Ke5 Bxa8
+38455 https://lichess.org/training/WtFjP
+Solution: Bd5+ e4 Bxc6
+38647 https://lichess.org/training/X3Jmj
+Solution: Bxc1 Kxh2 Bf4+
+38865 https://lichess.org/training/XDTRG
+Solution: Bc3+ Ke2 g6
+38941 https://lichess.org/training/XHid3
+Solution: Bxe5+ Kf7 bxc4 Rxd1 Rxd1
+39001 https://lichess.org/training/XLJXp
+Solution: Rh1+ Rg1 Bd3#
+39076 https://lichess.org/training/XOUOU
+Solution: Bc2+ Ke3 Bxb1 f3 Bf5 f2 Bh3
+39126 https://lichess.org/training/XRgof
+Solution: Be4+ f5 Bxb1
+39839 https://lichess.org/training/Y39xy
+Solution: Bb4+ Kf1 Bxa5 a7 Nb6
+39853 https://lichess.org/training/Y3y9u
+Solution: Bc6+ Kf2 Rd2+ Be2 Bxb7
+39924 https://lichess.org/training/Y82LT
+Solution: Bd4+ Ka3 Bxf6 Kb4 Bd8
+40226 https://lichess.org/training/YOJAa
+Solution: Bf7+ Kg5 Bf4+ Kf5 Bxe8
+40252 https://lichess.org/training/YPJB8
+Solution: Be3+ Kxh4 Bxc1 a5+ Kb5
+40289 https://lichess.org/training/YRQqP
+Solution: Bxc3+ Ke2 Qd2#
+40863 https://lichess.org/training/YvIWZ
+Solution: Be6+ Kh5 Bxf4
+40979 https://lichess.org/training/Z21ed
+Solution: Bc6+ Kf8 Bh6+ Nxh6 Qxa1
+41068 https://lichess.org/training/Z6dIt
+Solution: Bc5+ Kf7 Bxa3 Kg6 Rh8
+41372 https://lichess.org/training/ZNpZP
+Solution: Bf6+ Kg8 Bxb2 d2 Rg1
+41563 https://lichess.org/training/ZWK4Q
+Solution: Bc5+ Kg8 Kh6 Rb6+ Bxb6 Bxf5 Rg7+
+42172 https://lichess.org/training/a3gMF
+Solution: Qe6+ Kf8 Qxc8+
+42307 https://lichess.org/training/a9Zy4
+Solution: Bb6+ Kxd2 Bxa7 f4 gxf4
+42448 https://lichess.org/training/aGIqx
+Solution: Bxe3+ Kf1 Bxc1 Be6+ Kf8
+42697 https://lichess.org/training/aTHXy
+Solution: Be3+ Kh2 Bxd4 Nc6 Rd7
+42709 https://lichess.org/training/aTvag
+Solution: Be6+ Kb7 Re2 Re5 Rxe3 Rxe3 fxe3
+42791 https://lichess.org/training/aYB76
+Solution: Bc3+ Ke2 Ba6#
+43080 https://lichess.org/training/angIR
+Solution: Be5+ f4 Bxd6
+43488 https://lichess.org/training/b7gmZ
+Solution: Bc4+ Ke8 Bxa2 b3 Bb1
+43556 https://lichess.org/training/bC820
+Solution: Bb3+ Ke2 Bxf4+ Kf3 Bxg3
+43590 https://lichess.org/training/bDhyI
+Solution: Bxg6+ Kf8 Qxh5
+44131 https://lichess.org/training/bex5K
+Solution: Bd3+ Ke1 Bxa6
+44438 https://lichess.org/training/btkCR
+Solution: Bd4+ Kb3 Bxg7 a7 g2 a8=Q g1=Q
+44570 https://lichess.org/training/c1FEj
+Solution: Bd5+ Kh8 Rf8+
+44742 https://lichess.org/training/cAhbz
+Solution: Bd2+ Kf3 Rg3+ Kf2 Be3+ Ke1 Rg1#
+44776 https://lichess.org/training/cCfMy
+Solution: Bd4+ Ke6 Bxc3 f2 Kg2 f1=R Kxf1
+44796 https://lichess.org/training/cE8tw
+Solution: Be6+ Kf8 Bxb3 c1=B+ Kxc1
+44952 https://lichess.org/training/cMC48
+Solution: Bxf6+ Kg8 Rxd8+ Qxd8 Bxd8
+45599 https://lichess.org/training/csFQV
+Solution: Be5+ Kf3 Bxc7 Ke4 Bd8
+45983 https://lichess.org/training/dDa1R
+Solution: Bd4+ Kg8 Bxa1 a7 e1=Q a8=Q Qd1
+46451 https://lichess.org/training/dfTv1
+Solution: Bg4+ Ke7 Bxh3 a4 bxa4
+46473 https://lichess.org/training/dgIqH
+Solution: Bf3+ Ke1 Qe2#
+46688 https://lichess.org/training/dpmG6
+Solution: Bd2+ Kb3 Bxe1 a6 bxa6
+46923 https://lichess.org/training/e2Yfc
+Solution: Bb4+ Kd1 Bxa5 g5 Kd5 g6 Ke6 g7 Kf7 b4 Bxb4
+47029 https://lichess.org/training/e7hVA
+Solution: Bc5+ Kf7 Bxa3 Ra8 Rxg5
+47185 https://lichess.org/training/eGERY
+Solution: Bc5+ Kh1 Bxb6 d8=Q Bxd8
+47332 https://lichess.org/training/eN5aQ
+Solution: Bxd5+ Kh8 Bxa8 Nf2+ Kg1 Qe3 Kf1
+47747 https://lichess.org/training/ekdMq
+Solution: Bd4+ Kf8 Bxa1 axb3 axb3
+47854 https://lichess.org/training/eqjYk
+Solution: Bd4+ Kf3 Ra3+ Rb3 Rxb3+
+48047 https://lichess.org/training/f0ne7
+Solution: Bd4+ Kf1 Bxa7 Bxf8 Kxf8
+49013 https://lichess.org/training/fnhuL
+Solution: Bxc3+ Ke2 Rhc8 Qa7 Ra8 Qb7 Rcb8
+49082 https://lichess.org/training/frQ5N
+Solution: Be3+ Kf1 Bxa7 Nb5+ Kb8
+49100 https://lichess.org/training/fsOtb
+Solution: Bc5+ Kf1 Bxa7 Bxb8 Bxb8
+49134 https://lichess.org/training/fuHcx
+Solution: Bc5+ Kg2 Bxb6 Rxb7+ Rxb7
+49478 https://lichess.org/training/gAVj8
+Solution: Bxe3+ Kf1 Rc1+ Ke2 Bxb6
+49561 https://lichess.org/training/gFZmv
+Solution: Bc5+ Ke4 Bxa7 h7 Bd4 Kxd4 a2 Kd5 a1=Q
+49575 https://lichess.org/training/gGFnV
+Solution: Bd4+ Kh1 Rf8
+49840 https://lichess.org/training/gU56x
+Solution: Bf4+ Kh7 Bxd2 b2 Rg1
+50014 https://lichess.org/training/gdBUx
+Solution: h5+ Kf6 Rf7#
+50034 https://lichess.org/training/ge7Ca
+Solution: Nb6+ Kc6 Nxa4
+50348 https://lichess.org/training/gtPLv
+Solution: Bd6+ Ka5 Ra8+ Kb6 Bxe7
+50488 https://lichess.org/training/h0q0w
+Solution: Bd3+ Kg7 Bxb1 Nxe3+ fxe3
+50542 https://lichess.org/training/h3AQG
+Solution: Be3+ Kh1 Bxd4 Bd5+ Kh7
+50590 https://lichess.org/training/h6NxX
+Solution: Bxc3+ Ke2 fxe6
+50595 https://lichess.org/training/h6arH
+Solution: Be6+ Kf8 Bxa2 d1=R Kxd1
+50780 https://lichess.org/training/hG8dK
+Solution: Be5+ Kf8 Bxd4 h2 Kg2
+50982 https://lichess.org/training/hQAfU
+Solution: Be3+ Kb1 Bxg5 Kxa2 e3
+51083 https://lichess.org/training/hWctR
+Solution: Bxa7 Kd2 Kg5
+51226 https://lichess.org/training/heTYH
+Solution: Be4+ Kh2 Bxb7 a8=Q Bxa8
+51589 https://lichess.org/training/hvTi6
+Solution: Bd4+ Kf1 Rb1+ Be1 Bxa7
+52074 https://lichess.org/training/iKJma
+Solution: Bd3+ Kf4 Bxb1 g3 c7 g2 c8=Q
+52216 https://lichess.org/training/iQmUt
+Solution: Bf2+ Kh5 Bxe1 f6+ Kf8 g6 Nd5 g7+ Kg8
+52326 https://lichess.org/training/iW9S2
+Solution: Bxd5+ Kh8 Bxa8 Nf2+ Kg2
+52974 https://lichess.org/training/j6b1Z
+Solution: Nb4+ Kc5 Nxa2
+53000 https://lichess.org/training/j7nu1
+Solution: Bd4+ Kf1 Bxa7 Bxf8 Kxf8
+53279 https://lichess.org/training/jNlJq
+Solution: Bd6+ Ke8 Bxa3 b1=Q Bxb1
+53578 https://lichess.org/training/jeXZ8
+Solution: Bd5+ Ke7 Bxa2 c2 Kd2 c1=R Kxc1
+53863 https://lichess.org/training/jsxmv
+Solution: Bb5+ Kc3 Bxa6 d7 Rh8
+53882 https://lichess.org/training/jts4D
+Solution: Bxf3+ Ke1 Bxh5 Kf2 Bg6 Kf3 Ke5
+54274 https://lichess.org/training/kDE5B
+Solution: Bxe6+ Kh8 Rxc5 bxc5 Qxf3
+54387 https://lichess.org/training/kJXoQ
+Solution: Bg5+ Ke2 Bxc1
+54390 https://lichess.org/training/kJlve
+Solution: g4#
+54401 https://lichess.org/training/kKHIm
+Solution: Bb4+ Kxd3 c1=Q
+54678 https://lichess.org/training/kXcCw
+Solution: Bc5+ Kf1 Bc4+ Ke1 Bxa7
+55060 https://lichess.org/training/krodO
+Solution: Bxe6+ Kf8 Rxd1
+55242 https://lichess.org/training/l2soI
+Solution: Bd3+ Kg1 Bxc4 Nd6+ Ke6
+55300 https://lichess.org/training/l5h6k
+Solution: Bxe3+ Kf1 Bxc1 c7 Ra8 Rxb2 Bxb2
+55658 https://lichess.org/training/lNb3o
+Solution: Qe8#
+55659 https://lichess.org/training/lNdut
+Solution: Bg6+ Kd8 Bxh5 b1=R Rxb1
+55674 https://lichess.org/training/lOOSZ
+Solution: Bxc6+ Kf8 axb3
+56550 https://lichess.org/training/m7tFt
+Solution: Bc5+ Kd8 Rxd7+ Nxd7 Bxb4
+56906 https://lichess.org/training/mQXMf
+Solution: Bd3+ f5 Bxb1
+57035 https://lichess.org/training/mWmIu
+Solution: Bc6+ Kd8 Qxe5 fxe5 Bxa8
+57317 https://lichess.org/training/mmqYn
+Solution: Rb8+ Rc8 Bf6+ Ke8 Rxc8#
+57320 https://lichess.org/training/mmwTu
+Solution: Rxb5 Kf8 Rb3
+57485 https://lichess.org/training/muBFb
+Solution: Ra1+ Kd2 Bf4+ Kc3 Bxh6
+57492 https://lichess.org/training/mujwd
+Solution: Bc6+ Kf8 Qxe5 Nxe5 Bxa8
+57750 https://lichess.org/training/n96Hp
+Solution: Bc4+ Kg7 Bxa2 Bxb1 Bxb1
+58050 https://lichess.org/training/nOv9M
+Solution: Bc5+ Ke2 Bxa7 Kxd1 fxe6
+58301 https://lichess.org/training/nc6sf
+Solution: Bd5+ Ke7 Bxc4
+58375 https://lichess.org/training/nfPoS
+Solution: Be3+ Kh4 g5+ Kh3 Bxd2
+58614 https://lichess.org/training/nr1RP
+Solution: Bd4+ Kg2 Bxb6 Bxf8+ Kxf8
+58738 https://lichess.org/training/nxspF
+Solution: Bc4+ Kd2 Bxa6 c8=Q+ Bxc8
+58917 https://lichess.org/training/o6zlF
+Solution: Bd6+ Kg8 Rxf7
+59067 https://lichess.org/training/oF0Ma
+Solution: Bxc6+ Kf7 gxh3
+59155 https://lichess.org/training/oJJsI
+Solution: Be4+ f5 Bxc2
+59201 https://lichess.org/training/oLvtK
+Solution: Be4+ Kh2 Rh1#
+59290 https://lichess.org/training/oPjrf
+Solution: Nxf7+ Kd5 Nxh8
+59338 https://lichess.org/training/oSRrH
+Solution: Bxc6+ Ke7 gxf3
+59491 https://lichess.org/training/oaLUM
+Solution: Bxd4+ Kf3 Bxa1 g5 Be5 f6 Rf4+
+59785 https://lichess.org/training/opK0i
+Solution: Rxg2+ Kf5 Be6+ Kf6 Bxd7
+59891 https://lichess.org/training/otRPP
+Solution: Rc1#
+60023 https://lichess.org/training/p0UsN
+Solution: Bc4+ Kg2 Bxb5 Kg3 Rh1
+60277 https://lichess.org/training/pFYAS
+Solution: Bxe6+ Kh8 Bxc8 Qd8 Be6
+60314 https://lichess.org/training/pHQRr
+Solution: Bxe6+ Kh8 Rxa1
+60323 https://lichess.org/training/pIDNn
+Solution: Bb5+ Kf2 Bxa6 cxb6 cxb6
+60360 https://lichess.org/training/pJwv7
+Solution: Be4+ Kf1 Bxa8 Kxe1 Be4
+60408 https://lichess.org/training/pMjYI
+Solution: Be5+ f4 Bxd6
+60552 https://lichess.org/training/pUS7X
+Solution: Be2+ Kg6 Bxd1 f6 Bb3 h4 b4
+60869 https://lichess.org/training/pm0Hm
+Solution: Bc6+ Kg1 Bxb7 Bf4 Kd5
+60953 https://lichess.org/training/pqFL5
+Solution: Qxe6+ Kh8 Qxc8#
+61444 https://lichess.org/training/qE4g3
+Solution: Bd5+ Kg7 Bxb3 g5 hxg5
+61470 https://lichess.org/training/qFhzq
+Solution: Rh8+ Ke7 Bc5+ Kd7 Bxa3
+61530 https://lichess.org/training/qJTLZ
+Solution: Qxc6+ Ke7 Qb7+ Bc7 Qxc7+
+61626 https://lichess.org/training/qNkNW
+Solution: Bxc6+ Ke7 Qd7#
+61695 https://lichess.org/training/qR45Y
+Solution: Bg5+ Kf2 Bxh6 Kxf1 Bd2 Ke2 Bxc3
+61837 https://lichess.org/training/qYVWp
+Solution: Be4+ Kf2 Bxa8 Rc2 Bd5
+61872 https://lichess.org/training/qarSz
+Solution: Bxc3+ Kd1 Nf6
+62159 https://lichess.org/training/qpC0g
+Solution: Be6+ Kf8 fxg7+ Ke7 Bxc8
+62297 https://lichess.org/training/qwE50
+Solution: Be3+ Kg2 Bxd7
+62476 https://lichess.org/training/r5LP1
+Solution: Bxf2+ Kd1 Qd4+ Bd3 Qxa1+ Ke2 Qe1+
+62610 https://lichess.org/training/rBuO1
+Solution: Bf3+ Kg1 Qg2#
+62751 https://lichess.org/training/rKWpg
+Solution: Bxd6+ Kg8 Bxb8 a3 c7
+62781 https://lichess.org/training/rLtIf
+Solution: Bc4+ Ke7 Bxb3 Nxd4 exd4
+63059 https://lichess.org/training/rZFPZ
+Solution: Be3+ Kh1 Bxb6 Nd6 Bd7
+63468 https://lichess.org/training/ruLy5
+Solution: Bd4+ Kg2 Bxa7 c7 e5
+63529 https://lichess.org/training/rxuJl
+Solution: Bd5+ Kh2 Bxa8 h7 Kg7
+63582 https://lichess.org/training/s0DU8
+Solution: Bxc6+ Kd8 gxf3
+63640 https://lichess.org/training/s3Xy7
+Solution: Bd3+ Kg2 Ne1+
+63791 https://lichess.org/training/sAqNv
+Solution: Bd6+ Kf3 Bxc7 g4 hxg4+ Kxg4 Bd8
+63848 https://lichess.org/training/sDz08
+Solution: Bd5+ Kg7 Bxa2 e2 Nd3
+63962 https://lichess.org/training/sKB1i
+Solution: Bc4+ Ke1 Bxa6 g4+ Kh6
+64868 https://lichess.org/training/t5sPN
+Solution: Bxg1 Qxh6+ Kg8 Bxf6 Be3+ Qxe3 Qxf6
+64898 https://lichess.org/training/t7Mmh
+Solution: Be2+ Kd5 Bxf1 d1=B+ Kxd1
+65249 https://lichess.org/training/tQSJj
+Solution: Rf2 Ne4 Bxe4 dxe4 Bf6+
+65335 https://lichess.org/training/tUqmL
+Solution: Bc3+ Ke2 Qd2#
+65358 https://lichess.org/training/tVz5L
+Solution: Bxf6+ Kh7 Rg7+
+65834 https://lichess.org/training/twLMv
+Solution: Rh1+ Ke2 Bc4+ Kf3 Bxb5
+65853 https://lichess.org/training/txN2N
+Solution: g7 Rxg4 hxg4
+65944 https://lichess.org/training/u2a7g
+Solution: Bf3+ Kxh4 Bxe2 Re8 Rh6+ Kg5 Rh5+
+65949 https://lichess.org/training/u2o6z
+Solution: Bxc6+ Kf8 Rd5 Bb6 Bxa8
+66286 https://lichess.org/training/uKU1E
+Solution: Bc5+ Kf1 Bxa7 Bxb8 Bxb8
+66495 https://lichess.org/training/uTi1y
+Solution: Qxh7+ Ka1 Nxb3+ Kb2 Qh2+ Kxb3 Bc4+
+66607 https://lichess.org/training/uaghY
+Solution: Bb5+ Kd4 Bxa6 h6 Kf7
+66649 https://lichess.org/training/uccnY
+Solution: Bd3+ Ke1 Re2+ Kd1 Bxa6 gxh7 Kg7
+66697 https://lichess.org/training/ues0w
+Solution: Bd4+ Kg2 Rh8 Qxh8+ Kxh8
+67188 https://lichess.org/training/v5wS8
+Solution: Nc5 Kd5 Rd3+ Bd4 Bg7
+67263 https://lichess.org/training/v9KDa
+Solution: Be7#
+67414 https://lichess.org/training/vHrYO
+Solution: Bg5+ f4 Bxh6
+67544 https://lichess.org/training/vOTes
+Solution: Bxc1 b7 Be3+ Kc6 Ba7 d6 Bb8
+67562 https://lichess.org/training/vPTO7
+Solution: Bxf6+ Kg8 Bxe6+ Kf8 Rg8#
+67674 https://lichess.org/training/vW816
+Solution: Bd5+ Kf8 Rg8+ Ke7 Rh7+
+67746 https://lichess.org/training/vYwbM
+Solution: Bxe3+ Kf1 Rxd6
+67865 https://lichess.org/training/vfwEM
+Solution: Bd3+ f5 Bxc2
+68010 https://lichess.org/training/vnQf0
+Solution: Bxb4+ Ke2 Qxf1+ Kxf1 Rxe8
+68564 https://lichess.org/training/wI1IW
+Solution: Bd4+ Ke2 Bf3#
+69116 https://lichess.org/training/wkRRb
+Solution: Be3+ Kh1 Rxd1+ Nxd1 Bxa7
+69808 https://lichess.org/training/xIErH
+Solution: Bd5+ Ke7 Re6+ Kxd7 Bxb3 c4 Bxc4
+69860 https://lichess.org/training/xLJfh
+Solution: Rxe5 dxe5 Bf5+ Kd6 Bxg4
+69935 https://lichess.org/training/xPHTh
+Solution: Bc5+ Kg3 Nf5+
+70088 https://lichess.org/training/xXPGM
+Solution: Bc5+ Kh1 Bxa7 Bxb8 Bxb8
+70187 https://lichess.org/training/xcvUg
+Solution: Bb6+ Kf1 Bxa7 c7 Kxc7
+70339 https://lichess.org/training/xk1hQ
+Solution: Qxd6 Bxc4+ Ke1 Rc8 Bxc6+ Rxc6 Qxc6+
+70933 https://lichess.org/training/yEnEz
+Solution: Bd5+ Ke3 Bxb7 a6 Bc8
+71086 https://lichess.org/training/yN05v
+Solution: Bd4+ Kg2 Re3 Ra8 Rxe2+
+71137 https://lichess.org/training/yPRPl
+Solution: Be7+ Kg6 Bxd8 Bd5 exd5
+71254 https://lichess.org/training/yW14I
+Solution: Bf6+ Kd3 Bxh8 Ke4 Kg6 Kf4 Kh5
+71396 https://lichess.org/training/ydp9j
+Solution: Bd6+ Ke8 Rg8+ Rf8 Rxf8#
+71491 https://lichess.org/training/yjGCK
+Solution: Qc5+ Kh1 Bxa1 Bxh7+ Kf8
+71532 https://lichess.org/training/ylb5z
+Solution: Qf4+ Kh5 Bf7#
+71556 https://lichess.org/training/ymfwP
+Solution: Bd4+ Kh1 Rc1 Rb8+ Kh7
+71690 https://lichess.org/training/ytb3i
+Solution: Bc3+ Kg6 Bxb2 a1=Q Bxa1
+71713 https://lichess.org/training/yusAV
+Solution: Bg3+ Ke6 Bxh2 f6 gxf6
+71850 https://lichess.org/training/z2PMz
+Solution: Be5+ Kf8 Bxc3 Rxd7 exd7
+72146 https://lichess.org/training/zITbM
+Solution: Bxe5+ Kc6 Qxb7+ Kxb7 Bxh8
+72549 https://lichess.org/training/zcxdf
+Solution: Bxc6+ Ke7 Qxe4+ Qxe4 Bxe4
+72925 https://lichess.org/training/zxM2x
+Solution: Bd4+ Kf7 Bxa1 h2 a7 h1=Q a8=Q
 -----*****----
-Coverage: %100 Accuracy: %29
-Tp/Fp: 152/368 N: 0 Total: 520
-Time: 9.315ms per puzzle
+Coverage: %100 Accuracy: %32
+Tp/Fp: 159/343 N: 0 Total: 502
+Time: 9.601ms per puzzle

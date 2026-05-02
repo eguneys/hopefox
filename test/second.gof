@@ -1,4 +1,4 @@
-6312 6656 6748 7085 7112 7307
+8480 8606 8720 8806 8873 9341 9405 9445 9718 9790
 ===
 
 
@@ -234,8 +234,30 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
           if promotes(pawn2, sq3_queen) then
             if captures(rook4, queen_rook5) then
 
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if captures(knight, rook2_knight2) then
+        if captures(king3, knight2_king4) then
+
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if hanging_evades_with_check(rook2, rook3, king2, rook4) then
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if hanging_evades_with_check(knight, knight2, king2, pawn) then
+      if king_evades(king2, king3) then
+        if captures(bishop2, rook_bishop3) then
 
 ###
+
+def hanging_evades_with_check(From, To, King, AttackFrom)
+  no_defense(From)
+  attack(AttackFrom, From)
+  move(From, To)
+  attack(To, King)
 
 def captures_hanging(From, Captured_To)
   no_defense(Captured)
