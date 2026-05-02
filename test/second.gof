@@ -1,4 +1,4 @@
-14 70 118 204 230 347 937
+14 70 118 204 230 347 937 1387 1391 1415 1664 1680 2109 2184
 ===
 
 
@@ -105,6 +105,27 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
         if covers_push(bishop4, bishop5, sq3) then
 
 
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if checks(knight, knight2, king3) then
+        if captures(king3, pawn_king4) then
+
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if push_attacks(pawn, pawn2, bishop3) then
+        if captures(bishop3, pawn2_bishop4) then
+      if promotes(pawn, pawn2_queen) then
+        if captures(king3, queen_king4) then
+          if pushes(pawn3, pawn4) then
+            if captures(pawn5, pawn4_pawn6) then
+ 
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if checkmate(rook2, rook3, king2) then
 
 ###
 
