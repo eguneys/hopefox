@@ -155,6 +155,19 @@ export function make_move_from_to(from: Square, to: Square) {
     return NORMAL_MOVE + (from << 6) + to
 }
 
+export function move_c_to_Castling(c: MoveC): Move {
+    let to = c & 0x3F
+    let from = (c >> 6) & 0x3f
+    let type = c & (3 << 14)
+
+
+    if (type === CASTLING) {
+        return {
+            from,
+            to
+        }
+    }
+}
 
 export function move_c_to_Move(c: MoveC): Move {
 

@@ -1,5 +1,5 @@
 import { between } from "../distill/attacks";
-import { BLACK, color_c_opposite, make_move_from_to, make_move_from_to_promotion, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
+import { BLACK, color_c_opposite, make_move_from_to, make_move_from_to_promotion, move_c_to_Castling, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
 import { go_black, go_white, SquareSet } from "../distill/squareSet";
 import { History, Columnar, history_to_sans } from "./gofer";
 import { AtomicActionId, AtomicFilterId, PieceSymbol } from "./types";
@@ -131,6 +131,12 @@ function atomic_action_move(
 
 
             for (let legal of legals) {
+
+
+                if (move_c_to_Castling(legal)) {
+                    continue
+                }
+
                 let { from, to } = move_c_to_Move(legal)
 
                 if (!bb_from.has(from)) {

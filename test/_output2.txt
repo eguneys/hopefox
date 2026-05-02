@@ -1,55 +1,87 @@
-Time: 6.8ms per puzzle
-Coverage: %100 Accuracy: %22
-Tp/Fp: 120/417 N: 0 Total: 537
+Time: 7.8ms per puzzle
+Coverage: %100 Accuracy: %24
+Tp/Fp: 127/403 N: 0 Total: 530
 -----******----
-3414 https://lichess.org/training/2ubMb
-Solution: Bd5+ Kb2 Bxg8 Bg2 d3 a7 d2 a8=Q d1=Q
-{ Bd5+ }
-{ Bd5+ Ka4 Bxg8 }
-{ Bd5+ Kb2 Bxg8 }
-{ Bd5+ Kc2 Bxg8 }
-{ Bd5+ Ka3 Bxg8 }
-{ Bd5+ Ka4 Bxg8 }
-{ Bd5+ Kb2 Bxg8 }
-{ Bd5+ Kc2 Bxg8 }
-{ Bd5+ Ka3 Bxg8 }
-{ Bd5+ Ka4 Bxg8 a7 Bd5 }
-{ Bd5+ Kb2 Bxg8 a7 Bd5 }
-{ Bd5+ Kc2 Bxg8 a7 Bd5 }
-{ Bd5+ Ka3 Bxg8 a7 Bd5 }
-{ Bd5+ Ka4 Bxg8 a7 Bd5 }
-{ Bd5+ Kb2 Bxg8 a7 Bd5 }
-{ Bd5+ Kc2 Bxg8 a7 Bd5 }
-{ Bd5+ Ka3 Bxg8 a7 Bd5 }
-{ Bd5+ Ka4 Bxg8 a7 Bd5 a8=Q Bxa8 }
-{ Bd5+ Kb2 Bxg8 a7 Bd5 a8=Q Bxa8 }
-{ Bd5+ Kc2 Bxg8 a7 Bd5 a8=Q Bxa8 }
-{ Bd5+ Ka3 Bxg8 a7 Bd5 a8=Q Bxa8 }
-3450 https://lichess.org/training/2wYhp
-Solution: Bf4+ Kc6 Bxh2 Nxf5 Rxf5
-{ Bf4+ }
-{ Bf4+ Kc6 Bxh2 }
-{ Bf4+ Kc6 Bxh2 }
-{ Bf4+ Kc6 Bxh2 b4 Bc2 }
-{ Bf4+ Kc6 Bxh2 a6 Bc7 }
-{ Bf4+ Kc6 Bxh2 h6 Bg4 }
-{ Bf4+ Kc6 Bxh2 h6 Bg6 }
-{ Bf4+ Kc6 Bxh2 a5 Bc2 }
-{ Bf4+ Kc6 Bxh2 h5 Bg3 }
-3470 https://lichess.org/training/2xUiU
-Solution: Be5+ Kg4 Bxc7 Bxc2 Kxc2
+5211 https://lichess.org/training/4QZwF
+Solution: Be5+ Kc2 Bxh8 cxd6 Kxa8 d7 Bf6
 { Be5+ }
-{ Be5+ Kf2 Bxc7 }
-{ Be5+ Kg2 Bxc7 }
-{ Be5+ Kh4 Bxc7 }
-{ Be5+ Kf3 Bxc7 }
-{ Be5+ Kg4 Bxc7 }
-{ Be5+ Kf2 Bxc7 }
-{ Be5+ Kg2 Bxc7 }
-{ Be5+ Kh4 Bxc7 }
-{ Be5+ Kf3 Bxc7 }
-{ Be5+ Kg4 Bxc7 }
+{ Be5+ Kc2 Rd2+ }
+{ Be5+ Kc4 Rd4+ }
+{ Be5+ Kb3 Rd3+ }
+{ Be5+ Kc2 Rd2+ Kb1 Bxh8 }
+{ Be5+ Kc2 Rd2+ Kc1 Bxh8 }
+{ Be5+ Kc2 Rd2+ Kb3 Bxh8 }
+{ Be5+ Kc2 Rd2+ Kxd2 Bxh8 }
+{ Be5+ Kc4 Rd4+ Kb3 Bxh8 }
+{ Be5+ Kc4 Rd4+ Kc3 Bxh8 }
+{ Be5+ Kb3 Rd3+ Ka2 Bxh8 }
+{ Be5+ Kb3 Rd3+ Kc2 Bxh8 }
+{ Be5+ Kb3 Rd3+ Kc4 Bxh8 }
+{ Be5+ Kb3 Rd3+ Ka4 Bxh8 }
+{ Be5+ Kc2 Bxh8 }
+{ Be5+ Kc4 Bxh8 }
+{ Be5+ Kb3 Bxh8 }
+{ Be5+ Kc2 Bxh8 }
+{ Be5+ Kc4 Bxh8 }
+{ Be5+ Kb3 Bxh8 }
+6089 https://lichess.org/training/5CNwM
+Solution: Bxc6+ Ke7 Bxe4
+{ Bxc6+ }
+{ Bxc6+ Kf8 Bxa8 }
+{ Bxc6+ Ke7 Bxa8 }
+{ Bxc6+ Kf7 Bxa8 }
+{ Bxc6+ Kd8 Bxa8 }
+{ Bxc6+ Kf8 Bxa8 }
+{ Bxc6+ Ke7 Bxa8 }
+{ Bxc6+ Kf7 Bxa8 }
+{ Bxc6+ Kd8 Bxa8 }
+{ Bxc6+ Kf8 Bxa8 a5 Bc6 }
+{ Bxc6+ Kf8 Bxa8 c5 Bd5 }
+{ Bxc6+ Kf8 Bxa8 hxg3 Bxe4 }
+{ Bxc6+ Ke7 Bxa8 a5 Bc6 }
+{ Bxc6+ Ke7 Bxa8 c5 Bd5 }
+{ Bxc6+ Ke7 Bxa8 hxg3 Bxe4 }
+{ Bxc6+ Kf7 Bxa8 a5 Bc6 }
+{ Bxc6+ Kf7 Bxa8 c5 Bd5 }
+{ Bxc6+ Kf7 Bxa8 hxg3 Bxe4 }
+{ Bxc6+ Kd8 Bxa8 a5 Bc6 }
+{ Bxc6+ Kd8 Bxa8 c5 Bd5 }
+{ Bxc6+ Kd8 Bxa8 hxg3 Bxe4 }
+{ Bxc6+ Kf8 Bxa8 Rxg3+ Kh1 }
+{ Bxc6+ Ke7 Bxa8 Rxg3+ Kh1 }
+{ Bxc6+ Kf7 Bxa8 Rxg3+ Kh1 }
+{ Bxc6+ Kd8 Bxa8 Rxg3+ Kh1 }
+6276 https://lichess.org/training/5MFnj
+Solution: Bd4+ Kf8 Bxb2
+{ Bxc6+ }
+{ Bxc6+ Kf8 Bxa8 }
+{ Bxc6+ Ke7 Bxa8 }
+{ Bxc6+ Kd8 Bxa8 }
+{ Bxc6+ Kf8 Bxa8 }
+{ Bxc6+ Ke7 Bxa8 }
+{ Bxc6+ Kd8 Bxa8 }
+{ Bxc6+ Kf8 Bxa8 d4 Be4 }
+{ Bxc6+ Kf8 Bxa8 h5 Bf2 }
+{ Bxc6+ Kf8 Bxa8 h5 Bg5 }
+{ Bxc6+ Kf8 Bxa8 a6 Bb6 }
+{ Bxc6+ Kf8 Bxa8 g6 Bf4 }
+{ Bxc6+ Kf8 Bxa8 g6 Bxh6+ }
+{ Bxc6+ Kf8 Bxa8 a5 Bc6 }
+{ Bxc6+ Ke7 Bxa8 d4 Be4 }
+{ Bxc6+ Ke7 Bxa8 h5 Bf2+ }
+{ Bxc6+ Ke7 Bxa8 h5 Bg5+ }
+{ Bxc6+ Ke7 Bxa8 a6 Bb6+ }
+{ Bxc6+ Ke7 Bxa8 g6 Bf4+ }
+{ Bxc6+ Ke7 Bxa8 g6 Bxh6+ }
+{ Bxc6+ Ke7 Bxa8 a5 Bc6 }
+{ Bxc6+ Kd8 Bxa8 d4 Be4 }
+{ Bxc6+ Kd8 Bxa8 h5 Bf2 }
+{ Bxc6+ Kd8 Bxa8 h5 Bg5+ }
+{ Bxc6+ Kd8 Bxa8 a6 Bb6+ }
+{ Bxc6+ Kd8 Bxa8 g6 Bf4 }
+{ Bxc6+ Kd8 Bxa8 g6 Bxh6 }
+{ Bxc6+ Kd8 Bxa8 a5 Bc6 }
 -----*****----
-Coverage: %100 Accuracy: %22
-Tp/Fp: 120/417 N: 0 Total: 537
-Time: 6.885ms per puzzle
+Coverage: %100 Accuracy: %24
+Tp/Fp: 127/403 N: 0 Total: 530
+Time: 7.834ms per puzzle
