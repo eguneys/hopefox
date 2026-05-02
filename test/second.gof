@@ -1,4 +1,4 @@
-14 70 118 204 230 347 937 1387 1391 1415 1664 1680 2109 2184
+14 70 118 204 230 347 937 1387 1391 1415 1664 1680 2109 2184 2312 2641 2897
 ===
 
 
@@ -30,6 +30,11 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
     if captures(bishop2, rook_bishop3) then
 
 ###
+
+if has_fork_with_checks_for_only_king_evades_and_discovered_attack(bishop, bishop2, king, rook, queen, queen2) then
+  forall king_evades(king, king2) then
+    if captures(queen, queen2_queen3) then
+
 
 
 if has_fork_with_checks_for_only_king_evades_and_discovered_attack(bishop, bishop2, king, rook, rook2, queen) then
@@ -126,6 +131,43 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
 if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
   forall king_evades(king, king2) then
     if checkmate(rook2, rook3, king2) then
+
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if promotes(pawn, pawn2_queen) then
+        if captures(rook2, queen_rook3) then
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if pushes_to_promote(pawn, pawn2, sq3) then
+        if captures(knight, pawn2_knight2) then
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if captures(bishop4, bishop5_bishop6) then
+        if captures(pawn, bishop6_pawn2) then
+
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  if king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if checks(rook2, rook3, king3) then
+        if king_evades(king3, king4) then
+
+if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook) then
+  forall king_evades(king, king2) then
+    if captures(bishop2, rook_bishop3) then
+      if pushes_to_promote(pawn, pawn2, sq3) then
+        if defends_promotion(bishop3, bishop4, sq3) then
+          if promotes(pawn2, sq3_queen) then
+            if captures(bishop4, queen_bishop5) then
+
+
+
 
 ###
 

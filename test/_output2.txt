@@ -1,47 +1,55 @@
-Time: 6ms per puzzle
-Coverage: %100 Accuracy: %18
-Tp/Fp: 97/443 N: 0 Total: 540
+Time: 6.8ms per puzzle
+Coverage: %100 Accuracy: %22
+Tp/Fp: 120/417 N: 0 Total: 537
 -----******----
-2292 https://lichess.org/training/1vkBp
-Solution: Bxe6+ Kg7 Qxg5
-{ Bxe6+ }
-{ Bxe6+ Kh8 Bxc8 }
-{ Bxe6+ Kg7 Bxc8 }
-{ Bxe6+ Kh7 Bxc8 }
-{ Bxe6+ Kf8 Bxc8 }
-{ Bxe6+ Kh8 Bxc8 }
-{ Bxe6+ Kg7 Bxc8 }
-{ Bxe6+ Kh7 Bxc8 }
-{ Bxe6+ Kf8 Bxc8 }
-{ Bxe6+ Kh8 Bxc8 c5 Ba6 }
-{ Bxe6+ Kg7 Bxc8 c5 Ba6 }
-{ Bxe6+ Kh7 Bxc8 c5 Ba6 }
-{ Bxe6+ Kf8 Bxc8 c5 Ba6 }
-2312 https://lichess.org/training/1xLRz
-Solution: Bd5+ Ke8 Rg8+ Kd7 Rg7+ Kd8 Rxa7
+3414 https://lichess.org/training/2ubMb
+Solution: Bd5+ Kb2 Bxg8 Bg2 d3 a7 d2 a8=Q d1=Q
 { Bd5+ }
-{ Bd5+ Kf8 Bxb3 }
-{ Bd5+ Ke8 Bxb3 }
-{ Bd5+ Ke7 Bxb3 }
-{ Bd5+ Kf8 Bxb3 }
-{ Bd5+ Ke8 Bxb3 }
-{ Bd5+ Ke7 Bxb3 }
-{ Bd5+ Kf8 Bxb3 h2 Bd5 }
-{ Bd5+ Ke8 Bxb3 h2 Bd5 }
-{ Bd5+ Ke7 Bxb3 h2 Bd5 }
-{ Bd5+ Kf8 Bxb3 h2 Bd5 }
-{ Bd5+ Ke8 Bxb3 h2 Bd5 }
-{ Bd5+ Ke7 Bxb3 h2 Bd5 }
-2628 https://lichess.org/training/2Dfil
-Solution: Bg4+ Kf6 Bxh3 d1=Q Rxd1
-{ Bg4+ }
-{ Bg4+ Kf7 Bxh3 }
-{ Bg4+ Ke7 Bxh3 }
-{ Bg4+ Kf6 Bxh3 }
-{ Bg4+ Kf7 Bxh3 }
-{ Bg4+ Ke7 Bxh3 }
-{ Bg4+ Kf6 Bxh3 }
+{ Bd5+ Ka4 Bxg8 }
+{ Bd5+ Kb2 Bxg8 }
+{ Bd5+ Kc2 Bxg8 }
+{ Bd5+ Ka3 Bxg8 }
+{ Bd5+ Ka4 Bxg8 }
+{ Bd5+ Kb2 Bxg8 }
+{ Bd5+ Kc2 Bxg8 }
+{ Bd5+ Ka3 Bxg8 }
+{ Bd5+ Ka4 Bxg8 a7 Bd5 }
+{ Bd5+ Kb2 Bxg8 a7 Bd5 }
+{ Bd5+ Kc2 Bxg8 a7 Bd5 }
+{ Bd5+ Ka3 Bxg8 a7 Bd5 }
+{ Bd5+ Ka4 Bxg8 a7 Bd5 }
+{ Bd5+ Kb2 Bxg8 a7 Bd5 }
+{ Bd5+ Kc2 Bxg8 a7 Bd5 }
+{ Bd5+ Ka3 Bxg8 a7 Bd5 }
+{ Bd5+ Ka4 Bxg8 a7 Bd5 a8=Q Bxa8 }
+{ Bd5+ Kb2 Bxg8 a7 Bd5 a8=Q Bxa8 }
+{ Bd5+ Kc2 Bxg8 a7 Bd5 a8=Q Bxa8 }
+{ Bd5+ Ka3 Bxg8 a7 Bd5 a8=Q Bxa8 }
+3450 https://lichess.org/training/2wYhp
+Solution: Bf4+ Kc6 Bxh2 Nxf5 Rxf5
+{ Bf4+ }
+{ Bf4+ Kc6 Bxh2 }
+{ Bf4+ Kc6 Bxh2 }
+{ Bf4+ Kc6 Bxh2 b4 Bc2 }
+{ Bf4+ Kc6 Bxh2 a6 Bc7 }
+{ Bf4+ Kc6 Bxh2 h6 Bg4 }
+{ Bf4+ Kc6 Bxh2 h6 Bg6 }
+{ Bf4+ Kc6 Bxh2 a5 Bc2 }
+{ Bf4+ Kc6 Bxh2 h5 Bg3 }
+3470 https://lichess.org/training/2xUiU
+Solution: Be5+ Kg4 Bxc7 Bxc2 Kxc2
+{ Be5+ }
+{ Be5+ Kf2 Bxc7 }
+{ Be5+ Kg2 Bxc7 }
+{ Be5+ Kh4 Bxc7 }
+{ Be5+ Kf3 Bxc7 }
+{ Be5+ Kg4 Bxc7 }
+{ Be5+ Kf2 Bxc7 }
+{ Be5+ Kg2 Bxc7 }
+{ Be5+ Kh4 Bxc7 }
+{ Be5+ Kf3 Bxc7 }
+{ Be5+ Kg4 Bxc7 }
 -----*****----
-Coverage: %100 Accuracy: %18
-Tp/Fp: 97/443 N: 0 Total: 540
-Time: 6.065ms per puzzle
+Coverage: %100 Accuracy: %22
+Tp/Fp: 120/417 N: 0 Total: 537
+Time: 6.885ms per puzzle
