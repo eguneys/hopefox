@@ -1,6 +1,6 @@
 import { between } from "../distill/attacks";
-import { BLACK, color_c_opposite, make_move_from_to, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
-import { SquareSet } from "../distill/squareSet";
+import { BLACK, color_c_opposite, make_move_from_to, make_move_from_to_promotion, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
+import { go_black, go_white, SquareSet } from "../distill/squareSet";
 import { History, Columnar } from "./gofer";
 import { AtomicActionId, AtomicFilterId, PieceSymbol } from "./types";
 
@@ -19,8 +19,8 @@ export const atomic_action_handlers: Record<AtomicActionId, AtomicHandler> = {
     [AtomicActionId.Safe_Move]: atomic_action_safe_move,
     [AtomicActionId.Move]: atomic_action_move,
     [AtomicActionId.Capture]: atomic_action_capture,
-    [AtomicActionId.Promote]: atomic_action_move,
-    [AtomicActionId.Push]: atomic_action_move,
+    [AtomicActionId.Promote]: atomic_action_promote,
+    [AtomicActionId.Push]: atomic_action_push,
 
 }
 
@@ -28,6 +28,7 @@ export const atomic_filter_handlers: Record<AtomicFilterId, AtomicHandler> = {
     [AtomicFilterId.Attack]: atomic_filter_attack,
     [AtomicFilterId.Attack_Through]: atomic_filter_attack_through,
     [AtomicFilterId.Defend]: atomic_filter_defend,
+    [AtomicFilterId.About_To_Promote]: atomic_filter_about_to_promote,
     [AtomicFilterId.No_King_Evades]: atomic_filter_no_king_evades,
     [AtomicFilterId.No_Captures]: atomic_filter_no_captures,
     [AtomicFilterId.No_Blocks_Check]: atomic_filter_no_blocks_check,
@@ -215,6 +216,133 @@ function atomic_action_capture(
 }
 
 
+function atomic_action_push(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+
+        let from = fields[0]
+        let to = fields[1]
+
+        let from_symbol = columns[from]
+        let to_symbol = columns[to]
+
+
+        let Tos = table.get_column(to)
+        let Froms = table.get_column(from)
+
+        for (let i = start_row_index; i < end_row_index; i++) {
+            let h = history_per_row[i]
+            history_make_for_pos(h, m, pos)
+
+            let legals = m.get_legal_moves(pos)
+
+            let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+
+            let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+            let bb_to = Tos.rows[i]
+
+
+            for (let legal of legals) {
+                let { from, to } = move_c_to_Move(legal)
+
+                if (!bb_from.has(from)) {
+                    continue
+                }
+
+                if (!bb_to.has(to)) {
+                    continue;
+                }
+
+                table.create_new_duplicate_row(i)
+
+                Froms.set_raw(SquareSet.fromSquare(from))
+                Tos.set_raw(SquareSet.fromSquare(to))
+
+                let h2 = [...h, make_move_from_to(from, to)]
+                history_per_row.push(h2)
+            }
+
+            history_unmake_for_pos(h, m, pos)
+        }
+
+}
+
+function atomic_action_promote(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+
+        let from = fields[0]
+        let to = fields[1]
+        let promotion = fields[2]
+
+        let from_symbol = columns[from]
+        let to_symbol = columns[to]
+        let promotion_symbol = columns[promotion]
+
+
+        let Tos = table.get_column(to)
+        let Froms = table.get_column(from)
+
+        for (let i = start_row_index; i < end_row_index; i++) {
+            let h = history_per_row[i]
+            history_make_for_pos(h, m, pos)
+
+            let legals = m.get_legal_moves(pos)
+
+            let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+
+            let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+            let bb_to = Tos.rows[i]
+
+
+            for (let legal of legals) {
+                let { from, to, promotion } = move_c_to_Move(legal)
+
+                if (!bb_from.has(from)) {
+                    continue
+                }
+
+                if (!bb_to.has(to)) {
+                    continue;
+                }
+                
+                if (promotion === undefined) {
+                    continue;
+                }
+                if (promotion_symbol.piece !== promotion) {
+                    continue;
+                }
+
+
+                table.create_new_duplicate_row(i)
+
+                Froms.set_raw(SquareSet.fromSquare(from))
+                Tos.set_raw(SquareSet.fromSquare(to))
+
+                let h2 = [...h, make_move_from_to_promotion(from, to, role_to_c(promotion))]
+                history_per_row.push(h2)
+            }
+
+            history_unmake_for_pos(h, m, pos)
+        }
+
+}
+
+
 
 function atomic_filter_attack(
     fields: number[],
@@ -393,14 +521,6 @@ function atomic_filter_attack_through(
 
                 for (let a of aa) {
                     let p2 = m.get_at(pos, a)
-                    if (p2 === undefined) {
-                        continue
-                    }
-                    let color2 = piece_c_color_of(p2)
-
-                    if (color === color2) {
-                        continue
-                    }
 
                     table.create_new_duplicate_row(i)
 
@@ -418,6 +538,70 @@ function atomic_filter_attack_through(
 
 
 }
+
+function atomic_filter_about_to_promote(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+    let to = fields[1]
+
+    let from_symbol = columns[from]
+    let to_symbol = columns[to]
+
+
+    let Tos = table.get_column(to)
+    let Froms = table.get_column(from)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+        history_make_for_pos(h, m, pos)
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+        let to_symbol_bb = bitboard_of_symbol(to_symbol, m, pos)
+
+        let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+        let bb_to = Tos.rows[i].intersect(to_symbol_bb)
+
+        let occ = m.pos_occupied(pos)
+
+        let bb = occ.intersect(bb_from)
+
+        bb = bb.intersect(m.get_pieces_bb(pos, [PAWN]))
+
+        for (let sq of bb) {
+
+            let color = piece_c_color_of(m.get_at(pos, sq)!)
+
+            let promotion = color === WHITE ? go_black(sq) : go_white(sq)
+
+            if (promotion === undefined) {
+                continue
+            }
+            if (
+                !SquareSet.fromRank(0).has(promotion) &&
+                !SquareSet.fromRank(7).has(promotion)) {
+                    continue
+                }
+
+            table.create_new_duplicate_row(i)
+
+            Froms.set_raw(SquareSet.fromSquare(sq))
+            Tos.set_raw(SquareSet.fromSquare(promotion))
+
+            history_per_row.push(h)
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+}
+
 
 
 function atomic_filter_no_king_evades(
@@ -767,6 +951,9 @@ function history_unmake_for_pos(h: History, m: PositionManager, pos: number) {
 
 
 function bitboard_of_symbol(from_symbol: PieceSymbol, m: PositionManager, pos: PositionC) {
+    if (from_symbol.piece === undefined) {
+        return m.pos_occupied(pos).complement()
+    }
     return m.get_pieces_bb(pos, [role_to_c(from_symbol.piece)])
 }
 

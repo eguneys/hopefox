@@ -22,7 +22,7 @@ export function vsymbol_equals(a: VariableSymbol, b: VariableSymbol) {
 
 
 export type PieceSymbol = {
-    piece: Role
+    piece?: Role
     id: string
 }
 
@@ -57,7 +57,8 @@ export enum AtomicFilterId {
     No_Captures,
     No_Blocks_Check,
     No_Push_Blocks_Check,
-    No_Defense
+    No_Defense,
+    About_To_Promote
 }
 
 export function is_atomic_action(a: AtomicCall): a is AtomicActionCall {

@@ -4,16 +4,11 @@ import { AtomicActionId, AtomicFilterId, CompositeActionBody, CompositeActionCal
 export function parse_defs(code: string): CompositeActionDefinition[] {
     let res: CompositeActionDefinition[] = []
 
-    let in_def = 0
+    code = code.split('###')[code.split('###').length - 1]
+
     let current_head: CompositeActionHead | undefined
     let current_body: CompositeActionBody = []
     for (let line of code.split('\n')) {
-        if (in_def < 2) {
-            if (line.includes('#')) {
-                in_def++
-            }
-            continue
-        }
 
         let m = line.match(/def (.*)\((.*)\)/)
 
@@ -107,6 +102,8 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
             return AtomicFilterId.Attack_Through
         case 'defend':
             return AtomicFilterId.Defend
+        case 'about_to_promote':
+            return AtomicFilterId.About_To_Promote
         case 'no_king_evades':
             return AtomicFilterId.No_King_Evades
         case 'no_captures':
@@ -183,7 +180,10 @@ function piece_symbol_make(s: string): PSymbol {
         }
     }
 
-    throw new BadPieceSymbolException(s)
+    return {
+        id: `${s}`
+    }
+
     function piece_symbol_id(role: Role, s: string) {
         if (s.startsWith(role)) {
             return s.slice(role.length)
@@ -195,7 +195,7 @@ function piece_symbol_make(s: string): PSymbol {
 
 export function parse_nested_graph_root(code: string): CompositeNestedGraphRoot {
 
-    code = code.split('###')[1]
+    code = code.split('###')[code.split('###').length - 2]
     const lines = code.split('\n').filter(line => line.trim() !== '');
 
     let root: CompositeNestedGraphRoot = []
