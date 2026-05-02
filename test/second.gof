@@ -1,4 +1,4 @@
-14 70 118 204 230 347 937 1387 1391 1415 1664 1680 2109 2184 2312 2641 2897 3414 3605 3892 3927 4422 4616 4885
+14 70 118 204 230 347 937 1387 1391 1415 1664 1680 2109 2184 2312 2641 2897 3414 3605 3892 3927 4422 4616 4885 5211 6089 6276
 ===
 
 
@@ -191,8 +191,40 @@ if has_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, 
       if attacks(king2, king3, pawn) then
         if defends(king4, king5, pawn) then
 
+if triple_fork_with_checks_and_hanging_for_only_king_evades(bishop, bishop2, king, rook, rook2) then
+  if king_evades(king, king2) then
+    if captures_hanging(rook3, queen_rook4) then
+
 
 ###
+
+def captures_hanging(From, Captured_To)
+  no_defense(Captured)
+  capture(From, To, Captured)
+
+
+def triple_fork_with_checks_and_hanging_for_only_king_evades(From, To, King, ForkB, ForkC)
+  move(From, To)
+  attack(To, King)
+  attack(To, ForkB)
+  attack(To, ForkC)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+  no_defense(ForkB)
+
+
+
+def triple_fork_with_checks_for_only_king_evades(From, To, King, ForkB, ForkC)
+  move(From, To)
+  attack(To, King)
+  attack(To, ForkB)
+  attack(To, ForkC)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+
+
 
 def attacks(From, To, AttackTo) then
   move(From, To)
