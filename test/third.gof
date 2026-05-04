@@ -50,6 +50,9 @@ ve lures_into_discovered_check(king2, rook, bishop)
 
 ###
 
+
+###
+
 def exchanges(From, Captured_To, From2, To2)
   capture(From, To, Captured)
   capture(From2, To2, To)

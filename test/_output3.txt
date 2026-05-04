@@ -1,13 +1,1 @@
-Time: 0ms per puzzle
-Coverage: %0 Accuracy: %0
-Tp/Fp: 0/1 N: 99999 Total: 100000
------******----
-13017 https://lichess.org/training/0KbPu
-Solution: Re3 b4 Qxc3 Qxc3 Rxc3
-{ Rxd5 Qe3 Qc4+ Ne2 }
------*****----
-Coverage: %0 Accuracy: %0
-Tp/Fp: 0/1 N: 99999 Total: 100000
-Time: 0.092ms per puzzle
-----*** Positives ****----
-
+TypeError: Cannot read properties of undefined (reading 'data')

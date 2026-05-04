@@ -4,6 +4,7 @@ import { PositionManager, usage, visual_node_log } from '../src'
 import { a_hundred } from "./fixture"
 // @ts-ignore
 import './third.gof?raw'
+import { Visual_CompositeNestedGraphNode, Visual_CompositeNestedGraphRoot } from '../src/gof2/types'
 
 let m = await PositionManager.make()
 let log_puzzles = a_hundred
@@ -23,7 +24,7 @@ it('works', () => {
 
     let fen = 'r1r4k/pp3p1p/3Qb1pP/q3p1PR/4P3/2N2P2/1PP5/2KR1B2 b - - 0 19'
     fen = '5rk1/ppp2ppp/1q5b/8/2Q5/2P2B2/Pr4PP/4RR1K w - - 0 20'
-    // fen = ''
+    fen = ''
 
     if (fen) {
         console.log(`FEN: ${fen}`)
@@ -85,11 +86,10 @@ function solve_i(i: number) {
     let solution = log_puzzles[i].sans
 
     let res = gof_run(m, pos)
-    if (res.length === 0) {
+    if (res[0].data.call[0].witness.length === 0) {
       return { n: 1 }
     }
-    //if (match_solution(res, solution)) {
-    if (false) {
+    if (match_solution_root(res, solution)) {
        let log_positive = ''
        log_positive += `${i} ${link}`
       return { tp: 1, log_positive }
@@ -100,10 +100,23 @@ function solve_i(i: number) {
        log += `Solution: ${solution.join(' ')}`
        log += `\n`
        //log += res.map(_ => `{ ${_.join(' ')} }`).join('\n')
+       log += visual_node_log(res)
        return { fp: 1, log }
     }
 }
 
+function match_solution_root(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
+    return res.some(_ => match_solution_node(_, solution))
+}
+
+function match_solution_node(res: Visual_CompositeNestedGraphNode, solution: string[]): boolean {
+
+    if (match_solution(res.data.call[0].witness, solution)) {
+        return true
+    }
+    
+    return res.children.some(_ => match_solution_node(_, solution))
+}
 
 function match_solution(res: string[][], solution: string[]) {
    return res.some(_ => _.join(' ') === solution.join(' '))
@@ -145,7 +158,8 @@ function log_coverage(c: Coverage, elapsed: number) {
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log('-----******----')
     //cf_log(c.log.slice(0, 3).join('\n'))
-    cf_log(c.log.map(_ => _.split('\n').slice(0, 3).join('\n')).join('\n'))
+    //cf_log(c.log.map(_ => _.split('\n').slice(0, 3).join('\n')).join('\n'))
+    cf_log(c.log.slice(0, 3).join('\n'))
     cf_log('-----*****----')
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
