@@ -214,6 +214,7 @@ export class BindingOutWithQuantifiers {
         if (is_atomic_action(action)) {
             atomic_action_handlers[action.id](
                 action.fields, 
+                action.fields2,
                 start_row_index, 
                 end_row_index,
                 this.symbol_per_column,
@@ -227,6 +228,7 @@ export class BindingOutWithQuantifiers {
         } else {
             atomic_filter_handlers[action.id](
                 action.fields, 
+                action.fields2,
                 start_row_index, 
                 end_row_index,
                 this.symbol_per_column,

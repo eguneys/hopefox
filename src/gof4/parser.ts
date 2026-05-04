@@ -145,12 +145,21 @@ export function piece_symbol_make(s: string): PSymbol {
         }
     }
 
+    let global_id = undefined
+
+    if (s.startsWith('$')) {
+        s = s.slice(1)
+        global_id = s
+    }
+
+
     let id
 
     for (let role of ROLES) {
         id = piece_symbol_id(role, s)
         if (id !== undefined) {
             return {
+                global_id,
                 piece: role,
                 id: `${id}`
             }
@@ -158,6 +167,7 @@ export function piece_symbol_make(s: string): PSymbol {
     }
 
     return {
+        global_id,
         id: `${s}`
     }
 

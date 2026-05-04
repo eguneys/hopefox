@@ -6,6 +6,7 @@ import { AtomicActionId, AtomicFilterId, PieceSymbol } from "./types"
 
 export type AtomicHandler = (
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     symbol_per_column: PieceSymbol[],
@@ -45,6 +46,7 @@ export const atomic_filter_handlers: Record<AtomicFilterId, AtomicHandler> = {
 
 function atomic_action_safe_move(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -90,6 +92,7 @@ function atomic_action_safe_move(
                 }
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(from))
                 Tos.set_raw(SquareSet.fromSquare(to))
@@ -105,6 +108,7 @@ function atomic_action_safe_move(
 
 function atomic_action_move(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -115,9 +119,11 @@ function atomic_action_move(
     table: Columnar,
     gtable: Columnar) {
 
-
         let from = fields[0]
         let to = fields[1]
+
+        let gfrom = fields2[0]
+        let gto = fields2[1]
 
         let from_symbol = columns[from]
         let to_symbol = columns[to]
@@ -125,6 +131,16 @@ function atomic_action_move(
 
         let Tos = table.get_column(to)
         let Froms = table.get_column(from)
+
+        if (from === -1) {
+            from_symbol = gcolumns[gfrom]
+            Froms = gtable.get_column(gfrom)
+        }
+        if (to === -1) {
+            to_symbol = gcolumns[gto]
+            Tos = gtable.get_column(gto)
+        }
+
 
         for (let i = start_row_index; i < end_row_index; i++) {
             let h = history_per_row[i]
@@ -156,6 +172,7 @@ function atomic_action_move(
                 }
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(from))
                 Tos.set_raw(SquareSet.fromSquare(to))
@@ -172,6 +189,7 @@ function atomic_action_move(
 
 function atomic_action_capture(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -221,6 +239,7 @@ function atomic_action_capture(
                 }
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(from))
                 Tos.set_raw(SquareSet.fromSquare(to))
@@ -237,6 +256,7 @@ function atomic_action_capture(
 
 function atomic_action_push(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -282,6 +302,7 @@ function atomic_action_push(
                 }
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(from))
                 Tos.set_raw(SquareSet.fromSquare(to))
@@ -297,6 +318,7 @@ function atomic_action_push(
 
 function atomic_action_promote(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -352,6 +374,7 @@ function atomic_action_promote(
 
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(from))
                 Tos.set_raw(SquareSet.fromSquare(to))
@@ -369,6 +392,7 @@ function atomic_action_promote(
 
 function atomic_filter_attack(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -382,12 +406,25 @@ function atomic_filter_attack(
     let from = fields[0]
     let to = fields[1]
 
+    let gfrom = fields2[0]
+    let gto = fields2[1]
+
     let from_symbol = columns[from]
     let to_symbol = columns[to]
 
 
     let Tos = table.get_column(to)
     let Froms = table.get_column(from)
+
+
+    if (from === -1) {
+        from_symbol = gcolumns[gfrom]
+        Froms = gtable.get_column(gfrom)
+    }
+    if (to === -1) {
+        to_symbol = gcolumns[gto]
+        Tos = gtable.get_column(gto)
+    }
 
     for (let i = start_row_index; i < end_row_index; i++) {
         let h = history_per_row[i]
@@ -415,6 +452,7 @@ function atomic_filter_attack(
 
             for (let a of aa) {
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 Tos.set_raw(SquareSet.fromSquare(a))
@@ -430,6 +468,7 @@ function atomic_filter_attack(
 
 function atomic_filter_defend(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -476,6 +515,7 @@ function atomic_filter_defend(
 
             for (let a of aa) {
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 Tos.set_raw(SquareSet.fromSquare(a))
@@ -493,6 +533,7 @@ function atomic_filter_defend(
 
 function atomic_filter_attack_through(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -507,6 +548,10 @@ function atomic_filter_attack_through(
     let to = fields[1]
     let through = fields[2]
 
+    let gfrom = fields2[0]
+    let gto = fields2[1]
+    let gthrough = fields2[2]
+
     let from_symbol = columns[from]
     let to_symbol = columns[to]
     let through_symbol = columns[through]
@@ -515,6 +560,22 @@ function atomic_filter_attack_through(
     let Tos = table.get_column(to)
     let Froms = table.get_column(from)
     let Throughs = table.get_column(through)
+
+
+    if (from === -1) {
+        from_symbol = gcolumns[gfrom]
+        Froms = gtable.get_column(gfrom)
+    }
+    if (to === -1) {
+        to_symbol = gcolumns[gto]
+        Tos = gtable.get_column(gto)
+    }
+    if (through === -1) {
+        through_symbol = gcolumns[gthrough]
+        Throughs = gtable.get_column(gthrough)
+    }
+
+
 
     for (let i = start_row_index; i < end_row_index; i++) {
         let h = history_per_row[i]
@@ -552,6 +613,7 @@ function atomic_filter_attack_through(
                     let p2 = m.get_at(pos, a)
 
                     table.create_new_duplicate_row(i)
+                    gtable.create_new_duplicate_row(i)
 
                     Froms.set_raw(SquareSet.fromSquare(sq))
                     Tos.set_raw(SquareSet.fromSquare(a))
@@ -571,6 +633,7 @@ function atomic_filter_attack_through(
 
 function atomic_filter_about_to_push(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -618,6 +681,7 @@ function atomic_filter_about_to_push(
             }
 
             table.create_new_duplicate_row(i)
+            gtable.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
             Tos.set_raw(SquareSet.fromSquare(promotion))
@@ -633,6 +697,7 @@ function atomic_filter_about_to_push(
 
 function atomic_filter_about_to_promote(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -685,6 +750,7 @@ function atomic_filter_about_to_promote(
                 }
 
             table.create_new_duplicate_row(i)
+            gtable.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
             Tos.set_raw(SquareSet.fromSquare(promotion))
@@ -700,6 +766,7 @@ function atomic_filter_about_to_promote(
 
 function atomic_filter_no_king_evades(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -758,6 +825,7 @@ function atomic_filter_no_king_evades(
             }
 
             table.create_new_duplicate_row(i)
+            gtable.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
             history_per_row.push(h)
@@ -772,6 +840,7 @@ function atomic_filter_no_king_evades(
 
 function atomic_filter_no_captures(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -817,6 +886,7 @@ function atomic_filter_no_captures(
             }
 
             table.create_new_duplicate_row(i)
+            gtable.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
             history_per_row.push(h)
@@ -831,6 +901,7 @@ function atomic_filter_no_captures(
 
 function atomic_filter_no_blocks_check(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -888,6 +959,7 @@ function atomic_filter_no_blocks_check(
                 }
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 Tos.set_raw(SquareSet.fromSquare(a))
@@ -904,6 +976,7 @@ function atomic_filter_no_blocks_check(
 
 function atomic_filter_no_push_blocks_check(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -962,6 +1035,7 @@ function atomic_filter_no_push_blocks_check(
                 }
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 Tos.set_raw(SquareSet.fromSquare(a))
@@ -979,6 +1053,7 @@ function atomic_filter_no_push_blocks_check(
 
 function atomic_filter_no_defense(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -1023,6 +1098,7 @@ function atomic_filter_no_defense(
             }
 
             table.create_new_duplicate_row(i)
+            gtable.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
             history_per_row.push(h)
@@ -1036,6 +1112,7 @@ function atomic_filter_no_defense(
 
 function atomic_filter_no_attack(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -1079,6 +1156,7 @@ function atomic_filter_no_attack(
             for (let b2 of bb2) {
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 Tos.set_raw(SquareSet.fromSquare(b2))
@@ -1094,6 +1172,7 @@ function atomic_filter_no_attack(
 
 function atomic_filter_same(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -1133,6 +1212,7 @@ function atomic_filter_same(
         for (let sq of bb) {
 
             table.create_new_duplicate_row(i)
+            gtable.create_new_duplicate_row(i)
 
             Froms.set_raw(SquareSet.fromSquare(sq))
             Tos.set_raw(SquareSet.fromSquare(sq))
@@ -1148,6 +1228,7 @@ function atomic_filter_same(
 
 function atomic_filter_opposite(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -1194,6 +1275,7 @@ function atomic_filter_opposite(
             for (let sq2 of bb2) {
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 Tos.set_raw(SquareSet.fromSquare(sq2))
@@ -1211,6 +1293,7 @@ function atomic_filter_opposite(
 
 function atomic_filter_backrank_wall(
     fields: number[],
+    fields2: number[],
     start_row_index: number,
     end_row_index: number,
     columns: PieceSymbol[],
@@ -1236,6 +1319,10 @@ function atomic_filter_backrank_wall(
     let As = table.get_column(a)
     let Bs = table.get_column(b)
     let Cs = table.get_column(c)
+
+
+
+
 
     for (let i = start_row_index; i < end_row_index; i++) {
         let h = history_per_row[i]
@@ -1281,6 +1368,7 @@ function atomic_filter_backrank_wall(
             {
 
                 table.create_new_duplicate_row(i)
+                gtable.create_new_duplicate_row(i)
 
                 Froms.set_raw(SquareSet.fromSquare(sq))
                 As.set_raw(SquareSet.fromSquare(a_sq))
