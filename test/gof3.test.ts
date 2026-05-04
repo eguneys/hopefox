@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { it } from 'vitest'
-import { PositionManager, usage } from '../src'
+import { PositionManager, usage, visual_node_log } from '../src'
 import { a_hundred } from "./fixture"
 // @ts-ignore
 import './third.gof?raw'
@@ -27,7 +27,7 @@ it('works', () => {
     if (fen) {
         let pos = m.create_position(fen)
         let res = gof_run(m, pos)
-        console.log(res)
+        console.log(visual_node_log(res))
         return
     }
 
@@ -86,7 +86,8 @@ function solve_i(i: number) {
     if (res.length === 0) {
       return { n: 1 }
     }
-    if (match_solution(res, solution)) {
+    //if (match_solution(res, solution)) {
+    if (false) {
        let log_positive = ''
        log_positive += `${i} ${link}`
       return { tp: 1, log_positive }
@@ -96,7 +97,7 @@ function solve_i(i: number) {
        log += `\n`
        log += `Solution: ${solution.join(' ')}`
        log += `\n`
-       log += res.map(_ => `{ ${_.join(' ')} }`).join('\n')
+       //log += res.map(_ => `{ ${_.join(' ')} }`).join('\n')
        return { fp: 1, log }
     }
 }

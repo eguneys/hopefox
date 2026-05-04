@@ -1,5 +1,5 @@
 import { Role, ROLES } from "../distill/types";
-import { AtomicActionId, AtomicFilterId, CompositeActionBody, CompositeActionCall, CompositeActionDefinition, CompositeActionHead, CompositeNestedGraphNode, CompositeNestedGraphRoot, CompositeRing, PieceSymbol, PSymbol, Quantification, VariableSymbol, VSymbol } from "./types";
+import { AtomicActionId, AtomicFilterId, CompositeActionBody, CompositeActionCall, CompositeActionDefinition, CompositeActionHead, CompositeNestedGraphNode, CompositeNestedGraphRoot, CompositeRing, PieceSymbol, PSymbol, Quantification, VariableSymbol, Visual_CompositeActionCall, Visual_CompositeNestedGraphNode, Visual_CompositeNestedGraphRoot, VSymbol } from "./types";
 
 export function parse_defs(code: string): CompositeActionDefinition[] {
     let res: CompositeActionDefinition[] = []
@@ -255,6 +255,91 @@ export function parse_nested_graph_root(code: string): CompositeNestedGraphRoot 
         last_calls = [call]
 
         const newNode: CompositeNestedGraphNode = {
+            data: {
+                quantification,
+                call: last_calls
+            },
+            children: []
+        };
+
+        // Find the correct parent based on indentation
+        while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+            stack.pop();
+        }
+
+        if (stack.length === 0) {
+            root.push(newNode);
+        } else {
+            stack[stack.length - 1].node.children.push(newNode);
+        }
+
+        stack.push({ indent, node: newNode });
+    });
+
+    return root
+
+}
+
+
+export function visual_parse_nested_graph_root(code: string): Visual_CompositeNestedGraphRoot {
+
+    code = code.split('###')[code.split('###').length - 2]
+    const lines = code.split('\n').filter(line => line.trim() !== '');
+
+    let root: Visual_CompositeNestedGraphRoot = []
+    const stack: { indent: number; node: Visual_CompositeNestedGraphNode }[] = [];
+
+    let last_calls: Visual_CompositeActionCall[] = []
+
+    lines.forEach((line, line_idx) => {
+        let line_no = line_idx + 1
+        let name = line
+
+        const indent = line.search(/\S/); // Count leading spaces
+        const trimmed = line.trim();
+
+        // Extract Type and Condition using Regex
+        const match = trimmed.match(/^(ve|if|forall)\s+(.*?)[\s+then]?$/);
+        if (!match) return;
+
+        if (match[1] === 've') {
+
+            let m2 = match[2].trim().match(/(.*)\((.*)\)/)
+            if (!m2) return
+
+            let id = m2[1]
+            let params = m2[2].split(', ').map(_ => piece_symbol_make(_))
+
+            let call: Visual_CompositeActionCall = {
+                name,
+                params,
+                witness: [],
+                line_no
+            }
+
+            last_calls.push(call)
+            return
+        }
+
+        let quantification = match[1] === 'if' ? Quantification.IfThen : Quantification.ForAll
+
+        let m2 = match[2].trim().match(/(.*)\((.*)\)/)
+
+        if (!m2) return
+
+        let id = m2[1]
+        let params = m2[2].split(', ').map(_ => piece_symbol_make(_))
+
+        let call: Visual_CompositeActionCall = {
+            name,
+            params,
+            witness: [],
+            line_no
+        }
+
+        last_calls = [call]
+
+        const newNode: Visual_CompositeNestedGraphNode = {
             data: {
                 quantification,
                 call: last_calls

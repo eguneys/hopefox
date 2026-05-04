@@ -132,3 +132,25 @@ export type CompositeNestedGraphNode = {
 }
 
 export type CompositeNestedGraphRoot = CompositeNestedGraphNode[]
+
+
+
+export type Visual_CompositeNestedGraphNode = {
+    data: Visual_CompositeActionCallWithQuantification
+    children: Visual_CompositeNestedGraphNode[]
+}
+export type Visual_CompositeNestedGraphRoot = Visual_CompositeNestedGraphNode[]
+
+export type Visual_CompositeActionCallWithQuantification = {
+    quantification: Quantification
+    call: Visual_CompositeActionCall[]
+}
+
+export type SAN = string
+export type Visual_CompositeActionCall = {
+    error?: string
+    line_no: number
+    name: string
+    params: PSymbol[]
+    witness: SAN[][]
+}

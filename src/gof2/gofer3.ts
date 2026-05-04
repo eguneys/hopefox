@@ -3,11 +3,10 @@ import { SquareSet } from "../distill/squareSet"
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
 import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, extract_fields, history_to_sans } from "./gofer"
 import { parse_defs, parse_nested_graph_root } from "./parser"
-import { AtomicCall, CompositeActionCallWithQuantification, CompositeActionDefinition, CompositeNestedGraphNode, CompositeNestedGraphRoot, is_atomic_action, is_psymbol2, PieceSymbol, Quantification, symbol_equals, VSymbol } from "./types"
+import { AtomicCall, CompositeActionCallWithQuantification, CompositeActionDefinition, CompositeNestedGraphNode, CompositeNestedGraphRoot, is_atomic_action, is_psymbol2, PieceSymbol, Quantification, symbol_equals, Visual_CompositeNestedGraphNode, VSymbol } from "./types"
 
-class UnreachableCodeException extends Error {
-
-}
+class UnreachableCodeException extends Error { }
+class NotImplementedException extends Error { }
 
 export type AtomicCallNode = {
     quantification: Quantification
@@ -132,11 +131,12 @@ export class BindingOutWithQuantifiers {
         this.history_per_row.push([])
 
 
-        return this.atomic_step_for_node(m, pos, this.atomic_call_root, [{ start_row_index: 0, end_row_index: 1 }])
+        return this.atomic_step_for_node(m, pos, this.atomic_call_root, { group: [{ start_row_index: 0, end_row_index: 1 }], children: [] })
     }
 
-    atomic_step_for_node(m: PositionManager, pos: PositionC, node: AtomicCallNode, index_group: IndexGroups): IndexGroups {
+    atomic_step_for_node(m: PositionManager, pos: PositionC, node: AtomicCallNode, nodes: IndexGroupNodes): IndexGroupNodes {
 
+        let index_group = nodes.group
         let local_groups = []
         for (let index_range of index_group) {
             let index_range_start_row_index = index_range.start_row_index
@@ -162,23 +162,27 @@ export class BindingOutWithQuantifiers {
         }
 
         if (node.children.length === 0) {
-            return local_groups
+            return { group: local_groups, children: [] } 
         }
 
-        let children_groups = []
+        let pass_node: IndexGroupNodes = { group: local_groups, children: [] }
         for (let child of node.children) {
-            children_groups.push(...this.atomic_step_for_node(m, pos, child, local_groups))
+            //children_groups.push(...this.atomic_step_for_node(m, pos, child, local_groups))
+            pass_node.children.push(this.atomic_step_for_node(m, pos, child, pass_node))
         }
 
         if (node.quantification === Quantification.IfThen) {
-            return children_groups
+            return pass_node
         } else if (node.quantification === Quantification.ForAll) {
 
+            throw new NotImplementedException()
+            /*
             if (this.local_groups_covered_by_sub_groups(local_groups, children_groups)) {
-                return children_groups
+                return pass_node
             } else {
-                return []
+                return pass_node
             }
+                */
         }
         throw new UnreachableCodeException()
     }
@@ -266,22 +270,58 @@ export function parse_and_create_bindings(code: string): BindingOutWithQuantifie
 }
 
 
-export function run_bindings(b: BindingOutWithQuantifiers, m: PositionManager, pos: PositionC) {
-    let gg = b.fill_history_for_position(m, pos)
-    if (gg.length === 0) {
-        return []
-    }
+export function visual_fill_run_bindings(v: Visual_CompositeNestedGraphNode, b: BindingOutWithQuantifiers, m: PositionManager, pos: PositionC): Visual_CompositeNestedGraphNode {
 
-    let res = []
+    let ss = run_bindings(b, m, pos)
 
-    for (let hh of b.get_history_for_groups(gg)) {
-        for (let h of hh) {
-            res.push(history_to_sans(h, m, pos))
+    function fill_visual(v: Visual_CompositeNestedGraphNode, s: SansNodes) {
+        for (let i = 0; i < v.data.call.length; i++) {
+            v.data.call[i].witness = s.sans
+        }
+        for (let i = 0; i < v.children.length; i++) {
+            fill_visual(v.children[i], s.children[i])
         }
     }
-    return res
+
+
+    fill_visual(v, ss)
+
+    return v
+}
+
+export function run_bindings(b: BindingOutWithQuantifiers, m: PositionManager, pos: PositionC): SansNodes {
+    let gg = b.fill_history_for_position(m, pos)
+
+    function fill_sans(node: IndexGroupNodes): SansNodes {
+        let hhh = b.get_history_for_groups(node.group)
+
+        let sans: SAN[][] = []
+
+        for (let hh of hhh)
+            for (let h of hh) { 
+                sans.push(history_to_sans(h, m, pos))
+            }
+
+        let children = node.children.map(_ => fill_sans(_))
+        return { sans, children }
+    }
+
+    return fill_sans(gg)
 }
 
 
 export type IndexRange = { start_row_index: number, end_row_index: number }
 export type IndexGroups = IndexRange[]
+
+
+export type IndexGroupNodes = {
+    group: IndexGroups
+    children: IndexGroupNodes[]
+}
+
+
+export type SAN = string
+export type SansNodes = {
+    sans: SAN[][]
+    children: SansNodes[]
+}
