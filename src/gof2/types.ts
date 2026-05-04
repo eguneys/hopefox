@@ -58,9 +58,12 @@ export enum AtomicFilterId {
     No_Blocks_Check,
     No_Push_Blocks_Check,
     No_Defense,
+    No_Attack,
     About_To_Promote,
     About_To_Push,
     Same,
+    Opposite,
+    BackrankWall
 }
 
 export function is_atomic_action(a: AtomicCall): a is AtomicActionCall {
@@ -120,7 +123,7 @@ export enum Quantification {
 
 export type CompositeActionCallWithQuantification = {
     quantification: Quantification
-    call: CompositeActionCall
+    call: CompositeActionCall[]
 }
 
 export type CompositeNestedGraphNode = {

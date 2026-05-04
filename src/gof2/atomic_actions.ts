@@ -36,7 +36,10 @@ export const atomic_filter_handlers: Record<AtomicFilterId, AtomicHandler> = {
     [AtomicFilterId.No_Blocks_Check]: atomic_filter_no_blocks_check,
     [AtomicFilterId.No_Push_Blocks_Check]: atomic_filter_no_push_blocks_check,
     [AtomicFilterId.No_Defense]: atomic_filter_no_defense,
+    [AtomicFilterId.No_Attack]: atomic_filter_no_attack,
     [AtomicFilterId.Same]: atomic_filter_same,
+    [AtomicFilterId.Opposite]: atomic_filter_opposite,
+    [AtomicFilterId.BackrankWall]: atomic_filter_backrank_wall,
 }
 
 function atomic_action_safe_move(
@@ -1004,6 +1007,62 @@ function atomic_filter_no_defense(
 }
 
 
+function atomic_filter_no_attack(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+    let to = fields[1]
+
+    let from_symbol = columns[from]
+    let to_symbol = columns[to]
+
+    let Froms = table.get_column(from)
+    let Tos = table.get_column(to)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+        history_make_for_pos(h, m, pos)
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+        let to_symbol_bb = bitboard_of_symbol(to_symbol, m, pos)
+
+        let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+        let bb_to = Tos.rows[i].intersect(to_symbol_bb)
+
+        let occ = m.pos_occupied(pos)
+
+        let bb = occ.intersect(bb_from)
+
+        for (let sq of bb) {
+
+            let aa = m.pos_attacks(pos, sq)
+
+            let bb2 = bb_to.diff(aa)
+
+
+            for (let b2 of bb2) {
+
+                table.create_new_duplicate_row(i)
+
+                Froms.set_raw(SquareSet.fromSquare(sq))
+                Tos.set_raw(SquareSet.fromSquare(b2))
+                history_per_row.push(h)
+            }
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+}
+
+
+
 function atomic_filter_same(
     fields: number[],
     start_row_index: number,
@@ -1040,10 +1099,6 @@ function atomic_filter_same(
 
         let bb = bb_from.intersect(bb_to)
 
-        let AA = squareSet(bb_to)
-        let BB = squareSet(bb_from)
-        let CC = squareSet(bb)
-
         for (let sq of bb) {
 
             table.create_new_duplicate_row(i)
@@ -1060,6 +1115,152 @@ function atomic_filter_same(
 }
 
 
+function atomic_filter_opposite(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+    let to = fields[1]
+
+    let from_symbol = columns[from]
+    let to_symbol = columns[to]
+
+
+    let Tos = table.get_column(to)
+    let Froms = table.get_column(from)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+
+        let SS = history_to_sans(h, m, pos)
+
+        history_make_for_pos(h, m, pos)
+
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+        let to_symbol_bb = bitboard_of_symbol(to_symbol, m, pos)
+
+        let bb_from = Froms.rows[i]//.intersect(from_symbol_bb)
+        let bb_to = Tos.rows[i]//.intersect(to_symbol_bb)
+
+        let bb = bb_from
+
+        for (let sq of bb) {
+
+            let piece = m.get_at(pos, sq)!
+            let color = piece_c_color_of(piece)
+
+            let bb2 = m.get_pieces_color_bb(pos, color_c_opposite(color)).intersect(bb_to)
+
+            for (let sq2 of bb2) {
+
+                table.create_new_duplicate_row(i)
+
+                Froms.set_raw(SquareSet.fromSquare(sq))
+                Tos.set_raw(SquareSet.fromSquare(sq2))
+
+                history_per_row.push(h)
+            }
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+
+}
+
+
+
+function atomic_filter_backrank_wall(
+    fields: number[],
+    start_row_index: number,
+    end_row_index: number,
+    columns: PieceSymbol[],
+    m: PositionManager,
+    pos: PositionC,
+    history_per_row: History[],
+    table: Columnar) {
+
+    let from = fields[0]
+    let a = fields[1]
+    let b = fields[2]
+    let c = fields[3]
+
+    let from_symbol = columns[from]
+    let a_symbol = columns[a]
+    let b_symbol = columns[b]
+    let c_symbol = columns[c]
+
+
+    let Froms = table.get_column(from)
+    let As = table.get_column(a)
+    let Bs = table.get_column(b)
+    let Cs = table.get_column(c)
+
+    for (let i = start_row_index; i < end_row_index; i++) {
+        let h = history_per_row[i]
+
+        history_make_for_pos(h, m, pos)
+
+
+        let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
+        let a_symbol_bb = bitboard_of_symbol(a_symbol, m, pos)
+        let b_symbol_bb = bitboard_of_symbol(b_symbol, m, pos)
+        let c_symbol_bb = bitboard_of_symbol(c_symbol, m, pos)
+
+        let bb_from = Froms.rows[i].intersect(from_symbol_bb)
+        let bb_a = As.rows[i].intersect(a_symbol_bb)
+        let bb_b = Bs.rows[i].intersect(b_symbol_bb)
+        let bb_c = Cs.rows[i].intersect(c_symbol_bb)
+
+        let bb_backranks = SquareSet.backranks()
+
+        let bb = bb_from.intersect(bb_backranks)
+
+        for (let sq of bb) {
+
+            let piece = m.get_at(pos, sq)!
+            let color = piece_c_color_of(piece)
+
+            let occ_color = m.get_pieces_color_bb(pos, color)
+
+            let wall_rank = color === WHITE ? SquareSet.fromRank(1) : SquareSet.fromRank(7)
+
+            let w_aa = m.pos_attacks(pos, sq).intersect(wall_rank).intersect(occ_color)
+
+            if (w_aa.size() !== 3) {
+                continue
+            }
+
+            let a_sq = w_aa.first()!
+            w_aa = w_aa.withoutFirst()
+            let b_sq = w_aa.first()!
+            w_aa = w_aa.withoutFirst()
+            let c_sq = w_aa.first()!
+
+            {
+
+                table.create_new_duplicate_row(i)
+
+                Froms.set_raw(SquareSet.fromSquare(sq))
+                As.set_raw(SquareSet.fromSquare(a_sq))
+                Bs.set_raw(SquareSet.fromSquare(b_sq))
+                Cs.set_raw(SquareSet.fromSquare(c_sq))
+
+                history_per_row.push(h)
+            }
+        }
+
+        history_unmake_for_pos(h, m, pos)
+    }
+
+
+}
 
 
 

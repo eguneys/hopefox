@@ -49,24 +49,28 @@ export class BindingOutWithQuantifiers {
         let symbol_per_column = this.symbol_per_column
         function fill_node(node: CompositeNestedGraphNode): AtomicCallNode {
             let res: AtomicCall[] = []
-            let def = defs.find(_ => _.head.id === node.data.call.id)
 
-            if (!def) {
-                throw new DefNotFoundException(node.data.call.id)
-            }
+            for (let call of node.data.call) {
 
-            for (let b of def.body) {
-                let a_params = extract_action_parameters(b.params, def.head.params, node.data.call.params)
-                let fields = extract_fields(symbol_per_column, a_params)
+                let def = defs.find(_ => _.head.id === call.id)
 
-                if (!fields) {
-                    throw new FieldsCannotExpandException(b.params)
+                if (!def) {
+                    throw new DefNotFoundException(call.id)
                 }
 
-                res.push({
-                    id: b.id,
-                    fields
-                })
+                for (let b of def.body) {
+                    let a_params = extract_action_parameters(b.params, def.head.params, call.params)
+                    let fields = extract_fields(symbol_per_column, a_params)
+
+                    if (!fields) {
+                        throw new FieldsCannotExpandException(b.params)
+                    }
+
+                    res.push({
+                        id: b.id,
+                        fields
+                    })
+                }
             }
 
 
@@ -86,23 +90,24 @@ export class BindingOutWithQuantifiers {
 
         let { symbol_per_column, table } = this
         function fill_node(node: CompositeNestedGraphNode) {
-            for (let param of node.data.call.params) {
-                if (is_psymbol2(param)) {
-                    if (!symbol_per_column.some(_ => symbol_equals(_, param.a))) {
-                        symbol_per_column.push(param.a)
-                        table.add_column_type(param.a.id)
-                    }
-                    if (!symbol_per_column.some(_ => symbol_equals(_, param.b))) {
-                        symbol_per_column.push(param.b)
-                        table.add_column_type(param.b.id)
-                    }
-                } else {
-                    if (!symbol_per_column.some(_ => symbol_equals(_, param))) {
-                        symbol_per_column.push(param)
-                        table.add_column_type(param.id)
+            for (let call of node.data.call)
+                for (let param of call.params) {
+                    if (is_psymbol2(param)) {
+                        if (!symbol_per_column.some(_ => symbol_equals(_, param.a))) {
+                            symbol_per_column.push(param.a)
+                            table.add_column_type(param.a.id)
+                        }
+                        if (!symbol_per_column.some(_ => symbol_equals(_, param.b))) {
+                            symbol_per_column.push(param.b)
+                            table.add_column_type(param.b.id)
+                        }
+                    } else {
+                        if (!symbol_per_column.some(_ => symbol_equals(_, param))) {
+                            symbol_per_column.push(param)
+                            table.add_column_type(param.id)
+                        }
                     }
                 }
-            }
 
             node.children.forEach(_ => fill_node(_))
         }

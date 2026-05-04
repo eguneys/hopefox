@@ -116,8 +116,14 @@ function parse_atomic_id(s: string): AtomicActionId | AtomicFilterId {
             return AtomicFilterId.No_Push_Blocks_Check
         case 'no_defense':
             return AtomicFilterId.No_Defense
+        case 'no_attack':
+            return AtomicFilterId.No_Attack
         case 'same':
             return AtomicFilterId.Same
+        case 'opposite':
+            return AtomicFilterId.Opposite
+        case 'backrank_wall':
+            return AtomicFilterId.BackrankWall
     }
     throw new BadAtomicIdException(s)
 }
@@ -137,7 +143,7 @@ export function parse_ring(code: string): CompositeRing {
             }
         }
 
-        let m = line.match(/if (.*)\((.*)\) then/)
+        let m = line.match(/if (.*)\((.*)\)/)
 
         if (m === null) {
             continue
@@ -205,13 +211,32 @@ export function parse_nested_graph_root(code: string): CompositeNestedGraphRoot 
     let root: CompositeNestedGraphRoot = []
     const stack: { indent: number; node: CompositeNestedGraphNode }[] = [];
 
+    let last_calls
+
     lines.forEach(line => {
         const indent = line.search(/\S/); // Count leading spaces
         const trimmed = line.trim();
 
         // Extract Type and Condition using Regex
-        const match = trimmed.match(/^(if|forall)\s+(.*?)\s+then$/);
+        const match = trimmed.match(/^(ve|if|forall)\s+(.*?)[\s+then]?$/);
         if (!match) return;
+
+        if (match[1] === 've') {
+
+            let m2 = match[2].trim().match(/(.*)\((.*)\)/)
+            if (!m2) return
+
+            let id = m2[1]
+            let params = m2[2].split(', ').map(_ => piece_symbol_make(_))
+
+            let call = {
+                id,
+                params
+            }
+
+            last_calls.push(call)
+            return
+        }
 
         let quantification = match[1] === 'if' ? Quantification.IfThen : Quantification.ForAll
 
@@ -227,10 +252,12 @@ export function parse_nested_graph_root(code: string): CompositeNestedGraphRoot 
             params
         }
 
+        last_calls = [call]
+
         const newNode: CompositeNestedGraphNode = {
             data: {
                 quantification,
-                call
+                call: last_calls
             },
             children: []
         };

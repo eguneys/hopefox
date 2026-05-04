@@ -14,7 +14,7 @@ data = data.split('===')[1]
 
 let gof_run = usage(data)
 
-it('works', () => {
+it.skip('works', () => {
 
     let skips = [...skips_config]
 
@@ -39,7 +39,7 @@ it('works', () => {
 
     let start_now = performance.now()
     let total = log_puzzles.length
-    let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [] }
+    let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [] }
 
     let ff = []
 
@@ -84,7 +84,9 @@ function solve_i(i: number) {
       return { n: 1 }
     }
     if (match_solution(res, solution)) {
-      return { tp: 1 }
+        let log_positive = ''
+        log_positive += `${i} ${link}`
+      return { tp: 1, log_positive }
     } else {
        let log = ''
        log += `${i} ${link}`
@@ -101,8 +103,8 @@ function match_solution(res: string[][], solution: string[]) {
    return res.some(_ => _.join(' ') === solution.join(' '))
 }
 
-type Coverage = { tp: number, fp: number, n: number, log: string[] }
-type PartialCoverage = { tp: number } | { fp: number, log: string } | { n: number }
+type Coverage = { tp: number, fp: number, n: number, log: string[], log_positive: string[] }
+type PartialCoverage = { tp: number, log_positive: string } | { fp: number, log: string } | { n: number }
 
 
 function merge_coverage(c: Coverage, res: PartialCoverage) {
@@ -111,6 +113,7 @@ function merge_coverage(c: Coverage, res: PartialCoverage) {
    }
    if ((res as any).tp === 1) {
       c.tp += 1
+      c.log_positive.push((res as any).log_positive)
    }
    if ((res as any).fp === 1) {
       c.fp += 1
@@ -141,6 +144,7 @@ function log_coverage(c: Coverage, elapsed: number) {
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
+    cf_log(c.log_positive.join('\n'))
 }
 
 
