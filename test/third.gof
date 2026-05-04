@@ -24,17 +24,51 @@ ve attack_and_through(rook2, rook3, queen, rook4)
 
 ###
 
+'r1r4k/pp3p1p/3Qb1pP/q3p1PR/4P3/2N2P2/1PP5/2KR1B2 b - - 0 19'
+
 if has_attack_hanging(pawn, rook)
 ve attack_and_through(rook2, rook3, queen, rook4) 
   if evades_attack_non_confrontational(queen, queen2, rook3) 
     if checks(queen3, queen4, king) 
       if blocks(knight, knight2, queen4, king) 
+        if sacrifices(queen4, knight2_queen45, king, king2)
+          if captures_with_checkmate(rook3, rook4_rook5, king2)
   if blocks_check(queen, queen5, queen3, queen4) 
     if exchange(queen3, queen5_queen6, pawn2, queen6_pawn3) 
-      if captures(pawn, rook_pawn2)
+      if captures(pawn, rook_pawn4)
 
 
 ###
+
+'5rk1/ppp2ppp/1q5b/8/2Q5/2P2B2/Pr4PP/4RR1K w - - 0 20'
+if sacrifices(queen, pawn_queen2, king, king2)
+ve lures_into_discovered_check(king2, rook, bishop)
+  if double_checks(bishop, bishop2, rook, king2)
+    if king_evades(king2, king)
+     if exchanges(rook, rook2_rook3, king, king3)
+       if checkmate(rook4, rook5, king3)
+
+###
+
+def exchanges(From, Captured_To, From2, To2)
+  capture(From, To, Captured)
+  capture(From2, To2, To)
+
+def king_evades(From, To)
+  safe_move(From, To)
+
+def double_checks(From, To, CheckFrom, CheckTo)
+  attack_through(CheckFrom, CheckTo, From)
+  move(From, To)
+  attack(To, CheckTo)
+  attack(CheckFrom, CheckTo)
+
+def lures_into_discovered_check(To, DiscoverFrom, DiscoverTo)
+  attack_through(DiscoverFrom, To, DiscoverTo)
+
+def sacrifices(From, Captured_To, From2, To2)
+  capture(From, To, Captured)
+  capture(From2, To2, To)
 
 def captures(From, Captured_To)
   capture(From, To, Captured)
@@ -103,3 +137,23 @@ def check_king_no_block_no_capture(From, To, King) then
   no_blocks_check(To, King)
   no_push_blocks_check(To, King)
   opposite(To, King)
+
+def captures_with_checkmate(From, To_Captured, King)
+  capture(From, To, Captured)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+
+
+
+  
+def checkmate(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+

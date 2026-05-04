@@ -22,9 +22,11 @@ it('works', () => {
     onlies.length = 0
 
     let fen = 'r1r4k/pp3p1p/3Qb1pP/q3p1PR/4P3/2N2P2/1PP5/2KR1B2 b - - 0 19'
+    fen = '5rk1/ppp2ppp/1q5b/8/2Q5/2P2B2/Pr4PP/4RR1K w - - 0 20'
     // fen = ''
 
     if (fen) {
+        console.log(`FEN: ${fen}`)
         let pos = m.create_position(fen)
         let res = gof_run(m, pos)
         console.log(visual_node_log(res))

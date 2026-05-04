@@ -9,11 +9,11 @@ export function visual_node_log(v: Visual_CompositeNestedGraphRoot) {
         let aa = ' '.repeat(indent)
 
         for (let call of v.data.call) {
-            let call_name = call.name.match(/(.*)\((.*)\)/)![1]
+            let call_name = call.name.match(/(.*)\((.*)\)/)![1].trim()
             res += `${aa}${call_name} ${get_witness(call)}\n`
         }
 
-        v.children.map(_ => print_node(_, indent + 2))
+        v.children.map(_ => print_node(_, indent + 1))
     }
 
     v.map(_ => print_node(_, 0)).join('\n\n')

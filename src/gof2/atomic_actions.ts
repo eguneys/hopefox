@@ -1,5 +1,5 @@
 import { between } from "../distill/attacks";
-import { BLACK, color_c_opposite, make_move_from_to, make_move_from_to_promotion, move_c_to_Castling, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
+import { BLACK, color_c_opposite, KING, make_move_from_to, make_move_from_to_promotion, move_c_to_Castling, move_c_to_Move, PAWN, piece_c_color_of, piece_c_type_of, piece_to_c, PositionC, PositionManager, role_to_c, WHITE } from "../distill/hopefox_c";
 import { go_black, go_white, SquareSet } from "../distill/squareSet";
 import { History, Columnar, history_to_sans } from "./gofer";
 import { AtomicActionId, AtomicFilterId, PieceSymbol } from "./types";
@@ -508,7 +508,7 @@ function atomic_filter_attack_through(
         let through_symbol_bb = bitboard_of_symbol(through_symbol, m, pos)
 
         let bb_from = Froms.rows[i].intersect(from_symbol_bb)
-        let bb_to = Tos.rows[i].intersect(to_symbol_bb)
+        let bb_to = Tos.rows[i]//.intersect(to_symbol_bb)
         let bb_through = Throughs.rows[i].intersect(through_symbol_bb)
 
         let occ = m.pos_occupied(pos)
@@ -781,13 +781,9 @@ function atomic_filter_no_captures(
 
             let bb2 = m.get_pieces_color_bb(pos, color === WHITE ? BLACK: WHITE)
 
+            bb2 = bb2.diff(m.get_pieces_bb(pos, [KING]))
+
             for (let b2 of bb2) {
-
-                let p2 = m.get_at(pos, b2)!
-                if (piece_c_color_of(p2) === color) {
-                    continue
-                }
-
                 let aa2 = m.pos_attacks(pos, b2)
 
                 if (aa2.has(sq)) {
