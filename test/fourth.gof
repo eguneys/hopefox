@@ -1,0 +1,21 @@
+===
+
+
+###
+
+
+###
+
+
+if in_backrank_wall(king, pawn, pawn2, pawn3)
+ve attack_and_through(rook2, rook3, queen, rook4) 
+
+###
+
+def in_backrank_wall(King, A, B, C)
+  backrank_wall(King, A, B, C)
+
+def attack_and_through(From, To, AttackTo, AttackThrough)
+  move(From, To)
+  attack(To, AttackTo)
+  attack_through(To, AttackThrough, AttackTo)

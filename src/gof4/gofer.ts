@@ -1,8 +1,10 @@
 import { PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
-import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters } from "../gof2/gofer"
-import { IndexGroupNodes, IndexGroups } from "../gof2/gofer3"
-import { AtomicCall, CompositeActionDefinition, CompositeNestedGraphNode, is_atomic_action, is_psymbol2, PieceSymbol, Quantification, symbol_equals } from "./types"
+import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, history_to_sans } from "../gof2/gofer"
+import { IndexGroupNodes, IndexGroups, SansNodes } from "../gof2/gofer3"
+import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
+import { parse_defs, parse_nested_graph_root } from "./parser"
+import { AtomicCall, CompositeActionDefinition, CompositeNestedGraphNode, is_atomic_action, is_psymbol2, PieceSymbol, Quantification, SAN, symbol_equals, Visual_CompositeNestedGraphNode } from "./types"
 
 export class UnreachableCodeException extends Error { }
 export class NotImplementedException extends Error { }
@@ -252,4 +254,52 @@ export function extract_fields_optional(symbol_per_column: PieceSymbol[], a_para
         res.push(-1)
     }
     return res
+}
+
+
+export function parse_and_create_bindings(code: string): BindingOutWithQuantifiers[] {
+    let defs = parse_defs(code)
+    let nodes = parse_nested_graph_root(code)
+
+    return nodes.map(_ => BindingOutWithQuantifiers.from_defs(defs, _))
+}
+
+
+export function visual_fill_run_bindings(v: Visual_CompositeNestedGraphNode, b: BindingOutWithQuantifiers, m: PositionManager, pos: PositionC): Visual_CompositeNestedGraphNode {
+
+    let ss = run_bindings(b, m, pos)
+
+    function fill_visual(v: Visual_CompositeNestedGraphNode, s: SansNodes) {
+        for (let i = 0; i < v.data.call.length; i++) {
+            v.data.call[i].witness = s.sans
+        }
+        for (let i = 0; i < v.children.length; i++) {
+            fill_visual(v.children[i], s.children[i])
+        }
+    }
+
+
+    fill_visual(v, ss)
+
+    return v
+}
+
+export function run_bindings(b: BindingOutWithQuantifiers, m: PositionManager, pos: PositionC): SansNodes {
+    let gg = b.fill_history_for_position(m, pos)
+
+    function fill_sans(node: IndexGroupNodes): SansNodes {
+        let hhh = b.get_history_for_groups(node.group)
+
+        let sans: SAN[][] = []
+
+        for (let hh of hhh)
+            for (let h of hh) { 
+                sans.push(history_to_sans(h, m, pos))
+            }
+
+        let children = node.children.map(_ => fill_sans(_))
+        return { sans, children }
+    }
+
+    return fill_sans(gg)
 }
