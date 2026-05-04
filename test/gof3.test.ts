@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let single_i = -1
-    //single_i =  2764
+    single_i =  1
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
@@ -86,7 +86,7 @@ function solve_i(i: number) {
     let solution = log_puzzles[i].sans
 
     let res = gof_run(m, pos)
-    if (res[0].data.call[0].witness.length === 0) {
+    if (res.length === 0 || res[0].data.call[0].witness.length === 0) {
       return { n: 1 }
     }
     if (match_solution_root(res, solution)) {

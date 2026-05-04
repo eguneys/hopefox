@@ -50,8 +50,21 @@ ve lures_into_discovered_check(king2, rook, bishop)
 
 ###
 
+if in_backrank_wall(king, pawn, pawn2, pawn3)
+ve attack_and_through(rook2, rook3, queen, rook4) 
+  if evades_attack_non_confrontational(queen, queen2, rook3) 
+    if check_king_with_block_no_capture_no_evade(rook3, rook5, king)
+      if blocks(knight, knight2, rook5, king)
+        if checkmate(rook5, rook6, king)
+  if spawn_attack_blocker(knight, knight2, rook4_rook01, king)
+  ve evades_with_cover_block(queen, queen2, rook3, knight2)
 
 ###
+
+def evades_with_cover_block(From, To, EvadeFrom, CoverTo)
+  move(From, To)
+  no_attack(EvadeFrom, To)
+  attack(To, CoverTo)
 
 def exchanges(From, Captured_To, From2, To2)
   capture(From, To, Captured)
