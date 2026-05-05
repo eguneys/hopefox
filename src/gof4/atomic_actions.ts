@@ -198,27 +198,29 @@ function atomic_action_capture(
             let from_symbol_bb = bitboard_of_symbol(from_symbol, m, pos)
             let captured_symbol_bb = bitboard_of_symbol(captured_symbol, m, pos)
 
+            let bb_captured = Captureds.rows[i]
             let bb_from = Froms.rows[i].intersect(from_symbol_bb)
-            let bb_to = Tos.rows[i].intersect(captured_symbol_bb)
+            let bb_to = Tos.rows[i].intersect(captured_symbol_bb).intersect(bb_captured)
 
 
             for (let legal of legals) {
-                let { from, to } = move_c_to_Move(legal)
+                let l_move = move_c_to_Move(legal)
 
-                if (!bb_from.has(from)) {
+                if (!bb_from.has(l_move.from)) {
                     continue
                 }
 
-                if (!bb_to.has(to)) {
+                if (!bb_to.has(l_move.to)) {
                     continue;
                 }
 
                 table.create_new_duplicate_row(i)
 
-                Froms.set_raw(SquareSet.fromSquare(from))
-                Tos.set_raw(SquareSet.fromSquare(to))
+                Froms.set_raw(SquareSet.fromSquare(l_move.from))
+                Tos.set_raw(SquareSet.fromSquare(l_move.to))
+                Captureds.set_raw(SquareSet.fromSquare(l_move.to))
 
-                let h2 = [...h, make_move_from_to(from, to)]
+                let h2 = [...h, make_move_from_to(l_move.from, l_move.to)]
                 history_per_row.push(h2)
             }
 

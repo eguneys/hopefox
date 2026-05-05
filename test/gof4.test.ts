@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let single_i = -1
-    //single_i =  204
+    //single_i =  1122
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
@@ -44,7 +44,7 @@ it('works', () => {
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 1000
+    let total = log_puzzles.length / 10
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [], log_negative: [] }
 
     let ff = []
@@ -161,7 +161,7 @@ function log_coverage(c: Coverage, elapsed: number) {
     if (isNaN(C_percent)) C_percent = '--'
     if (isNaN(A_percent)) A_percent = '--'
     cf_begin()
-    cf_log(`Time: ${Math.floor(elapsed / Total * 10) / 10}ms per puzzle`)
+    cf_log(`Time: ${Math.floor(elapsed / Total * 10) / 10}ms per puzzle took ${Math.round(elapsed/1000)}s`)
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log('----*** False Positives ****----')

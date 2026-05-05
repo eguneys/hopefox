@@ -26,8 +26,25 @@ ve attacks(rook, rook2, pawn)
     if blocks_check_defended_by(knight, knight2, queen, queen3, king2)
       if sacrifices_with_exchange(queen3, knight2_queen4, queen, queen5)
 
+###
+
+if attacks_through(queen, knight, bishop)
+ve defends(bishop2, knight)
+ve captures(bishop, knight_bishop3)
+  if exchanges(bishop2, bishop3_bishop4, queen, queen2)
+
 
 ###
+
+def exchanges(From, Captured_To, From2, To2)
+  capture(From, To, Captured)
+  capture(From2, To2, To)
+
+def defends(From, To)
+  defend(From, To)
+
+def attacks_through(From, To, Through)
+  attack_through(From, To, Through)
 
 def blocks_check_defended_by(From, To, DefendFrom, AttackFrom, AttackTo)
   move(From, To)
