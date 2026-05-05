@@ -59,6 +59,7 @@ ve attack_and_through(rook2, rook3, queen, rook4)
   if evades_with_cover_block(queen, queen3, rook3, knight2)
 
 
+###
 
 ###
 

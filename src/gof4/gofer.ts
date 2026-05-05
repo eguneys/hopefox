@@ -1,6 +1,6 @@
 import { PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
-import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, history_to_sans, extract_fields } from "../gof2/gofer"
+import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, history_to_sans } from "../gof2/gofer"
 import { IndexGroupNodes, IndexGroups, SansNodes } from "../gof2/gofer3"
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
 import { parse_defs, parse_nested_graph_root } from "./parser"
@@ -13,7 +13,7 @@ export type AtomicCallNode = {
     quantification: Quantification
     actions: AtomicCall[]
     children: AtomicCallNode[]
-    nested_globals: number[]
+    nested_globals: Set<number>
 }
 
 export class BindingOutWithQuantifiers {
@@ -48,10 +48,7 @@ export class BindingOutWithQuantifiers {
     fill_atomic_call_tree(defs: CompositeActionDefinition[], node: CompositeNestedGraphNode) {
 
         let symbol_per_column = this.symbol_per_column
-        function fill_node(node: CompositeNestedGraphNode): AtomicCallNode {
-
-            let nested_globals: number[] = []
-
+        function fill_node(node: CompositeNestedGraphNode, nested_globals: Set<number>): AtomicCallNode {
             let res: AtomicCall[] = []
 
             for (let call of node.data.call) {
@@ -59,14 +56,14 @@ export class BindingOutWithQuantifiers {
                 for (let param of call.params) {
                     if (is_psymbol2(param)) {
                         if (param.a.global_id !== undefined) {
-                            nested_globals.push(...extract_fields(symbol_per_column, [param.a]))
+                            extract_fields(symbol_per_column, [param.a]).forEach(_ => nested_globals.add(_))
                         }
                         if (param.b.global_id !== undefined) {
-                            nested_globals.push(...extract_fields(symbol_per_column, [param.b]))
+                            extract_fields(symbol_per_column, [param.b]).forEach(_ => nested_globals.add(_))
                         }
                     } else {
                         if (param.global_id !== undefined) {
-                            nested_globals.push(...extract_fields(symbol_per_column, [param]))
+                            extract_fields(symbol_per_column, [param]).forEach(_ => nested_globals.add(_))
                         }
                     }
                 }
@@ -92,8 +89,11 @@ export class BindingOutWithQuantifiers {
                 }
             }
 
+            let collect_globals = node.children.map(_ => new Set(nested_globals))
 
-            let children = node.children.map(child => fill_node(child))
+            let children = node.children.map((child, i) => fill_node(child, collect_globals[i]))
+
+            collect_globals.forEach(_ => _.forEach(_ => nested_globals.add(_)))
 
             return { 
                 quantification: node.data.quantification,
@@ -103,7 +103,7 @@ export class BindingOutWithQuantifiers {
             }
         }
 
-        this.atomic_call_root = fill_node(node)
+        this.atomic_call_root = fill_node(node, new Set())
     }
 
     set_table_columns_with_root(root: CompositeNestedGraphNode) {
@@ -203,6 +203,21 @@ export class BindingOutWithQuantifiers {
 
             let local_groups_with_injection: IndexGroups = []
 
+            if (globals_to_inject !== undefined) {
+
+                for (let group of local_groups) {
+                    let local_begin_index = this.history_per_row.length
+                    this.run_global_inject_on_position(group.start_row_index, group.end_row_index, globals_to_inject)
+                    let local_end_index = this.history_per_row.length
+                    local_groups_with_injection.push({
+                        start_row_index: local_begin_index,
+                        end_row_index: local_end_index
+                    })
+                }
+            } else {
+                local_groups_with_injection = local_groups
+            }
+
             pass_node_children.push(this.atomic_step_for_node(m, pos, next_child, { group: local_groups_with_injection, children: [] }))
 
             child = next_child
@@ -219,19 +234,38 @@ export class BindingOutWithQuantifiers {
         throw new UnreachableCodeException()
     }
 
+    run_global_inject_on_position(start_row_index: number, end_row_index: number, global_to_inject: SingleGlobalsToInject) {
+        let Gs = this.table.get_column(global_to_inject.global_symbol)
+
+        for (let row of global_to_inject.rows)
+            for (let i = start_row_index; i < end_row_index; i++) {
+                this.table.create_new_duplicate_row(i)
+
+                Gs.set_raw(row)
+                this.history_per_row.push(this.history_per_row[i])
+            }
+    }
+
     fill_single_globals_to_inject(global_symbol: number, index_group_nodes: IndexGroupNodes): SingleGlobalsToInject {
 
+        let { table } = this
         let rows: SquareSet[] = []
+        function only_leaves(leaf: IndexGroupNodes) {
+            if (leaf.children.length > 0) {
+                leaf.children.forEach(_ => only_leaves(_))
+                return
+            }
+            for (let group of leaf.group) {
+                let Gs = table.get_column(global_symbol)
 
-        for (let group of index_group_nodes.group) {
-            let Gs = this.table.get_column(global_symbol)
-
-            for (let i = group.start_row_index; i < group.end_row_index; i++) {
-                if (!rows.some(_ => _.equals(Gs.rows[i]))) {
-                    rows.push(Gs.rows[i])
+                for (let i = group.start_row_index; i < group.end_row_index; i++) {
+                    if (!rows.some(_ => _.equals(Gs.rows[i]))) {
+                        rows.push(Gs.rows[i])
+                    }
                 }
             }
         }
+        only_leaves(index_group_nodes)
 
         return {
             global_symbol,
@@ -329,10 +363,10 @@ export function run_bindings(b: BindingOutWithQuantifiers, m: PositionManager, p
     return fill_sans(gg)
 }
 
-function intersect_fields(a: number[], b: number[]) {
+function intersect_fields(a: Set<number>, b: Set<number>) {
     let res: number[] = []
     for (let x of a) {
-        if (b.some(_ => _ === x)) {
+        if (b.has(x)) {
             res.push(x)
         }
     }
@@ -354,5 +388,19 @@ function intersect_symbols(a: PieceSymbol[], b: PieceSymbol[]) {
 type SingleGlobalsToInject = {
     global_symbol: number
     rows: SquareSet[]
+}
+
+
+export function extract_fields(symbol_per_column: PieceSymbol[], a_params: PieceSymbol[]) {
+    let res = []
+
+    for (let param of a_params) {
+        for (let i = 0; i < symbol_per_column.length; i++) {
+            if (symbol_equals(param, symbol_per_column[i])) {
+                res.push(i)
+            }
+        }
+    }
+    return res
 }
 
