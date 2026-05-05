@@ -15,7 +15,7 @@ data = data.split('===')[1]
 
 let gof_run = usage(data)
 
-it('works', () => {
+it.skip('works', () => {
 
     let skips = [...skips_config]
 

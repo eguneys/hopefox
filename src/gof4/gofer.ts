@@ -1,6 +1,6 @@
 import { PositionC, PositionManager } from "../distill/hopefox_c"
 import { SquareSet } from "../distill/squareSet"
-import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, history_to_sans } from "../gof2/gofer"
+import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, history_to_sans, extract_fields } from "../gof2/gofer"
 import { IndexGroupNodes, IndexGroups, SansNodes } from "../gof2/gofer3"
 import { atomic_action_handlers, atomic_filter_handlers } from "./atomic_actions"
 import { parse_defs, parse_nested_graph_root } from "./parser"
@@ -16,19 +16,17 @@ export type AtomicCallNode = {
 }
 
 export class BindingOutWithQuantifiers {
-    global_table: Columnar
     table: Columnar
+    start_row_index: number
 
-    global_symbols: PieceSymbol[]
     symbol_per_column: PieceSymbol[]
     history_per_row: History[]
 
     atomic_call_root!: AtomicCallNode
 
     constructor() {
-        this.global_table = new Columnar()
         this.table = new Columnar()
-        this.global_symbols = []
+        this.start_row_index = 0
         this.symbol_per_column = []
         this.history_per_row = []
     }
@@ -48,7 +46,7 @@ export class BindingOutWithQuantifiers {
 
     fill_atomic_call_tree(defs: CompositeActionDefinition[], node: CompositeNestedGraphNode) {
 
-        let { global_symbols, symbol_per_column } = this
+        let symbol_per_column = this.symbol_per_column
         function fill_node(node: CompositeNestedGraphNode): AtomicCallNode {
             let res: AtomicCall[] = []
 
@@ -62,17 +60,15 @@ export class BindingOutWithQuantifiers {
 
                 for (let b of def.body) {
                     let a_params = extract_action_parameters(b.params, def.head.params, call.params)
-                    let fields = extract_fields_optional(symbol_per_column, a_params)
-                    let fields2 = extract_fields_optional(global_symbols, a_params)
+                    let fields = extract_fields(symbol_per_column, a_params)
 
-                    if (!fields || !fields2) {
+                    if (!fields) {
                         throw new FieldsCannotExpandException(b.params)
                     }
 
                     res.push({
                         id: b.id,
-                        fields,
-                        fields2
+                        fields
                     })
                 }
             }
@@ -92,44 +88,23 @@ export class BindingOutWithQuantifiers {
 
     set_table_columns_with_root(root: CompositeNestedGraphNode) {
 
-        let { global_symbols, symbol_per_column, table, global_table } = this
+        let { symbol_per_column, table } = this
         function fill_node(node: CompositeNestedGraphNode) {
             for (let call of node.data.call)
                 for (let param of call.params) {
                     if (is_psymbol2(param)) {
-                        if (param.a.global_id) {
-                            if (!global_symbols.some(_ => symbol_equals(_, param.a))) {
-                                global_symbols.push(param.a)
-                                global_table.add_column_type(param.a.id)
-                            }
-                        } else {
-                            if (!symbol_per_column.some(_ => symbol_equals(_, param.a))) {
-                                symbol_per_column.push(param.a)
-                                table.add_column_type(param.a.id)
-                            }
+                        if (!symbol_per_column.some(_ => symbol_equals(_, param.a))) {
+                            symbol_per_column.push(param.a)
+                            table.add_column_type(param.a.id)
                         }
-                        if (param.b.global_id) {
-                            if (!global_symbols.some(_ => symbol_equals(_, param.b))) {
-                                global_symbols.push(param.b)
-                                global_table.add_column_type(param.b.id)
-                            }
-                        } else {
-                            if (!symbol_per_column.some(_ => symbol_equals(_, param.b))) {
-                                symbol_per_column.push(param.b)
-                                table.add_column_type(param.b.id)
-                            }
+                        if (!symbol_per_column.some(_ => symbol_equals(_, param.b))) {
+                            symbol_per_column.push(param.b)
+                            table.add_column_type(param.b.id)
                         }
                     } else {
-                        if (param.global_id) {
-                            if (!global_symbols.some(_ => symbol_equals(_, param))) {
-                                global_symbols.push(param)
-                                global_table.add_column_type(param.id)
-                            }
-                        } else {
-                            if (!symbol_per_column.some(_ => symbol_equals(_, param))) {
-                                symbol_per_column.push(param)
-                                table.add_column_type(param.id)
-                            }
+                        if (!symbol_per_column.some(_ => symbol_equals(_, param))) {
+                            symbol_per_column.push(param)
+                            table.add_column_type(param.id)
                         }
                     }
                 }
@@ -145,14 +120,8 @@ export class BindingOutWithQuantifiers {
 
         this.history_per_row.length = 0
         this.table.clear_rows()
-        this.global_table.clear_rows()
+        this.start_row_index = 0
 
-        for (let i = 0; i < this.global_table.columns.length; i++) {
-            let symbol  = this.global_symbols[i]
-            let Col = this.global_table.get_column(i)
-            Col.push_raw(SquareSet.full())
-        }
-        
 
         for (let i = 0; i < this.table.columns.length; i++) {
             let symbol  = this.symbol_per_column[i]
@@ -205,6 +174,7 @@ export class BindingOutWithQuantifiers {
         if (node.quantification === Quantification.IfThen) {
             return pass_node
         } else if (node.quantification === Quantification.ForAll) {
+
             throw new NotImplementedException()
         }
         throw new UnreachableCodeException()
@@ -214,30 +184,24 @@ export class BindingOutWithQuantifiers {
         if (is_atomic_action(action)) {
             atomic_action_handlers[action.id](
                 action.fields, 
-                action.fields2,
                 start_row_index, 
                 end_row_index,
                 this.symbol_per_column,
-                this.global_symbols,
                 m,
                 pos,
                 this.history_per_row,
-                this.table,
-                this.global_table
+                this.table
             )
         } else {
             atomic_filter_handlers[action.id](
                 action.fields, 
-                action.fields2,
                 start_row_index, 
                 end_row_index,
                 this.symbol_per_column,
-                this.global_symbols,
                 m,
                 pos,
                 this.history_per_row,
-                this.table,
-                this.global_table
+                this.table
             )
         }
     }

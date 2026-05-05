@@ -56,7 +56,7 @@ ve attack_and_through(rook2, rook3, queen, rook4)
     if check_king_with_block_no_capture_no_evade(rook3, rook5, king)
       if blocks(knight, knight2, rook5, king)
         if checkmate(rook5, rook6, king)
-  if evades_with_cover_block(queen, queen2, rook3, knight2)
+  if evades_with_cover_block(queen, queen3, rook3, knight2)
 
 
 

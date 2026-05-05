@@ -110,13 +110,11 @@ export type CompositeRing = CompositeActionCall[]
 export type AtomicActionCall = {
     id: AtomicActionId
     fields: number[]
-    fields2: number[]
 }
 
 export type AtomicFilterCall = {
     id: AtomicFilterId
     fields: number[]
-    fields2: number[]
 }
 
 export type AtomicCall = AtomicActionCall | AtomicFilterCall
