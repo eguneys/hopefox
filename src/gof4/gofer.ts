@@ -13,6 +13,7 @@ export type AtomicCallNode = {
     quantification: Quantification
     actions: AtomicCall[]
     children: AtomicCallNode[]
+    nested_globals: number[]
 }
 
 export class BindingOutWithQuantifiers {
@@ -48,9 +49,27 @@ export class BindingOutWithQuantifiers {
 
         let symbol_per_column = this.symbol_per_column
         function fill_node(node: CompositeNestedGraphNode): AtomicCallNode {
+
+            let nested_globals: number[] = []
+
             let res: AtomicCall[] = []
 
             for (let call of node.data.call) {
+
+                for (let param of call.params) {
+                    if (is_psymbol2(param)) {
+                        if (param.a.global_id !== undefined) {
+                            nested_globals.push(...extract_fields(symbol_per_column, [param.a]))
+                        }
+                        if (param.b.global_id !== undefined) {
+                            nested_globals.push(...extract_fields(symbol_per_column, [param.b]))
+                        }
+                    } else {
+                        if (param.global_id !== undefined) {
+                            nested_globals.push(...extract_fields(symbol_per_column, [param]))
+                        }
+                    }
+                }
 
                 let def = defs.find(_ => _.head.id === call.id)
 
@@ -79,7 +98,8 @@ export class BindingOutWithQuantifiers {
             return { 
                 quantification: node.data.quantification,
                 actions: res,
-                children
+                children,
+                nested_globals
             }
         }
 
@@ -166,10 +186,29 @@ export class BindingOutWithQuantifiers {
             return { group: local_groups, children: [] } 
         }
 
-        let pass_node: IndexGroupNodes = { group: local_groups, children: [] }
-        for (let child of node.children) {
-            pass_node.children.push(this.atomic_step_for_node(m, pos, child, pass_node))
+        let pass_node_children: IndexGroupNodes[] = []
+        let child = node.children[0]
+        pass_node_children.push(this.atomic_step_for_node(m, pos, child, { group: local_groups, children: [] }))
+        for (let i = 1; i < node.children.length; i++) {
+            let next_child = node.children[i]
+
+            let global_symbols = intersect_fields(
+                child.nested_globals,
+                next_child.nested_globals)
+
+            let globals_to_inject
+            if (global_symbols.length === 1) {
+                globals_to_inject = this.fill_single_globals_to_inject(global_symbols[0], pass_node_children[pass_node_children.length - 1])
+            }
+
+            let local_groups_with_injection: IndexGroups = []
+
+            pass_node_children.push(this.atomic_step_for_node(m, pos, next_child, { group: local_groups_with_injection, children: [] }))
+
+            child = next_child
         }
+
+        let pass_node = { group: local_groups, children: pass_node_children }
 
         if (node.quantification === Quantification.IfThen) {
             return pass_node
@@ -178,6 +217,26 @@ export class BindingOutWithQuantifiers {
             throw new NotImplementedException()
         }
         throw new UnreachableCodeException()
+    }
+
+    fill_single_globals_to_inject(global_symbol: number, index_group_nodes: IndexGroupNodes): SingleGlobalsToInject {
+
+        let rows: SquareSet[] = []
+
+        for (let group of index_group_nodes.group) {
+            let Gs = this.table.get_column(global_symbol)
+
+            for (let i = group.start_row_index; i < group.end_row_index; i++) {
+                if (!rows.some(_ => _.equals(Gs.rows[i]))) {
+                    rows.push(Gs.rows[i])
+                }
+            }
+        }
+
+        return {
+            global_symbol,
+            rows
+        }
     }
 
     run_action_on_position(m: PositionManager, pos: PositionC, action: AtomicCall, start_row_index: number, end_row_index: number) {
@@ -269,3 +328,31 @@ export function run_bindings(b: BindingOutWithQuantifiers, m: PositionManager, p
 
     return fill_sans(gg)
 }
+
+function intersect_fields(a: number[], b: number[]) {
+    let res: number[] = []
+    for (let x of a) {
+        if (b.some(_ => _ === x)) {
+            res.push(x)
+        }
+    }
+    return res
+
+}
+
+
+function intersect_symbols(a: PieceSymbol[], b: PieceSymbol[]) {
+    let res: PieceSymbol[] = []
+    for (let x of a) {
+        if (b.some(_ => symbol_equals(_, x))) {
+            res.push(x)
+        }
+    }
+    return res
+}
+
+type SingleGlobalsToInject = {
+    global_symbol: number
+    rows: SquareSet[]
+}
+
