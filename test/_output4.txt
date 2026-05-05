@@ -1,0 +1,90 @@
+Time: 0.1ms per puzzle
+Coverage: %2 Accuracy: %1
+Tp/Fp: 14/1868 N: 98118 Total: 100000
+----*** False Positives ****----
+65 https://lichess.org/training/0066C
+Solution: Bxf2+ Kxf2 Nd4+ Kg1 Nxe6
+if in_backrank_wall { Rb8 }..
+ve attack_and_through { Rb8 }..
+ if evades_attack_non_confrontational { Re8 Qxf5 }..
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange 
+
+128 https://lichess.org/training/00Bex
+Solution: Nc7 Qf7 Nxe6
+if in_backrank_wall { Ra1 }..
+ve attack_and_through { Ra1 }..
+ if evades_attack_non_confrontational 
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange 
+
+170 https://lichess.org/training/00GBV
+Solution: Qxe7 Qxe7 Rxe7
+if in_backrank_wall { Rd1 }
+ve attack_and_through { Rd1 }
+ if evades_attack_non_confrontational { Rd1 Qxh2+ }..
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange 
+
+-----*****----
+Coverage: %2 Accuracy: %1
+Tp/Fp: 14/1868 N: 98118 Total: 100000
+Time: 0.132ms per puzzle
+----*** Positives ****----
+1 https://lichess.org/training/0000D
+if in_backrank_wall { Rd8 }
+ve attack_and_through { Rd8 }
+ if evades_attack_non_confrontational { Rd8 Qa3 }..
+  if check_king_with_block_no_capture_no_evade { Rd8 Qa3 Rxd1+ }..
+   if blocks { Rd8 Qa3 Rxd1+ Ne1 }..
+    if checkmate { Rd8 Qa3 Rxd1+ Ne1 Rxe1# }..
+ if evades_with_cover_block { Rd8 Qb4 }..
+  if captures_hanging { Rd8 Qb4 Qxb4 }..
+ if sacrifices_with_exchange { Rd8 Qxd8+ Bxd8 }
+
+14228 https://lichess.org/training/0MS6g
+if in_backrank_wall { Re8 }
+ve attack_and_through { Re8 }
+ if evades_attack_non_confrontational { Re8 Qg3 }..
+  if check_king_with_block_no_capture_no_evade { Re8 Qg3 Rxe1# }..
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange { Re8 Qxe8+ Bxe8 }
+
+19694 https://lichess.org/training/0V8RY
+30064 https://lichess.org/training/0lj7L
+33250 https://lichess.org/training/0qc2c
+38267 https://lichess.org/training/0yfZJ
+48015 https://lichess.org/training/1DmMO
+49740 https://lichess.org/training/1GThh
+50096 https://lichess.org/training/1H3WW
+57133 https://lichess.org/training/1S9vd
+60041 https://lichess.org/training/1WjYE
+70482 https://lichess.org/training/1nADX
+70754 https://lichess.org/training/1nbUh
+71093 https://lichess.org/training/1o8Gk
+----*** Negatives ****----
+0 https://lichess.org/training/00008
+2 https://lichess.org/training/0009B
+3 https://lichess.org/training/000aY
+4 https://lichess.org/training/000hf
+5 https://lichess.org/training/000rO
+6 https://lichess.org/training/000tp
+7 https://lichess.org/training/00143
+8 https://lichess.org/training/0018S
+9 https://lichess.org/training/001Wz
+10 https://lichess.org/training/001XA

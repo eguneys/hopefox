@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let single_i = -1
-    single_i =  1
+    //single_i =  204
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
@@ -45,7 +45,7 @@ it('works', () => {
 
     let start_now = performance.now()
     let total = log_puzzles.length
-    let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [] }
+    let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [], log_negative: [] }
 
     let ff = []
 
@@ -59,7 +59,7 @@ it('works', () => {
         if (skips.includes(i)) continue
         let res!: PartialCoverage
         try {
-        res = solve_i(i)
+            res = solve_i(i)
         } catch (e) {
             cf_begin()
             cf_log(`${e}`)
@@ -86,12 +86,18 @@ function solve_i(i: number) {
     let solution = log_puzzles[i].sans
 
     let res = gof_run(m, pos)
+
+    m.delete_position(pos)
     if (res.length === 0 || res[0].data.call[0].witness.length === 0) {
-      return { n: 1 }
+        let log_negative = ''
+       log_negative += `${i} ${link}`
+      return { n: 1, log_negative }
     }
     if (match_solution_root(res, solution)) {
        let log_positive = ''
        log_positive += `${i} ${link}`
+       log_positive  += `\n`
+       log_positive  += visual_node_log(res)
       return { tp: 1, log_positive }
     } else {
        let log = ''
@@ -103,6 +109,7 @@ function solve_i(i: number) {
        log += visual_node_log(res)
        return { fp: 1, log }
     }
+
 }
 
 function match_solution_root(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
@@ -122,13 +129,14 @@ function match_solution(res: string[][], solution: string[]) {
    return res.some(_ => _.join(' ') === solution.join(' '))
 }
 
-type Coverage = { tp: number, fp: number, n: number, log: string[], log_positive: string[] }
-type PartialCoverage = { tp: number, log_positive: string } | { fp: number, log: string } | { n: number }
+type Coverage = { tp: number, fp: number, n: number, log: string[], log_positive: string[], log_negative: string[] }
+type PartialCoverage = { tp: number, log_positive: string } | { fp: number, log: string } | { n: number, log_negative: string }
 
 
 function merge_coverage(c: Coverage, res: PartialCoverage) {
    if ((res as any).n === 1) {
       c.n += 1
+      c.log_negative.push((res as any).log_negative)
    }
    if ((res as any).tp === 1) {
       c.tp += 1
@@ -156,23 +164,24 @@ function log_coverage(c: Coverage, elapsed: number) {
     cf_log(`Time: ${Math.floor(elapsed / Total * 10) / 10}ms per puzzle`)
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
-    cf_log('-----******----')
-    //cf_log(c.log.slice(0, 3).join('\n'))
-    //cf_log(c.log.map(_ => _.split('\n').slice(0, 3).join('\n')).join('\n'))
+    cf_log('----*** False Positives ****----')
     cf_log(c.log.slice(0, 3).join('\n'))
     cf_log('-----*****----')
     cf_log(`Coverage: %${C_percent} Accuracy: %${A_percent}`)
     cf_log(`Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
     cf_log(`Time: ${Math.floor(elapsed / Total * 1000) / 1000}ms per puzzle`)
     cf_log('----*** Positives ****----')
-    cf_log(c.log_positive.join('\n'))
+    cf_log(c.log_positive.slice(0, 2).join('\n'))
+    cf_log(c.log_positive.slice(2).map(_ => _.split('\n')[0]).join('\n'))
+    cf_log('----*** Negatives ****----')
+    cf_log(c.log_negative.slice(0, 10).join('\n'))
 }
 
 
 function cf_begin () {
-    fs.writeFileSync(__dirname + '/_output3.txt', '')
+    fs.writeFileSync(__dirname + '/_output4.txt', '')
 }
 function cf_log (str: string) {
-    fs.appendFileSync(__dirname + '/_output3.txt', str + '\n')
+    fs.appendFileSync(__dirname + '/_output4.txt', str + '\n')
     console.log(str)
 }

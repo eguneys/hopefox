@@ -508,7 +508,7 @@ function atomic_filter_attack_through(
         let through_symbol_bb = bitboard_of_symbol(through_symbol, m, pos)
 
         let bb_from = Froms.rows[i].intersect(from_symbol_bb)
-        let bb_to = Tos.rows[i]//.intersect(to_symbol_bb)
+        let bb_to = Tos.rows[i].intersect(to_symbol_bb)
         let bb_through = Throughs.rows[i].intersect(through_symbol_bb)
 
         let occ = m.pos_occupied(pos)
