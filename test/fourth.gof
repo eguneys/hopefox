@@ -15,9 +15,41 @@ ve attack_and_through(rook2, rook3, queen, rook4)
     if captures_hanging(queen4, queen3_queen5) then
   if sacrifices_with_exchange(queen3, rook3_queen4, bishop, bishop2)
 
+###
+
+if has_eye_king(queen, pawn, king)
+ve attacks(rook, rook2, pawn)
+  if no_cover(rook3, rook4, pawn)
+    if checkmate_with_capture(queen, pawn_queen2, king)
+  'if has_no_move_to_cover(queen2, pawn)'
+  if checks(queen2, queen3, king2)
+    if blocks_check_defended_by(knight, knight2, queen, queen3, king2)
+      if sacrifices_with_exchange(queen3, knight2_queen4, queen, queen5)
 
 
 ###
+
+def blocks_check_defended_by(From, To, DefendFrom, AttackFrom, AttackTo)
+  move(From, To)
+  defend(DefendFrom, To)
+  attack_through(AttackFrom, AttackTo, To)
+  
+
+def checks(From, To, King)
+  move(From, To)
+  attack(To, King)
+
+def no_cover(From, To, NoCover)
+  move(From, To)
+  no_attack(To, NoCover)
+
+def attacks(From, To, AttackTo)
+  move(From, To)
+  attack(To, AttackTo)
+
+def has_eye_king(From, To, King)
+  attack(From, To)
+  attack(King, To)
 
 def sacrifices_with_exchange(From, Captured_To, From2, To2)
   capture(From, To, Captured)
@@ -58,6 +90,16 @@ def check_king_with_block_no_capture_no_evade(From, To, King)
   no_king_evades(King)
   no_captures(To)
   no_push_blocks_check(To, King)
+
+  
+def checkmate_with_capture(From, Captured_To, King)
+  capture(From, To, Captured)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+
 
   
 def checkmate(From, To, King)

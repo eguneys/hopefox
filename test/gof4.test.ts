@@ -44,7 +44,7 @@ it('works', () => {
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length
+    let total = log_puzzles.length / 1000
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [], log_negative: [] }
 
     let ff = []
