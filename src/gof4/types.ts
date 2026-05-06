@@ -146,6 +146,7 @@ export type Visual_CompositeNestedGraphNode = {
 export type Visual_CompositeNestedGraphRoot = Visual_CompositeNestedGraphNode[]
 
 export type Visual_CompositeActionCallWithQuantification = {
+    tags: string[]
     quantification: Quantification
     call: Visual_CompositeActionCall[]
 }

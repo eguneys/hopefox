@@ -44,7 +44,7 @@ it('works', () => {
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 1000
+    let total = log_puzzles.length / 10
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [], log_negative: [] }
 
     let ff = []
@@ -132,8 +132,10 @@ function match_solution_root(res: Visual_CompositeNestedGraphRoot, solution: str
 
 function match_solution_node(res: Visual_CompositeNestedGraphNode, solution: string[]): boolean {
 
-    if (match_solution(res.data.call[0].witness, solution)) {
-        return true
+    if (res.data.tags.includes('win')) {
+        if (match_solution(res.data.call[0].witness, solution)) {
+            return true
+        }
     }
     
     return res.children.some(_ => match_solution_node(_, solution))

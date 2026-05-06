@@ -284,7 +284,9 @@ export function visual_parse_nested_graph_root(code: string): Visual_CompositeNe
         const trimmed = line.trim();
 
         // Extract Type and Condition using Regex
-        const match = trimmed.match(/^(ve|if|forall)\s+(.*?)[\s+then]?$/);
+        //const match = trimmed.match(/^(ve|if|forall)\s+(.*?)[\s+\[(.*)\]]?$/);
+        let regex = /^(if|forall|ve)\s+([a-zA-Z0-9_]+\([^)]*\))(?:\s+\[([^\]]+)\])?$/
+        const match = trimmed.match(regex)
         if (!match) return;
 
         if (match[1] === 've') {
@@ -306,6 +308,8 @@ export function visual_parse_nested_graph_root(code: string): Visual_CompositeNe
             return
         }
 
+        let tags: string[] = match[3] ? match[3].split(', ') : []
+
         let quantification = match[1] === 'if' ? Quantification.IfThen : Quantification.ForAll
 
         let m2 = match[2].trim().match(/(.*)\((.*)\)/)
@@ -326,6 +330,7 @@ export function visual_parse_nested_graph_root(code: string): Visual_CompositeNe
 
         const newNode: Visual_CompositeNestedGraphNode = {
             data: {
+                tags,
                 quantification,
                 call: last_calls
             },
