@@ -540,6 +540,7 @@ function atomic_filter_attack_through(
 
                     Froms.set_raw(SquareSet.fromSquare(sq))
                     Tos.set_raw(SquareSet.fromSquare(a))
+                    Throughs.set_raw(SquareSet.fromSquare(through_sq))
 
                     history_per_row.push(h)
                 }

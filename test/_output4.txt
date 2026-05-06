@@ -1,56 +1,64 @@
-Time: 0.1ms per puzzle took 1s
-Coverage: %0 Accuracy: %15
-Tp/Fp: 5/29 N: 9966 Total: 10000
+Time: 40.3ms per puzzle took 4s
+Coverage: %48 Accuracy: %2
+Tp/Fp: 1/47 N: 52 Total: 100
 ----*** False Positives ****----
-442 https://lichess.org/training/00fTw
-Solution: exf6 Bxf6 Bxf6
-if attacks_through { Bxf6 }
-ve defends { Bxf6 }
-ve captures { Bxf6 }
- if exchanges 
+1 https://lichess.org/training/0000D
+Solution: Rd8 Qxd8+ Bxd8
+if has_eye_king { Ra8 }..
+ve attacks { Ra8 }..
+ if no_cover 
+  if checkmate_with_capture 
+ if hangs_to 
+ if checks { Ra8 Qd2 }..
+  if blocks_check_defended_by 
+   if sacrifices_with_exchange 
 
-654 https://lichess.org/training/011A6
-Solution: cxd5
-if attacks_through { Bxf6 }
-ve defends { Bxf6 }
-ve captures { Bxf6 }
- if exchanges { Bxf6 Bxf6 Qxf6 }
+4 https://lichess.org/training/000hf
+Solution: Qxe6+ Kf8 Qf7#
+if has_eye_king { Ra1 }..
+ve attacks { Ra1 }..
+ if no_cover 
+  if checkmate_with_capture 
+ if hangs_to 
+ if checks { Ra1 Qa5 }..
+  if blocks_check_defended_by 
+   if sacrifices_with_exchange 
 
-1122 https://lichess.org/training/01lh4
-Solution: Bxc6 Bxc6 Qxb4
-if attacks_through { Bxc6 }
-ve defends { Bxc6 }
-ve captures { Bxc6 }
- if exchanges { Bxc6 Bxc6 Qxc6 }
+6 https://lichess.org/training/000tp
+Solution: Ne4 Kg1 Nxf2
+if has_eye_king { Re6 }
+ve attacks { Re6 }
+ if no_cover 
+  if checkmate_with_capture 
+ if hangs_to 
+ if checks { Re6 Qb3 }..
+  if blocks_check_defended_by 
+   if sacrifices_with_exchange 
 
 -----*****----
-Coverage: %0 Accuracy: %15
-Tp/Fp: 5/29 N: 9966 Total: 10000
-Time: 0.114ms per puzzle
+Coverage: %48 Accuracy: %2
+Tp/Fp: 1/47 N: 52 Total: 100
+Time: 40.373ms per puzzle
 ----*** Positives ****----
-2 https://lichess.org/training/0009B
-if attacks_through { Bxg4 }
-ve defends { Bxg4 }
-ve captures { Bxg4 }
- if exchanges { Bxg4 Bxg4 Qxg4 }
-
-840 https://lichess.org/training/01KQc
-if attacks_through { Bxf5 }
-ve defends { Bxf5 }
-ve captures { Bxf5 }
- if exchanges { Bxf5 Bxf5 Qxf5 }
-
-2472 https://lichess.org/training/03w2W
-2504 https://lichess.org/training/03yhG
-9627 https://lichess.org/training/0FEOo
-----*** Negatives ****----
 0 https://lichess.org/training/00008
-1 https://lichess.org/training/0000D
+if has_eye_king { Rxe7 }..
+ve attacks { Rxe7 }..
+ if no_cover { Rxe7 Rb8 }..
+  if checkmate_with_capture { Rxe7 Rb8 Qxh7# }..
+ if hangs_to { Rxe7 Qa1+ Nxa1 }..
+ if checks { Rxe7 Qa1+ }..
+  if blocks_check_defended_by { Rxe7 Qa1+ Nc1 }..
+   if sacrifices_with_exchange { Rxe7 Qa1+ Nc1 Qxc1+ Qxc1 }..
+
+
+----*** Negatives ****----
+2 https://lichess.org/training/0009B
 3 https://lichess.org/training/000aY
-4 https://lichess.org/training/000hf
 5 https://lichess.org/training/000rO
-6 https://lichess.org/training/000tp
-7 https://lichess.org/training/00143
 8 https://lichess.org/training/0018S
 9 https://lichess.org/training/001Wz
 10 https://lichess.org/training/001XA
+13 https://lichess.org/training/001u3
+14 https://lichess.org/training/001wr
+15 https://lichess.org/training/001xO
+24 https://lichess.org/training/002Ua
