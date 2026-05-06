@@ -118,6 +118,7 @@ def attack_and_through(From, To, AttackTo, AttackThrough)
   move(From, To)
   attack(To, AttackTo)
   attack_through(To, AttackThrough, AttackTo)
+  opposite(To, AttackTo)
  
  
 def evades_attack_non_confrontational(From, To, AttackFrom)

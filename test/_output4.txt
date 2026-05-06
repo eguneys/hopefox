@@ -1,6 +1,6 @@
 Time: 0.1ms per puzzle took 2s
-Coverage: %0 Accuracy: %9
-Tp/Fp: 1/10 N: 9989 Total: 10000
+Coverage: %0 Accuracy: %14
+Tp/Fp: 1/6 N: 9993 Total: 10000
 ----*** False Positives ****----
 298 https://lichess.org/training/00RwV
 Solution: Qc1+ Rxc1 Rxc1+ Bxc1 Re1#
@@ -14,18 +14,6 @@ ve attack_and_through { Re5 }
   if captures_hanging 
  if sacrifices_with_exchange { Re5 Qxe5 Bxe5 }
 
-1802 https://lichess.org/training/02rnG
-Solution: Qh4 g3 Qxh6
-if in_backrank_wall { Rb8 }..
-ve attack_and_through { Rb8 }..
- if evades_attack_non_confrontational 
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange { Rc8 Qxc8 Bxc8 }
-
 1847 https://lichess.org/training/02wgI
 Solution: Nxe5 Bxe2 Nxd7
 if in_backrank_wall { Rd1 }
@@ -38,10 +26,22 @@ ve attack_and_through { Rd1 }
   if captures_hanging 
  if sacrifices_with_exchange { Rd1 Qxd1+ Bxd1 }
 
+5239 https://lichess.org/training/08KEh
+Solution: Rxe8#
+if in_backrank_wall { Re7 }
+ve attack_and_through { Re7 }
+ if evades_attack_non_confrontational { Re7 Qxh2+ }..
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange { Re7 Qxe7 Bxe7 }
+
 -----*****----
-Coverage: %0 Accuracy: %9
-Tp/Fp: 1/10 N: 9989 Total: 10000
-Time: 0.159ms per puzzle
+Coverage: %0 Accuracy: %14
+Tp/Fp: 1/6 N: 9993 Total: 10000
+Time: 0.151ms per puzzle
 ----*** Positives ****----
 1 https://lichess.org/training/0000D
 if in_backrank_wall { Rd8 }
