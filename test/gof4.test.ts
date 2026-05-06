@@ -44,7 +44,7 @@ it('works', () => {
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 10
+    let total = log_puzzles.length / 1
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [], log_negative: [] }
 
     let ff = []
@@ -123,6 +123,25 @@ function is_negative(root: Visual_CompositeNestedGraphRoot) {
         }
         return temporary_dedup(leaf.data.call[0].witness).length === 1
     }
+
+    function fail_cond(leaf: Visual_CompositeNestedGraphNode): boolean {
+        if (leaf.children.length > 0) {
+            return leaf.children.some(_ => fail_cond(_))
+        }
+        if (leaf.data.tags.includes('cond')) {
+            if (leaf.data.call[0].witness.length === 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+
+
+    if (root.some(_ => fail_cond(_))) {
+        return true
+    }
+
     return !root.some(_ => has_on_leaf(_))
 }
 

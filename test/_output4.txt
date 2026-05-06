@@ -1,47 +1,12 @@
-Time: 0.1ms per puzzle took 2s
-Coverage: %0 Accuracy: %14
-Tp/Fp: 1/6 N: 9993 Total: 10000
+Time: 0.1ms per puzzle took 11s
+Coverage: %0 Accuracy: %100
+Tp/Fp: 4/0 N: 99996 Total: 100000
 ----*** False Positives ****----
-298 https://lichess.org/training/00RwV
-Solution: Qc1+ Rxc1 Rxc1+ Bxc1 Re1#
-if in_backrank_wall { Re5 }
-ve attack_and_through { Re5 }
- if evades_attack_non_confrontational { Re5 Qb1 }..
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange { Re5 Qxe5 Bxe5 }
-
-1847 https://lichess.org/training/02wgI
-Solution: Nxe5 Bxe2 Nxd7
-if in_backrank_wall { Rd1 }
-ve attack_and_through { Rd1 }
- if evades_attack_non_confrontational { Rd1 Qa4 }..
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange { Rd1 Qxd1+ Bxd1 }
-
-5239 https://lichess.org/training/08KEh
-Solution: Rxe8#
-if in_backrank_wall { Re7 }
-ve attack_and_through { Re7 }
- if evades_attack_non_confrontational { Re7 Qxh2+ }..
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange { Re7 Qxe7 Bxe7 }
 
 -----*****----
-Coverage: %0 Accuracy: %14
-Tp/Fp: 1/6 N: 9993 Total: 10000
-Time: 0.151ms per puzzle
+Coverage: %0 Accuracy: %100
+Tp/Fp: 4/0 N: 99996 Total: 100000
+Time: 0.106ms per puzzle
 ----*** Positives ****----
 1 https://lichess.org/training/0000D
 if in_backrank_wall { Rd8 }
@@ -54,7 +19,19 @@ ve attack_and_through { Rd8 }
   if captures_hanging { Rd8 Qb4 Qxb4 }.
  if sacrifices_with_exchange { Rd8 Qxd8+ Bxd8 }
 
+19694 https://lichess.org/training/0V8RY
+if in_backrank_wall { Rc8 }
+ve attack_and_through { Rc8 }
+ if evades_attack_non_confrontational { Rc8 Qa4 }..
+  if check_king_with_block_no_capture_no_evade { Rc8 Qa4 Rxc1+ }..
+   if blocks { Rc8 Qa4 Rxc1+ Ne1 }..
+    if checkmate { Rc8 Qa4 Rxc1+ Ne1 Rxe1# }..
+ if evades_with_cover_block { Rc8 Qe4+ }.
+  if captures_hanging { Rc8 Qe4+ Qxe4 }
+ if sacrifices_with_exchange { Rc8 Qxc8 Bxc8 }
 
+49740 https://lichess.org/training/1GThh
+60041 https://lichess.org/training/1WjYE
 ----*** Negatives ****----
 0 https://lichess.org/training/00008
 Solution: Rxe7 Qb1+ Nc1 Qxc1+ Qxc1
