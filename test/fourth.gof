@@ -15,13 +15,11 @@ ve attack_and_through(rook2, rook3, queen, rook4)
     if captures_hanging(queen4, queen3_queen5) then
   if sacrifices_with_exchange(queen3, rook3_queen4, bishop, bishop2)
 
-###
 if attacks_through(queen, knight, bishop)
 ve defends(bishop2, knight)
 ve captures(bishop, knight_bishop3)
   if exchanges_hanging(bishop2, bishop3_bishop4, queen, queen2)
 
-###
 
 if has_eye_king(queen, pawn, king)
 ve attacks(rook, rook2, pawn)
@@ -32,8 +30,6 @@ ve attacks(rook, rook2, pawn)
   if checks(queen2, queen3!, king2)
     if blocks_check_defended_by(knight, knight2, queen, queen3, king2)
       if sacrifices_with_exchange(queen3, knight2_queen4, queen, queen5)
-
-
 
 ###
 

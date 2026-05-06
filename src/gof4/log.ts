@@ -3,7 +3,7 @@ import { Visual_CompositeActionCall, Visual_CompositeNestedGraphNode, Visual_Com
 export function visual_node_log(v: Visual_CompositeNestedGraphRoot) {
     let res = ''
 
-    const get_witness = (call: Visual_CompositeActionCall) => call.witness.slice(0, 1).map(_ => `{ ${_.join(' ')} }`).join(' ') + (call.witness.length > 1 ? '..' : '')
+    const get_witness = (call: Visual_CompositeActionCall) => call.witness.slice(0, 2).map(_ => `{ ${_.join(' ')} }`).join(' ') + (call.witness.length > 2 ? '..' : call.witness.length === 2 ? '.' : '')
 
     function print_node(v: Visual_CompositeNestedGraphNode, indent: number) {
         let aa = ' '.repeat(indent)

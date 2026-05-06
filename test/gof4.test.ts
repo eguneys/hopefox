@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let single_i = -1
-    //single_i =  1122
+    //single_i =  1
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
@@ -88,9 +88,13 @@ function solve_i(i: number) {
     let res = gof_run(m, pos)
 
     m.delete_position(pos)
-    if (res.length === 0 || res[0].data.call[0].witness.length === 0) {
+    if (is_negative(res)) {
         let log_negative = ''
        log_negative += `${i} ${link}`
+       log_negative += `\n`
+       log_negative += `Solution: ${solution.join(' ')}`
+       log_negative += `\n`
+       log_negative  += visual_node_log(res)
       return { n: 1, log_negative }
     }
     if (match_solution_root(res, solution)) {
@@ -110,6 +114,16 @@ function solve_i(i: number) {
        return { fp: 1, log }
     }
 
+}
+
+function is_negative(root: Visual_CompositeNestedGraphRoot) {
+    function has_on_leaf(leaf: Visual_CompositeNestedGraphNode): boolean {
+        if (leaf.children.length > 0) {
+            return leaf.children.some(_ => has_on_leaf(_))
+        }
+        return leaf.data.call[0].witness.length === 1
+    }
+    return !root.some(_ => has_on_leaf(_))
 }
 
 function match_solution_root(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
@@ -174,7 +188,8 @@ function log_coverage(c: Coverage, elapsed: number) {
     cf_log(c.log_positive.slice(0, 2).join('\n'))
     cf_log(c.log_positive.slice(2).map(_ => _.split('\n')[0]).join('\n'))
     cf_log('----*** Negatives ****----')
-    cf_log(c.log_negative.slice(0, 10).join('\n'))
+    cf_log(c.log_negative.slice(0, 2).join('\n'))
+    cf_log(c.log_negative.slice(2, 12).map(_ => _.split('\n')[0]).join('\n'))
 }
 
 

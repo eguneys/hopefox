@@ -145,7 +145,13 @@ export function piece_symbol_make(s: string): PSymbol {
         }
     }
 
+    let is_negation_bag = false
     let global_id = undefined
+
+    if (s.endsWith('!')) {
+        s = s.slice(0, s.length - 1)
+        is_negation_bag = true
+    }
 
     if (s.startsWith('$')) {
         s = s.slice(1)
@@ -159,6 +165,7 @@ export function piece_symbol_make(s: string): PSymbol {
         id = piece_symbol_id(role, s)
         if (id !== undefined) {
             return {
+                is_negation_bag,
                 global_id,
                 piece: role,
                 id: `${id}`
@@ -167,6 +174,7 @@ export function piece_symbol_make(s: string): PSymbol {
     }
 
     return {
+        is_negation_bag,
         global_id,
         id: `${s}`
     }

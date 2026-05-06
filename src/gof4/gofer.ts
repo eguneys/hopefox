@@ -14,6 +14,7 @@ export type AtomicCallNode = {
     actions: AtomicCall[]
     children: AtomicCallNode[]
     nested_globals: Set<number>
+    negation_global?: number
 }
 
 export class BindingOutWithQuantifiers {
@@ -51,7 +52,26 @@ export class BindingOutWithQuantifiers {
         function fill_node(node: CompositeNestedGraphNode, nested_globals: Set<number>): AtomicCallNode {
             let res: AtomicCall[] = []
 
+            let negation_global
+
             for (let call of node.data.call) {
+
+                for (let param of call.params) {
+                    if (is_psymbol2(param)) {
+                        if (param.a.is_negation_bag) {
+                            extract_fields(symbol_per_column, [param.a]).forEach(_ => negation_global = _)
+                        }
+                        if (param.b.is_negation_bag) {
+                            extract_fields(symbol_per_column, [param.b]).forEach(_ => negation_global = _)
+                        }
+                    } else {
+                        if (param.is_negation_bag) {
+                            extract_fields(symbol_per_column, [param]).forEach(_ => negation_global = _)
+                        }
+                    }
+                }
+
+
 
                 for (let param of call.params) {
                     if (is_psymbol2(param)) {
@@ -99,7 +119,8 @@ export class BindingOutWithQuantifiers {
                 quantification: node.data.quantification,
                 actions: res,
                 children,
-                nested_globals
+                nested_globals,
+                negation_global
             }
         }
 
@@ -218,6 +239,28 @@ export class BindingOutWithQuantifiers {
                 local_groups_with_injection = local_groups
             }
 
+            let save_local_groups_with_injection = local_groups_with_injection
+            local_groups_with_injection = []
+
+            if (child.negation_global !== undefined && 
+                child.negation_global === next_child.negation_global) {
+
+                let globals_to_reject = this.fill_globals_to_reject(child.negation_global, pass_node_children[pass_node_children.length - 1])
+
+                for (let group of local_groups) {
+                    let local_begin_index = this.history_per_row.length
+                    this.run_global_reject_on_position(group.start_row_index, group.end_row_index, globals_to_reject)
+                    let local_end_index = this.history_per_row.length
+                    local_groups_with_injection.push({
+                        start_row_index: local_begin_index,
+                        end_row_index: local_end_index
+                    })
+                }
+            } else {
+                local_groups_with_injection = save_local_groups_with_injection
+            }
+
+
             pass_node_children.push(this.atomic_step_for_node(m, pos, next_child, { group: local_groups_with_injection, children: [] }))
 
             child = next_child
@@ -232,6 +275,48 @@ export class BindingOutWithQuantifiers {
             throw new NotImplementedException()
         }
         throw new UnreachableCodeException()
+    }
+
+    run_global_reject_on_position(start_row_index: number, end_row_index: number, global_to_reject: SingleGlobalsToReject) {
+        let Gs = this.table.get_column(global_to_reject.negation_global)
+
+        let value = SquareSet.empty()
+        for (let row of global_to_reject.rows) {
+            value = value.union(row)
+        }
+        value = value.complement()
+        for (let i = start_row_index; i < end_row_index; i++) {
+            this.table.create_new_duplicate_row(i)
+
+            Gs.set_raw(value)
+            this.history_per_row.push(this.history_per_row[i])
+        }
+    }
+
+    fill_globals_to_reject(negation_global: number, index_group_nodes: IndexGroupNodes) {
+        let { table } = this
+        let rows: SquareSet[] = []
+        function only_leaves(leaf: IndexGroupNodes) {
+            if (leaf.children.length > 0) {
+                leaf.children.forEach(_ => only_leaves(_))
+                return
+            }
+            for (let group of leaf.group) {
+                let Gs = table.get_column(negation_global)
+
+                for (let i = group.start_row_index; i < group.end_row_index; i++) {
+                    if (!rows.some(_ => _.equals(Gs.rows[i]))) {
+                        rows.push(Gs.rows[i])
+                    }
+                }
+            }
+        }
+        only_leaves(index_group_nodes)
+
+        return {
+            negation_global,
+            rows
+        }
     }
 
     run_global_inject_on_position(start_row_index: number, end_row_index: number, global_to_inject: SingleGlobalsToInject) {
@@ -389,6 +474,13 @@ type SingleGlobalsToInject = {
     global_symbol: number
     rows: SquareSet[]
 }
+
+type SingleGlobalsToReject = {
+    negation_global: number
+    rows: SquareSet[]
+}
+
+
 
 
 export function extract_fields(symbol_per_column: PieceSymbol[], a_params: PieceSymbol[]) {

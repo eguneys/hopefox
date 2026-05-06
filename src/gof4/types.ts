@@ -5,6 +5,7 @@ export type PieceSymbol = {
     square?: Square
     id: string
     global_id?: string
+    is_negation_bag?: boolean
 }
 
 
