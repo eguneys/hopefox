@@ -386,7 +386,7 @@ function atomic_filter_attack(
         let to_symbol_bb = bitboard_of_symbol(to_symbol, m, pos)
 
         let bb_from = Froms.rows[i].intersect(from_symbol_bb)
-        let bb_to = Tos.rows[i];//.intersect(to_symbol_bb)
+        let bb_to = Tos.rows[i].intersect(to_symbol_bb)
 
         let occ = m.pos_occupied(pos)
 
@@ -1277,6 +1277,9 @@ function history_unmake_for_pos(h: History, m: PositionManager, pos: number) {
 
 
 function bitboard_of_symbol(from_symbol: PieceSymbol, m: PositionManager, pos: PositionC) {
+    if (from_symbol.global_id !== undefined) {
+        return SquareSet.full()
+    }
     if (from_symbol.piece === undefined) {
         return m.pos_occupied(pos).complement()
     }

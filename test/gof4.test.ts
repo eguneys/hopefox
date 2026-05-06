@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let single_i = -1
-    //single_i =  1
+    //single_i =  33
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
@@ -121,7 +121,7 @@ function is_negative(root: Visual_CompositeNestedGraphRoot) {
         if (leaf.children.length > 0) {
             return leaf.children.some(_ => has_on_leaf(_))
         }
-        return leaf.data.call[0].witness.length === 1
+        return temporary_dedup(leaf.data.call[0].witness).length === 1
     }
     return !root.some(_ => has_on_leaf(_))
 }
@@ -199,4 +199,21 @@ function cf_begin () {
 function cf_log (str: string) {
     fs.appendFileSync(__dirname + '/_output4.txt', str + '\n')
     console.log(str)
+}
+
+
+function temporary_dedup(arr: string[][]) {
+
+    let dd = new Set()
+
+    let res = []
+
+    for (let i = 0; i < arr.length; i++) {
+        let str = arr[i].join(' ')
+        if (!dd.has(str)) {
+            dd.add(str)
+            res.push(arr[i])
+        }
+    }
+    return res
 }
