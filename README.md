@@ -36,7 +36,7 @@ The following is the un-official specification of the language released at v1.0.
 
 #### A. Definitions
 
-A definition has the following form:
+A **definition** has the following form:
 
 ```
 def definition_name(VariableA, VariableB)
@@ -57,7 +57,68 @@ A list of all builtin_keywords are non-exhaustive and will be given [later in th
 
 #### B. Descriptions
 
+A description block has the following form:
 
+```
+if a_definition(queen, pawn, king)
+ve b_definition(rook, rook2, pawn)
+  if c_definition(rook3, rook4, pawn)
+    if checkmate_with_capture(queen, pawn_queen2, king)
+  if checks(queen2, queen3!, king2)
+    if blocks_check_defended_by(knight, knight2, queen, queen3, king2)
+```
+
+It has a nested structure of description blocks starting with `if` or `ve` syntax, followed by a definition name, which **Must** be defined as a **definition** in the same script file, followed by variables passed to the definition.
+
+The variables passed to the definitions in the description block has to be _lowercase_ and **Must** start with a piece role like `king bishop rook king queen pawn` followed by an optional numeric identifier like `1 2 3 10 11` etc.
+
+There are some extensions to the syntax of how variables are written, which will be specified later in the document.
+
+A description line of the form: `if a_definition(queen, pawn, king)` is expanded into the accompanying definition `a_definition` and the variables of the definition are replaced by the variables passed to `a_definition` in this description line.
+
+For example, if we have these 2 forms written:
+
+
+`if a_definition(queen, queen2, king)`
+
+and
+
+```
+def a_definition(From, To, King)
+  move(From, To)
+  attack(To, King)
+```
+
+The definition is replaced by it's atomic blocks like this and is equivalent to basically saying something like this:
+
+```
+  move(queen, queen2)
+  attack(queen2, king)
+```
+
+This in turn is executed logically as a way of saying in natural language like this:
+
+```
+A Queen on a square called queen moves to a square called queen2.
+Queen on the square queen2 attacks a King on the square called king. 
+That's how the queen checks the king.
+```
+
+A description line of the form: `ve b_definition(queen, pawn, king)` is equivalent to how `if` works except it **Must** come after an `if` block and semantically equivalent to continuing the execution with a separate *definition* without an interruption. As if the `ve` clause is a bind of two definitions attached one after the other.
+
+This distinction is made against how nested `if` structures form a tree structure that expresses the move variations in chess.
+
+For example this nested tree structure of the following form entails:
+
+```
+if a_definition(rook, rook2)
+  if c_definition(rook3, rook4, pawn)
+    if c1_definition(queen, pawn_queen2, king)
+  if d_definition(queen2, queen3!, king2)
+    if d1_definition(knight, knight2, queen, queen3, king2)
+```
+
+`a_definition` is run, followed by entering into `c_definition` which is run, but the state after `a_definition` is preserved somewhere to be restored for the execution of the other child `d_definition`. So after `c1_definition` is run, the matches are logged, but the position state is restored to state after the `a_definition` has been run, and followed by the `d_definition` and `d1_definition` follows after that.
 
 #### C. Extensions
 
@@ -66,8 +127,13 @@ A list of all builtin_keywords are non-exhaustive and will be given [later in th
 ##### C2. Rejective Variable Unification
 ##### C3. Tagging Over Descriptive Lines
 
+#### D. Structure of the .gof Script file
 
-#### Non Exhaustive List of Builtin Keywords
+#### E. Output Shape
+
+#### F. Avenues of Potential Extensions for the Future
+
+#### Addendum. Non Exhaustive List of Builtin Keywords
 
 ##### A. Actions
 
