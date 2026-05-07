@@ -123,6 +123,23 @@ if a_definition(rook, rook2)
 #### C. Extensions
 
 ##### C0. Double Variable Case for Captures
+
+Variables in the description block can have the following form:
+
+`if captures_hanging(queen4, queen3_queen5)`
+
+Note the `queen3_queen5` variable, this is 2 variables bound by an underscore. This is similar to writing them as separate variables but expressed in this form to imply the meaning, `queen3` and `queen5` are the same square, but especially for captures `queen3` is the queen being captured, `queen5` is the other queen that is capturing `queen3` and landing on the same square called differently as `queen5`. In other words: `queen4` captures `queen3` and now called `queen5`.
+
+Of course this also implies `captures_hanging` definition is being called with this extended variable syntax, which **Must** be reflected in the definition itself. Like this:
+
+```
+def captures_hanging(From, Captured_To)
+  no_defense(Captured)
+  capture(From, To, Captured)
+```
+
+Note the `Captured_To` similar variable syntax symmetric to how it's being called. At this point, `Captured` and `To` are being replaced as usual if they were separate variables. But please note that, the builtin keywords cannot be called with this extended form, and **Must Always** be passed a normal variable without any underscore or any other extension.
+
 ##### C1. Injective Variable Unification
 ##### C2. Rejective Variable Unification
 ##### C3. Tagging Over Descriptive Lines
