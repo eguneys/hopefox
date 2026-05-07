@@ -14,3 +14,4 @@ export function usage(code: string) {
 
 
 export * from './log'
+export * from './types'

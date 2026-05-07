@@ -4,7 +4,7 @@ import { parseCastlingFen, parseFen } from './fen.js'
 import { fen_pos } from './hopefox.js'
 import { makeSan } from './san.js'
 import { SquareSet } from './squareSet.js'
-import { Color, Move, Piece, Role, Square } from './types.js'
+import { Color, Move, NormalMove, Piece, Role, Square } from './types.js'
 
 type FEN = string
 
@@ -155,7 +155,7 @@ export function make_move_from_to(from: Square, to: Square) {
     return NORMAL_MOVE + (from << 6) + to
 }
 
-export function move_c_to_Castling(c: MoveC): Move {
+export function move_c_to_Castling(c: MoveC): NormalMove | undefined {
     let to = c & 0x3F
     let from = (c >> 6) & 0x3f
     let type = c & (3 << 14)

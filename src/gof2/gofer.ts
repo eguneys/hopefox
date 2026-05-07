@@ -232,6 +232,7 @@ export class BindingOut {
         let new_start_row_index = this.history_per_row.length
 
         if (is_atomic_action(action)) {
+            /*
             atomic_action_handlers[action.id](
                 action.fields, 
                 this.start_row_index, 
@@ -241,7 +242,9 @@ export class BindingOut {
                 this.history_per_row,
                 this.table
             )
+                */
         } else {
+            /*
             atomic_filter_handlers[action.id](
                 action.fields, 
                 this.start_row_index, 
@@ -251,6 +254,7 @@ export class BindingOut {
                 this.history_per_row,
                 this.table
             )
+                */
         }
 
         this.start_row_index = new_start_row_index
