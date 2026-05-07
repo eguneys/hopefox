@@ -34,3 +34,32 @@ The following is the un-official specification of the language released at v1.0.
 
 ### Un-Official GofChess Language Specification v1.0.0
 
+#### A. Definitions
+
+A definition has the following form:
+
+```
+def definition_name(VariableA, VariableB)
+  builtin_keyword1(VariableA)
+  builtin_keyword2(VariableA, VariableB)
+```
+
+`definition_name` can be **any descriptive name** you may label the definition as.
+`VariableA` and `VariableB` are variables. Definition Variables **Must** start with an Uppercase letter.
+
+What follows is a list of builtin keywords written one on each separate line.
+
+`builtin_keyword1` and `builtin_keyword2` are builtin keywords, that executes some chess logic over the variables passed to them, basically unifying—constraining them.
+
+There are 2 types of builtin keywords. **a.** Action keywords, **b.** Filter keywords. **Action keywords** make a single move on the board, like a move or a capture. Any subsequent keywords coming after that will act on the mutated board. **Filter keywords** are purely unifies—constraints it's variables passed to it, making no changes to the board state. Action keywords on the other hand do mutate the board, along with also unifying—constraining the variables meanwhile.
+
+#### B. Descriptions
+
+
+
+#### C. Extensions
+
+##### C0. Double Variable Case for Captures
+##### C1. Injective Variable Unification
+##### C2. Rejective Variable Unification
+##### C3. Tagging Over Descriptive Lines
