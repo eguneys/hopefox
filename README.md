@@ -53,7 +53,7 @@ What follows is a list of builtin keywords written one on each separate line.
 
 There are 2 types of builtin keywords. **a.** Action keywords, **b.** Filter keywords. **Action keywords** make a single move on the board, like a move or a capture. Any subsequent keywords coming after that will act on the mutated board. **Filter keywords** are purely unifies—constraints it's variables passed to it, making no changes to the board state. Action keywords on the other hand do mutate the board, along with also unifying—constraining the variables meanwhile.
 
-A list of all builtin_keywords are non-exhaustive and will be given [later in this document](#non-exhaustive-list-of-builtin-keywords).
+A list of all builtin_keywords are non-exhaustive and will be given [later in this document](#addendum-non-exhaustive-list-of-builtin-keywords).
 
 #### B. Descriptions
 
