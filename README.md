@@ -264,9 +264,11 @@ The rest of the output is example listings of coverage categories along with the
 
 #### F. Avenues of Potential Extensions for the Future
 
+* More flexibility and stability for injective and rejective variables.
 * Variables can also refer to square names not necessarily only the piece roles.
 * Addition of more tags to control the visual verbosity of the output.
 * More builtin Keywords
+* Discovery of more potential extensions to cover diverse use cases.
 
 #### Addendum. Non Exhaustive List of Builtin Keywords
 
