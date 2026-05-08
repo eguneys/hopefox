@@ -268,21 +268,21 @@ The rest of the output is example listings of coverage categories along with the
 
 ##### A. Actions
 
-* move(From, To) : A move is made From to To
-* capture(From, To, Captured) : A capture is made From to To and Captured is the piece being captured
+* **move**(From, To) : A move is made From to To
+* **capture**(From, To, Captured) : A capture is made From to To and Captured is the piece being captured
 
 ##### B. Filters
 
-* attack(To, King): To attacks King
-* attack_through(To, AttackThrough, AttackTo) : To attacks AttackTo blocked by AttackThrough
-* no_defense(Hanging) : Hanging piece has no defense by the same color pieces
-* no_attack(AttackFrom, To) : AttackFrom is not attacking To
-* opposite(To, AttackTo) : To and AttackTo has pieces with different colors
+* **attack**(To, King): To attacks King
+* **attack_through**(To, AttackThrough, AttackTo) : To attacks AttackTo blocked by AttackThrough
+* **no_defense**(Hanging) : Hanging piece has no defense by the same color pieces
+* **no_attack**(AttackFrom, To) : AttackFrom is not attacking To
+* **opposite**(To, AttackTo) : To and AttackTo has pieces with different colors
 
-* defend(DefendFrom, To) : DefendFrom defends To
+* **defend**(DefendFrom, To) : DefendFrom defends To
 
-* backrank_wall(King, A, B, C) : King is on the backrank and A, B, C are the pawns covering the escape squares on the frontier
-* no_king_evades(King) : King has no safe evasion moves, (not necessarily in check)
-* no_captures(To) : To cannot be captured
-* no_blocks_check(To, King) : To attacks King that cannot be blocked any piece
-* no_push_blocks_check(To, King) : To attacks King that cannot be blocked by a pawn push
+* **backrank_wall**(King, A, B, C) : King is on the backrank and A, B, C are the pawns covering the escape squares on the frontier
+* **no_king_evades**(King) : King has no safe evasion moves, (not necessarily in check)
+* **no_captures**(To) : To cannot be captured
+* **no_blocks_check**(To, King) : To attacks King that cannot be blocked any piece
+* **no_push_blocks_check**(To, King) : To attacks King that cannot be blocked by a pawn push
