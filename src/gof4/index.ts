@@ -1,6 +1,7 @@
 import { PositionC, PositionManager } from "../distill/hopefox_c";
 import { parse_and_create_bindings, visual_fill_run_bindings } from "./gofer";
 import { visual_parse_nested_graph_root } from "./parser";
+import { Visual_CompositeNestedGraphNode } from "./types";
 
 export function usage(code: string) {
 
@@ -8,10 +9,13 @@ export function usage(code: string) {
     let vv = visual_parse_nested_graph_root(code)
 
     return (m: PositionManager, pos: PositionC) => {
-        return bb.flatMap((b, i) => visual_fill_run_bindings(vv[i], b, m, pos))
+        return bb.flatMap((b, i) => visual_fill_run_bindings(clone_node(vv[i]), b, m, pos))
     }
 }
 
+function clone_node(node: Visual_CompositeNestedGraphNode) {
+    return structuredClone(node)
+}
 
 export * from './log'
 export * from './types'
