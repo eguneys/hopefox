@@ -264,7 +264,13 @@ The rest of the output is example listings of coverage categories along with the
 
 #### F. Avenues of Potential Extensions for the Future
 
+* Variables can also refer to square names not necessarily only the piece roles.
+* Addition of more tags to control the visual verbosity of the output.
+* More builtin Keywords
+
 #### Addendum. Non Exhaustive List of Builtin Keywords
+
+_This list non-exhaustive, and there are undocumented keywords not listed here, such as promotion or pawn pushes_.
 
 ##### A. Actions
 
