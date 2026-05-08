@@ -221,9 +221,46 @@ The following form may be used as a comment line:
 
 ```'Comment line'```
 
+A **Descriptive Block** is any top level `if` description along with it's children.
+
 #### E. Output Shape
 
+An output may have the following form:
 
+```
+0 https://lichess.org/training/00008
+Solution: Rxe7 Qb1+ Nc1 Qxc1+ Qxc1
+if has_eye_king { Rxe7 }
+ve attacks { Rxe7 }
+ if no_cover { Rxe7 Rb8 }..
+  if checkmate_with_capture { Rxe7 Rb8 Qxh7# }..
+ if hangs_to { Rxe7 Qa1+ Nxa1 }..
+ if checks { Rxe7 Qb1+ }
+  if blocks_check_defended_by { Rxe7 Qb1+ Nc1 }
+   if sacrifices_with_exchange { Rxe7 Qb1+ Nc1 Qxc1+ Qxc1 }
+```
+
+This is the same structure as your input descriptive block, variables are replaced by actual matching lines.
+
+Matching lines has the following form: `{ Rxe7 Qa1+ Nxa1 }..`. So line is within curly braces and optional `..` or `...` is present at the end. This dots designate if there were multiple matches not listed here. ***No dots*** means a **single match** was found.
+
+Also additional information on the overall run is put in the beginning and end of the file that has the following form:
+
+```
+Time: 0.7ms per puzzle took 75s
+Coverage: %2 Accuracy: %0
+Tp/Fp: 0/1703 N: 98297 Total: 100000
+```
+
+`Tp` is True Positive, meaning the actual solution is found in the `win` tag with `cond` tags also being present as found matches.
+
+`Fp` is False Positive, meaning some partial matching has been happened but not a full match of the solution line has been happened.
+
+`N` is Negative, meaning not a single match has been found for the descriptive block.
+
+This header with additional information gives you the statistics of the amount of number of specific coverage results that has been categorized.
+
+The rest of the output is example listings of coverage categories along with their visual output for some of them.
 
 #### F. Avenues of Potential Extensions for the Future
 
