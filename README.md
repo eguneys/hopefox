@@ -141,12 +141,89 @@ def captures_hanging(From, Captured_To)
 Note the `Captured_To` similar variable syntax symmetric to how it's being called. At this point, `Captured` and `To` are being replaced as usual if they were separate variables. But please note that, the builtin keywords cannot be called with this extended form, and **Must Always** be passed a normal variable without any underscore or any other extension.
 
 ##### C1. Injective Variable Unification
+
+The following demonstrates how Injective Variable Unification is specified:
+
+```
+  if evades_attack_non_confrontational(queen, queen2, rook3) 
+    if check_king_with_block_no_capture_no_evade(rook3, rook5, king)
+      if blocks(knight, $knight2, rook5, king)
+        if checkmate(rook5, rook6, king)
+  if evades_with_cover_block(queen, queen3, rook3, $knight2)
+    if captures_hanging(queen4, queen3_queen5) then
+```
+
+Note the $knight2 variable which has the `$` prefix followed by a normal variable. This variable is called an **Injective Variable**. And it has the following property:
+
+The pairs of **Injective Variable** unificates across branches. In other words, the first unification of the first use of the first **Injective Variable** unifies—constraints the second **Injective Variable** that has been used in the other sibling.
+
+This also means, **in normal variables**, the reuse of **same variable names in sibling children are not related and they don't refer to the same variable, even though when they are named the same**.
+
+An **Injective Variable** **May** be used in a descriptive block **anywhere** on 2 sibling descriptions and/or on their children. Only one pair of **Injective Variable**s **May** be used on any given 2 siblings.
+
+Also note that `$` prefix can also be used in conjunction with Double Variable Case.
+
+Also note that both **Injective Variables** when used as a pair, must have the same variable names, and they must not differ.
+
 ##### C2. Rejective Variable Unification
+
+Similar to Injective Variables, **Rejective Variables** on the other hand, has the `!` suffix on a normal variable, and they **May** be used on 2 or more different sibling children. And There **May only** be 1 set of **Rejective Variables** on any given 2 sibling children.
+
+When **Rejective Variables** are used they **Must only** be on the immediate sibling children and not inside the children of the siblings. For example this is allowed:
+
+```
+  if hangs_to(queen2, queen3!_knight3, knight)
+  if checks(queen2, queen3!, king2)
+```
+
+The later **Rejective Variable** when used, discards the earlier unifications of it's earlier uses, thus rejecting the already handled cases, allowing precise expression cases.
+
+Also similar to Injective Variables **Rejective Variables**, must have the same variable names, and they must not differ.
+
 ##### C3. Tagging Over Descriptive Lines
+
+A **Descriptive line** may contain additional tags like this:
+
+`if sacrifices_with_exchange(queen3, rook3_queen4, bishop, bishop2) [win]`
+
+`[win]` is one tag, but there may be multiple tags inside square brackets separated by commas.
+
+Tags contain meta-data about the descriptive lines. So far there are 2 use cases for tags as specified here:
+
+`win` tag: **Must** be used on a single **leaf** child in a complete **Descriptive block** and it indicates the solution line is matched only when that specific child outputs a single line. Essentially this tag indicates the idea of a winning line.
+
+`cond` tag: **Can** be used on any **leaf** children any number of times on a complete **Descriptive block** and it indicates a condition such as the accompanying line it is used on **Must** output a single line in order for a solution to be matched. Essentially providing a hard-case condition on the existence of a certain line in order for the full solution to be matched.
 
 #### D. Structure of the .gof Script file
 
+When .gof Script files are being run on a database of puzzles, this section is related to how that specific use-case is handled.
+
+A .gof Script file has the following form:
+
+```
+puzzle numbers separated by spaces
+===
+Descriptive Blocks
+###
+...Any More Descriptive Blocks followed by ###
+###
+Definition Blocks
+```
+
+In other words the lines of the file is split with `###` and the last block that comes after the `###` is where the definition blocks live.
+
+***Only** the **Last section of descriptive blocks** are being run. Earlier sections that are separated by the `###` are ignored. 
+This allows moving parts of the blocks you want to single out or test in case by case basis, for faster iteration.
+
+The Header that comes before `===` consists of puzzle numbers, you want to skip matching against.
+
+The following form may be used as a comment line:
+
+```'Comment line'```
+
 #### E. Output Shape
+
+
 
 #### F. Avenues of Potential Extensions for the Future
 
