@@ -39,12 +39,12 @@ it('works', () => {
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
-        console.log(solve_i(single_i))
+        console.log(solve_i_2(single_i))
         return
     }
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 1
+    let total = log_puzzles.length / 7000
     let coverage: Coverage = { tp: 0, fp: 0, n: 0, log: [], log_positive: [], log_negative: [] }
 
     let ff = []
@@ -59,7 +59,7 @@ it('works', () => {
         if (skips.includes(i)) continue
         let res!: PartialCoverage
         try {
-            res = solve_i(i)
+            res = solve_i_2(i)
         } catch (e) {
             cf_begin()
             cf_log(`${e}`)
@@ -115,6 +115,71 @@ function solve_i(i: number) {
     }
 
 }
+
+
+
+function solve_i_2(i: number) {
+    let fen = log_puzzles[i].move_fens[0]
+
+    let pos = m.create_position(fen)
+    let link = log_puzzles[i].link
+
+    let solution = log_puzzles[i].sans
+
+    let res = gof_run(m, pos)
+
+    m.delete_position(pos)
+
+    let { tp, fp, n } = get_matches(res, solution)
+
+    if (tp.length > 0) {
+       let log_positive = ''
+       log_positive += `${i} ${link}`
+       log_positive  += `\n`
+       log_positive  += visual_node_log(tp)
+        return { tp: 1, log_positive }
+    } else if (fp.length > 0) {
+        let log = ''
+        log += `${i} ${link}`
+        log += `\n`
+        log += `Solution: ${solution.join(' ')}`
+        log += `\n`
+        log += visual_node_log(fp)
+        return { fp: 1, log }
+    } else if (n.length > 0) {
+        let log_negative = ''
+       log_negative += `${i} ${link}`
+       log_negative += `\n`
+       log_negative += `Solution: ${solution.join(' ')}`
+       log_negative += `\n`
+       log_negative  += visual_node_log(res)
+      return { n: 1, log_negative }
+    }
+
+}
+
+
+
+
+function get_matches(root: Visual_CompositeNestedGraphRoot, solution: string[]) {
+    let fp: Visual_CompositeNestedGraphNode[] = []
+    let tp: Visual_CompositeNestedGraphNode[] = []
+    let n: Visual_CompositeNestedGraphNode[] = []
+    function get_match_in_bucket(node: Visual_CompositeNestedGraphNode) {
+        if (is_negative([node])) {
+            n.push(node)
+        } else if (match_solution_root([node], solution)) {
+            tp.push(node)
+        } else {
+            fp.push(node)
+        }
+    }
+    for (let node of root) {
+        get_match_in_bucket(node)
+    }
+    return { fp, tp, n}
+}
+
 
 function is_negative(root: Visual_CompositeNestedGraphRoot) {
     function has_on_leaf(leaf: Visual_CompositeNestedGraphNode): boolean {

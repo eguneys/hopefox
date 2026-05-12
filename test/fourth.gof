@@ -47,6 +47,16 @@ ve attack_and_through(rook2, rook3, queen, rook4)
 
 ###
 
+'1 https://lichess.org/training/0000D'
+if in_backrank_wall(king, pawn, pawn2, pawn3)
+ve attack_and_through(rook2, rook3, queen, rook4) 
+  if evades_attack_non_confrontational(queen, queen2, rook3) 
+    if check_king_with_block_no_capture_no_evade(rook3, rook5, king)
+      if blocks(knight, $knight2, rook5, king)
+        if checkmate(rook5, rook6, king) [cond]
+  if evades_with_cover_block(queen, queen3, rook3, $knight2)
+    if captures_hanging(queen4, queen3_queen5)
+  if sacrifices_with_exchange(queen3, rook3_queen4, bishop, bishop2) [win]
 
 if has_eye_king(queen, pawn, king)
 ve attacks(rook, rook2, pawn)
@@ -56,7 +66,7 @@ ve attacks(rook, rook2, pawn)
   if hangs_to(queen2, queen3!_knight3, knight)
   if checks(queen2, queen3!, king2)
     if blocks_check_defended_by(knight, knight2, queen, queen3, king2)
-      if sacrifices_with_exchange(queen3, knight2_queen4, queen, queen5)
+      if sacrifices_with_exchange(queen3, knight2_queen4, queen, queen5) [win]
 
 
 
