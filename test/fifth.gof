@@ -1,6 +1,6 @@
-5
+1
+2
 ===
-
 
 ###
 
@@ -101,10 +101,10 @@ if attacks(knight, knight2, rook)
     if captures(knight2, rook_knight3) [win slice5]
 
 ###
+
 if checks_zone_with_capture(queen, pawn_queen2, bishop, king)
   if king_evades(king, king2)
     if checkmate(queen2, queen3, king2) [win slice2]
-
 
 
 ###

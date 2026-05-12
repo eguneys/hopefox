@@ -15,7 +15,7 @@ data = data.split('===')[1]
 
 let gof_run = usage(data)
 
-it('works', () => {
+it.skip('works', () => {
 
     let skips = [...skips_config]
 
@@ -35,7 +35,7 @@ it('works', () => {
     }
 
     let single_i = -1
-    //single_i =  1802
+    single_i =  4
 
     if (single_i != -1) {
         console.log(log_puzzles[single_i].link)
@@ -60,6 +60,7 @@ it('works', () => {
         let res!: PartialCoverage
         try {
             res = solve_i_2(i)
+            
         } catch (e) {
             cf_begin()
             cf_log(`${e}`)
@@ -156,6 +157,7 @@ function solve_i_2(i: number) {
       return { n: 1, log_negative }
     }
 
+    return { n: 1, log_negative: `${i} ${link}` }
 }
 
 

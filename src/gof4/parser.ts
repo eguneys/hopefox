@@ -308,7 +308,7 @@ export function visual_parse_nested_graph_root(code: string): Visual_CompositeNe
             return
         }
 
-        let tags: string[] = match[3] ? match[3].split(', ') : []
+        let tags: string[] = match[3] ? match[3].split(' ').map(_ => _.trim()) : []
 
         let quantification = match[1] === 'if' ? Quantification.IfThen : Quantification.ForAll
 

@@ -1,0 +1,15 @@
+Time: 17.2ms per puzzle took 0s
+Coverage: %0 Accuracy: %--
+Tp/Fp: 0/0 N: 1 Total: 1
+----*** Positives ****----
+----*** False Positives ****----
+----*** Negatives ****----
+2 https://lichess.org/training/0009B
+[Bxg4 Bxg4 Qxg4]
+if checks_zone_with_capture 
+ if king_evades 
+  if checkmate 
+
+Time: 17.2ms per puzzle took 0s
+Coverage: %0 Accuracy: %--
+Tp/Fp: 0/0 N: 1 Total: 1
