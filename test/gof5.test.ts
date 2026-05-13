@@ -77,8 +77,57 @@ function is_positive(node: Visual_CompositeNestedGraphNode, solution: string[]) 
     return win_condition(node)
 }
 
-function is_false_positive(node: Visual_CompositeNestedGraphNode) {
-    return false
+function is_false_positive(node: Visual_CompositeNestedGraphNode, solution: string[]) {
+    function false_conditions(node: Visual_CompositeNestedGraphNode): boolean {
+        if (node.children.length > 0) {
+            return node.children.some(_ => false_conditions(_))
+        }
+
+        if (node.data.tags.includes('cond')) {
+            return node.data.call[0].witness.length === 0
+        }
+        return false
+
+    }
+
+    function win_condition(node: Visual_CompositeNestedGraphNode): boolean {
+        if (node.children.length > 0) {
+            return node.children.some(_ => win_condition(_))
+        }
+
+        if (node.data.tags.includes('win')) {
+            if (node.data.call[0].witness.length > 0) {
+                for (let w of temporary_dedup(node.data.call[0].witness)) {
+                    if (w.join(' ') === solution.join(' ')) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    function false_win_condition(node: Visual_CompositeNestedGraphNode): boolean {
+        if (node.children.length > 0) {
+            return node.children.some(_ => win_condition(_))
+        }
+
+        if (node.data.tags.includes('win')) {
+            if (node.data.call[0].witness.length > 0) {
+                for (let w of temporary_dedup(node.data.call[0].witness)) {
+                    if (w.join(' ') !== solution.join(' ')) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    if (win_condition(node) && false_conditions(node)) {
+        return true
+    }
+    return false_win_condition(node)
 }
 
 function bucket_res(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
@@ -90,7 +139,7 @@ function bucket_res(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
     for (let node of res) {
          if (is_positive(node, solution)) {
             tp.push(node)
-        } else if (is_false_positive(node)) {
+        } else if (is_false_positive(node, solution)) {
             fp.push(node)
         } else {
             n.push(node)
@@ -201,10 +250,10 @@ function log_trees(N: Vn[], Fp: Vn[], Tp: Vn[]) {
 
     cf_log(`----*** Negatives ****----`)
     log_negatives(N)
-    cf_log(`----*** Positives ****----`)
-    log_positives(Tp)
     cf_log(`----*** False Positives ****----`)
     log_false_positives(Fp)
+    cf_log(`----*** Positives ****----`)
+    log_positives(Tp)
 
 }
 

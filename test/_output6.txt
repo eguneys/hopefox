@@ -1,43 +1,40 @@
-Time: 1.6ms per puzzle took 2s
-Coverage: %6 Accuracy: %100
-Tp/Fp: 79/0 N: 1169 Total: 1248
+Time: 1.7ms per puzzle took 2s
+Coverage: %7 Accuracy: %100
+Tp/Fp: 82/0 N: 1165 Total: 1247
 ----*** Negatives ****----
-18 https://lichess.org/training/002Cw
-[e5+ Qg6 Rxg6]
-if captures 
-ve zone_threat 
- if checks 
-  if blocks 
-   if sacrifice_exchange 
-
-19 https://lichess.org/training/002E4
-[Qxd2]
-if captures 
-ve zone_threat 
- if checks 
-  if blocks 
-   if sacrifice_exchange 
-
-20 https://lichess.org/training/002IE
-[dxe5 Qe7 exf6]
-if skewer { Rf1 }.
- if king_evades 
-  if captures 
-
-21 https://lichess.org/training/002KJ
-[Nxe5 Qxe5 Bxg4]
 22 https://lichess.org/training/002LW
 [f6 Nxf3+ Rxf3]
+if has_fork_hanging { Qxf7+ }
+ if king_evades { Qxf7+ Kxf7 }..
+  if captures { Qxf7+ Kh7 Qxb7 }.
+
 23 https://lichess.org/training/002Tf
 [Qb4+ Nc3 Qxb2]
+if has_fork_hanging { Qb4+ }
+ if king_evades { Qb4+ Kd1 }..
+  if captures { Qb4+ Kd1 Qxb5 }..
+
 24 https://lichess.org/training/002Ua
 [Qf4 Qxf3 Qxf3+]
+if attacks_safe { Nxh2 }
+ if king_evades { Nxh2 Kg1 }..
+  if captures { Nxh2 Kg1 Nxf1 }.
+
 25 https://lichess.org/training/002VP
 [Bxf6+ Kf5 Bxd5]
 26 https://lichess.org/training/002uV
 [exf5 Rxe7 Nxe7]
 27 https://lichess.org/training/002xh
 [Kxb5 Ng2 Ka6 Ne3 Kb7]
+28 https://lichess.org/training/003IX
+[Ng3#]
+29 https://lichess.org/training/003Jb
+[Qg5+ Kb1 Qxh6]
+30 https://lichess.org/training/003Tx
+[Nd2+ Ka1 Rc1#]
+31 https://lichess.org/training/003YT
+[dxe5 Bxe5 Bg5 Qd6 Nxe5 Qxd1 Rxd1]
+----*** False Positives ****----
 ----*** Positives ****----
 0 https://lichess.org/training/00008
 [Rxe7 Qb1+ Nc1 Qxc1+ Qxc1]
@@ -72,7 +69,6 @@ ve captures { Bxg4 }
 [Qa1 a5 Rc1]
 9 https://lichess.org/training/001Wz
 [Rd8+ Re8 Rxe8#]
-----*** False Positives ****----
-Time: 1.6ms per puzzle took 2s
-Coverage: %6 Accuracy: %100
-Tp/Fp: 79/0 N: 1169 Total: 1248
+Time: 1.7ms per puzzle took 2s
+Coverage: %7 Accuracy: %100
+Tp/Fp: 82/0 N: 1165 Total: 1247

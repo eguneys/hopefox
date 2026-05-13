@@ -1,4 +1,4 @@
-13 15
+13 15 19
 ===
 
 if captures(rook, rook2_rook3)
@@ -76,7 +76,52 @@ if skewer(rook, rook2, king, queen)
 if attacks(bishop, bishop2, queen)
   if sacrifice_exchange(queen, bishop2_queen2, queen3, queen4) [win]
 
+if push_attack_with_discovered_check(pawn, pawn2, queen, queen2, king)
+  if blocks_check(queen, queen3, queen2, king)
+    if captures(rook, queen3_rook2) [win]
+
+if has_fork_with_capture(pawn, knight_pawn2, knight2, queen)
+  if evades(queen, queen2, pawn2)
+    if captures(pawn2, knight2_pawn3) [win]
+  
+if captures_with_discover_tension(knight, knight2_knight3, bishop, bishop2)
+ve attacks_and_attacks_through(queen, bishop, bishop2)
+ve defends(knight4, bishop2)
+  if captures(queen2, knight3_queen3)
+    if captures(bishop, bishop2_bishop3) [win]
+
 ###
+
+def defends(From, To)
+  defend(From, To)
+
+def attacks_and_attacks_through(From, Through, To)
+  attack_through(From, To, Through)
+  attack(To, Through)
+
+
+def captures_with_discover_tension(From, Captured_To, TensionA, TensionB)
+  attack_through(TensionA, TensionB, From)
+  capture(From, To, Captured)
+  attack(TensionB, TensionA)
+  attack(TensionA, TensionB)
+
+def evades(From, To, AttackFrom)
+  move(From, To)
+  no_attack(To, AttackFrom)
+  
+
+def has_fork_with_capture(From, Captured_To, ForkA, ForkB)
+  capture(From, To, Captured)
+  attack(To, ForkA)
+  attack(To, ForkB)
+
+def push_attack_with_discovered_check(From, To, AttackTo, DiscoverFrom, DiscoverTo)
+  attack_through(DiscoverFrom, DiscoverTo, From)
+  push(From, To)
+  attack(To, AttackTo)
+  attack(DiscoverFrom, DiscoverTo)
+
 
 def skewer(From, To, SkewerThrough, SkewerTo)
   move(From, To)
