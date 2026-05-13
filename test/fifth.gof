@@ -1,75 +1,5 @@
-13 15 17
+13 15 17 21 22 27 31
 ===
-
-###
-
-
-
-'if captures_hanging_with_check(queen, rook_queen2, king)
-  'if king_evades(king, king2)
-    'if offers_exchange(queen2, queen3, queen4, knight)
-    've covers_through(queen3, b1)
-
-
-
-###
-
-'4'
-if checks_zone_with_capture(queen, pawn_queen2, bishop, king)
-  if king_evades(king, king2)
-    if checkmate(queen2, queen3, king2) [win slice2]
-
-
-'5'
-if has_fork(bishop, bishop2, king, rook)
-  if king_evades(king, king2)
-    if captures(bishop2, rook_bishop3) [win]
-
-###
-
-
-'1 https://lichess.org/training/0000D'
-if in_backrank_wall(king, pawn, pawn2, pawn3)
-ve attack_and_through(rook2, rook3, queen, rook4) 
-  if evades_attack_non_confrontational(queen, queen2, rook3) 
-    if check_king_with_block_no_capture_no_evade(rook3, rook5, king)
-      if blocks(knight, $knight2, rook5, king)
-        if checkmate(rook5, rook6, king)
-  if evades_with_cover_block(queen, queen3, rook3, $knight2)
-    if captures_hanging(queen4, queen3_queen5) then
-  if sacrifices_with_exchange(queen3, rook3_queen4, bishop, bishop2)
-
-if attacks_through(queen, knight, bishop)
-ve defends(bishop2, knight)
-ve captures(bishop, knight_bishop3)
-  if exchanges_hanging(bishop2, bishop3_bishop4, queen, queen2)
-
-
-if has_eye_king(queen, pawn, king)
-ve attacks(rook, rook2, pawn)
-  if no_cover(rook3, rook4, pawn)
-    if checkmate_with_capture(queen, pawn_queen2, king)
-  'if has_no_move_to_cover(queen2, pawn)'
-  if hangs_to(queen2, queen3!_knight3, knight)
-  if checks(queen2, queen3!, king2)
-    if blocks_check_defended_by(knight, knight2, queen, queen3, king2)
-      if sacrifices_with_exchange(queen3, knight2_queen4, queen, queen5)
-
-###
-
-'1 https://lichess.org/training/0000D'
-if in_backrank_wall(king, pawn, pawn2, pawn3)
-ve attack_and_through(rook2, rook3, queen, rook4) 
-  if evades_attack_non_confrontational(queen, queen2, rook3) 
-    if check_king_with_block_no_capture_no_evade(rook3, rook5, king)
-      if blocks(knight, $knight2, rook5, king)
-        if checkmate(rook5, rook6, king) [cond]
-  if evades_with_cover_block(queen, queen3, rook3, $knight2)
-    if captures_hanging(queen4, queen3_queen5)
-  if sacrifices_with_exchange(queen3, rook3_queen4, bishop, bishop2) [win]
-
-
-###
 
 '1 https://lichess.org/training/0000D'
 if in_backrank_wall(king, pawn, pawn2, pawn3)
@@ -167,7 +97,79 @@ if captures_with_fork(pawn, knight_pawn2, queen, knight2)
   if evades(queen, queen2, pawn2)
     if captures(pawn2, knight2_pawn3) [win]
 
+if has_fork(queen, queen2, bishop, king)
+  if blocks_check_defended_by(knight, knight2, pawn, queen2, king)
+    if capture_with_triple_hanging_fork(queen2, pawn_queen3, bishop, knight2, rook) [win]
+
+if eye_zone_with(queen, queen2, pawn, knight, king)
+  if sacrifices_with_exchange(queen3, knight_queen4, queen2, queen5) [win]
+
+
+if capture_defender_with_check(bishop, knight_bishop2, bishop3, king)
+  if king_evades(king, king2)
+    if captures_hanging(bishop4, bishop3_bishop5) [win]
+
+if capture_with_unpin_attack(pawn, queen_pawn2, rook, queen2)
+  if captures_recapture(rook, queen2_rook2, knight, knight2) [win]
+
+
+if checkmate(knight, knight2, king) [win]
+
+if has_fork(queen, queen2, king, rook)
+  if king_evades(king, king2)
+    if captures_hanging(queen2, rook_queen3) [win]
+
+
+if checks_with_only_king_evades(knight, knight2, king)
+  if king_evades(king, king2)
+    if checkmate(rook, rook2, king2) [win]
+
+
+if checks_with_only_king_evades(rook, rook2, king)
+  if king_evades(king, king2)
+    if skewer(rook2, rook3, king2, queen)
+      if king_evades(king2, king3)
+        if captures(rook3, queen_rook4) [win]
+
+
+if has_attack(rook, queen)
+ve has_fork(knight, knight2, king, queen2)
+  if king_evades(king, king2)
+    if captures(knight2, queen2_knight3)
+      if captures(rook, queen_rook2)
+        if captures_hanging(knight3, rook2_knight4) [win]
+
+
 ###
+
+def captures_recapture(From, Captured_To, RecaptureFrom, RecaptureTo)
+  capture(From, To, Captured)
+  capture(RecaptureFrom, RecaptureTo, To)
+
+def capture_with_unpin_attack(From, Captured_To, PinFrom, PinTo)
+  attack_through(PinFrom, PinTo, From)
+  capture(From, To, Captured)
+  attack(PinFrom, PinTo)
+
+def capture_defender_with_check(From, Captured_To, Defended, King)
+  defend(Captured, Defended)
+  capture(From, To, Captured)
+  attack(To, King)
+
+
+def eye_zone_with(From, To, EyeTo, SupportFrom, King)
+  move(From, To)
+  attack(To, EyeTo)
+  attack(SupportFrom, EyeTo)
+  defend(King, EyeTo)
+
+def capture_with_triple_hanging_fork(From, Captured_To, ForkA, ForkB, ForkC)
+  capture(From, To, Captured)
+  no_defense(ForkB)
+  no_defense(ForkC)
+  attack(To, ForkA)
+  attack(To, ForkB)
+  attack(To, ForkC)
 
 def evades(From, To, AttackFrom)
   move(From, To)
@@ -373,6 +375,17 @@ def check_king_with_block_no_capture_no_evade(From, To, King)
   no_king_evades(King)
   no_captures(To)
   no_push_blocks_check(To, King)
+
+  
+  
+def checks_with_only_king_evades(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+
+
 
   
 def checkmate_with_capture(From, Captured_To, King)

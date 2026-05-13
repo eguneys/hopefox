@@ -1,14 +1,21 @@
 import fs from 'fs'
 import { it } from 'vitest'
 import { PositionManager, usage, Visual_CompositeNestedGraphNode, Visual_CompositeNestedGraphRoot, visual_node_log } from '../src'
-import { a_hundred } from './fixture'
+import { a_hundred, tenk } from './fixture'
 // @ts-ignore
 import './fifth.gof?raw'
+// @ts-ignore
+import './sixth.gof?raw'
+
+let Paths = ['fifth.gof', '_output5.txt']
+Paths = ['sixth.gof', '_output6.txt']
+
 
 let m = await PositionManager.make()
 let log_puzzles = a_hundred
+log_puzzles = tenk
 
-let data = fs.readFileSync('test/fifth.gof').toString()
+let data = fs.readFileSync(`test/${Paths[0]}`).toString()
 let [skips_config_str, only_config_str] = data.split('===')[0].trim().split('\n')
 
 let only_config = only_config_str !== undefined ? parseInt(only_config_str.trim()) : -1
@@ -115,7 +122,7 @@ it('works', () => {
     let skips = [...skips_config]
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 3000
+    let total = log_puzzles.length
     let coverage: Coverage = []
 
     let should_break = false
@@ -209,10 +216,10 @@ function log_coverage(N: number, Fp: number, Tp: number, elapsed: number) {
 }
 
 function cf_begin () {
-    fs.writeFileSync(__dirname + '/_output5.txt', '')
+    fs.writeFileSync(__dirname + `/${Paths[1]}`, '')
 }
 function cf_log (str: string) {
-    fs.appendFileSync(__dirname + '/_output5.txt', str + '\n')
+    fs.appendFileSync(__dirname + `/${Paths[1]}`, str + '\n')
     console.log(str)
 }
 
