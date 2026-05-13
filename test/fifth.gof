@@ -1,6 +1,16 @@
-1
-2
+13
 ===
+
+###
+
+
+
+'if captures_hanging_with_check(queen, rook_queen2, king)
+  'if king_evades(king, king2)
+    'if offers_exchange(queen2, queen3, queen4, knight)
+    've covers_through(queen3, b1)
+
+
 
 ###
 
@@ -100,18 +110,119 @@ if attacks(knight, knight2, rook)
   if king_evades(king, king2)
     if captures(knight2, rook_knight3) [win slice5]
 
-###
-
 if checks_zone_with_capture(queen, pawn_queen2, bishop, king)
   if king_evades(king, king2)
     if checkmate(queen2, queen3, king2) [win slice2]
 
+if has_fork(bishop, bishop2, king, rook)
+  if king_evades(king, king2)
+    if captures(bishop2, rook_bishop3) [win]
+
+if eyes_king_zone(bishop, pawn, king)
+ve hanging(bishop2)
+ve has_fork(queen, queen2, pawn, bishop2)
+  if pushes(pawn, pawn2)
+    if captures(queen2, bishop2_queen3) [win]
+
+if has_attack(rook3, rook4)
+  if pin_but_hangs(rook, $rook2, queen, king) [cond]
+  if covers(queen2, queen3, $rook2)
+    if pushes(pawn, pawn2)
+      if pins(rook, $rook2, queen, king) [win]
+
+if in_backrank_wall(king, pawn, pawn2, pawn3) 
+ve checks(rook, rook2, king)
+  if blocks_check_no_defense(rook3, rook4, rook2, king)
+    if checkmate_with_capture(rook2, rook4_rook5, king) [win]
+
+if captures_with_attack(rook, bishop_rook2, queen)
+  if captures_into_discovered_attack(queen, rook2_queen2, bishop2, knight)
+    if sacrifices_with_check(knight, knight2, king)
+      if captures(bishop4, knight2_bishop5)
+        if captures(bishop2, queen2_bishop3) [win]
+
+if checkmate_with_capture(bishop, queen_bishop2, king) [win]
+
+if check_with_only_push_block(bishop, bishop2, pawn, pawn2, king)
+  if push_blocks_check(pawn, pawn2, bishop2, king)
+    if checkmate_with_capture(bishop2, pawn2_bishop3, king) [win]
+
+if hanging(bishop)
+ve has_fork(queen, queen2, king, bishop)
+  if king_evades(king, king2)
+    if captures(queen2, bishop_queen3) [win]
 
 ###
 
-def attacks(From, To, Hanging)
+def offers_exchange(From, To, ExchangeTo, SupportFrom)
   move(From, To)
-  attack(To, Hanging)
+  attack(To, ExchangeTo)
+  attack(ExchangeTo, To)
+  defend(SupportFrom, To)
+
+def captures_hanging_with_check(From, Captured_To, King)
+  no_defense(Captured)
+  capture(From, To, Captured)
+  attack(To, King)
+
+
+def push_blocks_check(From, To, CheckFrom, King)
+  push(From, To)
+  attack_through(CheckFrom, King, To)
+
+def check_with_only_push_block(From, To, PawnFrom, PawnTo, King)
+  move(From, To)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+
+
+
+def sacrifices_with_check(From, To, King)
+  move(From, To)
+  attack(To, King)
+
+
+def captures_into_discovered_attack(From, Captured_To, AttackFrom, AttackThrough)
+  capture(From, To, Captured)
+  attack_through(AttackFrom, To, AttackThrough)
+
+def captures_with_attack(From, Captured_To, AttackTo)
+  capture(From, To, Captured)
+  attack(To, AttackTo)
+
+def pins(From, To, PinThrough, PinTo)
+  move(From, To)
+  attack_through(To, PinTo, PinThrough)
+
+def has_attack(From, To)
+  attack(From, To)
+
+def pin_but_hangs(From, To, PinThrough, PinTo)
+  move(From, To)
+  no_defense(To)
+  attack_through(To, PinTo, PinThrough)
+
+def pushes(From, To)
+  push(From, To)
+
+def hanging(Hanging)
+  no_defense(Hanging)
+
+def eyes_king_zone(AttackFrom, AttackTo, King)
+  attack(AttackFrom, AttackTo)
+  attack(King, AttackTo)
+  opposite(AttackFrom, King)
+
+def attacks(From, To, AttackTo)
+  move(From, To)
+  attack(To, AttackTo)
+
+def covers(From, To, CoverTo)
+  move(From, To)
+  attack(To, CoverTo)
+
 
 
 
@@ -124,6 +235,8 @@ def has_fork(From, To, ForkA, ForkB)
   move(From, To)
   attack(To, ForkA)
   attack(To, ForkB)
+  opposite(To, ForkA)
+  opposite(To, ForkB)
 
 def king_evades(From, To)
   move(From, To)
@@ -157,6 +270,11 @@ def attacks_through(From, To, Through)
 def blocks_check_defended_by(From, To, DefendFrom, AttackFrom, AttackTo)
   move(From, To)
   defend(DefendFrom, To)
+  attack_through(AttackFrom, AttackTo, To)
+  
+def blocks_check_no_defense(From, To, AttackFrom, AttackTo)
+  move(From, To)
+  no_defense(To)
   attack_through(AttackFrom, AttackTo, To)
   
 

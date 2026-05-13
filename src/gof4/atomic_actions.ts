@@ -1228,7 +1228,7 @@ function atomic_filter_backrank_wall(
 
             let occ_color = m.get_pieces_color_bb(pos, color)
 
-            let wall_rank = color === WHITE ? SquareSet.fromRank(1) : SquareSet.fromRank(7)
+            let wall_rank = color === WHITE ? SquareSet.fromRank(1) : SquareSet.fromRank(6)
 
             let w_aa = m.pos_attacks(pos, sq).intersect(wall_rank).intersect(occ_color)
 
