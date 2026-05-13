@@ -107,7 +107,7 @@ it('works', () => {
     let skips = [...skips_config]
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 7000
+    let total = log_puzzles.length / 3000
     let coverage: Coverage = []
 
     let should_break = false

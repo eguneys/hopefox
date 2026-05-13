@@ -1,4 +1,4 @@
-13
+13 15 17
 ===
 
 ###
@@ -152,7 +152,28 @@ ve has_fork(queen, queen2, king, bishop)
   if king_evades(king, king2)
     if captures(queen2, bishop_queen3) [win]
 
+if skewer(rook, rook2, king, queen)
+  if king_evades(king, king2)
+    if captures(rook2, queen_rook3) [win]
+
+
+if push_discovered_check_with_attack(pawn, pawn2, queen2, queen, king)
+  if blocks_check_attacked_by(queen2, queen3, rook, queen, king)
+    if captures(rook, queen3_rook2) [win]
+
+
+'end'
 ###
+
+def push_discovered_check_with_attack(From, To, AttackTo, DiscoverFrom, DiscoverTo)
+  attack_through(DiscoverFrom, DiscoverTo, From)
+  push(From, To)
+  attack(To, AttackTo)
+  attack(DiscoverFrom, DiscoverTo)
+
+def skewer(From, To, SkewerThrough, SkewerTo)
+  move(From, To)
+  attack_through(To, SkewerTo, SkewerThrough)
 
 def offers_exchange(From, To, ExchangeTo, SupportFrom)
   move(From, To)
@@ -266,6 +287,11 @@ def defends(From, To)
 
 def attacks_through(From, To, Through)
   attack_through(From, To, Through)
+
+def blocks_check_attacked_by(From, To, AttackedFrom, AttackFrom, AttackTo)
+  move(From, To)
+  attack(AttackedFrom, To)
+  attack_through(AttackFrom, AttackTo, To)
 
 def blocks_check_defended_by(From, To, DefendFrom, AttackFrom, AttackTo)
   move(From, To)
