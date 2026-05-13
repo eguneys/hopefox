@@ -1,6 +1,57 @@
-Time: 7.1ms per puzzle took 0s
-Coverage: %52 Accuracy: %100
-Tp/Fp: 16/0 N: 15 Total: 31
+Time: 7ms per puzzle took 0s
+Coverage: %58 Accuracy: %100
+Tp/Fp: 18/0 N: 13 Total: 31
+----*** Negatives ****----
+21 https://lichess.org/training/002KJ
+[Nxe5 Qxe5 Bxg4]
+if in_backrank_wall 
+ve attack_and_through 
+ if evades_attack_non_confrontational 
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange 
+
+22 https://lichess.org/training/002LW
+[f6 Nxf3+ Rxf3]
+if in_backrank_wall 
+ve attack_and_through 
+ if evades_attack_non_confrontational 
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange 
+
+23 https://lichess.org/training/002Tf
+[Qb4+ Nc3 Qxb2]
+if in_backrank_wall 
+ve attack_and_through 
+ if evades_attack_non_confrontational 
+  if check_king_with_block_no_capture_no_evade 
+   if blocks 
+    if checkmate 
+ if evades_with_cover_block 
+  if captures_hanging 
+ if sacrifices_with_exchange 
+
+24 https://lichess.org/training/002Ua
+[Qf4 Qxf3 Qxf3+]
+25 https://lichess.org/training/002VP
+[Bxf6+ Kf5 Bxd5]
+26 https://lichess.org/training/002uV
+[exf5 Rxe7 Nxe7]
+27 https://lichess.org/training/002xh
+[Kxb5 Ng2 Ka6 Ne3 Kb7]
+28 https://lichess.org/training/003IX
+[Ng3#]
+29 https://lichess.org/training/003Jb
+[Qg5+ Kb1 Qxh6]
+30 https://lichess.org/training/003Tx
+[Nd2+ Ka1 Rc1#]
 ----*** Positives ****----
 0 https://lichess.org/training/00008
 [Rxe7 Qb1+ Nc1 Qxc1+ Qxc1]
@@ -47,57 +98,6 @@ ve captures { Bxg4 }
 9 https://lichess.org/training/001Wz
 [Rd8+ Re8 Rxe8#]
 ----*** False Positives ****----
-----*** Negatives ****----
-19 https://lichess.org/training/002E4
-[Qxd2]
-if in_backrank_wall 
-ve attack_and_through 
- if evades_attack_non_confrontational 
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange 
-
-20 https://lichess.org/training/002IE
-[dxe5 Qe7 exf6]
-if in_backrank_wall 
-ve attack_and_through 
- if evades_attack_non_confrontational 
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange 
-
-21 https://lichess.org/training/002KJ
-[Nxe5 Qxe5 Bxg4]
-if in_backrank_wall 
-ve attack_and_through 
- if evades_attack_non_confrontational 
-  if check_king_with_block_no_capture_no_evade 
-   if blocks 
-    if checkmate 
- if evades_with_cover_block 
-  if captures_hanging 
- if sacrifices_with_exchange 
-
-22 https://lichess.org/training/002LW
-[f6 Nxf3+ Rxf3]
-23 https://lichess.org/training/002Tf
-[Qb4+ Nc3 Qxb2]
-24 https://lichess.org/training/002Ua
-[Qf4 Qxf3 Qxf3+]
-25 https://lichess.org/training/002VP
-[Bxf6+ Kf5 Bxd5]
-26 https://lichess.org/training/002uV
-[exf5 Rxe7 Nxe7]
-27 https://lichess.org/training/002xh
-[Kxb5 Ng2 Ka6 Ne3 Kb7]
-28 https://lichess.org/training/003IX
-[Ng3#]
-Time: 7.1ms per puzzle took 0s
-Coverage: %52 Accuracy: %100
-Tp/Fp: 16/0 N: 15 Total: 31
+Time: 7ms per puzzle took 0s
+Coverage: %58 Accuracy: %100
+Tp/Fp: 18/0 N: 13 Total: 31

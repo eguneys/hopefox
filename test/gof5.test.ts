@@ -15,6 +15,14 @@ let only_config = only_config_str !== undefined ? parseInt(only_config_str.trim(
 let skips_config = skips_config_str.split(' ').map(_ => parseInt(_))
 data = data.split('===')[1]
 
+data.split('\n').map(_ => {
+    let m  =_.match(/only=(\d*)/)
+
+    if (m) {
+        only_config = parseInt(m[1])
+    }
+})
+
 let gof_run = usage(data)
 
 type Vn = {
@@ -179,12 +187,12 @@ function log_negatives(aa: Vn[]) {
 
 function log_trees(N: Vn[], Fp: Vn[], Tp: Vn[]) {
 
+    cf_log(`----*** Negatives ****----`)
+    log_negatives(N)
     cf_log(`----*** Positives ****----`)
     log_positives(Tp)
     cf_log(`----*** False Positives ****----`)
     log_false_positives(Fp)
-    cf_log(`----*** Negatives ****----`)
-    log_negatives(N)
 
 }
 

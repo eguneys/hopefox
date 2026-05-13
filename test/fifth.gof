@@ -161,9 +161,22 @@ if push_discovered_check_with_attack(pawn, pawn2, queen2, queen, king)
   if blocks_check_attacked_by(queen2, queen3, rook, queen, king)
     if captures(rook, queen3_rook2) [win]
 
+if captures_hanging(queen, rook_queen2) [win]
 
-'end'
+if captures_with_fork(pawn, knight_pawn2, queen, knight2)
+  if evades(queen, queen2, pawn2)
+    if captures(pawn2, knight2_pawn3) [win]
+
 ###
+
+def evades(From, To, AttackFrom)
+  move(From, To)
+  no_attack(To, AttackFrom)
+
+def captures_with_fork(From, Captured_To, ForkA, ForkB)
+  capture(From, To, Captured)
+  attack(To, ForkA)
+  attack(To, ForkB)
 
 def push_discovered_check_with_attack(From, To, AttackTo, DiscoverFrom, DiscoverTo)
   attack_through(DiscoverFrom, DiscoverTo, From)
