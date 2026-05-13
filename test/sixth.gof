@@ -1,3 +1,241 @@
+13 15
 ===
 
+if captures(rook, rook2_rook3)
+ve zone_threat(rook3, queen, pawn, king)
+  if checks(queen2, queen3, king2)
+   if blocks(knight, knight2, queen3, king2)
+     if sacrifice_exchange(queen3, knight2_queen4, queen, queen5) [win]
+
+if attacks_and_through(rook, rook2, queen, rook3)
+  if sacrifice_exchange(queen, rook2_queen2, bishop, bishop2) [win]
+
+if has_attack_and_through(queen, bishop, knight)
+ve captures(bishop, knight_bishop2)
+  if exchanges_last(bishop3, bishop2_bishop4, queen, queen2) [win]
+
+if exchanges(queen, queen2_queen3, pawn, pawn2)
+  if captures_hanging(knight, bishop_knight2) [win]
+
+if captures_zone(queen, pawn_queen2, bishop, king)
+  if king_evades(king, king2)
+    if checkmate(queen2, queen3, king2) [win]
+
+if has_fork_hanging(bishop, bishop2, king, rook)
+  if king_evades(king, king2)
+    if captures(bishop2, rook_bishop3) [win]
+
+if has_fork_hanging(queen, queen2, pawn, bishop)
+ve has_eye_zone(bishop2, pawn, king)
+  if pushes(pawn, pawn2)
+    if captures(queen2, bishop_queen3) [win]
+
+if has_defend(queen, king)
+ if hanging_pin(rook, $rook2, queen, king) [cond]
+ if has_cover_safe(queen2, queen3, $rook2)
+   if pushes(pawn, pawn2)
+     if pin(rook, $rook2, queen, king) [win]
+
+if check_no_evade_no_capture(rook, rook2, king)
+  if blocks_check(rook3, rook4, rook2, king)
+    if checkmate_with_capture(rook2, rook4_rook5, king) [win]
+
+
+if captures(rook, bishop_rook2)
+ if recapture_into_discovered_attack(queen, rook2_queen2, bishop, knight) 
+
+
+'6'
+if attacks_safe(knight, knight2, rook)
+  if king_evades(king, king2)
+    if captures(knight2, rook_knight3) [win]
+
+if captures(rook, bishop_rook2)
+ if recapture_into_discovered_attack(queen, rook2_queen2, bishop2, knight) 
+   if check_with_discovered_attack(knight, knight2, king, bishop2, queen2)
+     if captures(bishop3, knight2_bishop4)
+       if captures(bishop2, queen2_bishop5) [win]
+
+
+if checkmate_with_capture(bishop, queen_bishop2, king) [win]
+
+
+if checks_with_only_push_block(bishop, bishop2, king)
+  if push_blocks(pawn, pawn2, bishop2, king)
+    if checkmate_with_capture(bishop2, pawn2_bishop3, king) [win]
+
+if has_fork_hanging(queen, queen2, king, bishop)
+  if king_evades(king, king2)
+    if captures(queen2, bishop_queen3) [win]
+
+
+if skewer(rook, rook2, king, queen)
+  if king_evades(king, king2)
+    if captures(rook2, queen_rook3) [win]
+
+if attacks(bishop, bishop2, queen)
+  if sacrifice_exchange(queen, bishop2_queen2, queen3, queen4) [win]
+
 ###
+
+def skewer(From, To, SkewerThrough, SkewerTo)
+  move(From, To)
+  attack_through(To, SkewerTo, SkewerThrough)
+
+def push_blocks(From, To, AttackFrom, AttackTo)
+  push(From, To)
+  attack_through(AttackFrom, AttackTo, To)
+
+
+def check_with_discovered_attack(From, To, King, DiscoverFrom, DiscoverTo)
+  move(From, To)
+  attack(To, King)
+  attack(DiscoverFrom, DiscoverTo)
+  
+
+def attacks_safe(From, To, AttackTo)
+  move(From, To)
+  attack(To, AttackTo)
+  no_captures(To)
+
+
+def recapture_into_discovered_attack(From, Captured_To, DiscoverFrom, DiscoverThrough) 
+  capture(From, To, Captured)
+  attack_through(DiscoverFrom, To, DiscoverThrough)
+
+def blocks_check(From, To, AttackFrom, AttackTo)
+  move(From, To)
+  attack_through(AttackFrom, AttackTo, To)
+
+def has_cover_safe(From, To, CoverTo)
+  move(From, To)
+  attack(To, CoverTo)
+  no_captures(To)
+
+
+
+def has_cover(From, To, CoverTo)
+  move(From, To)
+  attack(To, CoverTo)
+
+def hanging_pin(From, To, PinThrough, PinTo)
+  move(From, To)
+  attack_through(To, PinTo, PinThrough)
+  no_defense(To)
+
+
+
+def pin(From, To, PinThrough, PinTo)
+  move(From, To)
+  attack_through(To, PinTo, PinThrough)
+
+def has_defend(From, To)
+  defend(From, To)
+
+def pushes(From, To)
+  push(From, To)
+
+def has_eye_zone(From, To, King)
+  attack(From, To)
+  defend(King, To)
+
+def attacks(From, To, AttackTo)
+  move(From, To)
+  attack(To, AttackTo)
+
+def has_fork_hanging(From, To, ForkA, ForkHanging)
+  move(From, To)
+  no_defense(ForkHanging)
+  attack(To, ForkA)
+  attack(To, ForkHanging)
+
+
+def king_evades(From, To)
+  move(From, To)
+
+def captures_zone(From, Captured_To, SupportFrom, King)
+  capture(From, To, Captured)
+  defend(SupportFrom, To)
+  attack(King, To)
+
+def captures_hanging(From, Captured_To)
+  no_defense(Captured)
+  capture(From, To, Captured)
+
+def exchanges(From, Captured_To, From2, To2)
+  capture(From, To, Captured)
+  capture(From2, To2, To)
+
+
+
+def exchanges_last(From, Captured_To, From2, To2)
+  capture(From, To, Captured)
+  no_defense(To)
+  capture(From2, To2, To)
+
+def has_attack_and_through(From, FromThrough, To)
+  attack_through(From, To, FromThrough)
+  attack(FromThrough, To)
+
+def attacks_and_through(From, To, Through, ThroughTo)
+  move(From, To)
+  attack_through(To, ThroughTo, Through)
+
+def sacrifice_exchange(From, Captured_To, From2, To2)
+  capture(From, To, Captured)
+  capture(From2, To2, To)
+
+def blocks(From, To, AttackFrom, AttackTo)
+  move(From, To)
+  attack_through(AttackFrom, AttackTo, To)
+
+def checks(From, To, King)
+  move(From, To)
+  attack(To, King)
+
+def zone_threat(From, From2, To, King)
+  defend(King, To)
+  attack(From, To)
+  attack(From2, To)
+
+def captures(From, Captured_To)
+  capture(From, To, Captured)
+
+
+  
+def checks_with_only_push_block(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+
+
+
+  
+def check_no_evade_no_capture(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_push_blocks_check(To, King)
+
+
+    
+def checkmate_with_capture(From, Captured_To, King)
+  capture(From, To, Captured)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+
+  
+def checkmate(From, To, King)
+  move(From, To)
+  attack(To, King)
+  no_king_evades(King)
+  no_captures(To)
+  no_blocks_check(To, King)
+  no_push_blocks_check(To, King)
+

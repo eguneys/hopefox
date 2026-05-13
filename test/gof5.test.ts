@@ -122,7 +122,7 @@ it('works', () => {
     let skips = [...skips_config]
 
     let start_now = performance.now()
-    let total = log_puzzles.length
+    let total = log_puzzles.length / 8
     let coverage: Coverage = []
 
     let should_break = false
@@ -185,6 +185,7 @@ function log_negatives(aa: Vn[]) {
         cf_log(`${a.i} ${log_puzzles[a.i].link}`)
         cf_log(`[${log_puzzles[a.i].sans.join(' ')}]`)
         if (i > 2) continue
+        a.n.sort((a, b) => visual_data_score(b) - visual_data_score(a))
         for (let n of a.n) {
             cf_log(visual_node_log([n]))
             break
@@ -192,6 +193,10 @@ function log_negatives(aa: Vn[]) {
     }
 }
 
+function visual_data_score(a: Visual_CompositeNestedGraphNode): number {
+    return a.data.call[0].witness.length + 
+        a.children.map(_ => visual_data_score(_)).reduce((a, b) => a + b, 0)
+}
 function log_trees(N: Vn[], Fp: Vn[], Tp: Vn[]) {
 
     cf_log(`----*** Negatives ****----`)

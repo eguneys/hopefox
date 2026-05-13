@@ -1,4 +1,5 @@
-import { PositionC, PositionManager } from "../distill/hopefox_c"
+import { make_move_from_to, PositionC, PositionManager } from "../distill/hopefox_c"
+import { parseSan } from "../distill/san"
 import { SquareSet } from "../distill/squareSet"
 import { History, Columnar, DefNotFoundException, FieldsCannotExpandException, extract_action_parameters, history_to_sans } from "../gof2/gofer"
 import { IndexGroupNodes, IndexGroups, SansNodes } from "../gof2/gofer3"
@@ -495,4 +496,3 @@ export function extract_fields(symbol_per_column: PieceSymbol[], a_params: Piece
     }
     return res
 }
-
