@@ -1,4 +1,4 @@
-Time: 1.7ms per puzzle took 2s
+Time: 3.1ms per puzzle took 4s
 Coverage: %7 Accuracy: %100
 Tp/Fp: 82/0 N: 1165 Total: 1247
 ----*** Negatives ****----
@@ -69,6 +69,6 @@ ve captures { Bxg4 }
 [Qa1 a5 Rc1]
 9 https://lichess.org/training/001Wz
 [Rd8+ Re8 Rxe8#]
-Time: 1.7ms per puzzle took 2s
+Time: 3.1ms per puzzle took 4s
 Coverage: %7 Accuracy: %100
 Tp/Fp: 82/0 N: 1165 Total: 1247

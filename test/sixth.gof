@@ -90,6 +90,8 @@ ve defends(knight4, bishop2)
   if captures(queen2, knight3_queen3)
     if captures(bishop, bishop2_bishop3) [win]
 
+
+
 ###
 
 def defends(From, To)

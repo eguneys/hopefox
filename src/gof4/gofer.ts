@@ -20,7 +20,6 @@ export type AtomicCallNode = {
 
 export class BindingOutWithQuantifiers {
     table: Columnar
-    start_row_index: number
 
     symbol_per_column: PieceSymbol[]
     history_per_row: History[]
@@ -29,7 +28,6 @@ export class BindingOutWithQuantifiers {
 
     constructor() {
         this.table = new Columnar()
-        this.start_row_index = 0
         this.symbol_per_column = []
         this.history_per_row = []
     }
@@ -162,7 +160,6 @@ export class BindingOutWithQuantifiers {
 
         this.history_per_row.length = 0
         this.table.clear_rows()
-        this.start_row_index = 0
 
 
         for (let i = 0; i < this.table.columns.length; i++) {

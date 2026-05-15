@@ -164,6 +164,11 @@ function atomic_action_move(
 
 }
 
+class BadFieldArity extends Error {
+    constructor(expected: number, actual: number) {
+        super(`Bad Field Arity expected ${expected} got ${actual}`)
+    }
+}
 
 function atomic_action_capture(
     fields: number[],
@@ -175,6 +180,9 @@ function atomic_action_capture(
     history_per_row: History[],
     table: Columnar) {
 
+        if (fields.length !== 3) {
+            throw new BadFieldArity(3, fields.length)
+        }
 
         let from = fields[0]
         let to = fields[1]
@@ -1263,13 +1271,13 @@ function atomic_filter_backrank_wall(
 
 
 
-function history_make_for_pos(h: History, m: PositionManager, pos: number) {
+export function history_make_for_pos(h: History, m: PositionManager, pos: number) {
     for (let move of h) {
         m.make_move(pos, move)
     }
 }
 
-function history_unmake_for_pos(h: History, m: PositionManager, pos: number) {
+export function history_unmake_for_pos(h: History, m: PositionManager, pos: number) {
     for (let i = h.length - 1; i >= 0; i--) {
         m.unmake_move(pos, h[i])
     }
