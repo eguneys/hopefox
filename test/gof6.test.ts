@@ -182,7 +182,7 @@ function log_coverage(path: string, N: number, Fp: number, Tp: number, elapsed: 
 
 function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], Tp: Vn[]) {
 
-    let path = `${base_path}._output.txt`
+    let path = `${base_path}._output.text`
     let false_positives_path = `${base_path}._false_positives.txt`
     let true_positives_path = `${base_path}._true_positives.txt`
     let negatives_path = `${base_path}._negatives.txt`
