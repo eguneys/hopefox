@@ -1,39 +1,38 @@
-Time: 3.1ms per puzzle took 4s
-Coverage: %7 Accuracy: %100
-Tp/Fp: 82/0 N: 1165 Total: 1247
+Time: 2.3ms per puzzle took 3s
+Coverage: %8 Accuracy: %100
+Tp/Fp: 96/0 N: 1145 Total: 1241
 ----*** Negatives ****----
-22 https://lichess.org/training/002LW
-[f6 Nxf3+ Rxf3]
-if has_fork_hanging { Qxf7+ }
- if king_evades { Qxf7+ Kxf7 }..
-  if captures { Qxf7+ Kh7 Qxb7 }.
+32 https://lichess.org/training/003eP
+[Rh8+ Kf7 Rh7+ Ke8 Rxe7+]
+if attacks { Bd4 }..
+ if sacrifice_exchange { Bf6 Qxf6 Qxf6 }
 
-23 https://lichess.org/training/002Tf
-[Qb4+ Nc3 Qxb2]
-if has_fork_hanging { Qb4+ }
- if king_evades { Qb4+ Kd1 }..
-  if captures { Qb4+ Kd1 Qxb5 }..
+33 https://lichess.org/training/003jH
+[Nd3+ Ke3 Nxf4 Rxh5 Nxh5]
+if attacks_safe { Nd3+ }..
+ if king_evades { Nd3+ Kg3 }..
+  if captures { Nd3+ Kg3 Nxc1 }..
 
-24 https://lichess.org/training/002Ua
-[Qf4 Qxf3 Qxf3+]
-if attacks_safe { Nxh2 }
- if king_evades { Nxh2 Kg1 }..
-  if captures { Nxh2 Kg1 Nxf1 }.
+34 https://lichess.org/training/003jb
+[Qa4+ Bb5 Qxb5+]
+if has_fork_hanging { Qa4+ }
+ if king_evades { Qa4+ Kd8 }.
+  if captures { Qa4+ Kd8 Qxa6 }.
 
-25 https://lichess.org/training/002VP
-[Bxf6+ Kf5 Bxd5]
-26 https://lichess.org/training/002uV
-[exf5 Rxe7 Nxe7]
-27 https://lichess.org/training/002xh
-[Kxb5 Ng2 Ka6 Ne3 Kb7]
-28 https://lichess.org/training/003IX
-[Ng3#]
-29 https://lichess.org/training/003Jb
-[Qg5+ Kb1 Qxh6]
-30 https://lichess.org/training/003Tx
-[Nd2+ Ka1 Rc1#]
-31 https://lichess.org/training/003YT
-[dxe5 Bxe5 Bg5 Qd6 Nxe5 Qxd1 Rxd1]
+36 https://lichess.org/training/003md
+[Ne4 Rxe4+ dxe4 Qh5+ Qxh5 Bf7+ Qxf7]
+37 https://lichess.org/training/003nQ
+[Ng3+ Qxg3 Rxg3]
+38 https://lichess.org/training/003o0
+[Qa5+ Qd2 Qxb5]
+39 https://lichess.org/training/003r5
+[Nd3+ Kg1 Nxf4]
+40 https://lichess.org/training/003wQ
+[Qxd6 Bxd6 Rxf1]
+41 https://lichess.org/training/0042j
+[Qxd8+ Qxd8 Rxd8#]
+43 https://lichess.org/training/0048h
+[Re1+ Rxe1 Rxe1+ Kg2 d3]
 ----*** False Positives ****----
 ----*** Positives ****----
 0 https://lichess.org/training/00008
@@ -69,6 +68,6 @@ ve captures { Bxg4 }
 [Qa1 a5 Rc1]
 9 https://lichess.org/training/001Wz
 [Rd8+ Re8 Rxe8#]
-Time: 3.1ms per puzzle took 4s
-Coverage: %7 Accuracy: %100
-Tp/Fp: 82/0 N: 1165 Total: 1247
+Time: 2.3ms per puzzle took 3s
+Coverage: %8 Accuracy: %100
+Tp/Fp: 96/0 N: 1145 Total: 1241

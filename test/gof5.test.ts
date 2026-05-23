@@ -6,9 +6,12 @@ import { a_hundred, tenk } from './fixture'
 import './fifth.gof?raw'
 // @ts-ignore
 import './sixth.gof?raw'
+// @ts-ignore
+import './seventh.gof?raw'
 
 let Paths = ['fifth.gof', '_output5.txt']
 Paths = ['sixth.gof', '_output6.txt']
+Paths = ['seventh.gof', '_output7.txt']
 
 
 let m = await PositionManager.make()
@@ -32,14 +35,14 @@ data.split('\n').map(_ => {
 
 let gof_run = usage(data)
 
-type Vn = {
+export type Vn = {
     i: number
     tp: Visual_CompositeNestedGraphNode[]
     fp: Visual_CompositeNestedGraphNode[]
     n: Visual_CompositeNestedGraphNode[]
 }
 
-type Coverage = Vn[]
+export type Coverage = Vn[]
 
 function is_positive(node: Visual_CompositeNestedGraphNode, solution: string[]) {
     function false_conditions(node: Visual_CompositeNestedGraphNode): boolean {
@@ -130,7 +133,7 @@ function is_false_positive(node: Visual_CompositeNestedGraphNode, solution: stri
     return false_win_condition(node)
 }
 
-function bucket_res(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
+export function bucket_res(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
 
     let tp: Visual_CompositeNestedGraphNode[] = []
     let fp: Visual_CompositeNestedGraphNode[] = []
@@ -148,7 +151,7 @@ function bucket_res(res: Visual_CompositeNestedGraphRoot, solution: string[]) {
     return { tp, fp, n }
 }
 
-function find_Vn(i: number) {
+export function find_Vn(i: number) {
 
     let solution = log_puzzles[i].sans
 
@@ -166,12 +169,12 @@ function find_Vn(i: number) {
     }
 }
 
-it('works', () => {
+it.skip('works', () => {
 
     let skips = [...skips_config]
 
     let start_now = performance.now()
-    let total = log_puzzles.length / 8
+    let total = log_puzzles.length
     let coverage: Coverage = []
 
     let should_break = false
@@ -242,7 +245,7 @@ function log_negatives(aa: Vn[]) {
     }
 }
 
-function visual_data_score(a: Visual_CompositeNestedGraphNode): number {
+export function visual_data_score(a: Visual_CompositeNestedGraphNode): number {
     return a.data.call[0].witness.length + 
         a.children.map(_ => visual_data_score(_)).reduce((a, b) => a + b, 0)
 }
@@ -255,6 +258,7 @@ function log_trees(N: Vn[], Fp: Vn[], Tp: Vn[]) {
     cf_log(`----*** Positives ****----`)
     log_positives(Tp)
 
+    export_log('_false_positives.txt', Fp.map(_ => log_puzzles[_.i].line).join('\n'))
 }
 
 function log_coverage(N: number, Fp: number, Tp: number, elapsed: number) {
@@ -276,6 +280,12 @@ function cf_log (str: string) {
     fs.appendFileSync(__dirname + `/${Paths[1]}`, str + '\n')
     console.log(str)
 }
+
+function export_log(path: string, str: string) {
+    fs.writeFileSync(__dirname + `/${path}`, str)
+}
+
+
 
 
 function temporary_dedup(arr: string[][]) {

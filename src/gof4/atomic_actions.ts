@@ -132,6 +132,7 @@ function atomic_action_move(
             let bb_from = Froms.rows[i].intersect(from_symbol_bb)
             let bb_to = Tos.rows[i]
 
+            bb_to = bb_to.diff(m.pos_occupied(pos))
 
             for (let legal of legals) {
 

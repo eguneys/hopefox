@@ -3,7 +3,9 @@ import { parse_and_create_bindings, visual_fill_run_bindings } from "./gofer";
 import { visual_parse_nested_graph_root } from "./parser";
 import { Visual_CompositeNestedGraphNode } from "./types";
 
-export function usage(code: string) {
+export type GofUsage = (m: PositionManager, pos: PositionC) => Visual_CompositeNestedGraphNode[]
+
+export function usage(code: string): GofUsage {
 
     let bb = parse_and_create_bindings(code)
     let vv = visual_parse_nested_graph_root(code)

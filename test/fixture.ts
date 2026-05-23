@@ -13,7 +13,7 @@ export const test_puzzles = parse_puzzles(fs.readFileSync('data/test.log').toStr
 export const test_qr_puzzles = parse_puzzles(fs.readFileSync('data/test_qr.log').toString())
 export const test_b_forks_kr_puzzles = parse_puzzles(fs.readFileSync('data/test_b_forks_kr.log').toString())
 
-function parse_puzzles(str: string): Puzzle[] {
+export function parse_puzzles(str: string): Puzzle[] {
     return str.trim().split('\n').map(_ => {
 
         let [id, fen, moves, _a, _b, _c, _d, tags] = _.split(',')
@@ -26,6 +26,7 @@ function parse_puzzles(str: string): Puzzle[] {
         let initial = true
 
         return {
+            line: _.trim(),
             id, link, fen, moves, tags, 
             get move_fens() {
                 let move_fens: string[] = []
@@ -49,6 +50,7 @@ function parse_puzzles(str: string): Puzzle[] {
 }
 
 export type Puzzle = {
+    line: string,
     id: string,
     link: string,
     fen: string,

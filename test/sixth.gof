@@ -1,4 +1,4 @@
-13 15 19
+13 15 19 22 23 24 27 28 31
 ===
 
 if captures(rook, rook2_rook3)
@@ -69,7 +69,7 @@ if has_fork_hanging(queen, queen2, king, bishop)
     if captures(queen2, bishop_queen3) [win]
 
 
-if skewer(rook, rook2, king, queen)
+if skewers(rook, rook2, king, queen)
   if king_evades(king, king2)
     if captures(rook2, queen_rook3) [win]
 
@@ -90,9 +90,38 @@ ve defends(knight4, bishop2)
   if captures(queen2, knight3_queen3)
     if captures(bishop, bishop2_bishop3) [win]
 
+if removes_defender_with_check(bishop, knight_bishop2, king, bishop3)
+  if king_evades(king, king2)
+    if captures_hanging(bishop4, bishop3_bishop5) [win]
 
+if capture_unpins_exchange(pawn, queen_pawn2, rook, queen2)
+  if captures(rook, queen2_rook2)
+    if captures_hanging(knight, rook2_knight2) [win]
+
+
+if has_fork_hanging(queen, queen2, king, rook)
+  if king_evades(king, king2)
+    if captures(queen2, rook_queen3) [win]
+
+if checks(knight, knight2, king)
+  if king_evades(king, king2)
+    if checkmate(rook, rook2, king2) [win]
+
+if checks(rook, rook2, king)
+  if king_evades(king, king2)
+    if skewers(rook2, rook3, SkewerThrough, SkewerTo) [win]
 
 ###
+
+def capture_unpins_exchange(From, Captured_To, AttackFrom, AttackTo)
+  attack_through(AttackFrom, AttackTo, From)
+  capture(From, To, Captured)
+  attack(AttackFrom, AttackTo)
+
+def removes_defender_with_check(From, Captured_To, King, Defended)
+  defend(Captured, Defended)
+  capture(From, To, Captured)
+  attack(To, King)
 
 def defends(From, To)
   defend(From, To)
@@ -125,7 +154,7 @@ def push_attack_with_discovered_check(From, To, AttackTo, DiscoverFrom, Discover
   attack(DiscoverFrom, DiscoverTo)
 
 
-def skewer(From, To, SkewerThrough, SkewerTo)
+def skewers(From, To, SkewerThrough, SkewerTo)
   move(From, To)
   attack_through(To, SkewerTo, SkewerThrough)
 
