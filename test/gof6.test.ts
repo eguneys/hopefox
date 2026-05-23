@@ -188,10 +188,10 @@ function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], 
     let negatives_path = `${base_path}._negatives.txt`
 
 
-    cf_log(path, `----*** Negatives ****----`)
-    log_negatives(N)
     cf_log(path, `----*** False Positives ****----`)
     log_false_positives(Fp)
+    cf_log(path, `----*** Negatives ****----`)
+    log_negatives(N)
     cf_log(path, `----*** Positives ****----`)
     log_positives(Tp)
 

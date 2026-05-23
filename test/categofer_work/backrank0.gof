@@ -1,4 +1,11 @@
 'input=data/a_hundred_puzzles.csv
 ===
 
+if checks(rook, rook2, king) [win]
+
 ###
+
+def checks(From, To, King)
+  move(From, To)
+  attack(To, King)
+  opposite(To, King)

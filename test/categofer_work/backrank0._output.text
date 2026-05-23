@@ -1,29 +1,87 @@
-Time: 0ms per puzzle took 6s
-Coverage: %0 Accuracy: %--
-Tp/Fp: 0/0 N: 100000 Total: 100000
+Time: 0.2ms per puzzle took 21s
+Coverage: %21 Accuracy: %7
+Tp/Fp: 1429/19323 N: 79248 Total: 100000
+----*** False Positives ****----
+6 https://lichess.org/training/000tp
+[Ne4 Kg1 Nxf2]
+if checks { Re1+ }
+
+9 https://lichess.org/training/001Wz
+[Rd8+ Re8 Rxe8#]
+if checks { Rd8+ }
+
+12 https://lichess.org/training/001om
+[Bf2+ g3 Bxg3#]
+if checks { Rg4+ }.
+
+16 https://lichess.org/training/001xl
+[Rf7+ Ke5 Rxf4]
+28 https://lichess.org/training/003IX
+[Ng3#]
+30 https://lichess.org/training/003Tx
+[Nd2+ Ka1 Rc1#]
+32 https://lichess.org/training/003eP
+[Rh8+ Kf7 Rh7+ Ke8 Rxe7+]
+40 https://lichess.org/training/003wQ
+[Qxd6 Bxd6 Rxf1]
+43 https://lichess.org/training/0048h
+[Re1+ Rxe1 Rxe1+ Kg2 d3]
+55 https://lichess.org/training/0050w
+[Rxg3+ Bxg3 Rg5+ Kf7 Rxg3]
 ----*** Negatives ****----
 0 https://lichess.org/training/00008
 [Rxe7 Qb1+ Nc1 Qxc1+ Qxc1]
+if checks 
+
 1 https://lichess.org/training/0000D
 [Rd8 Qxd8+ Bxd8]
+if checks 
+
 2 https://lichess.org/training/0009B
 [Bxg4 Bxg4 Qxg4]
+if checks 
+
 3 https://lichess.org/training/000aY
 [Qxc3 bxc3 Nxe7]
 4 https://lichess.org/training/000hf
 [Qxe6+ Kf8 Qf7#]
 5 https://lichess.org/training/000rO
 [Bc7+ Kxb4 Bxd8]
-6 https://lichess.org/training/000tp
-[Ne4 Kg1 Nxf2]
 7 https://lichess.org/training/00143
 [Qh5 h6 Qxc5]
 8 https://lichess.org/training/0018S
 [Qa1 a5 Rc1]
-9 https://lichess.org/training/001Wz
-[Rd8+ Re8 Rxe8#]
-----*** False Positives ****----
+10 https://lichess.org/training/001XA
+[Rxb7 Qxb7 Nf6+ Bxf6 Bxb7]
+11 https://lichess.org/training/001gi
+[Bxc3#]
 ----*** Positives ****----
-Time: 0ms per puzzle took 6s
-Coverage: %0 Accuracy: %--
-Tp/Fp: 0/0 N: 100000 Total: 100000
+90 https://lichess.org/training/008Nz
+[Rd8#]
+if checks { Rd8# }
+
+134 https://lichess.org/training/00C7m
+[Rh4#]
+if checks { Rh4# }
+
+190 https://lichess.org/training/00Hxb
+[Re8#]
+if checks { Re8# }
+
+198 https://lichess.org/training/00IaZ
+[Rb8#]
+204 https://lichess.org/training/00JO7
+[Rh8#]
+261 https://lichess.org/training/00OXc
+[Rh3#]
+330 https://lichess.org/training/00VIe
+[Rd2#]
+363 https://lichess.org/training/00Xfn
+[Rh8#]
+533 https://lichess.org/training/00ohT
+[Rh1#]
+562 https://lichess.org/training/00rIF
+[Rh8#]
+Time: 0.2ms per puzzle took 21s
+Coverage: %21 Accuracy: %7
+Tp/Fp: 1429/19323 N: 79248 Total: 100000
