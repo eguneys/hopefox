@@ -97,7 +97,7 @@ function make_gof_runner_categorize(path: string, input_path: string) {
 
 function runner(gof_run: GofUsage, base_path: string, log_puzzles: Puzzle[], skips: number[], only_config: number) {
 
-    let output_path = `${base_path}._output.txt`
+    let output_path = `${base_path}._output.text`
 
     function find_Vn(i: number) {
 
