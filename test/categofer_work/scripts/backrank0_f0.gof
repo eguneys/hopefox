@@ -1,4 +1,4 @@
-'input=tenk_puzzle.csv
+'input=backrank0_._false_positives.input
 ===
 
 if in_backrank_wall(king, pawn, pawn2, pawn3) [win]
@@ -15,6 +15,10 @@ def checks(From, To, King)
   attack(To, King)
   opposite(To, King)
 
+def attack_is_checkmate(From, King)
+  no_blocks_check(From, King)
+  no_captures(From)
+  no_king_evades(King)
 
 def only_blocks_attack(From, King, BlockFrom, BlockTo)
   no_captures(From)

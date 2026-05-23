@@ -2,7 +2,7 @@
 
 If you have read the first chapter of the book [Bobby Fischer Teaches Chess](https://en.wikipedia.org/wiki/Bobby_Fischer_Teaches_Chess), you are familiar with the title. Bobby Fischer discusses different special cases of how a Backrank Mate can be present in real games. In this post we are going to start with the very basics and delve deeper into those different special cases. So that once we think about it, we can appreciate how the most basic checkmate can get so involved.
 
-We will talk with numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
+We will talk with lists and numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
 
 Be fore-warned that some errors or inaccurate information may be present in this article, while we rely on Gof Chess which is in a very early stage, so **Please Make Sure to Leave your Feedback ** which is very important to us.
 
@@ -24,6 +24,8 @@ For this first part, The script is ran over the 4 million puzzles with a propert
 
 On a second run, I ran the script over those matched, with the property that the backrank wall consists of only pawns, so 3 pawns in front of the king with the same color (instead of just any friendly piece). And 21.816 puzzles were filtered out, that is they included some other piece other than only pawns. So we are left with a total of 49.806 puzzles that we are interested in.
 
+From now on we will keep filtering out those puzzles while discussing the filtered cases, until we have covered them all.
+
 5674 puzzles are Mate in 1 with a simple backrank checkmate which we described above.
 
 So that leaves us with 44.124 puzzles left to talk about.
@@ -34,7 +36,17 @@ So that leaves us with 44.124 puzzles left to talk about.
 
 _Note that we are still left with 24.026 puzzles we haven't discussed yet. We will come to that later_
 
+19.741 puzzles involves their blocking rook is hanging, that is it doesn't have any defender so we can just capture it.
 
+_That leaves 357 puzzles involving their blocking rook is not hanging which again we will get to later_
+
+Our journey continues, with 17.268 puzzles capturing the blocking rook. To recap, we check the king in the backrank, their rook blocks and hanging, and we capture the hanging rook.
+
+17.226 puzzles ends with a checkmate after we capture the hanging rook. That's basically a Mate in 2. Checking the backrank and their rook is blocking desperado after we deliver checkmate by capturing it.
 
 ## C. Opponent can capture our rook
 
+
+## The End
+
+And That's about it for our little journey into the vast world of chess tactics. If you enjoyed this post, make sure to follow, like and leave a comment so I can continue posting more adventures like this.

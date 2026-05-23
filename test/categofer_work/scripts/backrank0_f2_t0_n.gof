@@ -1,15 +1,21 @@
-'input=backrank4._negatives.input
+'input=backrank0_f2_t0._negatives.input
 ===
 
-if in_backrank_wall(king, pawn, pawn2, pawn3)
+if in_backrank_wall(king, pawn, pawn2, pawn3) [win]
 ve checks(rook, rook2, king)
 ve only_blocks_attack(rook2, king, rook3, rook4)
-  if captures(rook2, rook4_rook5) [win]
+ve hanging(rook4)
+ve captures(rook2, rook4_rook5)
+ve only_blocks_attack(rook5, king, bishop, bishop2)
+
 
 ###
 
 def captures(From, Captured_To)
   capture(From, To, Captured)
+
+def hanging(From)
+  no_defense(From)
 
 def in_backrank_wall(King, A, B, C)
   backrank_wall(King, A, B, C)
@@ -19,6 +25,10 @@ def checks(From, To, King)
   attack(To, King)
   opposite(To, King)
 
+def attack_is_checkmate(From, King)
+  no_blocks_check(From, King)
+  no_captures(From)
+  no_king_evades(King)
 
 def only_blocks_attack(From, King, BlockFrom, BlockTo)
   no_captures(From)

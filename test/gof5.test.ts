@@ -65,7 +65,7 @@ function is_positive(node: Visual_CompositeNestedGraphNode, solution: string[]) 
         if (node.data.tags.includes('win')) {
             if (node.data.call[0].witness.length > 0) {
                 for (let w of temporary_dedup(node.data.call[0].witness)) {
-                    if (w.join(' ') === solution.join(' ')) {
+                    if (w.join(' ').startsWith(solution.join(' '))) {
                         return true
                     }
                 }
