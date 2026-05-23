@@ -1245,22 +1245,31 @@ function atomic_filter_backrank_wall(
                 continue
             }
 
-            let a_sq = w_aa.first()!
-            w_aa = w_aa.withoutFirst()
-            let b_sq = w_aa.first()!
-            w_aa = w_aa.withoutFirst()
-            let c_sq = w_aa.first()!
 
-            {
+            bb_a = bb_a.intersect(w_aa)
+            bb_b = bb_b.intersect(w_aa)
+            bb_c = bb_c.intersect(w_aa)
 
-                table.create_new_duplicate_row(i)
+            for (let a_sq of bb_a) {
+                let bb_b_i = bb_b.without(a_sq)
 
-                Froms.set_raw(SquareSet.fromSquare(sq))
-                As.set_raw(SquareSet.fromSquare(a_sq))
-                Bs.set_raw(SquareSet.fromSquare(b_sq))
-                Cs.set_raw(SquareSet.fromSquare(c_sq))
+                for (let b_sq of bb_b_i) {
+                    let bb_c_i = bb_c.without(a_sq).without(b_sq)
+                    for (let c_sq of bb_c_i) {
 
-                history_per_row.push(h)
+                        {
+
+                            table.create_new_duplicate_row(i)
+
+                            Froms.set_raw(SquareSet.fromSquare(sq))
+                            As.set_raw(SquareSet.fromSquare(a_sq))
+                            Bs.set_raw(SquareSet.fromSquare(b_sq))
+                            Cs.set_raw(SquareSet.fromSquare(c_sq))
+
+                            history_per_row.push(h)
+                        }
+                    }
+                }
             }
         }
 

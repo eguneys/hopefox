@@ -1,4 +1,4 @@
-'input=lichess_db_puzzle.csv
+'input=backrank0_pawn_and_pieces.log
 ===
 
 if in_backrank_wall(king, pawn, pawn2, pawn3) [win]

@@ -1,0 +1,74 @@
+x_logs/backrank0._false_positives.input
+Time: 0.8ms per puzzle took 37s
+Coverage: %46 Accuracy: %0
+Tp/Fp: 0/20098 N: 24026 Total: 44124
+----*** False Positives ****----
+0 https://lichess.org/training/001Wz
+[Rd8+ Re8 Rxe8#]
+if in_backrank_wall { Rd8+ Re8 }..
+ve checks { Rd8+ Re8 }..
+ve only_blocks_attack { Rd8+ Re8 }..
+
+1 https://lichess.org/training/007XE
+[Rd1+ Re1 Rxe1#]
+if in_backrank_wall { Rd1+ Re1 }..
+ve checks { Rd1+ Re1 }..
+ve only_blocks_attack { Rd1+ Re1 }..
+
+2 https://lichess.org/training/008GK
+[Rf8+ Rd8 Rxd8#]
+if in_backrank_wall { Rf8+ Rd8 }..
+ve checks { Rf8+ Rd8 }..
+ve only_blocks_attack { Rf8+ Rd8 }..
+
+9 https://lichess.org/training/00dpQ
+[Rc8+ Re8 Rxe8#]
+10 https://lichess.org/training/00jOm
+[Rb1+ Rc1 Rxc1#]
+12 https://lichess.org/training/00zVd
+[Rd1+ Re1 Rxe1#]
+14 https://lichess.org/training/01337
+[Re8+ Rd8 Rxd8#]
+15 https://lichess.org/training/01749
+[Ra8+ Rb8 Rxb8+ Rc8 Rxc8#]
+17 https://lichess.org/training/01MPw
+[Rd1+ Re1 Rxe1#]
+19 https://lichess.org/training/01Siq
+[Rh1+ Rd1 Rxd1#]
+----*** Negatives ****----
+3 https://lichess.org/training/0092z
+[Qxf7+ Kh8 Qxg7#]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+
+4 https://lichess.org/training/00DYf
+[Rc1+ Rxc1 Rxc1#]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+
+5 https://lichess.org/training/00LdT
+[Re8+ Rxe8 Qxe8#]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+
+6 https://lichess.org/training/00NAM
+[Re8+ Rxe8 Qxe8#]
+7 https://lichess.org/training/00R4l
+[Rxa7 Rxa7 Re1+ Bf1 Bf5]
+8 https://lichess.org/training/00RYH
+[Re8+ Rxe8 Rxe8#]
+11 https://lichess.org/training/00wL8
+[Rd8+ Rxd8 cxd8=Q#]
+13 https://lichess.org/training/00zkP
+[Re1+ Rxe1 Rxe1#]
+16 https://lichess.org/training/01J6z
+[Rd1+ Ne1 Rxe1#]
+18 https://lichess.org/training/01Q8c
+[Re8+ Rxe8 Rxe8#]
+----*** Positives ****----
+Time: 0.8ms per puzzle took 37s
+Coverage: %46 Accuracy: %0
+Tp/Fp: 0/20098 N: 24026 Total: 44124

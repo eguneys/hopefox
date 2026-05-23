@@ -2,6 +2,10 @@
 
 If you have read the first chapter of the book [Bobby Fischer Teaches Chess](https://en.wikipedia.org/wiki/Bobby_Fischer_Teaches_Chess), you are familiar with the title. Bobby Fischer discusses different special cases of how a Backrank Mate can be present in real games. In this post we are going to start with the very basics and delve deeper into those different special cases. So that once we think about it, we can appreciate how the most basic checkmate can get so involved.
 
+We will talk with numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
+
+Be fore-warned that some errors or inaccurate information may be present in this article, while we rely on Gof Chess which is in a very early stage, so **Please Make Sure to Leave your Feedback ** which is very important to us.
+
 ## A. Anatomy of BackRank Mate in Ones
 
 We can look for a backrank mate if the king is in a backrank wall. A backrank wall is where king is on the backrank, and the 3 forward squares the king can go to are occupied by king's own pawns.
@@ -12,14 +16,25 @@ _Please note what we are **not** considering in the usual sense. King is only bl
 
 At this point, we have to see what the opponent can do. The definition of a checkmate tells us, that king has no escape squares, the king is in check, and the check cannot be blocked.
 
-The check on the backrank with the rook while the king is in a backrank wall already tells us that king cannot evade this check. So there are 2 cases we have to consider, or a little bit more.
+The check on the backrank with the rook while the king is in a backrank wall already tells us that king cannot evade this check. So there are 2 cases we have to consider, and a little bit more.
 
 If opponent cannot capture our rook, and cannot block the check, it's a checkmate, that's a mate in 1. Because note that king cannot evade the check by our definitions.
 
+For this first part, The script is ran over the 4 million puzzles with a property that the backrank wall consists of any friendly pieces, and not just pawns. And one additional property that our rook was giving a check. It matched on total of 71.622 puzzles.
+
+On a second run, I ran the script over those matched, with the property that the backrank wall consists of only pawns, so 3 pawns in front of the king with the same color (instead of just any friendly piece). And 21.816 puzzles were filtered out, that is they included some other piece other than only pawns. So we are left with a total of 49.806 puzzles that we are interested in.
+
+5674 puzzles are Mate in 1 with a simple backrank checkmate which we described above.
+
+So that leaves us with 44.124 puzzles left to talk about.
 
 ## B. Opponent can block the check
 
-When we capture the blocking rook 
+20.098 puzzles involves our rook checking the king in the backrank, and opponent while cannot capture our rook, however can block the check with a rook, so it's not immediate checkmate.
+
+_Note that we are still left with 24.026 puzzles we haven't discussed yet. We will come to that later_
+
+
 
 ## C. Opponent can capture our rook
 

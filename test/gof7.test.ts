@@ -126,7 +126,7 @@ async function runner(gof_run: GofUsage, base_path: string, input_path: string, 
 
         if (i % 10000 === 0) {
             cf_begin(output_path)
-            cf_log(output_path, input_path)
+            cf_log(output_path, input_path.split('/').slice(-2).join('/'))
             cf_log(output_path, `Progress nb: ${i}`)
         }
 
@@ -155,7 +155,7 @@ async function runner(gof_run: GofUsage, base_path: string, input_path: string, 
             coverage.push(find_Vn(gof_run, parse_puzzles(line)[0], i))
         } catch (e) {
             cf_begin(output_path)
-            cf_log(output_path, `${e}`)
+            cf_log(output_path, `${i}, ${line}, ${e}`)
             return false
         }
         if (should_break) {
@@ -166,7 +166,7 @@ async function runner(gof_run: GofUsage, base_path: string, input_path: string, 
     })
 
     cf_begin(output_path)
-    cf_log(output_path, input_path)
+    cf_log(output_path, input_path.split('/').slice(-2).join('/'))
     let N = coverage.filter(_ => _.tp.length === 0 && _.fp.length === 0)
     let Fp = coverage.filter(_ => _.tp.length === 0 && _.fp.length > 0)
     let Tp = coverage.filter(_ => _.tp.length > 0)
