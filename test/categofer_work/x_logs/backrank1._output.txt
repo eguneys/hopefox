@@ -1,0 +1,74 @@
+C:\Users\eguneys\Documents\GitHub\hopefox\test/categofer_work/x_logs/backrank0._true_positives.input
+Time: 0.2ms per puzzle took 0s
+Coverage: %91 Accuracy: %100
+Tp/Fp: 116/0 N: 11 Total: 127
+----*** False Positives ****----
+----*** Negatives ****----
+19 https://lichess.org/training/0MXT5
+[Rd8#]
+if in_backrank_wall 
+ve checks 
+ve attack_is_checkmate 
+
+26 https://lichess.org/training/0VSIa
+[Rd1#]
+if in_backrank_wall 
+ve checks 
+ve attack_is_checkmate 
+
+27 https://lichess.org/training/0XRpT
+[Rb8#]
+if in_backrank_wall 
+ve checks 
+ve attack_is_checkmate 
+
+29 https://lichess.org/training/0YV22
+[Rd8#]
+30 https://lichess.org/training/0ajAU
+[Rd8#]
+36 https://lichess.org/training/0eNAS
+[Re8#]
+66 https://lichess.org/training/1FJ8e
+[Re1+]
+92 https://lichess.org/training/1l6xp
+[Re8#]
+97 https://lichess.org/training/1sCr0
+[Rd1#]
+115 https://lichess.org/training/2Hg5o
+[Rd1#]
+----*** Positives ****----
+0 https://lichess.org/training/008Nz
+[Rd8#]
+if in_backrank_wall { Rd8# }
+ve checks { Rd8# }
+ve attack_is_checkmate { Rd8# }
+
+1 https://lichess.org/training/02Bm1
+[Rd1#]
+if in_backrank_wall { Rd1# }
+ve checks { Rd1# }
+ve attack_is_checkmate { Rd1# }
+
+2 https://lichess.org/training/02QUs
+[Rd8#]
+if in_backrank_wall { Rd8# }
+ve checks { Rd8# }
+ve attack_is_checkmate { Rd8# }
+
+3 https://lichess.org/training/03Lde
+[Rd1#]
+4 https://lichess.org/training/03Ulb
+[Rd8#]
+5 https://lichess.org/training/04gCa
+[Re8#]
+6 https://lichess.org/training/07bVG
+[Re1#]
+7 https://lichess.org/training/080nA
+[Rb8#]
+8 https://lichess.org/training/08SYe
+[Rf1#]
+9 https://lichess.org/training/08g7q
+[Re8#]
+Time: 0.2ms per puzzle took 0s
+Coverage: %91 Accuracy: %100
+Tp/Fp: 116/0 N: 11 Total: 127

@@ -4,13 +4,17 @@ import { bucket_res, Coverage, visual_data_score, Vn } from './gof5.test'
 import { parse_puzzles, Puzzle } from './fixture'
 import { GofUsage, PositionManager, usage, visual_node_log } from '../src'
 
+// @ts-ignore
+const modules = import.meta.glob('./categofer_work/scripts/*.gof?raw', { eager: true })
+
 let m = await PositionManager.make()
 
 
 function categorize_run_with_cache() {
 
     let scripts_base_dir = import.meta.dirname + '/categofer_work/scripts'
-    let logs_base_dir = import.meta.dirname + '/categofer_work/logs'
+    let logs_base_dir = import.meta.dirname + '/categofer_work/x_logs'
+
 
     if (!fs.existsSync(logs_base_dir)) {
         fs.mkdirSync(logs_base_dir)
@@ -113,7 +117,7 @@ function make_gof_runner_categorize(script_path: string, input_path: string, out
 
 function runner(gof_run: GofUsage, base_path: string, log_puzzles: Puzzle[], skips: number[], only_config: number) {
 
-    let output_path = `${base_path}._output.text`
+    let output_path = `${base_path}._output.txt`
 
     function find_Vn(i: number) {
 

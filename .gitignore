@@ -1,5 +1,5 @@
-test/categofer_work/logs/*.input
-test/categofer_work/logs/hashes.txt
+test/categofer_work/x_logs/*.input
+test/categofer_work/x_logs/hashes.txt
 
 # Logs
 logs

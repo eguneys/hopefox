@@ -1,0 +1,45 @@
+C:\Users\eguneys\Documents\GitHub\hopefox\test/categofer_work/x_logs/backrank4._negatives.input
+Time: 0.4ms per puzzle took 0s
+Coverage: %0 Accuracy: %--
+Tp/Fp: 0/0 N: 154 Total: 154
+----*** False Positives ****----
+----*** Negatives ****----
+0 https://lichess.org/training/00QHM
+[Rc8+ Bd8 Rxd8+ Rf8 Rxf8#]
+if in_backrank_wall { Rc8+ Rf8 }
+ve checks { Rc8+ Rf8 }
+ve only_blocks_attack { Rc8+ Rf8 }
+ if captures { Rc8+ Rf8 Rxf8# }
+
+1 https://lichess.org/training/01749
+[Ra8+ Rb8 Rxb8+ Rc8 Rxc8#]
+if in_backrank_wall { Ra8+ Rb8 }.
+ve checks { Ra8+ Rb8 }.
+ve only_blocks_attack { Ra8+ Rb8 }.
+ if captures { Ra8+ Rb8 Rxb8+ }.
+
+2 https://lichess.org/training/01Vbe
+[Rc1+ Rd1 Rxd1+ Qxd1 Bxd1]
+if in_backrank_wall { Rc1+ Rd1 }
+ve checks { Rc1+ Rd1 }
+ve only_blocks_attack { Rc1+ Rd1 }
+ if captures { Rc1+ Rd1 Rxd1+ }
+
+3 https://lichess.org/training/01wOb
+[Re8+ Rf8 Qxf8#]
+4 https://lichess.org/training/01zxo
+[Rd8+ Rf8 Rfxf8#]
+5 https://lichess.org/training/02bsO
+[Rf8+ Rc8 Rcxc8#]
+6 https://lichess.org/training/03Ika
+[Rd1+ Rf1 Rxg2+ Kh1 Rxf1#]
+7 https://lichess.org/training/03dR1
+[Re8+ Rf8 Rfxf8#]
+8 https://lichess.org/training/05Mdg
+[Rc1+ Rd1 Rxd1+ Rf1 Rxf1#]
+9 https://lichess.org/training/073l1
+[Re1+ Rf1 Qe3+ Kh1 Rxf1#]
+----*** Positives ****----
+Time: 0.4ms per puzzle took 0s
+Coverage: %0 Accuracy: %--
+Tp/Fp: 0/0 N: 154 Total: 154
