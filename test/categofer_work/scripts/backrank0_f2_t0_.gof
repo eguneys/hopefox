@@ -1,4 +1,4 @@
-'input=backrank0_f2._true_positives.input
+'input=backrank0_f2_._true_positives.input
 ===
 
 if in_backrank_wall(king, pawn, pawn2, pawn3) [win]

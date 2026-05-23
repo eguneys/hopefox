@@ -6,6 +6,10 @@ We will talk with lists and numbers, by essentially data mining the Lichess Puzz
 
 Be fore-warned that some errors or inaccurate information may be present in this article, while we rely on Gof Chess which is in a very early stage, so **Please Make Sure to Leave your Feedback ** which is very important to us.
 
+As the nature of this post, while covering the numbers, we will skip some branching alternative numbers for the sake of the narrative, but they will also be covered as special cases in the end.
+
+Finally the full lists and numbers will be available as a spreadsheet and separate links at the end of this post. And some sample of the examples for each case will be provided as a separate Lichess study dedicated to it.
+
 ## A. Anatomy of BackRank Mate in Ones
 
 We can look for a backrank mate if the king is in a backrank wall. A backrank wall is where king is on the backrank, and the 3 forward squares the king can go to are occupied by king's own pawns.
@@ -42,7 +46,17 @@ _That leaves 357 puzzles involving their blocking rook is not hanging which agai
 
 Our journey continues, with 17.268 puzzles capturing the blocking rook. To recap, we check the king in the backrank, their rook blocks and hanging, and we capture the hanging rook.
 
+_2473 puzzles are remaining as another special case here_
+
 17.226 puzzles ends with a checkmate after we capture the hanging rook. That's basically a Mate in 2. Checking the backrank and their rook is blocking desperado after we deliver checkmate by capturing it.
+
+41 puzzles continues after we capture the hanging rook. 
+
+_And the remaining 1 puzzle is another special case._
+
+Out of those 41 puzzles, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check.s, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check.s, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check. We are up a rook and the puzzle ends.
+
+The remaining 8 puzzles are instead of bishop blocking, either the queen blocks, or a knight blocks protected by the queen.
 
 ## C. Opponent can capture our rook
 

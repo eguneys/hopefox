@@ -1,0 +1,97 @@
+data/backrank0_pawn_and_pieces.log
+Time: 0.6ms per puzzle took 46s
+Coverage: %70 Accuracy: %11
+Tp/Fp: 5682/44124 N: 21816 Total: 71622
+----*** False Positives ****----
+0 https://lichess.org/training/001Wz
+[Rd8+ Re8 Rxe8#]
+if in_backrank_wall { Rd8+ }..
+ve checks { Rd8+ }..
+
+2 https://lichess.org/training/007XE
+[Rd1+ Re1 Rxe1#]
+if in_backrank_wall { Rd1+ }..
+ve checks { Rd1+ }..
+
+3 https://lichess.org/training/008GK
+[Rf8+ Rd8 Rxd8#]
+if in_backrank_wall { Rf8+ }..
+ve checks { Rf8+ }..
+
+4 https://lichess.org/training/0092z
+[Qxf7+ Kh8 Qxg7#]
+6 https://lichess.org/training/00DYf
+[Rc1+ Rxc1 Rxc1#]
+9 https://lichess.org/training/00LdT
+[Re8+ Rxe8 Qxe8#]
+10 https://lichess.org/training/00NAM
+[Re8+ Rxe8 Qxe8#]
+12 https://lichess.org/training/00R4l
+[Rxa7 Rxa7 Re1+ Bf1 Bf5]
+13 https://lichess.org/training/00RYH
+[Re8+ Rxe8 Rxe8#]
+15 https://lichess.org/training/00dpQ
+[Rc8+ Re8 Rxe8#]
+----*** Negatives ****----
+1 https://lichess.org/training/005YM
+[Rxf2 Kxf2 Nxd4 Qxd4 Qb2+]
+if in_backrank_wall 
+ve checks 
+
+5 https://lichess.org/training/00Aq4
+[Re1+ Rd1 Bxf4+ Kb1 Rxd1#]
+if in_backrank_wall 
+ve checks 
+
+7 https://lichess.org/training/00F6y
+[Re8+ Bxe8 Rxe8+ Rxe8 Qxe8#]
+if in_backrank_wall 
+ve checks 
+
+8 https://lichess.org/training/00JET
+[Rc8+ Rd8 Rxd8#]
+11 https://lichess.org/training/00QHM
+[Rc8+ Bd8 Rxd8+ Rf8 Rxf8#]
+14 https://lichess.org/training/00bFH
+[Re1+ Rxe1 Qxb3]
+20 https://lichess.org/training/0109V
+[Qxh7+ Kf8 Qh8#]
+23 https://lichess.org/training/01BNN
+[Qxf7+ Kh8 Qxg7#]
+26 https://lichess.org/training/01N7E
+[Rd8+ Rxd8 Rxd8#]
+33 https://lichess.org/training/01m0z
+[Ra8+ Rb8 Rxb8#]
+----*** Positives ****----
+62867 https://lichess.org/training/008Nz
+[Rd8#]
+if in_backrank_wall { Rd8# }..
+ve checks { Rd8# }..
+
+62868 https://lichess.org/training/00BQD
+[Re1#]
+if in_backrank_wall { Re1# }..
+ve checks { Re1# }..
+
+62870 https://lichess.org/training/01S1N
+[Ra8#]
+if in_backrank_wall { Ra8# }..
+ve checks { Ra8# }..
+
+62871 https://lichess.org/training/01qHx
+[Rc1#]
+62873 https://lichess.org/training/02Bm1
+[Rd1#]
+62875 https://lichess.org/training/02QUs
+[Rd8#]
+62877 https://lichess.org/training/03QVV
+[Rc1#]
+62878 https://lichess.org/training/03Ulb
+[Rd8#]
+62881 https://lichess.org/training/04nHB
+[Re8#]
+62882 https://lichess.org/training/05US6
+[Rd1#]
+Time: 0.6ms per puzzle took 46s
+Coverage: %70 Accuracy: %11
+Tp/Fp: 5682/44124 N: 21816 Total: 71622

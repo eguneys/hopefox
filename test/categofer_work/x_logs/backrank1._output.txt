@@ -1,0 +1,70 @@
+x_logs/backrank0_._true_positives.input
+Time: 0.9ms per puzzle took 5s
+Coverage: %100 Accuracy: %100
+Tp/Fp: 5674/0 N: 8 Total: 5682
+----*** False Positives ****----
+----*** Negatives ****----
+120 https://lichess.org/training/1FJ8e
+[Re1+]
+if in_backrank_wall 
+ve checks 
+ve attack_is_checkmate 
+
+1969 https://lichess.org/training/LdSe3
+[Rd8+]
+if in_backrank_wall 
+ve checks 
+ve attack_is_checkmate 
+
+2248 https://lichess.org/training/OkbXn
+[Rc1+]
+if in_backrank_wall 
+ve checks 
+ve attack_is_checkmate 
+
+2301 https://lichess.org/training/PLML2
+[Ra1+]
+2687 https://lichess.org/training/TR4q0
+[Rc1+]
+3097 https://lichess.org/training/YWvxq
+[Rd1+]
+3242 https://lichess.org/training/Zs8d4
+[Re8+]
+4901 https://lichess.org/training/rsFrq
+[Rd8+]
+----*** Positives ****----
+0 https://lichess.org/training/008Nz
+[Rd8#]
+if in_backrank_wall { Rd8# }..
+ve checks { Rd8# }..
+ve attack_is_checkmate { Rd8# }..
+
+1 https://lichess.org/training/00BQD
+[Re1#]
+if in_backrank_wall { Re1# }..
+ve checks { Re1# }..
+ve attack_is_checkmate { Re1# }..
+
+2 https://lichess.org/training/01S1N
+[Ra8#]
+if in_backrank_wall { Ra8# }..
+ve checks { Ra8# }..
+ve attack_is_checkmate { Ra8# }..
+
+3 https://lichess.org/training/01qHx
+[Rc1#]
+4 https://lichess.org/training/02Bm1
+[Rd1#]
+5 https://lichess.org/training/02QUs
+[Rd8#]
+6 https://lichess.org/training/03QVV
+[Rc1#]
+7 https://lichess.org/training/03Ulb
+[Rd8#]
+8 https://lichess.org/training/04nHB
+[Re8#]
+9 https://lichess.org/training/05US6
+[Rd1#]
+Time: 0.9ms per puzzle took 5s
+Coverage: %100 Accuracy: %100
+Tp/Fp: 5674/0 N: 8 Total: 5682

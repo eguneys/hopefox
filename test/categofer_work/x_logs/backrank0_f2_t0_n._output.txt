@@ -1,0 +1,88 @@
+x_logs/backrank0_f2_t0_._negatives.input
+Time: 1.7ms per puzzle took 0s
+Coverage: %80 Accuracy: %100
+Tp/Fp: 33/0 N: 8 Total: 41
+----*** False Positives ****----
+----*** Negatives ****----
+6 https://lichess.org/training/9aJsg
+[Rc1+ Re1 Rxe1+]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+ve hanging 
+ve captures 
+ve only_blocks_attack 
+
+10 https://lichess.org/training/ORUcy
+[Rc8+ Re8 Rxe8+]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+ve hanging 
+ve captures 
+ve only_blocks_attack 
+
+11 https://lichess.org/training/R7dk4
+[Rc8+ Re8 Rxe8+]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+ve hanging 
+ve captures 
+ve only_blocks_attack 
+
+13 https://lichess.org/training/RvCpe
+[Rb1+ Re1 Rxe1+]
+15 https://lichess.org/training/TXAJ2
+[Rb8+ Rd8 Rxd8+]
+17 https://lichess.org/training/W0IyZ
+[Rc1+ Rd1 Rxd1+]
+23 https://lichess.org/training/cfHyw
+[Rd8+ Re8 Rxe8+]
+39 https://lichess.org/training/x77CD
+[Ra8+ Re8 Rxe8+]
+----*** Positives ****----
+0 https://lichess.org/training/2Bry9
+[Rc1+ Re1 Rxe1+]
+if in_backrank_wall { Rc1+ Re1 Rxe1+ Bf1 }..
+ve checks { Rc1+ Re1 Rxe1+ Bf1 }..
+ve only_blocks_attack { Rc1+ Re1 Rxe1+ Bf1 }..
+ve hanging { Rc1+ Re1 Rxe1+ Bf1 }..
+ve captures { Rc1+ Re1 Rxe1+ Bf1 }..
+ve only_blocks_attack { Rc1+ Re1 Rxe1+ Bf1 }..
+
+1 https://lichess.org/training/3HqxA
+[Rd8+ Re8 Rxe8+]
+if in_backrank_wall { Rd8+ Re8 Rxe8+ Bf8 }..
+ve checks { Rd8+ Re8 Rxe8+ Bf8 }..
+ve only_blocks_attack { Rd8+ Re8 Rxe8+ Bf8 }..
+ve hanging { Rd8+ Re8 Rxe8+ Bf8 }..
+ve captures { Rd8+ Re8 Rxe8+ Bf8 }..
+ve only_blocks_attack { Rd8+ Re8 Rxe8+ Bf8 }..
+
+2 https://lichess.org/training/3VBaP
+[Rd1+ Re1 Rxe1+]
+if in_backrank_wall { Rd1+ Re1 Rxe1+ Bf1 }..
+ve checks { Rd1+ Re1 Rxe1+ Bf1 }..
+ve only_blocks_attack { Rd1+ Re1 Rxe1+ Bf1 }..
+ve hanging { Rd1+ Re1 Rxe1+ Bf1 }..
+ve captures { Rd1+ Re1 Rxe1+ Bf1 }..
+ve only_blocks_attack { Rd1+ Re1 Rxe1+ Bf1 }..
+
+3 https://lichess.org/training/3sfqI
+[Rd1+ Re1 Rxe1+]
+4 https://lichess.org/training/4fSj5
+[Rd1+ Re1 Rxe1+]
+5 https://lichess.org/training/83R17
+[Ra1+ Rd1 Rxd1+]
+7 https://lichess.org/training/FXEEq
+[Rd1+ Re1 Rxe1+]
+8 https://lichess.org/training/KKq65
+[Rd1+ Re1 Rxe1+]
+9 https://lichess.org/training/NTwhn
+[Rb8+ Re8 Rxe8+]
+12 https://lichess.org/training/Ruws2
+[Rd1+ Re1 Rxe1+]
+Time: 1.7ms per puzzle took 0s
+Coverage: %80 Accuracy: %100
+Tp/Fp: 33/0 N: 8 Total: 41

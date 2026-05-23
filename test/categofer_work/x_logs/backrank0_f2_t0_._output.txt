@@ -1,0 +1,101 @@
+x_logs/backrank0_f2_._true_positives.input
+Time: 1.5ms per puzzle took 26s
+Coverage: %100 Accuracy: %100
+Tp/Fp: 17226/1 N: 41 Total: 17268
+----*** False Positives ****----
+16806 https://lichess.org/training/yKd1C
+[Rc8+ Rd8 Rxd8+]
+if in_backrank_wall { Rc8+ Re8 Rxe8# }..
+ve checks { Rc8+ Re8 Rxe8# }..
+ve only_blocks_attack { Rc8+ Re8 Rxe8# }..
+ve hanging { Rc8+ Re8 Rxe8# }..
+ve captures { Rc8+ Re8 Rxe8# }..
+ve attack_is_checkmate { Rc8+ Re8 Rxe8# }..
+
+----*** Negatives ****----
+626 https://lichess.org/training/2Bry9
+[Rc1+ Re1 Rxe1+]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+ve hanging 
+ve captures 
+ve attack_is_checkmate 
+
+909 https://lichess.org/training/3HqxA
+[Rd8+ Re8 Rxe8+]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+ve hanging 
+ve captures 
+ve attack_is_checkmate 
+
+965 https://lichess.org/training/3VBaP
+[Rd1+ Re1 Rxe1+]
+if in_backrank_wall 
+ve checks 
+ve only_blocks_attack 
+ve hanging 
+ve captures 
+ve attack_is_checkmate 
+
+1068 https://lichess.org/training/3sfqI
+[Rd1+ Re1 Rxe1+]
+1286 https://lichess.org/training/4fSj5
+[Rd1+ Re1 Rxe1+]
+2216 https://lichess.org/training/83R17
+[Ra1+ Rd1 Rxd1+]
+2616 https://lichess.org/training/9aJsg
+[Rc1+ Re1 Rxe1+]
+4290 https://lichess.org/training/FXEEq
+[Rd1+ Re1 Rxe1+]
+5583 https://lichess.org/training/KKq65
+[Rd1+ Re1 Rxe1+]
+6493 https://lichess.org/training/NTwhn
+[Rb8+ Re8 Rxe8+]
+----*** Positives ****----
+0 https://lichess.org/training/001Wz
+[Rd8+ Re8 Rxe8#]
+if in_backrank_wall { Rd8+ Re8 Rxe8# }..
+ve checks { Rd8+ Re8 Rxe8# }..
+ve only_blocks_attack { Rd8+ Re8 Rxe8# }..
+ve hanging { Rd8+ Re8 Rxe8# }..
+ve captures { Rd8+ Re8 Rxe8# }..
+ve attack_is_checkmate { Rd8+ Re8 Rxe8# }..
+
+1 https://lichess.org/training/007XE
+[Rd1+ Re1 Rxe1#]
+if in_backrank_wall { Rd1+ Re1 Rxe1# }..
+ve checks { Rd1+ Re1 Rxe1# }..
+ve only_blocks_attack { Rd1+ Re1 Rxe1# }..
+ve hanging { Rd1+ Re1 Rxe1# }..
+ve captures { Rd1+ Re1 Rxe1# }..
+ve attack_is_checkmate { Rd1+ Re1 Rxe1# }..
+
+2 https://lichess.org/training/008GK
+[Rf8+ Rd8 Rxd8#]
+if in_backrank_wall { Rf8+ Rd8 Rxd8# }..
+ve checks { Rf8+ Rd8 Rxd8# }..
+ve only_blocks_attack { Rf8+ Rd8 Rxd8# }..
+ve hanging { Rf8+ Rd8 Rxd8# }..
+ve captures { Rf8+ Rd8 Rxd8# }..
+ve attack_is_checkmate { Rf8+ Rd8 Rxd8# }..
+
+3 https://lichess.org/training/00dpQ
+[Rc8+ Re8 Rxe8#]
+4 https://lichess.org/training/00jOm
+[Rb1+ Rc1 Rxc1#]
+5 https://lichess.org/training/00zVd
+[Rd1+ Re1 Rxe1#]
+6 https://lichess.org/training/01337
+[Re8+ Rd8 Rxd8#]
+7 https://lichess.org/training/01MPw
+[Rd1+ Re1 Rxe1#]
+8 https://lichess.org/training/01Siq
+[Rh1+ Rd1 Rxd1#]
+9 https://lichess.org/training/01srl
+[Rc1+ Re1 Rxe1#]
+Time: 1.5ms per puzzle took 26s
+Coverage: %100 Accuracy: %100
+Tp/Fp: 17226/1 N: 41 Total: 17268
