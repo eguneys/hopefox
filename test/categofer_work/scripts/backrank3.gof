@@ -1,0 +1,23 @@
+'input=data/a_hundred_puzzles.csv
+===
+
+if in_backrank_wall(king, pawn, pawn2, pawn3) [win]
+ve checks(rook, rook2, king)
+ve only_blocks_attack(rook2, king, rook3, rook4)
+
+###
+
+def in_backrank_wall(King, A, B, C)
+  backrank_wall(King, A, B, C)
+
+def checks(From, To, King)
+  move(From, To)
+  attack(To, King)
+  opposite(To, King)
+
+
+def only_blocks_attack(From, King, BlockFrom, BlockTo)
+  no_captures(From)
+  no_king_evades(King)
+  move(BlockFrom, BlockTo)
+  attack_through(From, King, BlockTo)

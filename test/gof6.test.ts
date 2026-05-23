@@ -4,29 +4,36 @@ import { bucket_res, Coverage, visual_data_score, Vn } from './gof5.test'
 import { parse_puzzles, Puzzle } from './fixture'
 import { GofUsage, PositionManager, usage, visual_node_log } from '../src'
 
-//@ts-ignore
-import './categofer_work/backrank0.gof?raw'
-
 let m = await PositionManager.make()
 
 
 function categorize_run_with_cache() {
-    let res = fs.readdirSync(__dirname + '/categofer_work')
+
+    let scripts_base_dir = import.meta.dirname + '/categofer_work/scripts'
+    let logs_base_dir = import.meta.dirname + '/categofer_work/logs'
+
+    let res = fs.readdirSync(scripts_base_dir)
 
     let scripts = res.filter(_ => _.split('.')[1] === 'gof')
 
     scripts.sort()
 
-    let hashes_path = __dirname + '/categofer_work/hashes.txt'
+
+    let hashes_path = logs_base_dir + '/hashes.txt'
+
     if (!fs.existsSync(hashes_path)) {
         fs.writeFileSync(hashes_path, '{}')
     }
     let hashes = JSON.parse(fs.readFileSync(hashes_path).toString())
 
-    for (let script_path of scripts) {
+    for (let script_dot_gof of scripts) {
 
+        let filename = script_dot_gof.split('.')[0]
 
-        let aa = fs.readFileSync(__dirname + '/categofer_work/' + script_path).toString()
+        let script_path = scripts_base_dir + `/${script_dot_gof}`
+        let output_base_path = `${logs_base_dir}/${filename}`
+
+        let aa = fs.readFileSync(script_path).toString()
 
         let existing_hash = hashes[script_path]
 
@@ -39,15 +46,15 @@ function categorize_run_with_cache() {
         let m = aa.match(/input=([^\s]*)/)
 
         if (m) {
-            let input = m[1]
+            let input_path = m[1]
 
-            if (!fs.existsSync(input)) {
-                console.warn(`Input File doesn't exist ${input} for ${script_path}`)
+            if (!fs.existsSync(input_path)) {
+                console.warn(`Input File doesn't exist ${input_path} for ${script_path}`)
                 continue
             }
 
 
-            let res = make_gof_runner_categorize(script_path, input)
+            let res = make_gof_runner_categorize(script_path, input_path, output_base_path)
 
             res()
         }
@@ -62,10 +69,8 @@ it('works', () => {
 })
 
 
-function make_gof_runner_categorize(path: string, input_path: string) {
+function make_gof_runner_categorize(script_path: string, input_path: string, output_base_path: string) {
 
-    let script_path = __dirname + `/categofer_work/${path}`
-    let output_path = `categofer_work/${path.split('.')[0]}`
 
     const log_puzzles = parse_puzzles(fs.readFileSync(input_path).toString())
 
@@ -88,7 +93,10 @@ function make_gof_runner_categorize(path: string, input_path: string) {
 
     return () => {
 
-        runner(gof_run, output_path, log_puzzles, skips_config, only_config)
+        let output_path = `${output_base_path}._output.text`
+        cf_begin(output_path)
+        cf_log(output_path, input_path)
+        runner(gof_run, output_base_path, log_puzzles, skips_config, only_config)
     }
 
 }
@@ -148,7 +156,6 @@ function runner(gof_run: GofUsage, base_path: string, log_puzzles: Puzzle[], ski
     let Tp = coverage.filter(_ => _.tp.length > 0)
 
     let elapsed = performance.now() - start_now
-    cf_begin(output_path)
     log_coverage(output_path, N.length, Fp.length, Tp.length, elapsed)
     log_trees(base_path, log_puzzles, N, Fp, Tp)
     log_coverage(output_path, N.length, Fp.length, Tp.length, elapsed)
@@ -156,15 +163,15 @@ function runner(gof_run: GofUsage, base_path: string, log_puzzles: Puzzle[], ski
 
 
 export function cf_begin(path: string) {
-    fs.writeFileSync(__dirname + `/${path}`, '')
+    fs.writeFileSync(path, '')
 }
-export function cf_log (path: string, str: string) {
-    fs.appendFileSync(__dirname + `/${path}`, str + '\n')
+export function cf_log(path: string, str: string) {
+    fs.appendFileSync(path, str + '\n')
     console.log(str)
 }
 
 export function export_log(path: string, str: string) {
-    fs.writeFileSync(__dirname + `/${path}`, str)
+    fs.writeFileSync(path, str)
 }
 
 

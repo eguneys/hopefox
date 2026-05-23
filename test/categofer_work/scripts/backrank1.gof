@@ -1,0 +1,21 @@
+'input=test/categofer_work/backrank0._true_positives.txt
+===
+
+if in_backrank_wall(king, pawn, pawn2, pawn3) [win]
+ve checks(rook, rook2, king)
+ve attack_is_checkmate(rook2, king)
+
+###
+
+def in_backrank_wall(King, A, B, C)
+  backrank_wall(King, A, B, C)
+
+def checks(From, To, King)
+  move(From, To)
+  attack(To, King)
+  opposite(To, King)
+
+def attack_is_checkmate(From, King)
+  no_blocks_check(From, King)
+  no_captures(From)
+  no_king_evades(King)
