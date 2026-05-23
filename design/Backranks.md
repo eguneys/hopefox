@@ -14,7 +14,12 @@ At this point, we have to see what the opponent can do. The definition of a chec
 
 The check on the backrank with the rook while the king is in a backrank wall already tells us that king cannot evade this check. So there are 2 cases we have to consider, or a little bit more.
 
-If opponent cannot capture our rook, and cannot block the check, it's a checkmate, that's mate in 1. Because note that king cannot evade the check by our definitions.
+If opponent cannot capture our rook, and cannot block the check, it's a checkmate, that's a mate in 1. Because note that king cannot evade the check by our definitions.
 
 
 ## B. Opponent can block the check
+
+When we capture the blocking rook 
+
+## C. Opponent can capture our rook
+

@@ -1,3 +1,4 @@
+data/
 test/categofer_work/x_logs/*.input
 test/categofer_work/x_logs/hashes.txt
 

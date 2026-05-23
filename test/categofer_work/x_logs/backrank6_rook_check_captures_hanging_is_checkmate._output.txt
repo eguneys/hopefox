@@ -1,0 +1,82 @@
+C:\Users\eguneys\Documents\GitHub\hopefox\test/categofer_work/x_logs/backrank4._true_positives.input
+Time: 0.5ms per puzzle took 0s
+Coverage: %99 Accuracy: %100
+Tp/Fp: 558/0 N: 8 Total: 566
+----*** False Positives ****----
+----*** Negatives ****----
+133 https://lichess.org/training/0gH1g
+[Rg1+ Rd1 Rxd1#]
+if in_backrank_wall { Rg1+ Rd1 }
+ve checks { Rg1+ Rd1 }
+ve only_blocks_attack { Rg1+ Rd1 }
+ if captures 
+ ve attack_is_checkmate 
+
+164 https://lichess.org/training/0lWSQ
+[Rc8+ Rd8 Rxd8#]
+if in_backrank_wall { Rc8+ Rd8 }
+ve checks { Rc8+ Rd8 }
+ve only_blocks_attack { Rc8+ Rd8 }
+ if captures 
+ ve attack_is_checkmate 
+
+382 https://lichess.org/training/1t5p9
+[Re1+ Rf1 Rxf1+]
+if in_backrank_wall { Re1+ Rf1 }
+ve checks { Re1+ Rf1 }
+ve only_blocks_attack { Re1+ Rf1 }
+ if captures 
+ ve attack_is_checkmate 
+
+387 https://lichess.org/training/1v8gb
+[Rd8+ Re8 Rxe8#]
+413 https://lichess.org/training/247Uc
+[Rd8+ Rf8 Rxf8+]
+425 https://lichess.org/training/298R6
+[Rd1+ Re1 Rxe1#]
+437 https://lichess.org/training/2Bry9
+[Rc1+ Re1 Rxe1+]
+476 https://lichess.org/training/2Lv9r
+[Rd1+ Re1 Rxe1#]
+----*** Positives ****----
+1 https://lichess.org/training/001Wz
+[Rd8+ Re8 Rxe8#]
+if in_backrank_wall { Rd8+ Re8 }
+ve checks { Rd8+ Re8 }
+ve only_blocks_attack { Rd8+ Re8 }
+ if captures { Rd8+ Re8 Rxe8# }
+ ve attack_is_checkmate { Rd8+ Re8 Rxe8# }
+
+2 https://lichess.org/training/007XE
+[Rd1+ Re1 Rxe1#]
+if in_backrank_wall { Rd1+ Re1 }
+ve checks { Rd1+ Re1 }
+ve only_blocks_attack { Rd1+ Re1 }
+ if captures { Rd1+ Re1 Rxe1# }
+ ve attack_is_checkmate { Rd1+ Re1 Rxe1# }
+
+3 https://lichess.org/training/008GK
+[Rf8+ Rd8 Rxd8#]
+if in_backrank_wall { Rf8+ Rd8 }
+ve checks { Rf8+ Rd8 }
+ve only_blocks_attack { Rf8+ Rd8 }
+ if captures { Rf8+ Rd8 Rxd8# }
+ ve attack_is_checkmate { Rf8+ Rd8 Rxd8# }
+
+4 https://lichess.org/training/00dpQ
+[Rc8+ Re8 Rxe8#]
+5 https://lichess.org/training/01337
+[Re8+ Rd8 Rxd8#]
+6 https://lichess.org/training/01MPw
+[Rd1+ Re1 Rxe1#]
+7 https://lichess.org/training/01srl
+[Rc1+ Re1 Rxe1#]
+8 https://lichess.org/training/028aJ
+[Ra8+ Rd8 Rxd8#]
+9 https://lichess.org/training/02QKd
+[Ra8+ Rc8 Rxc8#]
+10 https://lichess.org/training/02fqW
+[Rc1+ Re1 Rxe1#]
+Time: 0.5ms per puzzle took 0s
+Coverage: %99 Accuracy: %100
+Tp/Fp: 558/0 N: 8 Total: 566

@@ -1,0 +1,4 @@
+- in_backrank_wall and our rook checks and their rook blocks
+  = their rook is hanging
+  = their rook is protected by the king
+  = their rook is protected by a pinned piece

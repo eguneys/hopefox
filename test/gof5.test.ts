@@ -42,7 +42,7 @@ export type Vn = {
     n: Visual_CompositeNestedGraphNode[]
 }
 
-export type Coverage = Vn[]
+type Coverage = Vn[]
 
 function is_positive(node: Visual_CompositeNestedGraphNode, solution: string[]) {
     function false_conditions(node: Visual_CompositeNestedGraphNode): boolean {

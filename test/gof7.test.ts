@@ -1,15 +1,20 @@
-import fs from 'fs'
 import { it } from 'vitest'
-import { bucket_res, Coverage, visual_data_score, Vn } from './gof5.test'
+import { GofUsage, PositionManager, usage, Visual_CompositeNestedGraphNode, visual_node_log } from '../src'
+import fs from 'fs'
+import { cf_begin, cf_log, export_log, export_log_append, generateHash, log_coverage, solve_in_lines } from './gof6.test'
+import { bucket_res, visual_data_score } from './gof5.test'
 import { parse_puzzles, Puzzle } from './fixture'
-import { GofUsage, PositionManager, usage, visual_node_log } from '../src'
 
 // @ts-ignore
-const modules = import.meta.glob('./categofer_work/scripts/*.gof?raw', { eager: true })
+const modules = import.meta.glob('./categofer_work/scripts/*.gof?raw')
+
 let m = await PositionManager.make()
 
+it('works', async () => {
+    await categorize_run_with_cache()
+}, { timeout: 1000000 })
 
-function categorize_run_with_cache() {
+async function categorize_run_with_cache() {
 
     let scripts_base_dir = import.meta.dirname + '/categofer_work/scripts'
     let logs_base_dir = import.meta.dirname + '/categofer_work/x_logs'
@@ -67,7 +72,7 @@ function categorize_run_with_cache() {
 
             let res = make_gof_runner_categorize(script_path, input_path, output_base_path)
 
-            res()
+            await res()
         }
     }
 
@@ -75,15 +80,9 @@ function categorize_run_with_cache() {
     fs.writeFileSync(hashes_path, JSON.stringify(hashes))
 }
 
-it.skip('works', () => {
-    categorize_run_with_cache()
-})
 
 
 function make_gof_runner_categorize(script_path: string, input_path: string, output_base_path: string) {
-
-
-    const log_puzzles = parse_puzzles(fs.readFileSync(input_path).toString())
 
     let data = fs.readFileSync(script_path).toString()
     let [skips_config_str, only_config_str] = data.split('===')[0].trim().split('\n')
@@ -102,112 +101,134 @@ function make_gof_runner_categorize(script_path: string, input_path: string, out
 
     let gof_run = usage(data)
 
-    return () => {
+    return async () => {
 
         let output_path = `${output_base_path}._output.txt`
-        cf_begin(output_path)
-        cf_log(output_path, input_path)
-        runner(gof_run, output_base_path, log_puzzles, skips_config, only_config)
+        await runner(gof_run, output_base_path, input_path, skips_config, only_config)
     }
-
 }
 
 
-
-function runner(gof_run: GofUsage, base_path: string, log_puzzles: Puzzle[], skips: number[], only_config: number) {
+async function runner(gof_run: GofUsage, base_path: string, input_path: string, skips: number[], only_config: number) {
 
     let output_path = `${base_path}._output.txt`
 
-    function find_Vn(i: number) {
-
-        let solution = log_puzzles[i].sans
-
-        let pos = m.create_position(log_puzzles[i].move_fens[0])
-        let res = gof_run(m, pos)
-        m.delete_position(pos)
-
-        let { tp, fp, n } = bucket_res(res, solution)
-
-        return {
-            i,
-            tp,
-            fp,
-            n
-        }
-    }
-
-
-
 
     let start_now = performance.now()
-    let total = log_puzzles.length
+    let total = 0
     let coverage: Coverage = []
 
-    let should_break = false
-    for (let i = 0; i < total; i++) {
-        if (skips.includes(i)) continue
+    let N_length = 0
+    let Tp_length = 0
+    let Fp_length = 0
+
+    await solve_in_lines(input_path, async (line: string, i: number) => {
+
+        if (i % 10000 === 0) {
+            cf_begin(output_path)
+            cf_log(output_path, input_path)
+            cf_log(output_path, `Progress nb: ${i}`)
+        }
+
+        if (i % 100000 === 0) {
+
+            let N = coverage.filter(_ => _.tp.length === 0 && _.fp.length === 0)
+            let Fp = coverage.filter(_ => _.tp.length === 0 && _.fp.length > 0)
+            let Tp = coverage.filter(_ => _.tp.length > 0)
+
+            N_length += N.length
+            Tp_length += Tp.length
+            Fp_length += Fp.length
+
+            export_log_append_input_output(base_path, N, Fp, Tp, i === 0)
+
+            coverage = []
+        }
+
+        let should_break = false
+        if (skips.includes(i)) return false
         if (only_config !== -1) {
             i = only_config
             should_break = true
         }
         try {
-            coverage.push(find_Vn(i))
+            coverage.push(find_Vn(gof_run, parse_puzzles(line)[0], i))
         } catch (e) {
             cf_begin(output_path)
             cf_log(output_path, `${e}`)
-            break
+            return false
         }
         if (should_break) {
-            break
+            return true
         }
-    }
 
+        return false
+    })
+
+    cf_begin(output_path)
+    cf_log(output_path, input_path)
     let N = coverage.filter(_ => _.tp.length === 0 && _.fp.length === 0)
     let Fp = coverage.filter(_ => _.tp.length === 0 && _.fp.length > 0)
     let Tp = coverage.filter(_ => _.tp.length > 0)
 
+    N_length += N.length
+    Tp_length += Tp.length
+    Fp_length += Fp.length
+
+
+
     let elapsed = performance.now() - start_now
-    log_coverage(output_path, N.length, Fp.length, Tp.length, elapsed)
-    log_trees(base_path, log_puzzles, N, Fp, Tp)
-    log_coverage(output_path, N.length, Fp.length, Tp.length, elapsed)
+    log_coverage(output_path, N_length, Fp_length, Tp_length, elapsed)
+    log_trees(base_path, N, Fp, Tp)
+    log_coverage(output_path, N_length, Fp_length, Tp_length, elapsed)
+
+    export_log_append_input_output(base_path, N, Fp, Tp, false)
 }
 
 
-export function cf_begin(path: string) {
-    fs.writeFileSync(path, '')
-}
-export function cf_log(path: string, str: string) {
-    fs.appendFileSync(path, str + '\n')
-    console.log(str)
-}
 
-export function export_log(path: string, str: string) {
-    fs.writeFileSync(path, str)
-}
-export function export_log_append(path: string, str: string) {
-    fs.appendFileSync(path, str)
-}
+export function find_Vn(gof_run: GofUsage, puzzle: Puzzle, i: number): Vn {
 
+    let { line, link, sans } = puzzle
+    let solution = puzzle.sans
 
-export function log_coverage(path: string, N: number, Fp: number, Tp: number, elapsed: number) {
-    let TpFp = Tp + Fp
-    let Total = TpFp + N
-    let C_percent: any = Math.round(TpFp / Total * 100)
-    let A_percent: any = Math.round(Tp / TpFp * 100)
-    if (isNaN(C_percent)) C_percent = '--'
-    if (isNaN(A_percent)) A_percent = '--'
-    cf_log(path, `Time: ${Math.floor(elapsed / Total * 10) / 10}ms per puzzle took ${Math.round(elapsed/1000)}s`)
-    cf_log(path, `Coverage: %${C_percent} Accuracy: %${A_percent}`)
-    cf_log(path, `Tp/Fp: ${Tp}/${Fp} N: ${N} Total: ${Total}`)
+    let pos = m.create_position(puzzle.move_fens[0])
+    let res = gof_run(m, pos)
+    m.delete_position(pos)
+
+    let { tp, fp, n } = bucket_res(res, solution)
+
+    return {
+        i,
+        tp,
+        fp,
+        n,
+        line,
+        link,
+        sans
+    }
 }
 
-function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], Tp: Vn[]) {
-
-    let path = `${base_path}._output.txt`
+function export_log_append_input_output(base_path: string, N: Vn[], Fp: Vn[], Tp: Vn[], first_time: boolean) {
     let false_positives_path = `${base_path}._false_positives.input`
     let true_positives_path = `${base_path}._true_positives.input`
     let negatives_path = `${base_path}._negatives.input`
 
+    if (first_time) {
+        export_log(true_positives_path, Tp.map(_ => _.line).join('\n'))
+        export_log(false_positives_path, Fp.map(_ => _.line).join('\n'))
+        export_log(negatives_path, N.map(_ => _.line).join('\n'))
+    } else {
+        export_log_append(true_positives_path, Tp.map(_ => _.line).join('\n'))
+        export_log_append(false_positives_path, Fp.map(_ => _.line).join('\n'))
+        export_log_append(negatives_path, N.map(_ => _.line).join('\n'))
+    }
+}
+
+
+function log_trees(base_path: string, N: Vn[], Fp: Vn[], Tp: Vn[]) {
+
+    let path = `${base_path}._output.txt`
 
     cf_log(path, `----*** False Positives ****----`)
     log_false_positives(Fp)
@@ -220,8 +241,8 @@ function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], 
     function log_positives(aa: Vn[]) {
         for (let i = 0; i < Math.min(10, aa.length); i++) {
             let a = aa[i]
-            cf_log(path, `${a.i} ${log_puzzles[a.i].link}`)
-            cf_log(path, `[${log_puzzles[a.i].sans.join(' ')}]`)
+            cf_log(path, `${a.i} ${a.link}`)
+            cf_log(path, `[${a.sans.join(' ')}]`)
             if (i > 2) continue
             for (let tp of a.tp) {
                 cf_log(path, visual_node_log([tp]))
@@ -232,8 +253,8 @@ function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], 
     function log_false_positives(aa: Vn[]) {
         for (let i = 0; i < Math.min(10, aa.length); i++) {
             let a = aa[i]
-            cf_log(path, `${a.i} ${log_puzzles[a.i].link}`)
-            cf_log(path, `[${log_puzzles[a.i].sans.join(' ')}]`)
+            cf_log(path, `${a.i} ${a.link}`)
+            cf_log(path, `[${a.sans.join(' ')}]`)
             if (i > 2) continue
             for (let fp of a.fp) {
                 cf_log(path, visual_node_log([fp]))
@@ -244,8 +265,8 @@ function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], 
     function log_negatives(aa: Vn[]) {
         for (let i = 0; i < Math.min(10, aa.length); i++) {
             let a = aa[i]
-            cf_log(path, `${a.i} ${log_puzzles[a.i].link}`)
-            cf_log(path, `[${log_puzzles[a.i].sans.join(' ')}]`)
+            cf_log(path, `${a.i} ${a.link}`)
+            cf_log(path, `[${a.sans.join(' ')}]`)
             if (i > 2) continue
             a.n.sort((a, b) => visual_data_score(b) - visual_data_score(a))
             for (let n of a.n) {
@@ -255,47 +276,16 @@ function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], 
         }
     }
 
-    export_log(true_positives_path, Tp.map(_ => log_puzzles[_.i].line).join('\n'))
-    export_log(false_positives_path, Fp.map(_ => log_puzzles[_.i].line).join('\n'))
-    export_log(negatives_path, N.map(_ => log_puzzles[_.i].line).join('\n'))
 }
 
-
-export const generateHash = (str: string) => {
-  let hash = 0;
-  for (const char of str) {
-    hash = (hash << 5) - hash + char.charCodeAt(0);
-    hash |= 0; // Constrain to 32bit integer
-  }
-  return hash;
-};
-
-
-import readline from 'readline'
-
-async function processStreamLineByLine(stream: fs.ReadStream, processor: (line: string, lineNumber: number) => Promise<boolean>) {
-    const rl = readline.createInterface({
-        input: stream,
-        crlfDelay: Infinity
-    });
-    
-    let lineNumber = 0;
-    
-    for await (const line of rl) {
-        
-        // Do something with each line immediately
-        const shouldBreak = await processor(line, lineNumber);
-        lineNumber++;
-        
-        // Option to stop early
-        if (shouldBreak) {
-            break;
-        }
-    }
-    
-    console.log(`Processed ${lineNumber} lines`);
+export type Vn = {
+    i: number
+    line: string
+    sans: string[]
+    link: string
+    tp: Visual_CompositeNestedGraphNode[]
+    fp: Visual_CompositeNestedGraphNode[]
+    n: Visual_CompositeNestedGraphNode[]
 }
 
-export async function solve_in_lines(input_path: string, cb: (line: string, i: number) => Promise<boolean>) {
-    await processStreamLineByLine(fs.createReadStream(input_path), (line: string, i: number) => cb(line, i));
-}
+export type Coverage = Vn[]
