@@ -4,7 +4,7 @@ If you have read the first chapter of the book [Bobby Fischer Teaches Chess](htt
 
 We will talk with lists and numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read about it [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
 
-Be fore-warned that some errors and inaccurate information may be present in this article, while we rely on Gof Chess which is in a very early stage, so **Please Make Sure to Leave your Feedback** which is very important to us.
+Be fore-warned that some errors and inaccurate information may be present in this article, while we rely on Gof Chess which is in the early stage of development. So **Please Make Sure to Leave your Feedback** which is very important to us.
 
 As the nature of this post, while covering the numbers, we will skip some branching alternative numbers for the sake of the narrative, but they will also be covered as special cases in the end.
 
@@ -26,9 +26,9 @@ If opponent cannot capture our rook, and cannot block the check, it's a checkmat
 
 For this first part, The script is ran over the 4 million puzzles with a property that the backrank wall consists of any friendly pieces, and not just pawns. And one additional property that our rook was giving a check. It matched on total of 71.622 puzzles.
 
-On a second run, I ran the script over those matched, with the property that the backrank wall consists of only pawns, so 3 pawns in front of the king with the same color (instead of just any friendly piece). And 21.816 puzzles were filtered out, that is they included some other piece other than only pawns. So we are left with a total of 49.806 puzzles that we are interested in.
+On a second run, We ran the script over those that matched, with the property that the backrank wall consists of only pawns, so 3 pawns in front of the king with the same color (instead of just any friendly piece). And 21.816 puzzles were filtered out, that is they included some other piece other than only pawns. So we are left with a total of 49.806 puzzles that we are interested in.
 
-From now on we will keep filtering out those puzzles while discussing the filtered cases, until we have covered them all.
+From now on we will keep filtering out puzzles while discussing the filtered cases, until we have covered them all.
 
 5674 puzzles are Mate in 1 with a simple backrank checkmate which we described above.
 
@@ -36,7 +36,7 @@ So that leaves us with 44.124 puzzles left to talk about.
 
 ## B. Opponent can block the check
 
-20.098 puzzles involves our rook checking the king in the backrank, and opponent while cannot capture our rook, however can block the check with a rook, so it's not immediate checkmate.
+20.098 puzzles involves our rook checking the king in the backrank, and the opponent while cannot capture our rook, however can block the check with a rook, so it's not immediate checkmate.
 
 _Note that we are still left with 24.026 puzzles we haven't discussed yet. We will come to that later_
 
@@ -54,11 +54,15 @@ _2473 puzzles are remaining as another special case here_
 
 _And the remaining 1 puzzle is another special case._
 
-Out of those 41 puzzles, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check.s, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check.s, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check. We are up a rook and the puzzle ends.
+Out of those 41 puzzles, 33 of them ends without delivering a checkmate but after we capture the hanging rook, their bishop blocks the check. We are up a rook and the puzzle ends.
 
 The remaining 8 puzzles are instead of bishop blocking, either the queen blocks, or a knight blocks protected by the queen.
 
 ## C. Opponent can capture our rook
+
+
+## D. Special Cases
+
 
 
 ## The End
