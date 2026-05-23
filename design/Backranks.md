@@ -2,9 +2,9 @@
 
 If you have read the first chapter of the book [Bobby Fischer Teaches Chess](https://en.wikipedia.org/wiki/Bobby_Fischer_Teaches_Chess), you are familiar with the title. Bobby Fischer discusses different special cases of how a Backrank Mate can be present in real games. In this post we are going to start with the very basics and delve deeper into those different special cases. So that once we think about it, we can appreciate how the most basic checkmate can get so involved.
 
-We will talk with lists and numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
+We will talk with lists and numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read about it [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
 
-Be fore-warned that some errors or inaccurate information may be present in this article, while we rely on Gof Chess which is in a very early stage, so **Please Make Sure to Leave your Feedback ** which is very important to us.
+Be fore-warned that some errors and inaccurate information may be present in this article, while we rely on Gof Chess which is in a very early stage, so **Please Make Sure to Leave your Feedback** which is very important to us.
 
 As the nature of this post, while covering the numbers, we will skip some branching alternative numbers for the sake of the narrative, but they will also be covered as special cases in the end.
 
@@ -16,7 +16,7 @@ We can look for a backrank mate if the king is in a backrank wall. A backrank wa
 
 Next, our rook can check the king on the backrank.
 
-_Please note what we are **not** considering in the usual sense. King is only blocked by it's own pawns, not any other type of piece like a bishop or a knight. And we are not checking the king with a queen on the backrank but only with a rook_.
+_Please note **what** we are **not** considering for the sake of simplicity. King is only blocked by it's own pawns, not any other type of piece like a bishop or a knight. And we are not checking the king with a queen on the backrank but only with a rook_.
 
 At this point, we have to see what the opponent can do. The definition of a checkmate tells us, that king has no escape squares, the king is in check, and the check cannot be blocked.
 
