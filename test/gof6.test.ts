@@ -12,6 +12,10 @@ function categorize_run_with_cache() {
     let scripts_base_dir = import.meta.dirname + '/categofer_work/scripts'
     let logs_base_dir = import.meta.dirname + '/categofer_work/logs'
 
+    if (!fs.existsSync(logs_base_dir)) {
+        fs.mkdirSync(logs_base_dir)
+    }
+
     let res = fs.readdirSync(scripts_base_dir)
 
     let scripts = res.filter(_ => _.split('.')[1] === 'gof')
@@ -46,11 +50,15 @@ function categorize_run_with_cache() {
         let m = aa.match(/input=([^\s]*)/)
 
         if (m) {
-            let input_path = m[1]
+            let input_end_path = m[1]
 
+            let input_path = `data/${input_end_path}`
             if (!fs.existsSync(input_path)) {
-                console.warn(`Input File doesn't exist ${input_path} for ${script_path}`)
-                continue
+                input_path = `${logs_base_dir}/${input_end_path}`
+                if (!fs.existsSync(input_path)) {
+                    console.warn(`Input File doesn't exist ${input_path} for ${script_path}`)
+                    continue
+                }
             }
 
 
@@ -93,7 +101,7 @@ function make_gof_runner_categorize(script_path: string, input_path: string, out
 
     return () => {
 
-        let output_path = `${output_base_path}._output.text`
+        let output_path = `${output_base_path}._output.txt`
         cf_begin(output_path)
         cf_log(output_path, input_path)
         runner(gof_run, output_base_path, log_puzzles, skips_config, only_config)
@@ -189,10 +197,10 @@ function log_coverage(path: string, N: number, Fp: number, Tp: number, elapsed: 
 
 function log_trees(base_path: string, log_puzzles: Puzzle[], N: Vn[], Fp: Vn[], Tp: Vn[]) {
 
-    let path = `${base_path}._output.text`
-    let false_positives_path = `${base_path}._false_positives.txt`
-    let true_positives_path = `${base_path}._true_positives.txt`
-    let negatives_path = `${base_path}._negatives.txt`
+    let path = `${base_path}._output.txt`
+    let false_positives_path = `${base_path}._false_positives.input`
+    let true_positives_path = `${base_path}._true_positives.input`
+    let negatives_path = `${base_path}._negatives.input`
 
 
     cf_log(path, `----*** False Positives ****----`)

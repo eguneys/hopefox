@@ -1,4 +1,4 @@
-'input=test/categofer_work/backrank3._false_positives.txt
+'input=backrank3._false_positives.input
 ===
 
 if in_backrank_wall(king, pawn, pawn2, pawn3)

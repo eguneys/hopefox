@@ -1,0 +1,17 @@
+Time: 0.2ms per puzzle
+Coverage: %2 Accuracy: %61
+Tp/Fp: 17/11 N: 1432 Total: 1460
+-----******----
+273 https://lichess.org/training/0E1ni
+Solution: Bxe5+ Rf6 Bxf6#
+{ Bxe5+ }
+497 https://lichess.org/training/0PZyX
+Solution: Bd6+ g3 Bxc7
+{ Bd6+ }
+615 https://lichess.org/training/0VwrN
+Solution: gxh3 Bxe3+ Kh2
+{ Bg4+ }
+-----*****----
+Coverage: %2 Accuracy: %61
+Tp/Fp: 17/11 N: 1432 Total: 1460
+Time: 0.26ms per puzzle

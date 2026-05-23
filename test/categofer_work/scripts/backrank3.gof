@@ -1,4 +1,4 @@
-'input=data/a_hundred_puzzles.csv
+'input=a_hundred_puzzles.csv
 ===
 
 if in_backrank_wall(king, pawn, pawn2, pawn3) [win]
