@@ -2,9 +2,9 @@
 
 If you have read the first chapter of the book [Bobby Fischer Teaches Chess](https://en.wikipedia.org/wiki/Bobby_Fischer_Teaches_Chess), you are familiar with the title. Bobby Fischer discusses different special cases of how a Backrank Mate can be present in real games. In this post we are going to start with the very basics and delve deeper into those different special cases. So that once we think about it, we can appreciate how the most basic checkmate can get so involved.
 
-We will talk with lists and numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of Gof Chess Language which I developed and published a blog post about it which you can read about it [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
+We will talk with lists and numbers, by essentially data mining the Lichess Puzzle Database with over 4 million puzzles with the help of GofChess Language which I developed and published a blog post about it which you can read about it [here](https://lichess.org/@/heroku/blog/gofchess--a-technical-dive-into-formalization-of-chess-tactics/KULHdYDn).
 
-Be fore-warned that some errors and inaccurate information may be present in this article, while we rely on Gof Chess which is in the early stage of development. So **Please Make Sure to Leave your Feedback** which is very important to us.
+Be fore-warned that some errors and inaccurate information may be present in this article, while we rely on GofChess which is in the early stage of development. So **Please Make Sure to Leave your Feedback** which is very important to us.
 
 
 ## A. Anatomy of BackRank Mate in Ones
@@ -80,9 +80,11 @@ I was planning to narrate these findings, but then the tree structure emerged. W
      - Rook check is captured or blocked by a piece other than a rook (24.026)
 ```
 
+As you can see, a pattern is emerging here. We could go on further, but there is still some friction in the infrastructure of how the data is prepared here. Hopefully in the future, we can streamline this process much more efficiently, and derive even more delightful results.
+
 ## Notable Examples
 
-And for the fun part, we have composed some notable examples into a Lichess Study, whic you can access here.
+And for the fun part, we have composed some notable examples into a Lichess Study, which you can access [here](https://lichess.org/study/ikwmddX4/pun7VmGw).
 
 ## The End
 
