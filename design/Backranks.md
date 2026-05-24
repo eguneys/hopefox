@@ -6,9 +6,6 @@ We will talk with lists and numbers, by essentially data mining the Lichess Puzz
 
 Be fore-warned that some errors and inaccurate information may be present in this article, while we rely on Gof Chess which is in the early stage of development. So **Please Make Sure to Leave your Feedback** which is very important to us.
 
-As the nature of this post, while covering the numbers, we will skip some branching alternative numbers for the sake of the narrative, but they will also be covered as special cases in the end.
-
-Finally the full lists and numbers will be available as a spreadsheet and separate links at the end of this post. And some sample of the examples for each case will be provided as a separate Lichess study dedicated to it.
 
 ## A. Anatomy of BackRank Mate in Ones
 
@@ -58,12 +55,34 @@ Out of those 41 puzzles, 33 of them ends without delivering a checkmate but afte
 
 The remaining 8 puzzles are instead of bishop blocking, either the queen blocks, or a knight blocks protected by the queen.
 
-## C. Opponent can capture our rook
+## C. The Grand Unified Tree
 
+I was planning to narrate these findings, but then the tree structure emerged. Which you can see below in the most compact form.
 
-## D. Special Cases
+```
+- Total Puzzles (4.679.273)
+ - King is in backrank Wall by friendly pieces, and rook checks on the backrank (71.622)
+  - Backrank Wall contains pieces other than pawns (21.816)
+   - Backrank Wall only contains 3 forward pawns (49.806)
+    - Rook checks on the backrank delivers Mate in 1  (5674)
+    - Rook checks on the backrank the puzzle ends due to an obvious win (8)
+    - Rook check is blocked or captured (44.124)
+     - Rook check is blocked by their rook (20.098)
+      - Their rook after blocks is hanging otherwise has no defenders (19.741)
+       - Our rook captures their blocking rook which is hanging (17.268)
+        - It's checkmate, puzzle is a Mate in 2 (17.226)
+        - Puzzle continues (42)
+         - Their bishop blocks the second check (33)
+         - Their queen or knight protected by the queen blocks the check (8)
+         - Opponent can choose to get mated, but there are other options (1)
+       - 2473
+      - Their rook after blocks is not hanging otherwise defended by their pieces (357)
+     - Rook check is captured or blocked by a piece other than a rook (24.026)
+```
 
+## Notable Examples
 
+And for the fun part, we have composed some notable examples into a Lichess Study, whic you can access here.
 
 ## The End
 
