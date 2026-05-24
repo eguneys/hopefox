@@ -86,6 +86,8 @@ As you can see, a pattern is emerging here. We could go on further, but there is
 
 And for the fun part, we have composed some notable examples into a Lichess Study, which you can access [here](https://lichess.org/study/ikwmddX4/pun7VmGw).
 
+Finally the full list of all the puzzles we have mined can be accessed [here](https://github.com/eguneys/gofchess-fat/tree/main/backrank_mates).
+
 ## The End
 
 And That's about it for our little journey into the vast world of chess tactics. If you enjoyed this post, make sure to follow, like and leave a comment so I can continue posting more adventures like this.
